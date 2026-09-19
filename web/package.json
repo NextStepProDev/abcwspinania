@@ -1,0 +1,45 @@
+{
+  "name": "abcwspinania",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "NODE_OPTIONS=--no-deprecation next dev",
+    "build": "NODE_OPTIONS=--no-deprecation next build",
+    "start": "NODE_OPTIONS=--no-deprecation next start",
+    "lint": "eslint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "node --import ./scripts/test-resolver.mjs --test \"src/**/*.test.ts\"",
+    "payload": "NODE_OPTIONS=--no-deprecation payload",
+    "generate:types": "NODE_OPTIONS=--no-deprecation payload generate:types",
+    "generate:importmap": "NODE_OPTIONS=--no-deprecation payload generate:importmap",
+    "migrate:create": "NODE_OPTIONS=--no-deprecation payload migrate:create",
+    "migrate": "NODE_OPTIONS=--no-deprecation payload migrate"
+  },
+  "dependencies": {
+    "@payloadcms/db-postgres": "3.90.1",
+    "@payloadcms/next": "3.90.1",
+    "@payloadcms/richtext-lexical": "3.90.1",
+    "graphql": "^16.14.2",
+    "next": "16.3.5",
+    "payload": "3.90.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "sharp": "^0.35.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^26",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.5",
+    "prettier": "3.9.8",
+    "tailwindcss": "^4",
+    "typescript": "^6"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  }
+}

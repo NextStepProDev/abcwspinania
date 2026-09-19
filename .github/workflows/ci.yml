@@ -1,0 +1,142 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - web/**
+      - VERSION
+      - .github/workflows/ci.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - web/**
+      - VERSION
+      - .github/workflows/ci.yml
+
+# Anuluj nieaktualne biegi PR-ów, ale NIGDY biegu na main: każdy push może
+# podbić VERSION, a jego job docker musi zbudować i wypchnąć ten obraz —
+# inaczej deploy pobiera tag, którego nie ma. Pushe na main stają w kolejce.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  lint-typecheck-build:
+    # Architektura nie ma tu znaczenia — runnery x86 są tańsze i szybciej dostępne.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          # MUSI się zgadzać z `FROM node:<wersja>-alpine` w web/Dockerfile.
+          # Dependabot podbija tylko tam (ekosystem docker czyta Dockerfile'e),
+          # tej liczby nie rusza nikt. Przy następnym majorze zmienić OBA miejsca.
+          node-version: 26
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      # BLOKUJE. `--omit=dev` jest tu istotą rzeczy, a nie zawężeniem: obraz
+      # produkcyjny to `output: standalone`, więc trafiają do niego wyłącznie
+      # zależności produkcyjne. Bez tej flagi audyt zgłasza podatności w narzędziach
+      # deweloperskich (drizzle-kit, eslint), które nigdy nie opuszczają CI —
+      # i bramka musiałaby stać na `continue-on-error`, czyli nie pilnować niczego.
+      - name: npm audit (produkcyjne, high+)
+        run: npm audit --omit=dev --audit-level=high
+      # Typy Payloada są generowane z konfiguracji kolekcji i COMMITOWANE.
+      # Ten krok pilnuje, żeby nie rozjechały się z konfiguracją: jeśli ktoś
+      # zmienił pole i nie przegenerował typów, `git diff` to wyłapie tutaj,
+      # a nie na produkcji.
+      - name: Typy Payloada są aktualne
+        run: |
+          npm run generate:types
+          if ! git diff --quiet -- src/payload-types.ts; then
+            echo "BŁĄD: src/payload-types.ts nie odpowiada konfiguracji kolekcji."
+            echo "Uruchom 'npm run generate:types' i dołącz zmieniony plik do commita."
+            git diff -- src/payload-types.ts
+            exit 1
+          fi
+      - run: npm run lint
+      # Formatowanie jest maszynowe, więc nie ma o czym dyskutować w przeglądzie.
+      # `--check` nie zmienia plików, tylko wskazuje rozjazd.
+      - run: npm run format:check
+      - run: npx tsc --noEmit
+      - run: npm test
+      # Build celowo leci BEZ bazy danych — src/lib/content.ts łapie błąd
+      # połączenia i renderuje pusto. Gdyby to przestało działać, build padnie
+      # tutaj, a nie przy budowaniu obrazu na runnerze ARM.
+      - run: npm run build
+
+  docker:
+    needs: lint-typecheck-build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # ⚠️ RUNNER ARM. Produkcja stoi na Oracle Ampere A1, czyli aarch64. Obraz
+    # zbudowany na zwykłym ubuntu-latest jest amd64 i wstaje tam z
+    # "exec format error" — widocznym dopiero na serwerze, po deployu.
+    # Natywny runner ARM jest wielokrotnie szybszy niż emulacja QEMU.
+    # Gdyby runnery ARM były niedostępne dla tego repo: wróć na ubuntu-latest,
+    # dodaj `uses: docker/setup-qemu-action@v3` przed buildx i zostaw
+    # `platforms: linux/arm64` — zadziała, tylko dużo wolniej.
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - name: Read version
+        id: version
+        run: echo "version=$(cat VERSION)" >> "$GITHUB_OUTPUT"
+      # Referencja OCI musi być pisana małymi literami, a nazwa właściciela konta
+      # zawiera wielkie. metadata-action radzi sobie sama, ale Trivy dostaje
+      # nazwę wprost — liczymy ją raz, zamiast wpisywać na sztywno.
+      - name: Lowercase owner
+        id: owner
+        run: echo "lc=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v6
+        id: meta
+        with:
+          images: ghcr.io/${{ steps.owner.outputs.lc }}/abcwspinania
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=sha-
+            type=raw,value=${{ steps.version.outputs.version }},enable=${{ github.ref == 'refs/heads/main' }}
+      - uses: docker/build-push-action@v7
+        with:
+          context: web
+          platforms: linux/arm64
+          # SITE_URL to zmienna repozytorium, ustawiana raz po potwierdzeniu
+          # domeny; wpieka adres bazowy dla sitemap, robots i canonicali.
+          build-args: |
+            NEXT_PUBLIC_SITE_URL=${{ vars.SITE_URL || 'http://localhost:3000' }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      # Skan CVE w warstwie systemowej obrazu — tego npm audit nie widzi.
+      # Na razie informacyjnie (exit-code 0 nie blokuje deployu). `ignore-unfixed`
+      # ucina szum z podatności bez łatki. Gdy wyniki będą czyste, ustaw
+      # exit-code na 1, żeby high/critical wywalały build.
+      - name: Trivy image scan (high+)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ghcr.io/${{ steps.owner.outputs.lc }}/abcwspinania:${{ steps.version.outputs.version }}
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '0'
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}

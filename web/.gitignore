@@ -1,0 +1,29 @@
+# zależności
+/node_modules
+/.pnp
+.pnp.*
+
+# produkty budowania
+/.next/
+/out/
+/build
+*.tsbuildinfo
+next-env.d.ts
+
+# testy i pokrycie
+/coverage
+
+# środowisko
+.env
+.env*.local
+
+# różne
+.DS_Store
+*.pem
+npm-debug.log*
+yarn-error.log*
+.vercel
+
+# pliki wgrane lokalnie przez panel
+/uploads/*
+!/uploads/.gitkeep

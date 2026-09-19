@@ -1,0 +1,11 @@
+.next
+node_modules
+uploads
+package-lock.json
+# Migracje generuje Payload — formatowanie ich powodowałoby szum w diffach
+# przy każdej kolejnej i utrudniało porównanie z tym, co wygenerował CMS.
+src/migrations
+# Typy generowane z konfiguracji kolekcji — jak wyżej.
+src/payload-types.ts
+# Dokumentacja jest formatowana ręcznie, z rozmysłem co do łamania linii.
+*.md

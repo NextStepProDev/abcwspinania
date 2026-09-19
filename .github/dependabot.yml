@@ -1,0 +1,87 @@
+version: 2
+updates:
+  # --- Aplikacja (Next.js + Payload) ---
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    ignore:
+      # ESLint musi zostać na 9.x. `eslint-config-next` deklaruje peer
+      # `eslint >=9`, więc npm wpuszcza 10 bez ostrzeżenia, ale dociągnięty
+      # razem z nim `eslint-plugin-react` woła `context.getFilename()` —
+      # API usunięte w ESLint 10. Lint pada wtedy od razu na
+      # "Error while loading rule 'react/display-name'".
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
+      # TypeScript stoi na 6.x — to NAJNOWSZA wersja, która tu działa, nie zaległość.
+      # Zmierzone 19.09.2026:
+      #   • TS 6.0.3 → tsc, lint, test i build przechodzą KOMPLETEM. Stąd "^6".
+      #   • TS 7.0.2 → `npx tsc --noEmit` przechodzi czysto, ale `npm run lint`
+      #     pada twardo na "typescript-eslint does not support TS 7.0."
+      #     (typescript-eslint siedzi w drzewie eslint-config-next; wsparcie
+      #     śledzone dla TS >= 7.1 — typescript-eslint/typescript-eslint#10940).
+      # Blokada dotyczy WYŁĄCZNIE majora 7; wydania 6.x mają wchodzić normalnie.
+      # Odblokować, gdy typescript-eslint wypuści obsługę 7 — i wtedy ponowić
+      # te same cztery bramki przed scaleniem.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+    groups:
+      # WSZYSTKIE pakiety Payloada MUSZĄ iść w jednej wersji — `@payloadcms/next`
+      # deklaruje peer `payload` co do numeru, więc rozjazd wywala `npm ci`.
+      # Dlatego są przypięte dokładnie w package.json i podbijane jednym PR-em,
+      # nigdy osobno.
+      payload:
+        patterns:
+          - "payload"
+          - "@payloadcms/*"
+      # Next i jego konfiguracja ESLinta też chodzą parą.
+      next:
+        patterns:
+          - "next"
+          - "eslint-config-next"
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  # --- Akcje GitHub w workflowach CI/CD ---
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+
+  # --- Obraz bazowy w Dockerfile ---
+  # UWAGA: podbicie node:<wersja>-alpine wymaga RĘCZNEJ zmiany `node-version:`
+  # w .github/workflows/ci.yml. Dependabot tamtej liczby nie widzi.
+  - package-ecosystem: docker
+    directory: /web
+    schedule:
+      interval: monthly
+
+  # --- Obrazy w plikach compose (postgres, nginx) ---
+  # To ŚWIADOMIE osobne wpisy: ekosystem `docker` powyżej czyta wyłącznie
+  # Dockerfile'e, a pliki compose obsługuje u Dependabota inny ekosystem,
+  # `docker-compose`. Bez tych dwóch pozycji postgres i nginx nie dostają
+  # ŻADNYCH aktualizacji — w anovastudio nginx stał na 1.27, gdy było już 1.31.
+  #
+  # Blokada majorów Postgresa musi być w OBU wpisach. Oba compose montują trwały
+  # wolumen z danymi, a Postgres odmawia startu, gdy katalog założyła inna wersja
+  # główna ("database files are incompatible with server"). Podbicie majora to
+  # MIGRACJA DANYCH, więc sam merge PR-a kończy się bazą, która nie wstaje.
+  # Dev trzyma przy tym tę samą wersję co produkcja; rozjazd to testowanie
+  # na innym silniku bazy.
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: monthly
+    ignore:
+      - dependency-name: postgres
+        update-types: ["version-update:semver-major"]
+  - package-ecosystem: docker-compose
+    directory: /deploy
+    schedule:
+      interval: monthly
+    ignore:
+      - dependency-name: postgres
+        update-types: ["version-update:semver-major"]

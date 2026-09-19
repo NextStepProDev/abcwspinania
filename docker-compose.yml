@@ -1,0 +1,54 @@
+# Środowisko DEWELOPERSKIE — wyłącznie baza danych.
+#
+# Aplikację (Next.js z Payloadem w środku) uruchamiamy lokalnie przez
+# `npm run dev` — przeładowywanie kodu w kontenerze jest wolniejsze i myli
+# ścieżki. W kontenerze siedzi tylko to, czego nie chcemy instalować
+# na maszynie: Postgres.
+#
+# WERSJA GŁÓWNA POSTGRESA MUSI ODPOWIADAĆ PRODUKCJI (deploy/docker-compose.prod.yml).
+# Rozjazd tutaj oznacza testowanie na innym silniku bazy niż ten, który obsługuje
+# klienta. Major jest zablokowany w .github/dependabot.yml — w OBU wpisach compose.
+#
+# PORT HOSTA 5435. Rejestr portów w katalogu Projects (stan 19.09.2026):
+#   5432 → next-step-pro-climbing-hub, first-aid-kit-api
+#   5433 → fire-academy-hub, template_project, first-aid-kit-api (dev)
+#   5434 → anovastudio
+#   5435 → abcwspinania  ← ten projekt
+# Kolejny projekt bierze 5436. Bez tego rejestru dwa projekty naraz nie wstaną.
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: abcwspinania-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: abcwspinania
+      POSTGRES_USER: abcwspinania
+      # Hasło deweloperskie — świadomie trywialne i jawne. Baza słucha wyłącznie
+      # na 127.0.0.1, nie ma w niej danych klienta, a sekret w repo byłby gorszy
+      # niż jego brak. Produkcja bierze hasło z deploy/.env.
+      POSTGRES_PASSWORD: abcwspinania
+    ports:
+      # Tylko pętla zwrotna. Bez "127.0.0.1:" Docker otwiera port na WSZYSTKICH
+      # interfejsach, z pominięciem zapory hosta — baza deweloperska byłaby
+      # widoczna w sieci lokalnej (kawiarnia, hotel, coworking).
+      - "127.0.0.1:5435:5432"
+    volumes:
+      # UWAGA: punkt montowania to /var/lib/postgresql, NIE /var/lib/postgresql/data.
+      # Obrazy postgres:18+ przechowują dane w podkatalogu z numerem wersji głównej
+      # (/var/lib/postgresql/18/docker), żeby dało się użyć `pg_upgrade --link` bez
+      # przechodzenia przez granicę montowania. Wolumen podpięty pod stare
+      # /var/lib/postgresql/data sprawia, że kontener NIE WSTAJE — zgłasza
+      # "there appears to be PostgreSQL data in: /var/lib/postgresql/data
+      # (unused mount/volume)" i kończy się jako unhealthy.
+      # Sprawdzone na obrazie postgres:18-alpine 19.09.2026. Szczegóły:
+      # https://github.com/docker-library/postgres/pull/1259
+      - abcwspinania_pgdata_dev:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U abcwspinania -d abcwspinania"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  abcwspinania_pgdata_dev:

@@ -1,0 +1,72 @@
+@import 'tailwindcss';
+
+/* Paleta wyjściowa: wapień Jury i lina. Do zastąpienia po ustaleniu identyfikacji
+   wizualnej z klientem — celowo zebrana w jednym miejscu jako zmienne, żeby
+   podmiana nie oznaczała przechodzenia przez komponenty. */
+@theme {
+  --color-rock-50: #f7f5f1;
+  --color-rock-100: #ece7df;
+  --color-rock-300: #c4b8a6;
+  --color-rock-600: #6b6152;
+  --color-rock-900: #2a2620;
+  --color-rope: #c8552b;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background-color: var(--color-rock-50);
+  color: var(--color-rock-900);
+}
+
+/* Szanuj ustawienie systemowe — bez tego animacje wejścia sekcji potrafią
+   wywołać mdłości u osób wrażliwych na ruch. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Treść z edytora w CMS-ie. Świadomie bez wtyczki @tailwindcss/typography —
+   potrzebujemy pięciu reguł, a nie całego systemu typograficznego, i nie
+   chcemy kolejnej zależności do pilnowania przy podbiciach Tailwinda. */
+.tresc-bogata {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  line-height: 1.7;
+}
+.tresc-bogata h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-top: 1rem;
+}
+.tresc-bogata h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+.tresc-bogata ul,
+.tresc-bogata ol {
+  padding-left: 1.5rem;
+  list-style: revert;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+.tresc-bogata a {
+  color: var(--color-rope);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.tresc-bogata strong {
+  font-weight: 600;
+}

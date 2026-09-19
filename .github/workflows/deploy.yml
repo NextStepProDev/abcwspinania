@@ -1,0 +1,172 @@
+name: Deploy
+
+# Wyłącznie ręcznie. Wdrożenie na maszynę klienta nie ma się dziać samo przy
+# każdym merge'u — to decyzja, a nie skutek uboczny.
+# UWAGA: gdy zmienił się model treści, NAJPIERW uruchom workflow „Migrate",
+# dopiero potem ten. Deploy świadomie nie dotyka schematu bazy.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Opcjonalny tag obrazu (np. main, sha-abc1234). Puste = wersja z pliku VERSION.
+        required: false
+        default: ''
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Resolve deploy version
+        id: version
+        run: |
+          # Jedno źródło prawdy: plik VERSION w repo. Pole wejściowe nadpisuje je
+          # tylko na doraźne wdrożenia (np. konkretnego taga sha-).
+          if [ -n "${{ inputs.version }}" ]; then
+            VERSION="${{ inputs.version }}"
+          elif [ -f VERSION ]; then
+            VERSION=$(cat VERSION)
+          else
+            echo "BŁĄD: brak pola wejściowego i brak pliku VERSION." >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Wdrażam wersję: $VERSION"
+
+      - name: Encode config files
+        id: cfg
+        run: |
+          {
+            echo "compose=$(base64 -w 0 deploy/docker-compose.prod.yml)"
+            echo "nginx=$(base64 -w 0 deploy/nginx.conf)"
+            echo "swap=$(base64 -w 0 deploy/setup-swap.sh)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Deploy to production VM
+        uses: appleboy/ssh-action@v1
+        env:
+          COMPOSE_B64: ${{ steps.cfg.outputs.compose }}
+          NGINX_B64: ${{ steps.cfg.outputs.nginx }}
+          SWAP_B64: ${{ steps.cfg.outputs.swap }}
+          VERSION: ${{ steps.version.outputs.version }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          GHCR_OWNER: ${{ secrets.GHCR_OWNER }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: COMPOSE_B64,NGINX_B64,SWAP_B64,VERSION,DEPLOY_PATH,GHCR_OWNER
+          script: |
+            # Przerwij (czerwony deploy) przy PIERWSZYM błędzie — np. gdy
+            # `docker compose pull` trafi na nieistniejący tag. Bez tego skrypt
+            # leciał dalej, zostawiał stare kontenery i raportował sukces.
+            set -euo pipefail
+            echo "$COMPOSE_B64" | base64 -d > "$DEPLOY_PATH/docker-compose.prod.yml"
+            echo "$NGINX_B64"   | base64 -d > "$DEPLOY_PATH/nginx.conf"
+            # Swap musi istnieć, zanim wstaną kontenery (skrypt idempotentny).
+            echo "$SWAP_B64"    | base64 -d > "$DEPLOY_PATH/setup-swap.sh"
+            sudo -n bash "$DEPLOY_PATH/setup-swap.sh" || echo "UWAGA: konfiguracja swapu pominięta (sprawdź sudo bez hasła)"
+            cd "$DEPLOY_PATH"
+            # Utrwal rozwiązaną wersję w .env na serwerze, żeby późniejsze RĘCZNE
+            # `docker compose pull/up -d` użyło tego samego taga, a nie starego pinu.
+            if grep -q '^VERSION=' .env; then
+              sed -i "s/^VERSION=.*/VERSION=${VERSION}/" .env
+            else
+              echo "VERSION=${VERSION}" >> .env
+            fi
+
+            # ⚠️ SPRZĄTANIE MUSI IŚĆ PRZED PULLEM. Nowe obrazy nie mieszczą się
+            # na dysku obok wszystkich poprzednich, a pull przerwany na braku
+            # miejsca kończy deploy na czerwono — w anovie dokładnie tak padło,
+            # przy dysku zapchanym w 99% przez 58 nieużywanych obrazów.
+            # Nie ma tu `docker image prune -af --filter until=...`: przy magazynie
+            # containerd filtr przepuszcza obrazy OTAGOWANE i uzbierały się
+            # wszystkie wersje od początku projektu. Kasujemy jawnie, po tagach:
+            # zostają obrazy trzymane przez kontenery i KEEP najnowszych z każdego
+            # repozytorium — tyle zapasu, żeby ręczny rollback nie wymagał GHCR.
+            # `|| true` — sprzątanie nie ma prawa ubić deployu.
+            KEEP=2
+            IN_USE=$(docker ps -a --format '{{.Image}}' | sort -u)
+            for REPO in abcwspinania; do
+              docker images "ghcr.io/${GHCR_OWNER}/${REPO}" \
+                --filter 'dangling=false' \
+                --format '{{.CreatedAt}}\t{{.Repository}}:{{.Tag}}' \
+                | sort -r | tail -n +$((KEEP + 1)) | cut -f2 \
+                | while read -r IMG; do
+                    if ! printf '%s\n' "$IN_USE" | grep -qxF "$IMG"; then
+                      echo "sprzątanie: usuwam $IMG"
+                      docker rmi "$IMG" || true
+                    fi
+                  done
+            done
+            # Warstwy osierocone po usuniętych tagach (ten wariant, bez filtra, działa).
+            docker image prune -f || true
+            df -h / | tail -1
+
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d
+            # nginx.conf jest montowany z hosta, więc samo `up -d` go nie
+            # przeładuje, gdy tag obrazu się nie zmienił. Sprawdź i przeładuj jawnie.
+            docker compose -f docker-compose.prod.yml exec -T nginx nginx -t
+            docker compose -f docker-compose.prod.yml exec -T nginx nginx -s reload
+
+      - name: Verify deployment health
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            echo "Czekam, aż aplikacja zgłosi się jako zdrowa..."
+            for i in $(seq 1 16); do
+              APP=$(docker inspect --format='{{.State.Health.Status}}' abcwspinania-app-prod 2>/dev/null || echo "brak")
+              echo "Próba $i/16: app = $APP"
+              if [ "$APP" = "healthy" ]; then
+                echo "Wdrożenie potwierdzone."
+                exit 0
+              fi
+              sleep 15
+            done
+            echo "BŁĄD: aplikacja nie stała się zdrowa w ciągu 4 minut."
+            docker logs --tail 80 abcwspinania-app-prod || true
+            exit 1
+
+      - name: Smoke test public endpoints
+        # Wymaga zmiennej repozytorium SITE_URL (ustawianej po
+        # potwierdzeniu domeny); do tego czasu krok jest pomijany.
+        if: vars.SITE_URL != ''
+        run: |
+          # Wartość to lista akceptowalnych kodów HTTP rozdzielona spacjami.
+          # /api/kursy ma zwracać 200 nawet przy pustej kolekcji — publiczny
+          # odczyt jest zadeklarowany w KODZIE (access.read w src/collections),
+          # więc w odróżnieniu od poprzedniego CMS-a nie ma tu stanu „403 do
+          # czasu wyklikania uprawnień".
+          declare -A CHECKS=(
+            ["${{ vars.SITE_URL }}/"]=200
+            ["${{ vars.SITE_URL }}/robots.txt"]=200
+            ["${{ vars.SITE_URL }}/sitemap.xml"]=200
+            ["${{ vars.SITE_URL }}/api/kursy"]=200
+            ["${{ vars.SITE_URL }}/admin"]="200 302"
+          )
+          FAILED=0
+          for url in "${!CHECKS[@]}"; do
+            WANT="${CHECKS[$url]}"
+            CODE="000"
+            for attempt in 1 2 3; do
+              CODE=$(curl -sS -m 15 -o /dev/null -w "%{http_code}" "$url" || echo "000")
+              case " $WANT " in *" $CODE "*) break;; esac
+              echo "  ${url} -> HTTP ${CODE} (próba ${attempt}/3), ponawiam za 5 s..."
+              sleep 5
+            done
+            case " $WANT " in
+              *" $CODE "*) echo "OK   HTTP ${CODE}  ${url}" ;;
+              *) echo "PADŁ HTTP ${CODE} (oczekiwano ${WANT})  ${url}"; FAILED=1 ;;
+            esac
+          done
+          if [ "$FAILED" -ne 0 ]; then
+            echo "BŁĄD: co najmniej jeden publiczny adres nie odpowiada poprawnie."
+            exit 1
+          fi
+          echo "Smoke test zdany."

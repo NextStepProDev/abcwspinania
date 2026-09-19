@@ -1,0 +1,11 @@
+Copyright (c) 2026 Mateusz Nawratek
+
+Oprogramowanie wykonane na zamówienie dla ABC Wspinania.
+Wszelkie prawa zastrzeżone.
+
+Kod nie jest udostępniony na licencji otwartej. Kopiowanie, rozpowszechnianie,
+modyfikowanie ani wykorzystywanie go w całości lub w części wymaga pisemnej
+zgody autora.
+
+Zależności zewnętrzne pozostają na własnych licencjach — ich lista wraz
+z licencjami jest dostępna poleceniem `npx license-checker` w katalogu `web/`.

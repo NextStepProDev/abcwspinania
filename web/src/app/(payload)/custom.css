@@ -1,0 +1,11 @@
+/*
+ * Nadpisania wyglądu panelu Payloada.
+ *
+ * Celowo puste. Panel ma własny, spójny system wizualny i nie warto go
+ * rozjeżdżać bez powodu — a gdy przyjdzie moment na kolory ABC Wspinania,
+ * to jest miejsce, w którym się je wpisuje.
+ *
+ * UWAGA: layout.tsx w tym katalogu importuje TEN plik. Szablon Payloada
+ * w wersji v3.90.1 dostarcza `custom.scss`; zmieniliśmy import na `.css`,
+ * żeby nie dokładać pipeline'u SCSS dla jednego pustego arkusza.
+ */

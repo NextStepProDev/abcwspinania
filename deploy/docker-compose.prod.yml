@@ -1,0 +1,103 @@
+# Produkcja — Oracle Cloud, kształt Ampere A1 (aarch64).
+#
+# ⚠️ ARCHITEKTURA: Ampere A1 to ARM64. Obraz MUSI być zbudowany pod linux/arm64
+# (patrz .github/workflows/ci.yml — job docker leci na ubuntu-24.04-arm). Obraz
+# amd64 wstaje tu z "exec format error", widocznym dopiero na serwerze.
+#
+# JEDNA APLIKACJA. Payload działa wewnątrz Next.js, więc strona, panel i API to
+# ten sam proces — nie ma osobnego kontenera CMS-a ani subdomeny api.*.
+#
+# BUDŻET PAMIĘCI parametryzowany przez .env. Wartości domyślne zakładają CAŁĄ
+# darmową maszynę Ampere (2 OCPU / 12 GB):
+#     postgres 1g + app 2g + nginx 128m ≈ 3,2 GB
+# Dzielisz limit Ampere na dwie instancje? Odkomentuj profil w .env.example.
+
+services:
+  postgres:
+    # WERSJA GŁÓWNA musi się zgadzać z docker-compose.yml w korzeniu repo.
+    # Major zablokowany w .github/dependabot.yml — w OBU wpisach compose.
+    # Podbicie majora to MIGRACJA DANYCH, nie podmiana obrazu (patrz CLAUDE.md).
+    image: postgres:18-alpine
+    container_name: abcwspinania-postgres-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    # Publikacja WYŁĄCZNIE na pętli zwrotnej serwera. Baza nie jest widoczna
+    # z internetu; ten port istnieje po to, żeby workflow „Migrate" mógł się
+    # do niej dostać tunelem SSH i zastosować migracje. Bez "127.0.0.1:"
+    # Docker otworzyłby go na wszystkich interfejsach, OMIJAJĄC zaporę hosta.
+    ports:
+      - "127.0.0.1:5432:5432"
+    command: >
+      postgres
+      -c shared_buffers=256MB
+      -c effective_cache_size=768MB
+      -c work_mem=8MB
+      -c maintenance_work_mem=128MB
+      -c max_connections=40
+      -c random_page_cost=1.1
+    volumes:
+      # ⚠️ PUNKT MONTOWANIA TO /var/lib/postgresql, NIE /var/lib/postgresql/data.
+      # Obrazy postgres:18+ trzymają dane w podkatalogu z numerem wersji głównej
+      # (/var/lib/postgresql/18/docker). Przy starym punkcie kontener NIE WSTAJE:
+      # "there appears to be PostgreSQL data in: /var/lib/postgresql/data
+      # (unused mount/volume)". Sprawdzone na postgres:18-alpine 19.09.2026.
+      - abcwspinania_pgdata_prod:/var/lib/postgresql
+    mem_limit: ${POSTGRES_MEM_LIMIT:-1g}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [internal]
+
+  app:
+    image: ghcr.io/${GHCR_OWNER}/abcwspinania:${VERSION:-latest}
+    container_name: abcwspinania-app-prod
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      # Podpisuje tokeny sesji panelu. MUSI być inny niż lokalnie.
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET}
+      NODE_OPTIONS: "--max-old-space-size=1536"
+    volumes:
+      # Pliki wgrane przez panel. Punkt montowania zgodny z UPLOAD_DIR
+      # ustawionym w web/Dockerfile.
+      - abcwspinania_uploads_prod:/app/uploads
+      # Cache optymalizatora obrazów — nazwany wolumen, żeby przeżył restart
+      # kontenera; inaczej każde zdjęcie jest przeliczane od nowa.
+      - abcwspinania_image_cache_prod:/app/.next/cache
+    mem_limit: ${APP_MEM_LIMIT:-2g}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [internal]
+
+  nginx:
+    image: nginx:1.31-alpine
+    container_name: abcwspinania-nginx-prod
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+      - ./certbot-www:/var/www/certbot:ro
+    # 128m, nie 32m. W anovastudio nginx z limitem 32m dostawał OOM przy wysyłce
+    # 27 zdjęć naraz do biblioteki mediów; 64m to naprawiło.
+    mem_limit: ${NGINX_MEM_LIMIT:-128m}
+    depends_on: [app]
+    networks: [internal]
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  abcwspinania_pgdata_prod:
+  abcwspinania_uploads_prod:
+  abcwspinania_image_cache_prod:
