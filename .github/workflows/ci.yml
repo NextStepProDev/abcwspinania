@@ -147,3 +147,9 @@ jobs:
         env:
           TRIVY_USERNAME: ${{ github.actor }}
           TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          # ⚠️ BEZ TEGO KROK PADA. Trivy domyślnie szuka w indeksie obrazu
+          # wariantu linux/amd64, a my publikujemy WYŁĄCZNIE arm64 (produkcja
+          # to Oracle Ampere). Kończy się to błędem krytycznym:
+          #   "no child with platform linux/amd64 in index ..."
+          # `exit-code: 0` tego nie łagodzi — to awaria narzędzia, nie znalezisko.
+          TRIVY_PLATFORM: linux/arm64

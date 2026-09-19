@@ -80,6 +80,12 @@ i **widać to dopiero na serwerze, po deployu**. Gdyby runnery ARM okazały się
 niedostępne: wróć na `ubuntu-latest`, dodaj `docker/setup-qemu-action@v3`
 i zostaw `platforms: linux/arm64` — zadziała, tylko dużo wolniej.
 
+**Konsekwencja, o którą łatwo się potknąć drugi raz:** narzędzia, które pobierają
+obraz z rejestru, domyślnie proszą o `linux/amd64`. Skan Trivy w CI padał na
+`no child with platform linux/amd64 in index`, mimo `exit-code: 0` — bo to awaria
+narzędzia, a nie znalezisko. Stąd `TRIVY_PLATFORM: linux/arm64` w `ci.yml`.
+Dokładając cokolwiek, co ciągnie ten obraz, sprawdź, czy nie zakłada amd64.
+
 Weryfikacja lokalna (na Macu z Apple Silicon natywna i szybka):
 
 ```bash
