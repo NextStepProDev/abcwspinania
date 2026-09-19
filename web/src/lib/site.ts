@@ -24,7 +24,7 @@ export const CONTACT: {
   phone: string
   email: string
 } = {
-  /** Szkoła wspinaczki — dane z podstrony kontaktu starego serwisu. */
+  /** Dane rejestrowe szkoły. DO POTWIERDZENIA z klientem. */
   legalName: 'ABC Wspinania',
   street: 'Jurajska 47',
   postalCode: '42-421',

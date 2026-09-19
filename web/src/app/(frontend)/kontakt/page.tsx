@@ -38,9 +38,9 @@ export default function Kontakt() {
             <h2 id="adres" className="text-lg font-medium">
               Adres
             </h2>
-            {/* Adres w znaczniku <address> i w danych strukturalnych — stara
-                strona miała pełny adres pocztowy, ale ani jednego znacznika
-                ld+json, więc Google musiał go zgadywać z tekstu. */}
+            {/* Adres w znaczniku <address> i równolegle w danych
+                strukturalnych, żeby wyszukiwarka nie musiała go zgadywać
+                z samego tekstu. */}
             <address className="mt-2 not-italic leading-relaxed text-rock-600">
               {CONTACT.legalName}
               <br />
@@ -55,8 +55,7 @@ export default function Kontakt() {
               <h2 id="telefon-naglowek" className="text-lg font-medium">
                 Telefon
               </h2>
-              {/* Stara strona pisała „Zadzwoń", nie mając ANI JEDNEGO linku
-                  tel: — numeru nie dało się stuknąć na telefonie. */}
+              {/* Numer jako link tel: — na telefonie wystarczy stuknąć. */}
               <p className="mt-2">
                 <a href={tel} className="text-rope underline underline-offset-4">
                   {CONTACT.phone}

@@ -3,10 +3,9 @@ import type { CollectionConfig } from 'payload'
 /**
  * Wiadomości z formularza kontaktowego.
  *
- * Audyt starej strony wykazał, że podstrona kontaktu nie ma ŻADNEGO formularza
- * (`forms: 0, textInputs: 0, submits: 0`), a adres e-mail pojawia się dopiero po
- * uruchomieniu JavaScriptu. Każde zapytanie wymagało więc od odwiedzającego
- * przepisania adresu ręcznie — i część z nich po prostu nie powstawała.
+ * Formularz zamiast samego adresu e-mail na stronie: adres trzeba przepisać
+ * ręcznie, a formularz wypełnia się na miejscu. Część zapytań powstaje tylko
+ * wtedy, gdy nie wymaga to od nikogo dodatkowego kroku.
  *
  * Wiadomości lądują W BAZIE, a nie w mailu. To świadome: adaptera e-mail jeszcze
  * nie ma (Brevo to osobny etap), a zapis do bazy działa od pierwszego dnia

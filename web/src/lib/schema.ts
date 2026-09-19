@@ -4,10 +4,8 @@ import { BRAND, CONTACT, SITE_URL } from '@/lib/site'
 /**
  * Dane strukturalne schema.org.
  *
- * Audyt starego serwisu wykazał ZERO znaczników ld+json — mimo pełnego adresu
- * pocztowego na stronie kontaktu, cennika i opinii. Dla firmy działającej
- * lokalnie to najtańsza rzecz, jaką da się zrobić dla widoczności w wyszukiwarce
- * i mapach, więc wchodzi od pierwszego dnia.
+ * Dla firmy działającej lokalnie to najtańsza rzecz, jaką da się zrobić dla
+ * widoczności w wyszukiwarce i w mapach, więc wchodzi od pierwszego dnia.
  *
  * Typ `SportsActivityLocation` jest węższy niż `LocalBusiness` i trafniejszy dla
  * szkoły wspinaczki. Pola kontaktowe doklejane warunkowo — Google woli brak pola

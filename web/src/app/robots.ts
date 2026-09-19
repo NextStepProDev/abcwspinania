@@ -8,9 +8,9 @@ import { SITE_URL } from '@/lib/site'
  * `/robots.txt` znika z manifestu bez błędu i bez ostrzeżenia. `sitemap.ts`
  * w tym samym katalogu działa normalnie.
  *
- * Stara strona blokowała katalog /images/, przez co ani jedno zdjęcie ze
- * ścianki nie mogło trafić do Google Grafiki. Tu blokujemy wyłącznie to,
- * co nie ma prawa być w wynikach wyszukiwania.
+ * Blokujemy wyłącznie to, co nie ma prawa być w wynikach wyszukiwania.
+ * W szczególności NIE blokujemy katalogu ze zdjęciami — mają trafiać
+ * do Google Grafiki.
  */
 export default function robots(): MetadataRoute.Robots {
   return {

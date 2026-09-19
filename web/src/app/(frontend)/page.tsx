@@ -39,8 +39,8 @@ export default async function Home() {
             Napisz do nas
           </Link>
           {tel && (
-            // Stara strona pisała „Zadzwoń", nie mając ANI JEDNEGO linku tel: —
-            // numeru nie dało się stuknąć na telefonie.
+            // Numer jako link tel: — na telefonie wystarczy stuknąć.
+            // Renderowany tylko wtedy, gdy numer jest uzupełniony.
             <a
               href={tel}
               className="inline-block rounded-md border border-rock-300 px-5 py-3 font-medium"

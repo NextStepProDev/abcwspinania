@@ -13,9 +13,7 @@ Rzędkowice · Jura Krakowsko-Częstochowska · Polish-language site
 
 ---
 
-> **Status: in development.** The new site is not live yet — `abcwspinania.info`
-> still serves the school's previous website. This repository is the replacement
-> being built for it.
+> **Status: in development.** Not deployed yet.
 
 ## What this is
 
@@ -24,12 +22,6 @@ on rock. This is its new online home: a place where someone thinking about their
 first course can find out what it involves, what it costs, and who will be holding
 the other end of the rope — and then reach the school in one step, without copying
 an email address by hand.
-
-The school's previous site had quietly become a liability. It ran on software that
-stopped receiving security updates in 2023, its contact page offered no way to get
-in touch beyond an address the visitor had to retype, and a search engine could not
-tell what the business was or where it operated. Rebuilding it was not a matter of
-taste.
 
 Everything lives in **one application**: the public site and the panel the school
 uses to run it are the same thing. There is no second system to log into and
@@ -58,8 +50,7 @@ nothing to keep in sync by hand.
   alongside each enquiry, not a silent yes — so it stays clear what any given
   person actually agreed to, even after the wording changes.
 - **Readable by search engines and by people sharing links.** Structured business
-  data, a sitemap that keeps itself current, and proper previews on social media —
-  all of it missing from the old site entirely.
+  data, a sitemap that keeps itself current, and proper previews on social media.
 - **Usable without a mouse.** Skip link, labelled fields, errors announced to
   screen readers, and motion reduced for anyone whose system asks for it.
 

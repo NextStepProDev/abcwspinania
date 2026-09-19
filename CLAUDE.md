@@ -1,8 +1,7 @@
 # abcwspinania — zasady projektu
 
 Strona i system dla szkoły wspinaczkowej **ABC Wspinania** (Jura
-Krakowsko-Częstochowska). Zastępuje serwis na Joomli 3.9.28 — wersji bez wsparcia
-producenta od 17.08.2023.
+Krakowsko-Częstochowska).
 
 Ten plik niesie **decyzje i ich powody**, w tym wnioski z błędów popełnionych
 wcześniej w `anovastudio`. Każda reguła poniżej kosztowała kogoś czas — zanim
@@ -290,7 +289,7 @@ pipeline'u SCSS dla jednego pustego arkusza.
    Googlebot nie klika w rozwijane sekcje.
 10. **Fonty z podzbiorem `latin-ext`** — inaczej polskie znaki diakrytyczne lecą
     na krój zapasowy i tekst rozjeżdża się w środku wyrazu.
-11. **Dokładnie jeden `<h1>` na stronę.** Podstrony starego serwisu nie miały go wcale.
+11. **Dokładnie jeden `<h1>` na stronę** — wymóg, nie preferencja.
 12. **Unikalne identyfikatory filtrów SVG** — duplikaty `id` między komponentami
     sprawiają, że jeden filtr nadpisuje drugi.
 13. `public/images` i `public/logo` dostają tydzień cache **bez `immutable`** —

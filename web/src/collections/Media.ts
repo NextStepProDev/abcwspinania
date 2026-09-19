@@ -5,9 +5,8 @@ import type { CollectionConfig } from 'payload'
 /**
  * Biblioteka mediów — odpowiednik Media Library ze Strapiego.
  *
- * `alt` jest WYMAGANY. Audyt starego serwisu wykazał zdjęcia bez opisu
- * alternatywnego; wymuszenie go tutaj oznacza, że nie da się wgrać zdjęcia
- * bez opisu, zamiast liczyć na to, że ktoś pamięta.
+ * `alt` jest WYMAGANY — wymuszony na poziomie modelu, więc nie da się wgrać
+ * zdjęcia bez opisu. Liczenie na to, że ktoś pamięta, nie działa.
  */
 export const Media: CollectionConfig = {
   slug: 'media',

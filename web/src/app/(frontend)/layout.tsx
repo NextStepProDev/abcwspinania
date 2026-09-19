@@ -90,8 +90,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         </footer>
 
         {/* Dane strukturalne w layoucie, więc są na KAŻDEJ podstronie.
-            Stara strona nie miała ich nigdzie — mimo pełnego adresu pocztowego,
-            cennika i opinii. */}
+            Dla firmy działającej lokalnie to najtańsza rzecz, jaką da się zrobić
+            dla widoczności w wyszukiwarce i w mapach. */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: jsonLd(organizationSchema()) }}
