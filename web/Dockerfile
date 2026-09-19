@@ -22,11 +22,13 @@ ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 ENV NODE_OPTIONS=--no-deprecation
 # NIE JEST TO SEKRET. Payload odmawia startu bez PAYLOAD_SECRET, a `next build`
 # wczytuje jego konfigurację. Budowanie nie wydaje tokenów sesji, więc wartość
-# nie ma znaczenia. KLUCZOWE: to etap `build` — zmienne środowiskowe NIE
-# przechodzą do etapu `runner` poniżej, więc obraz końcowy tego nie niesie
-# i bez prawdziwego sekretu z compose po prostu nie wstanie.
-ENV PAYLOAD_SECRET=nie-jest-sekretem-tylko-placeholder-dla-budowania
-RUN npm run build
+# nie ma znaczenia.
+#
+# Zmienna JEDNEGO POLECENIA, nie `ENV`. Dwa powody: nie zostaje w metadanych
+# warstwy, a `ENV PAYLOAD_SECRET=...` wywołuje ostrzeżenie buildkita
+# SecretsUsedInArgOrEnv — które tu byłoby fałszywym alarmem, ale przy kolejnym
+# ostrzeżeniu nikt by już nie patrzył.
+RUN PAYLOAD_SECRET=placeholder-tylko-do-budowania npm run build
 
 FROM node:26-alpine AS runner
 WORKDIR /app
