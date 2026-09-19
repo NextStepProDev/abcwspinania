@@ -30,6 +30,13 @@ jobs:
     # Architektura nie ma tu znaczenia — runnery x86 są tańsze i szybciej dostępne.
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      # NIE JEST TO SEKRET. Payload odmawia startu bez PAYLOAD_SECRET (patrz
+      # requireSecret w web/src/payload.config.ts), a generowanie typów i build
+      # muszą wczytać konfigurację. Żaden z tych kroków nie wydaje tokenów sesji
+      # ani nie dotyka bazy, więc wartość nie ma znaczenia — istotne jest tylko,
+      # żeby PRAWDZIWY sekret nigdy nie musiał tu trafić.
+      PAYLOAD_SECRET: nie-jest-sekretem-tylko-placeholder-dla-ci
     defaults:
       run:
         working-directory: web

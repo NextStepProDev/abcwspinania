@@ -16,17 +16,25 @@ const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 /**
- * Sekret podpisuje tokeny sesji panelu. Payload przyjmuje pusty ciąg bez
- * protestu, więc literówka w nazwie zmiennej dałaby DZIAŁAJĄCĄ aplikację
- * z bezwartościowymi tokenami. Wolimy, żeby proces nie wstał.
+ * Sekret podpisuje tokeny sesji panelu. Payload przyjmuje pusty ciąg BEZ
+ * PROTESTU, więc literówka w nazwie zmiennej dałaby działającą aplikację
+ * z bezwartościowymi tokenami — i nikt by się nie zorientował. Wolimy, żeby
+ * proces nie wstał.
  *
- * Wyjątek dla `next build`: build nie tworzy sesji, a wymuszanie sekretu na tym
- * etapie oznaczałoby trzymanie go w CI bez powodu.
+ * Brak tu wyjątku dla budowania. Wcześniejsza wersja rozpoznawała fazę po
+ * wewnętrznej zmiennej Next-a (`NEXT_PHASE`), co (a) opierało się na szczególe
+ * implementacyjnym cudzego narzędzia i (b) i tak nie obejmowało `payload
+ * generate:types` — CI wywalił się na tym przy pierwszym uruchomieniu.
+ *
+ * Zamiast zgadywać: etapy, które NIE wydają sesji (budowanie obrazu,
+ * generowanie typów w CI), dostają jawny placeholder ustawiony na miejscu,
+ * z komentarzem dlaczego. Placeholder z etapu `build` w Dockerfile NIE trafia
+ * do obrazu końcowego — to osobny etap `FROM`, a zmienne środowiskowe nie
+ * przechodzą między etapami.
  */
 function requireSecret(): string {
   const secret = process.env.PAYLOAD_SECRET
   if (secret) return secret
-  if (process.env.NEXT_PHASE === 'phase-production-build') return 'build-time-placeholder'
   throw new Error(
     'Brak PAYLOAD_SECRET. Wygeneruj: openssl rand -base64 32 — i ustaw w .env (lokalnie) ' +
       'albo w deploy/.env (produkcja).',

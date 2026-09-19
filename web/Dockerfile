@@ -20,6 +20,12 @@ ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 # łapie błąd połączenia i renderuje pusto — dzięki temu obraz da się zbudować
 # w CI bez stawiania Postgresa. Zachowanie sprawdzane przy każdym buildzie.
 ENV NODE_OPTIONS=--no-deprecation
+# NIE JEST TO SEKRET. Payload odmawia startu bez PAYLOAD_SECRET, a `next build`
+# wczytuje jego konfigurację. Budowanie nie wydaje tokenów sesji, więc wartość
+# nie ma znaczenia. KLUCZOWE: to etap `build` — zmienne środowiskowe NIE
+# przechodzą do etapu `runner` poniżej, więc obraz końcowy tego nie niesie
+# i bez prawdziwego sekretu z compose po prostu nie wstanie.
+ENV PAYLOAD_SECRET=nie-jest-sekretem-tylko-placeholder-dla-budowania
 RUN npm run build
 
 FROM node:26-alpine AS runner
