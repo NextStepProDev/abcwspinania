@@ -3,6 +3,13 @@
 Strona i system dla szkoły wspinaczkowej **ABC Wspinania** (Jura
 Krakowsko-Częstochowska).
 
+> **Kod jest jawny, ale nie otwarty.** Repozytorium jest publiczne, żeby dało się
+> zajrzeć, jak to zrobiono — nie po to, żeby z niego korzystać. Oprogramowanie
+> powstało na zamówienie i wszelkie prawa są zastrzeżone (patrz [LICENSE](./LICENSE)).
+> Nie przyjmujemy zgłoszeń ani pull requestów z zewnątrz.
+> Luki bezpieczeństwa zgłaszaj zgodnie z [SECURITY.md](./.github/SECURITY.md) —
+> **nie przez publiczne issue**.
+
 | | |
 |---|---|
 | `web/` | Next.js 16 + **Payload 3** — strona, panel i API w jednej aplikacji |
