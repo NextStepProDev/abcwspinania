@@ -68,6 +68,8 @@ export interface Config {
   blocks: {};
   collections: {
     kursy: Kursy;
+    obozy: Obozy;
+    terminy: Terminy;
     media: Media;
     wiadomosci: Wiadomosci;
     users: User;
@@ -79,6 +81,8 @@ export interface Config {
   collectionsJoins: {};
   collectionsSelect: {
     kursy: KursySelect<false> | KursySelect<true>;
+    obozy: ObozySelect<false> | ObozySelect<true>;
+    terminy: TerminySelect<false> | TerminySelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     wiadomosci: WiadomosciSelect<false> | WiadomosciSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
@@ -175,6 +179,84 @@ export interface Kursy {
    */
   order?: number | null;
   /**
+   * Na jednego instruktora. Przepisy PZA dopuszczają najwyżej 4 przy kursach skalnych.
+   */
+  grupaMax?: number | null;
+  /**
+   * Np. „Rzędkowice” albo „Jura, rejon dobierany do grupy”.
+   */
+  miejsce?: string | null;
+  /**
+   * Np. „zaświadczenie PZA”. Puste = nie pokazujemy tej pozycji.
+   */
+  certyfikat?: string | null;
+  /**
+   * Wymagania wstępne i do kogo kurs jest kierowany.
+   */
+  dlaKogo?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Zostaw puste, jeśli kurs nie ma sztywnego podziału na dni.
+   */
+  program?:
+    | {
+        /**
+         * Np. „Dzień 1”. Puste = policzymy numer automatycznie.
+         */
+        etykieta?: string | null;
+        tytul: string;
+        opis?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  wCenie?:
+    | {
+        pozycja: string;
+        id?: string | null;
+      }[]
+    | null;
+  pozaCena?:
+    | {
+        pozycja: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Realny cennik ma warianty (inny rejon, tryb weekendowy, mniejsza grupa). Jeśli dodasz choć jeden, zaznacz też „Pokaż jako od tej kwoty” wyżej.
+   */
+  warianty?:
+    | {
+        nazwa: string;
+        cena?: number | null;
+        opis?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  faq?:
+    | {
+        pytanie: string;
+        odpowiedz: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Na stronę /en. Puste = pokażemy nazwę polską.
+   */
+  tytulEn?: string | null;
+  /**
    * Dokłada wyróżnioną odznakę na kaflu. Sensownie: jeden kurs.
    */
   wyrozniony?: boolean | null;
@@ -214,6 +296,142 @@ export interface Media {
       filename?: string | null;
     };
   };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "obozy".
+ */
+export interface Obozy {
+  id: number;
+  /**
+   * Obozy pokazują się osobno, wyjazdy i zajęcia w sekcji „Poza obozami”.
+   */
+  typ: 'oboz' | 'wyjazd' | 'zajecia';
+  title: string;
+  /**
+   * Fragment adresu, np. „oboz-mlodziezowy”. Bez polskich znaków.
+   */
+  slug: string;
+  /**
+   * Na kafel. Dwa–trzy zdania.
+   */
+  summary?: string | null;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  wiekOd?: number | null;
+  /**
+   * Puste przy obu polach = brak ograniczeń wieku.
+   */
+  wiekDo?: number | null;
+  /**
+   * Odpowiednik oznaczeń R i Z używanych w nazwach turnusów.
+   */
+  poziom?: ('rekreacyjny' | 'zaawansowany') | null;
+  /**
+   * Puste znaczy „wycena indywidualna”.
+   */
+  cena?: number | null;
+  cenaOd?: boolean | null;
+  /**
+   * Np. „/ mies.” przy zajęciach cyklicznych. Zwykle puste.
+   */
+  jednostkaCeny?: string | null;
+  /**
+   * Opisowo, np. „8 dni” albo „1,5 h tygodniowo”.
+   */
+  czas?: string | null;
+  grupaMax?: number | null;
+  miejsce?: string | null;
+  nocleg?: boolean | null;
+  wyzywienie?: boolean | null;
+  atrakcje?:
+    | {
+        pozycja: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Dotyczy obozów. Przy wyjazdach zwykle puste.
+   */
+  planDnia?:
+    | {
+        godzina: string;
+        tytul: string;
+        opis?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Używana w sekcji „Poza obozami”, gdy nie ma zdjęcia.
+   */
+  ikona?: ('gory' | 'ludzie' | 'dom' | 'tarcza') | null;
+  cover?: (number | null) | Media;
+  /**
+   * Mniejsza liczba = wyżej na liście.
+   */
+  order?: number | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * Kalendarz kursów i obozów. Najbliższe terminy są u góry.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "terminy".
+ */
+export interface Terminy {
+  id: number;
+  /**
+   * Składany automatycznie z dat i nazwy — służy tylko do rozpoznania wpisu.
+   */
+  etykieta?: string | null;
+  /**
+   * Wypełnij ALBO to pole, ALBO „Obóz lub wyjazd” — nie oba naraz.
+   */
+  kurs?: (number | null) | Kursy;
+  oboz?: (number | null) | Obozy;
+  dataOd: string;
+  /**
+   * Puste przy zajęciach jednodniowych.
+   */
+  dataDo?: string | null;
+  /**
+   * Np. „Rzędkowice”. Puste = weźmiemy miejsce z kursu lub obozu.
+   */
+  miejsce?: string | null;
+  /**
+   * Puste = cena z kursu lub obozu. Wypełnij tylko przy odstępstwie.
+   */
+  cena?: number | null;
+  limitMiejsc?: number | null;
+  /**
+   * Zmniejsz po każdym zapisie. Puste = strona napisze „zapytaj o miejsca”.
+   */
+  wolneMiejsca?: number | null;
+  /**
+   * Odwołane i zakończone znikają ze strony, ale zostają w panelu.
+   */
+  status: 'otwarty' | 'brak-miejsc' | 'odwolany' | 'zakonczony';
+  /**
+   * Np. „wariant weekendowy” albo „grupa w tygodniu”.
+   */
+  uwagi?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * Zgłoszenia z formularza na stronie. Nowe są u góry.
@@ -296,6 +514,14 @@ export interface PayloadLockedDocument {
         value: number | Kursy;
       } | null)
     | ({
+        relationTo: 'obozy';
+        value: number | Obozy;
+      } | null)
+    | ({
+        relationTo: 'terminy';
+        value: number | Terminy;
+      } | null)
+    | ({
         relationTo: 'media';
         value: number | Media;
       } | null)
@@ -363,11 +589,112 @@ export interface KursySelect<T extends boolean = true> {
   duration?: T;
   level?: T;
   order?: T;
+  grupaMax?: T;
+  miejsce?: T;
+  certyfikat?: T;
+  dlaKogo?: T;
+  program?:
+    | T
+    | {
+        etykieta?: T;
+        tytul?: T;
+        opis?: T;
+        id?: T;
+      };
+  wCenie?:
+    | T
+    | {
+        pozycja?: T;
+        id?: T;
+      };
+  pozaCena?:
+    | T
+    | {
+        pozycja?: T;
+        id?: T;
+      };
+  warianty?:
+    | T
+    | {
+        nazwa?: T;
+        cena?: T;
+        opis?: T;
+        id?: T;
+      };
+  faq?:
+    | T
+    | {
+        pytanie?: T;
+        odpowiedz?: T;
+        id?: T;
+      };
+  tytulEn?: T;
   wyrozniony?: T;
   cover?: T;
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "obozy_select".
+ */
+export interface ObozySelect<T extends boolean = true> {
+  typ?: T;
+  title?: T;
+  slug?: T;
+  summary?: T;
+  description?: T;
+  wiekOd?: T;
+  wiekDo?: T;
+  poziom?: T;
+  cena?: T;
+  cenaOd?: T;
+  jednostkaCeny?: T;
+  czas?: T;
+  grupaMax?: T;
+  miejsce?: T;
+  nocleg?: T;
+  wyzywienie?: T;
+  atrakcje?:
+    | T
+    | {
+        pozycja?: T;
+        id?: T;
+      };
+  planDnia?:
+    | T
+    | {
+        godzina?: T;
+        tytul?: T;
+        opis?: T;
+        id?: T;
+      };
+  ikona?: T;
+  cover?: T;
+  order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "terminy_select".
+ */
+export interface TerminySelect<T extends boolean = true> {
+  etykieta?: T;
+  kurs?: T;
+  oboz?: T;
+  dataOd?: T;
+  dataDo?: T;
+  miejsce?: T;
+  cena?: T;
+  limitMiejsc?: T;
+  wolneMiejsca?: T;
+  status?: T;
+  uwagi?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

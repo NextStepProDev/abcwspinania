@@ -37,7 +37,9 @@ export function Przycisk({
   className?: string
 } & Omit<React.ComponentProps<typeof Link>, 'href' | 'children' | 'className'>) {
   const rozmiar = duzy ? 'px-7 py-4 text-[17px]' : 'px-5 py-2.5 text-[15px]'
-  const klasy = `inline-flex items-center justify-center gap-2.5 rounded-lg font-semibold transition-colors ${rozmiar} ${WARIANTY[wariant]} ${className}`
+  // `whitespace-nowrap`: etykiety przycisków są krótkie i złamane w połowie
+  // („Zapisz\nsię") wyglądają na błąd układu, a nie na zamierzony zawijas.
+  const klasy = `inline-flex items-center justify-center gap-2.5 whitespace-nowrap rounded-lg font-semibold transition-colors ${rozmiar} ${WARIANTY[wariant]} ${className}`
 
   // Linki zewnętrzne i `tel:` nie przechodzą przez router Next-a — <Link> na
   // nich robi tylko szum w konsoli i psuje zachowanie na telefonie.

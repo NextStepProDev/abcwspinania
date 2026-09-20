@@ -1,11 +1,19 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 
-import { getCourses, getStronaGlowna, getUstawienia, telHref, asImage } from '@/lib/content'
+import {
+  getCourses,
+  getStronaGlowna,
+  getUpcomingTerms,
+  getUstawienia,
+  telHref,
+  asImage,
+} from '@/lib/content'
 import { latOd } from '@/lib/format'
 import { pageMetadata } from '@/lib/seo'
 import { IKONY_WYBIERALNE, type NazwaIkony } from '@/components/Ikony'
 import { KafelKursu } from '@/components/KafelKursu'
+import { TabelaTerminow } from '@/components/Terminy'
 import { TloGorskie } from '@/components/TloGorskie'
 import { Przycisk, Odznaka, NaglowekSekcji, Kontener, MiejsceNaZdjecie } from '@/components/Ui'
 
@@ -23,9 +31,10 @@ export function generateMetadata(): Metadata {
 export default async function Home() {
   // Trzy niezależne zapytania — równolegle, bo szeregowo dołożyłyby sobie
   // czasy nawzajem, a żadne nie potrzebuje wyniku pozostałych.
-  const [tresc, kursy, ustawienia] = await Promise.all([
+  const [tresc, kursy, terminy, ustawienia] = await Promise.all([
     getStronaGlowna(),
     getCourses(),
+    getUpcomingTerms(4),
     getUstawienia(),
   ])
   const tel = telHref(ustawienia)
@@ -173,6 +182,20 @@ export default async function Home() {
                 )
               })()}
             </div>
+          </Kontener>
+        </section>
+      )}
+
+      {/* --- Najbliższe terminy --- */}
+      {terminy.length > 0 && (
+        <section className="pb-16 lg:pb-24">
+          <Kontener>
+            <NaglowekSekcji
+              tytul="Najbliższe terminy"
+              link="/terminarz"
+              etykietaLinku="Pełny terminarz"
+            />
+            <TabelaTerminow terminy={terminy} />
           </Kontener>
         </section>
       )}

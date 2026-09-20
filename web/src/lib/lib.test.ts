@@ -8,6 +8,11 @@ import {
   latOd,
   odmien,
   formatWolneMiejsca,
+  formatZakresDat,
+  formatZakresKrotki,
+  nazwaMiesiaca,
+  grupujPoMiesiacach,
+  formatWiek,
 } from '@/lib/format'
 import { jsonLd, organizationSchema } from '@/lib/schema'
 import type { Ustawienia } from '@/payload-types'
@@ -74,6 +79,65 @@ test('brak miejsc to komunikat, a nie „0 wolnych"', () => {
   assert.equal(formatWolneMiejsca(5), '5 wolnych')
   // Nieustawiony limit to co innego niż limit wyczerpany.
   assert.equal(formatWolneMiejsca(null), 'zapytaj o miejsca')
+})
+
+// --- daty i terminy ---------------------------------------------------------
+
+test('zakres dat skraca to, co się powtarza', () => {
+  // Ten sam miesiąc: miesiąc i rok tylko raz.
+  assert.equal(formatZakresDat('2026-05-04', '2026-05-09'), '4–9 maja 2026')
+  // Różne miesiące, ten sam rok: rok tylko raz.
+  assert.equal(formatZakresDat('2026-05-30', '2026-06-04'), '30 maja – 4 czerwca 2026')
+  // Przełom roku: obie daty pełne, bo obie liczby coś znaczą.
+  assert.equal(formatZakresDat('2026-12-28', '2027-01-03'), '28 grudnia 2026 – 3 stycznia 2027')
+})
+
+test('zakres dat używa dopełniacza, nie mianownika', () => {
+  // Intl.formatRange() zwróciłby „4 maj", co po polsku jest błędem — stąd
+  // ręczna tablica miesięcy zamiast gotowca.
+  assert.match(formatZakresDat('2026-05-04', '2026-05-09'), /maja/)
+  assert.ok(!formatZakresDat('2026-05-04', '2026-05-09').includes('maj '))
+})
+
+test('brak daty końcowej daje jedną datę, nie pusty zakres', () => {
+  assert.equal(formatZakresDat('2026-05-16'), '16 maja 2026')
+  assert.equal(formatZakresDat('2026-05-16', null), '16 maja 2026')
+})
+
+test('niepoprawna data nie wywraca renderowania', () => {
+  assert.equal(formatZakresDat('bzdura'), '')
+  assert.equal(nazwaMiesiaca('bzdura'), '')
+})
+
+test('krótki zapis obcina rok tylko wtedy, gdy występuje raz', () => {
+  assert.equal(formatZakresKrotki('2026-05-04', '2026-05-09'), '4–9 maja')
+  // Przełom roku zostaje nietknięty — obcięcie zmieniłoby znaczenie.
+  assert.equal(formatZakresKrotki('2026-12-28', '2027-01-03'), '28 grudnia 2026 – 3 stycznia 2027')
+})
+
+test('grupowanie po miesiącach zachowuje kolejność wejścia', () => {
+  const grupy = grupujPoMiesiacach([
+    { dataOd: '2026-05-04' },
+    { dataOd: '2026-05-16' },
+    { dataOd: '2026-06-06' },
+    { dataOd: '2026-07-06' },
+  ])
+  assert.deepEqual(
+    grupy.map((g) => g.nazwa),
+    ['Maj 2026', 'Czerwiec 2026', 'Lipiec 2026'],
+  )
+  assert.equal(grupy[0].pozycje.length, 2)
+})
+
+test('grupowanie pomija wpisy z niepoprawną datą zamiast się wywracać', () => {
+  const grupy = grupujPoMiesiacach([{ dataOd: 'bzdura' }, { dataOd: '2026-05-04' }])
+  assert.equal(grupy.length, 1)
+})
+
+test('przedział wieku obsługuje wszystkie trzy warianty', () => {
+  assert.equal(formatWiek(10, 14), '10–14 lat')
+  assert.equal(formatWiek(18, null), '18+')
+  assert.equal(formatWiek(null, null), null)
 })
 
 // --- dane strukturalne ------------------------------------------------------

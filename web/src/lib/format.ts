@@ -88,3 +88,125 @@ export function formatWolneMiejsca(wolne: number | null | undefined): string {
   if (wolne <= 0) return 'brak miejsc'
   return `${wolne} ${odmien(wolne, 'wolne', 'wolne', 'wolnych')}`
 }
+
+// --- Daty i terminy ----------------------------------------------------------
+
+const MIESIACE_DOPELNIACZ = [
+  'stycznia',
+  'lutego',
+  'marca',
+  'kwietnia',
+  'maja',
+  'czerwca',
+  'lipca',
+  'sierpnia',
+  'września',
+  'października',
+  'listopada',
+  'grudnia',
+]
+
+const MIESIACE_MIANOWNIK = [
+  'Styczeń',
+  'Luty',
+  'Marzec',
+  'Kwiecień',
+  'Maj',
+  'Czerwiec',
+  'Lipiec',
+  'Sierpień',
+  'Wrzesień',
+  'Październik',
+  'Listopad',
+  'Grudzień',
+]
+
+/**
+ * Zakres dat po polsku, skracany tam, gdzie powtórzenie nic nie wnosi.
+ *
+ *   4–9 maja 2026                (ten sam miesiąc — miesiąc raz)
+ *   30 maja – 4 czerwca 2026     (różne miesiące, ten sam rok — rok raz)
+ *   28 grudnia 2026 – 3 stycznia 2027
+ *   16 maja 2026                 (brak daty końcowej)
+ *
+ * Świadomie ręcznie, nie przez `Intl.DateTimeFormat.formatRange()`: ta zwraca
+ * „4 maj – 9 maj", bo używa mianownika. Po polsku w dacie idzie dopełniacz.
+ */
+export function formatZakresDat(od: string, doDaty?: string | null): string {
+  const a = new Date(od)
+  if (Number.isNaN(a.getTime())) return ''
+  const dzienA = a.getDate()
+  const miesiacA = MIESIACE_DOPELNIACZ[a.getMonth()]
+  const rokA = a.getFullYear()
+
+  if (!doDaty) return `${dzienA} ${miesiacA} ${rokA}`
+
+  const b = new Date(doDaty)
+  if (Number.isNaN(b.getTime())) return `${dzienA} ${miesiacA} ${rokA}`
+  const dzienB = b.getDate()
+  const miesiacB = MIESIACE_DOPELNIACZ[b.getMonth()]
+  const rokB = b.getFullYear()
+
+  if (rokA !== rokB) return `${dzienA} ${miesiacA} ${rokA} – ${dzienB} ${miesiacB} ${rokB}`
+  if (a.getMonth() !== b.getMonth()) return `${dzienA} ${miesiacA} – ${dzienB} ${miesiacB} ${rokB}`
+  // Półpauza bez spacji przy samych dniach — tak jak w „4–9 maja".
+  return `${dzienA}–${dzienB} ${miesiacA} ${rokA}`
+}
+
+/** Krótki zapis na wąskie kolumny tabeli: „4–9 maja”, bez roku. */
+export function formatZakresKrotki(od: string, doDaty?: string | null): string {
+  const pelny = formatZakresDat(od, doDaty)
+  // Rok odcinamy tylko wtedy, gdy występuje raz — przy przełomie lat obie
+  // liczby niosą informację i skracanie zmieniłoby znaczenie.
+  const lata = pelny.match(/\d{4}/g)
+  return lata && lata.length === 1 ? pelny.replace(/\s*\d{4}/, '') : pelny
+}
+
+/** Nagłówek grupy w terminarzu: „Maj 2026”. */
+export function nazwaMiesiaca(data: string): string {
+  const d = new Date(data)
+  if (Number.isNaN(d.getTime())) return ''
+  return `${MIESIACE_MIANOWNIK[d.getMonth()]} ${d.getFullYear()}`
+}
+
+/** Klucz do grupowania po miesiącu, sortowalny leksykalnie. */
+export function kluczMiesiaca(data: string): string {
+  const d = new Date(data)
+  if (Number.isNaN(d.getTime())) return ''
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+/**
+ * Grupuje terminy po miesiącu z zachowaniem kolejności wejścia.
+ *
+ * `Map` zamiast zwykłego obiektu jest tu istotna: obiekt w JS porządkuje
+ * klucze wyglądające jak liczby całkowite rosnąco, niezależnie od kolejności
+ * wstawiania. Klucze „2026-05" liczbami nie są, więc akurat by zadziałało —
+ * ale to zbieżność formatu, nie gwarancja, i pierwsza zmiana formatu klucza
+ * po cichu przestawiłaby miesiące.
+ */
+export function grupujPoMiesiacach<T extends { dataOd: string }>(
+  pozycje: T[],
+): { klucz: string; nazwa: string; pozycje: T[] }[] {
+  const grupy = new Map<string, T[]>()
+  for (const p of pozycje) {
+    const k = kluczMiesiaca(p.dataOd)
+    if (!k) continue
+    const istniejace = grupy.get(k)
+    if (istniejace) istniejace.push(p)
+    else grupy.set(k, [p])
+  }
+  return [...grupy.entries()].map(([klucz, lista]) => ({
+    klucz,
+    nazwa: nazwaMiesiaca(lista[0].dataOd),
+    pozycje: lista,
+  }))
+}
+
+/** Przedział wieku na odznakę obozu: „10–14 lat”, „od 12 lat”, „18+”. */
+export function formatWiek(od?: number | null, doWieku?: number | null): string | null {
+  if (od && doWieku) return `${od}–${doWieku} lat`
+  if (od) return `${od}+`
+  if (doWieku) return `do ${doWieku} lat`
+  return null
+}

@@ -1,7 +1,7 @@
 import { getPayload } from 'payload'
 import config from '@payload-config'
 
-import type { Kursy, Media, Ustawienia, StronaGlowna } from '@/payload-types'
+import type { Kursy, Obozy, Terminy, Media, Ustawienia, StronaGlowna } from '@/payload-types'
 
 /**
  * JEDYNE wejście do treści z poziomu strony.
@@ -35,6 +35,8 @@ async function withPayloadSafe<T>(
 }
 
 export type Kurs = Kursy
+export type Oboz = Obozy
+export type Termin = Terminy
 export type Obrazek = Media
 
 /**
@@ -141,5 +143,138 @@ export function getCourse(slug: string): Promise<Kurs | null> {
 
 /** Zdjęcie z pola `upload` przychodzi jako obiekt albo jako samo id (przy depth: 0). */
 export function asImage(value: Kurs['cover']): Obrazek | null {
+  return value && typeof value === 'object' ? value : null
+}
+
+// --- Obozy i wyjazdy ---------------------------------------------------------
+
+export function getCamps(): Promise<Oboz[]> {
+  return withPayloadSafe(
+    'obozy',
+    async (payload) => {
+      const { docs } = await payload.find({
+        collection: 'obozy',
+        limit: 100,
+        sort: 'order',
+        depth: 1,
+      })
+      return docs
+    },
+    [],
+  )
+}
+
+export function getCamp(slug: string): Promise<Oboz | null> {
+  return withPayloadSafe(
+    `oboz/${slug}`,
+    async (payload) => {
+      const { docs } = await payload.find({
+        collection: 'obozy',
+        where: { slug: { equals: slug } },
+        limit: 1,
+        depth: 1,
+      })
+      return docs[0] ?? null
+    },
+    null,
+  )
+}
+
+// --- Terminy -----------------------------------------------------------------
+
+/**
+ * Terminy do pokazania na stronie.
+ *
+ * Odsiewamy odwołane i zakończone: zostają w panelu (Krzysiek potrzebuje
+ * historii), ale nie ma powodu, żeby ktoś trafiał na nie z wyszukiwarki.
+ *
+ * Odcinamy też wszystko sprzed dzisiaj. Data graniczna to POCZĄTEK dnia,
+ * nie „teraz" — inaczej termin zaczynający się dziś rano znikałby ze strony
+ * po południu, mimo że wciąż trwa.
+ */
+function poczatekDzis(): string {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  return d.toISOString()
+}
+
+export function getUpcomingTerms(limit = 100): Promise<Termin[]> {
+  return withPayloadSafe(
+    'terminy',
+    async (payload) => {
+      const { docs } = await payload.find({
+        collection: 'terminy',
+        where: {
+          and: [
+            { status: { in: ['otwarty', 'brak-miejsc'] } },
+            { dataOd: { greater_than_equal: poczatekDzis() } },
+          ],
+        },
+        // Jawny limit — Payload domyślnie zwraca 10, więc bez tego terminarz
+        // urwałby się w połowie roku bez błędu i bez śladu w logach (reguła 3).
+        limit,
+        sort: 'dataOd',
+        depth: 1,
+      })
+      return docs
+    },
+    [],
+  )
+}
+
+/** Terminy jednego kursu — do karty wyboru terminu na jego podstronie. */
+export function getTermsForCourse(kursId: number): Promise<Termin[]> {
+  return withPayloadSafe(
+    `terminy/kurs/${kursId}`,
+    async (payload) => {
+      const { docs } = await payload.find({
+        collection: 'terminy',
+        where: {
+          and: [
+            { kurs: { equals: kursId } },
+            { status: { in: ['otwarty', 'brak-miejsc'] } },
+            { dataOd: { greater_than_equal: poczatekDzis() } },
+          ],
+        },
+        limit: 50,
+        sort: 'dataOd',
+        depth: 0,
+      })
+      return docs
+    },
+    [],
+  )
+}
+
+/** Terminy jednego obozu. */
+export function getTermsForCamp(obozId: number): Promise<Termin[]> {
+  return withPayloadSafe(
+    `terminy/oboz/${obozId}`,
+    async (payload) => {
+      const { docs } = await payload.find({
+        collection: 'terminy',
+        where: {
+          and: [
+            { oboz: { equals: obozId } },
+            { status: { in: ['otwarty', 'brak-miejsc'] } },
+            { dataOd: { greater_than_equal: poczatekDzis() } },
+          ],
+        },
+        limit: 50,
+        sort: 'dataOd',
+        depth: 0,
+      })
+      return docs
+    },
+    [],
+  )
+}
+
+/** Wpis powiązany z terminem przychodzi jako obiekt albo samo id (depth: 0). */
+export function asKurs(value: Termin['kurs']): Kurs | null {
+  return value && typeof value === 'object' ? value : null
+}
+
+export function asOboz(value: Termin['oboz']): Oboz | null {
   return value && typeof value === 'object' ? value : null
 }

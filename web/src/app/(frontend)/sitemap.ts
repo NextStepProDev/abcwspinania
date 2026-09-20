@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next'
 
-import { getCourses } from '@/lib/content'
+import { getCourses, getCamps } from '@/lib/content'
 import { SITE_URL } from '@/lib/site'
 
 /**
@@ -11,10 +11,29 @@ import { SITE_URL } from '@/lib/site'
  * przy najbliższej rewalidacji, bez pamiętania o niczym.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const courses = await getCourses()
+  const [courses, camps] = await Promise.all([getCourses(), getCamps()])
 
   const statyczne: MetadataRoute.Sitemap = [
     { url: SITE_URL, lastModified: new Date(), changeFrequency: 'monthly', priority: 1 },
+    {
+      url: `${SITE_URL}/kursy`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.9,
+    },
+    {
+      url: `${SITE_URL}/obozy`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.9,
+    },
+    {
+      // Terminarz zmienia się najczęściej ze wszystkiego — po każdym zapisie.
+      url: `${SITE_URL}/terminarz`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
     {
       url: `${SITE_URL}/kontakt`,
       lastModified: new Date(),
@@ -31,5 +50,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }))
 
-  return [...statyczne, ...zKursow]
+  const zObozow: MetadataRoute.Sitemap = camps.map((oboz) => ({
+    url: `${SITE_URL}/obozy/${oboz.slug}`,
+    lastModified: new Date(oboz.updatedAt),
+    changeFrequency: 'monthly',
+    priority: 0.7,
+  }))
+
+  return [...statyczne, ...zKursow, ...zObozow]
 }

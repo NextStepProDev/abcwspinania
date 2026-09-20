@@ -107,6 +107,99 @@ export const Kursy: CollectionConfig = {
       },
     },
     {
+      name: 'grupaMax',
+      type: 'number',
+      min: 1,
+      label: 'Maksymalna liczba uczestników',
+      admin: {
+        description:
+          'Na jednego instruktora. Przepisy PZA dopuszczają najwyżej 4 przy kursach skalnych.',
+      },
+    },
+    {
+      name: 'miejsce',
+      type: 'text',
+      label: 'Miejsce zajęć',
+      admin: { description: 'Np. „Rzędkowice” albo „Jura, rejon dobierany do grupy”.' },
+    },
+    {
+      name: 'certyfikat',
+      type: 'text',
+      label: 'Co dostaje absolwent',
+      admin: { description: 'Np. „zaświadczenie PZA”. Puste = nie pokazujemy tej pozycji.' },
+    },
+    {
+      name: 'dlaKogo',
+      type: 'richText',
+      label: 'Dla kogo jest ten kurs',
+      admin: { description: 'Wymagania wstępne i do kogo kurs jest kierowany.' },
+    },
+    {
+      name: 'program',
+      type: 'array',
+      label: 'Program dzień po dniu',
+      labels: { singular: 'Dzień', plural: 'Dni' },
+      admin: { description: 'Zostaw puste, jeśli kurs nie ma sztywnego podziału na dni.' },
+      fields: [
+        {
+          name: 'etykieta',
+          type: 'text',
+          label: 'Podpis',
+          admin: { description: 'Np. „Dzień 1”. Puste = policzymy numer automatycznie.' },
+        },
+        { name: 'tytul', type: 'text', required: true, label: 'Temat dnia' },
+        { name: 'opis', type: 'textarea', maxLength: 600, label: 'Co robimy' },
+      ],
+    },
+    {
+      name: 'wCenie',
+      type: 'array',
+      label: 'W cenie',
+      labels: { singular: 'Pozycja', plural: 'Pozycje' },
+      fields: [{ name: 'pozycja', type: 'text', required: true, label: 'Pozycja' }],
+    },
+    {
+      name: 'pozaCena',
+      type: 'array',
+      label: 'Poza ceną',
+      labels: { singular: 'Pozycja', plural: 'Pozycje' },
+      fields: [{ name: 'pozycja', type: 'text', required: true, label: 'Pozycja' }],
+    },
+    {
+      name: 'warianty',
+      type: 'array',
+      label: 'Warianty cenowe',
+      labels: { singular: 'Wariant', plural: 'Warianty' },
+      admin: {
+        description:
+          'Realny cennik ma warianty (inny rejon, tryb weekendowy, mniejsza grupa). ' +
+          'Jeśli dodasz choć jeden, zaznacz też „Pokaż jako od tej kwoty” wyżej.',
+      },
+      fields: [
+        { name: 'nazwa', type: 'text', required: true, label: 'Nazwa wariantu' },
+        { name: 'cena', type: 'number', min: 0, label: 'Cena (zł)' },
+        { name: 'opis', type: 'text', label: 'Dopisek' },
+      ],
+    },
+    {
+      name: 'faq',
+      type: 'array',
+      label: 'Częste pytania',
+      labels: { singular: 'Pytanie', plural: 'Pytania' },
+      fields: [
+        { name: 'pytanie', type: 'text', required: true, label: 'Pytanie' },
+        { name: 'odpowiedz', type: 'textarea', required: true, maxLength: 800, label: 'Odpowiedź' },
+      ],
+    },
+    {
+      name: 'tytulEn',
+      type: 'text',
+      label: 'Nazwa po angielsku',
+      admin: {
+        description: 'Na stronę /en. Puste = pokażemy nazwę polską.',
+      },
+    },
+    {
       name: 'wyrozniony',
       type: 'checkbox',
       label: 'Oznacz jako najpopularniejszy',
