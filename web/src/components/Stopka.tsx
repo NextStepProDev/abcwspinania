@@ -2,6 +2,7 @@ import Link from 'next/link'
 
 import type { Ustawienia } from '@/payload-types'
 import { Logotyp } from './Znak'
+import { FormularzNewslettera } from './FormularzNewslettera'
 import { MENU_OFERTA, MENU_SZKOLA } from './nawigacja'
 
 /**
@@ -10,8 +11,9 @@ import { MENU_OFERTA, MENU_SZKOLA } from './nawigacja'
  * Nagłówek newslettera jest `<h2>`, nie `<h1>` — na każdej podstronie stoi już
  * jeden nagłówek pierwszego stopnia w treści, a drugi złamałby regułę 11.
  *
- * Formularz newslettera dochodzi w Etapie 4 razem z zapisem zgody; tutaj na
- * razie go nie ma, bo pole, które niczego nie wysyła, jest gorsze niż jego brak.
+ * Formularz newslettera zapisuje adres do bazy razem z treścią zgody. Wysyłki
+ * jeszcze nie ma (Brevo to osobny etap) — ale pole, które nic nie zapisuje,
+ * traci adresy osób zainteresowanych, a takich nie da się odzyskać.
  */
 export function Stopka({ ustawienia }: { ustawienia: Ustawienia }) {
   const u = ustawienia
@@ -21,7 +23,20 @@ export function Stopka({ ustawienia }: { ustawienia: Ustawienia }) {
   return (
     <footer className="mt-auto bg-rock-900 text-rock-fg">
       <div className="mx-auto max-w-[1440px] px-4 pb-8 pt-14 sm:px-6 lg:px-20">
-        <div className="grid gap-10 border-b border-rock-line pb-11 md:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr] lg:gap-12">
+        <div className="flex flex-col items-start justify-between gap-7 border-b border-rock-line pb-10 lg:flex-row lg:items-center lg:gap-14">
+          <div className="max-w-[540px]">
+            <h2 className="font-display text-[22px] font-extrabold tracking-[-0.02em] text-white">
+              Nowe terminy i teksty z Jury
+            </h2>
+            <p className="mt-2 text-[15px] leading-6">
+              Kilka maili w sezonie: otwarcie zapisów, zwolnione miejsca, nowy artykuł. Bez spamu,
+              wypisujesz się jednym kliknięciem.
+            </p>
+          </div>
+          <FormularzNewslettera />
+        </div>
+
+        <div className="grid gap-10 border-b border-rock-line py-11 md:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr] lg:gap-12">
           <div className="flex flex-col gap-3.5">
             <div className="flex items-center gap-2.5 text-white">
               <Logotyp rozmiarZnaku={24} rozmiarTekstu="text-[18px]" kolorZnaku="text-rope" />

@@ -81,6 +81,15 @@ export const Ustawienia: GlobalConfig = {
         { name: 'kodPocztowy', type: 'text', label: 'Kod pocztowy' },
         { name: 'miejscowosc', type: 'text', label: 'Miejscowość' },
         {
+          name: 'dojazd',
+          type: 'textarea',
+          maxLength: 800,
+          label: 'Jak dojechać',
+          admin: {
+            description: 'Kilka zdań: skąd, ile jedzie się samochodem, czym komunikacją.',
+          },
+        },
+        {
           name: 'mapaEmbed',
           type: 'text',
           label: 'Adres osadzanej mapy',

@@ -3,6 +3,7 @@ import * as migration_20260919_094734_wiadomosci from './20260919_094734_wiadomo
 import * as migration_20260920_001906_globale_i_strona_glowna from './20260920_001906_globale_i_strona_glowna';
 import * as migration_20260920_004105_obozy_terminy_i_szczegoly_kursow from './20260920_004105_obozy_terminy_i_szczegoly_kursow';
 import * as migration_20260920_005351_wpisy_opinie_instruktorzy from './20260920_005351_wpisy_opinie_instruktorzy';
+import * as migration_20260920_010726_kontakt_newsletter_i_en from './20260920_010726_kontakt_newsletter_i_en';
 
 export const migrations = [
   {
@@ -28,6 +29,11 @@ export const migrations = [
   {
     up: migration_20260920_005351_wpisy_opinie_instruktorzy.up,
     down: migration_20260920_005351_wpisy_opinie_instruktorzy.down,
-    name: '20260920_005351_wpisy_opinie_instruktorzy'
+    name: '20260920_005351_wpisy_opinie_instruktorzy',
+  },
+  {
+    up: migration_20260920_010726_kontakt_newsletter_i_en.up,
+    down: migration_20260920_010726_kontakt_newsletter_i_en.down,
+    name: '20260920_010726_kontakt_newsletter_i_en'
   },
 ];

@@ -12,6 +12,7 @@ import type {
   Ustawienia,
   StronaGlowna,
   StronaONa,
+  StronaEn,
 } from '@/payload-types'
 
 /**
@@ -389,6 +390,14 @@ export function getStronaONas(): Promise<StronaONas | null> {
   return withPayloadSafe(
     'strona-o-nas',
     (payload) => payload.findGlobal({ slug: 'strona-o-nas', depth: 1 }),
+    null,
+  )
+}
+
+export function getStronaEn(): Promise<StronaEn | null> {
+  return withPayloadSafe(
+    'strona-en',
+    (payload) => payload.findGlobal({ slug: 'strona-en', depth: 1 }),
     null,
   )
 }

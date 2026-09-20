@@ -75,6 +75,7 @@ export interface Config {
     instruktorzy: Instruktorzy;
     media: Media;
     wiadomosci: Wiadomosci;
+    newsletter: Newsletter;
     users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -91,6 +92,7 @@ export interface Config {
     instruktorzy: InstruktorzySelect<false> | InstruktorzySelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     wiadomosci: WiadomosciSelect<false> | WiadomosciSelect<true>;
+    newsletter: NewsletterSelect<false> | NewsletterSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -105,11 +107,13 @@ export interface Config {
     ustawienia: Ustawienia;
     'strona-glowna': StronaGlowna;
     'strona-o-nas': StronaONa;
+    'strona-en': StronaEn;
   };
   globalsSelect: {
     ustawienia: UstawieniaSelect<false> | UstawieniaSelect<true>;
     'strona-glowna': StronaGlownaSelect<false> | StronaGlownaSelect<true>;
     'strona-o-nas': StronaONasSelect<false> | StronaONasSelect<true>;
+    'strona-en': StronaEnSelect<false> | StronaEnSelect<true>;
   };
   locale: null;
   widgets: {
@@ -552,12 +556,44 @@ export interface Wiadomosci {
   telefon?: string | null;
   tresc: string;
   /**
+   * Wybrane przez osobę piszącą. Wypełnia się samo, gdy pisze z podstrony kursu.
+   */
+  temat?: ('kurs-skalkowy' | 'drogi-ubezpieczone' | 'trad' | 'scianka' | 'oboz' | 'indywidualne' | 'inna') | null;
+  /**
+   * Nieobowiązkowe, wpisywane własnymi słowami.
+   */
+  preferowanyTermin?: string | null;
+  /**
    * Wypełnione automatycznie, gdy ktoś pisze z podstrony kursu.
    */
   kurs?: (number | null) | Kursy;
   status?: ('nowa' | 'w-toku' | 'zalatwiona') | null;
   /**
    * Dokładne brzmienie klauzuli zaakceptowanej przez osobę wysyłającą. Zapisujemy TREŚĆ, a nie samo „tak" — inaczej po zmianie klauzuli nie da się wykazać, na co ktoś faktycznie wyraził zgodę.
+   */
+  zgodaTresc: string;
+  zgodaData: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Adresy zapisane przez formularz w stopce. Wysyłki jeszcze nie ma.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "newsletter".
+ */
+export interface Newsletter {
+  id: number;
+  /**
+   * Unikalny — powtórny zapis tego samego adresu nie tworzy drugiego wpisu.
+   */
+  email: string;
+  /**
+   * Wypisanych NIE kasujemy — trzeba móc wykazać, że i kiedy ktoś zgodę wycofał.
+   */
+  status: 'zapisany' | 'wypisany';
+  /**
+   * Dokładne brzmienie klauzuli zaakceptowanej przy zapisie.
    */
   zgodaTresc: string;
   zgodaData: string;
@@ -646,6 +682,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'wiadomosci';
         value: number | Wiadomosci;
+      } | null)
+    | ({
+        relationTo: 'newsletter';
+        value: number | Newsletter;
       } | null)
     | ({
         relationTo: 'users';
@@ -902,7 +942,21 @@ export interface WiadomosciSelect<T extends boolean = true> {
   email?: T;
   telefon?: T;
   tresc?: T;
+  temat?: T;
+  preferowanyTermin?: T;
   kurs?: T;
+  status?: T;
+  zgodaTresc?: T;
+  zgodaData?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "newsletter_select".
+ */
+export interface NewsletterSelect<T extends boolean = true> {
+  email?: T;
   status?: T;
   zgodaTresc?: T;
   zgodaData?: T;
@@ -1002,6 +1056,10 @@ export interface Ustawienia {
   ulica?: string | null;
   kodPocztowy?: string | null;
   miejscowosc?: string | null;
+  /**
+   * Kilka zdań: skąd, ile jedzie się samochodem, czym komunikacją.
+   */
+  dojazd?: string | null;
   /**
    * Pełny adres z pola „src” kodu osadzenia mapy. Puste = zamiast mapy pokazujemy sam adres.
    */
@@ -1120,6 +1178,28 @@ export interface StronaONa {
   createdAt?: string | null;
 }
 /**
+ * Tabela kursów składa się sama z cen podanych przy kursach.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "strona-en".
+ */
+export interface StronaEn {
+  id: number;
+  badge?: string | null;
+  tytul?: string | null;
+  lead?: string | null;
+  oNas?: string | null;
+  baza?: string | null;
+  sezon?: string | null;
+  dojazd?: string | null;
+  /**
+   * Np. co jest wliczone w cenę.
+   */
+  kursOpis?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "ustawienia_select".
  */
@@ -1133,6 +1213,7 @@ export interface UstawieniaSelect<T extends boolean = true> {
   ulica?: T;
   kodPocztowy?: T;
   miejscowosc?: T;
+  dojazd?: T;
   mapaEmbed?: T;
   licencjaPza?: T;
   uprawnieniaPanstwowe?: T;
@@ -1205,6 +1286,23 @@ export interface StronaONasSelect<T extends boolean = true> {
       };
   oJurze?: T;
   zdjecie?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "strona-en_select".
+ */
+export interface StronaEnSelect<T extends boolean = true> {
+  badge?: T;
+  tytul?: T;
+  lead?: T;
+  oNas?: T;
+  baza?: T;
+  sezon?: T;
+  dojazd?: T;
+  kursOpis?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

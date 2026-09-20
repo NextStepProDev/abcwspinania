@@ -20,9 +20,15 @@ import {
 } from '@/lib/format'
 import { jsonLd, organizationSchema } from '@/lib/schema'
 import type { Ustawienia } from '@/payload-types'
-import { walidujKontakt, jestPoprawny, wygladaNaBota } from '@/lib/validation'
+import { walidujKontakt, walidujNewsletter, jestPoprawny, wygladaNaBota } from '@/lib/validation'
 import type { DaneKontaktowe } from '@/lib/validation'
-import { ZGODA_TRESC, ZGODA_WERSJA, zgodaDoZapisu } from '@/lib/consent'
+import {
+  ZGODA_TRESC,
+  ZGODA_WERSJA,
+  zgodaDoZapisu,
+  ZGODA_NEWSLETTER_TRESC,
+  zgodaNewsletteraDoZapisu,
+} from '@/lib/consent'
 
 // --- formatowanie -----------------------------------------------------------
 
@@ -288,6 +294,8 @@ const POPRAWNE: DaneKontaktowe = {
   imie: 'Krzysiek',
   email: 'krzysiek@example.com',
   telefon: '600 100 200',
+  temat: 'kurs-skalkowy',
+  preferowanyTermin: 'pierwsza połowa czerwca',
   tresc: 'Chciałbym zapisać syna na kurs skalny.',
   zgoda: true,
 }
@@ -331,6 +339,35 @@ test('pułapka na boty wykrywa wypełnione pole', () => {
 })
 
 // --- zgoda RODO -------------------------------------------------------------
+
+test('temat spoza listy jest odrzucany, pusty przechodzi', () => {
+  // `<select>` w przeglądarce nie jest zabezpieczeniem — żądanie wysłane bez
+  // formularza może nieść dowolną wartość, a Payload odrzuciłby nieznaną
+  // błędem bazy, czyli pięćsetką zamiast komunikatu.
+  assert.ok(jestPoprawny(walidujKontakt({ ...POPRAWNE, temat: '' })))
+  assert.ok(!jestPoprawny(walidujKontakt({ ...POPRAWNE, temat: 'cos-wymyslonego' })))
+  assert.ok(jestPoprawny(walidujKontakt({ ...POPRAWNE, temat: 'oboz' })))
+})
+
+test('preferowany termin jest nieobowiązkowy, ale ograniczony długością', () => {
+  assert.ok(jestPoprawny(walidujKontakt({ ...POPRAWNE, preferowanyTermin: '' })))
+  assert.ok(!jestPoprawny(walidujKontakt({ ...POPRAWNE, preferowanyTermin: 'x'.repeat(201) })))
+})
+
+test('newsletter wymaga adresu i osobnej zgody', () => {
+  assert.ok(jestPoprawny(walidujNewsletter({ email: 'a@b.pl', zgoda: true })))
+  assert.ok(!jestPoprawny(walidujNewsletter({ email: 'a@b.pl', zgoda: false })))
+  assert.ok(!jestPoprawny(walidujNewsletter({ email: 'niepoprawny', zgoda: true })))
+  assert.ok(!jestPoprawny(walidujNewsletter({ email: '   ', zgoda: true })))
+})
+
+test('zgoda marketingowa to INNA klauzula niż ta przy formularzu', () => {
+  // Wspólna oznaczałaby, że każdy, kto o cokolwiek zapytał, dostaje
+  // newsletter — czego nikomu nie obiecywał.
+  assert.notEqual(ZGODA_TRESC, ZGODA_NEWSLETTER_TRESC)
+  assert.match(zgodaNewsletteraDoZapisu(), /^\[\d{4}-\d{2}-\d{2}\]/)
+  assert.ok(zgodaNewsletteraDoZapisu().includes(ZGODA_NEWSLETTER_TRESC))
+})
 
 test('zapis zgody niesie wersję i pełną treść klauzuli', () => {
   const zapis = zgodaDoZapisu()

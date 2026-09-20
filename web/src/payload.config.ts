@@ -16,9 +16,11 @@ import { Wpisy } from './collections/Wpisy'
 import { Opinie } from './collections/Opinie'
 import { Instruktorzy } from './collections/Instruktorzy'
 import { Wiadomosci } from './collections/Wiadomosci'
+import { Newsletter } from './collections/Newsletter'
 import { Ustawienia } from './globals/Ustawienia'
 import { StronaGlowna } from './globals/StronaGlowna'
 import { StronaONas } from './globals/StronaONas'
+import { StronaEn } from './globals/StronaEn'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -67,11 +69,22 @@ export default buildConfig({
     supportedLanguages: { pl },
     fallbackLanguage: 'pl',
   },
-  collections: [Kursy, Obozy, Terminy, Wpisy, Opinie, Instruktorzy, Media, Wiadomosci, Users],
+  collections: [
+    Kursy,
+    Obozy,
+    Terminy,
+    Wpisy,
+    Opinie,
+    Instruktorzy,
+    Media,
+    Wiadomosci,
+    Newsletter,
+    Users,
+  ],
   // Globale to treść występująca dokładnie raz (dane kontaktowe, teksty stron).
   // Kolekcja z jednym wpisem wymagałaby pilnowania, który wpis jest „tym
   // właściwym" — global nie daje takiej możliwości pomyłki.
-  globals: [Ustawienia, StronaGlowna, StronaONas],
+  globals: [Ustawienia, StronaGlowna, StronaONas, StronaEn],
   editor: lexicalEditor(),
   secret: requireSecret(),
   typescript: {

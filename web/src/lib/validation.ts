@@ -1,3 +1,5 @@
+import { WARTOSCI_TEMATOW } from '@/lib/tematy'
+
 /**
  * Walidacja formularza kontaktowego — czyste funkcje, bez importów z Payloada
  * ani z Next-a, żeby dało się je przetestować gołym `node --test`.
@@ -12,6 +14,10 @@ export interface DaneKontaktowe {
   email: string
   telefon: string
   tresc: string
+  /** Wybór z listy; pusty znaczy „nie wskazano", a nie błąd. */
+  temat: string
+  /** Wpisywany własnymi słowami, np. „pierwsza połowa czerwca". */
+  preferowanyTermin: string
   zgoda: boolean
 }
 
@@ -22,7 +28,14 @@ const LIMITY = {
   email: 254, // maksimum długości adresu e-mail wg RFC 5321
   telefon: 30,
   tresc: 4000,
+  preferowanyTermin: 200,
 } as const
+
+// Zakres dopuszczalnych tematów sprawdzamy po stronie serwera, mimo że
+// w przeglądarce to `<select>`: żądanie wysłane bez formularza może nieść
+// cokolwiek, a Payload odrzuciłby nieznaną wartość błędem bazy — czyli
+// pięćsetką zamiast komunikatu. Lista pochodzi z `lib/tematy.ts`, wspólnego
+// źródła dla kolekcji, walidacji i formularza.
 
 /**
  * Celowo liberalne. Adresy e-mail są zbyt różnorodne, żeby odsiewać je wyrażeniem
@@ -52,6 +65,17 @@ export function walidujKontakt(dane: DaneKontaktowe): BledyWalidacji {
   else if (tresc.length > LIMITY.tresc)
     bledy.tresc = `Wiadomość może mieć najwyżej ${LIMITY.tresc} znaków.`
 
+  const termin = dane.preferowanyTermin.trim()
+  if (termin.length > LIMITY.preferowanyTermin)
+    bledy.preferowanyTermin = 'Ten opis terminu jest za długi.'
+
+  // Puste pole jest w porządku — wybór tematu nie jest obowiązkowy. Odrzucamy
+  // tylko wartości spoza listy, bo te mogą pochodzić wyłącznie z żądania
+  // spreparowanego poza formularzem.
+  const temat = dane.temat.trim()
+  if (temat && !WARTOSCI_TEMATOW.includes(temat))
+    bledy.temat = 'Nie znamy takiego tematu zgłoszenia.'
+
   if (!dane.zgoda) bledy.zgoda = 'Bez zgody na przetwarzanie danych nie możemy odpisać.'
 
   return bledy
@@ -68,4 +92,31 @@ export function jestPoprawny(bledy: BledyWalidacji): boolean {
  */
 export function wygladaNaBota(pulapka: string): boolean {
   return pulapka.trim().length > 0
+}
+
+/**
+ * Walidacja zapisu na newsletter.
+ *
+ * Osobna funkcja, a nie parametr do `walidujKontakt()`: newsletter zbiera
+ * jedno pole i inną zgodę, a wspólna funkcja z połową pól opcjonalnych
+ * bardzo szybko przestaje pilnować czegokolwiek.
+ */
+export interface DaneNewslettera {
+  email: string
+  zgoda: boolean
+}
+
+export type BledyNewslettera = Partial<Record<keyof DaneNewslettera, string>>
+
+export function walidujNewsletter(dane: DaneNewslettera): BledyNewslettera {
+  const bledy: BledyNewslettera = {}
+
+  const email = dane.email.trim()
+  if (!email) bledy.email = 'Podaj adres e-mail.'
+  else if (email.length > LIMITY.email) bledy.email = 'Adres e-mail jest za długi.'
+  else if (!WZORZEC_EMAIL.test(email)) bledy.email = 'Ten adres e-mail wygląda na niepełny.'
+
+  if (!dane.zgoda) bledy.zgoda = 'Bez zgody nie możemy nic wysyłać.'
+
+  return bledy
 }

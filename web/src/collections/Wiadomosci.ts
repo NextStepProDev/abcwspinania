@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
+import { TEMATY_DLA_PAYLOADA } from '../lib/tematy'
+
 /**
  * Wiadomości z formularza kontaktowego.
  *
@@ -60,6 +62,22 @@ export const Wiadomosci: CollectionConfig = {
       required: true,
       maxLength: 4000,
       label: 'Treść',
+    },
+    {
+      name: 'temat',
+      type: 'select',
+      label: 'Czego dotyczy',
+      options: TEMATY_DLA_PAYLOADA,
+      admin: {
+        description: 'Wybrane przez osobę piszącą. Wypełnia się samo, gdy pisze z podstrony kursu.',
+      },
+    },
+    {
+      name: 'preferowanyTermin',
+      type: 'text',
+      maxLength: 200,
+      label: 'Preferowany termin',
+      admin: { description: 'Nieobowiązkowe, wpisywane własnymi słowami.' },
     },
     {
       name: 'kurs',

@@ -99,6 +99,10 @@ const USTAWIENIA = {
   ulica: 'Jurajska 47',
   kodPocztowy: '42-421',
   miejscowosc: 'Rzędkowice',
+  dojazd:
+    'Z Katowic i z Częstochowy około godziny samochodem, zjazd z DK78 na Kroczyce. ' +
+    'Parking pod skałami bezpłatny.\n' +
+    'Komunikacją: pociąg do Zawiercia, dalej autobus w stronę Kroczyc.',
   licencjaPza: '366/WS',
   uprawnieniaPanstwowe: 'IS 182/K/2002',
   rokZalozenia: 2001,
@@ -670,6 +674,47 @@ const STRONA_O_NAS = {
   ],
 }
 
+/** Strona po angielsku — treść przepisana z sekcji „In English" starej strony. */
+const STRONA_EN = {
+  badge: 'Licensed by the Polish Mountaineering Association',
+  tytul: 'Learn to climb on Polish Jura limestone',
+  lead:
+    'Rock climbing courses in English, led by instructors licensed by the Polish ' +
+    'Mountaineering Association. Four climbers per instructor, six days on real ' +
+    'limestone, certificate on completion.',
+  oNas:
+    'ABC Wspinania is a climbing school based in Rzędkowice, in the Kraków-Częstochowa ' +
+    'Upland — the oldest climbing region in Poland, with roughly 3,500 routes within ' +
+    'a fifteen-minute walk of our base.\n\n' +
+    'We have been teaching for twenty-five years and climbing for nearly fifty. Our ' +
+    'instructors hold a licence from the Polish Mountaineering Association (PZA), which ' +
+    'is verified every season. This matters more than it may sound: in Poland the title ' +
+    '"climbing instructor" is not protected by law, so anyone may use it. The licence is ' +
+    'the part that is actually checked, and you can verify its number against the ' +
+    "association's public list.\n\n" +
+    'We do not run mass courses. A maximum of four participants per instructor is not ' +
+    'a marketing line — it is the regulatory limit, and the condition for everyone ' +
+    'climbing every day rather than queuing below a route.',
+  baza:
+    'The school has its own base ten to fifteen minutes from the crags: rooms with ' +
+    'private bathrooms, a shared kitchen and a lecture room with a climbing wall. ' +
+    'Accommodation costs 70 PLN per night and is not included in the course price. ' +
+    'Sleeping bags are not needed.',
+  sezon:
+    'The main season runs from May to September; courses usually start on a Saturday or ' +
+    'a Monday. In March, April and October dates are arranged individually. There is also ' +
+    'a weekend format for people who cannot take six days off in a row.',
+  dojazd:
+    'Rzędkowice is about an hour by car from Kraków and from Katowice, both served by ' +
+    'international airports. By train, take a service to Zawiercie and continue by bus ' +
+    'towards Kroczyce.\n\n' +
+    'Write or call in English. We confirm the date by email before asking for any deposit.',
+  kursOpis:
+    'Prices cover the training itself: an instructor, all technical equipment (harness, ' +
+    'helmet, shoes, ropes and hardware) and a certificate. Accommodation, meals and travel ' +
+    'are not included.',
+}
+
 const OPINIE = [
   {
     autor: 'Kasia',
@@ -1060,6 +1105,9 @@ payload.logger.info(`Zapisano ${TERMINY.length} terminów.`)
 await payload.updateGlobal({ slug: 'strona-o-nas', data: STRONA_O_NAS })
 payload.logger.info('Treść strony „O nas" zapisana.')
 
+await payload.updateGlobal({ slug: 'strona-en', data: STRONA_EN })
+payload.logger.info('Treść strony po angielsku zapisana.')
+
 // --- Instruktorzy ---
 for (const i of INSTRUKTORZY) {
   const { docs } = await payload.find({
@@ -1103,6 +1151,6 @@ payload.logger.info(`Zapisano ${WPISY.length} wpisów.`)
 
 payload.logger.info(
   `Gotowe — ${KURSY.length} kursów, ${OBOZY.length} obozów, ${TERMINY.length} terminów, ` +
-    `${WPISY.length} wpisów, ${OPINIE.length} opinii, 3 globale.`,
+    `${WPISY.length} wpisów, ${OPINIE.length} opinii, 4 globale.`,
 )
 process.exit(0)
