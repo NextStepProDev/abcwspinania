@@ -10,6 +10,13 @@ import type { CollectionConfig } from 'payload'
  */
 export const Media: CollectionConfig = {
   slug: 'media',
+  // Liczba mnoga celowo zostaje „Media" — tak stoi w menu i tak jest
+  // najkrócej. Chodzi o liczbę POJEDYNCZĄ: bez niej Payload wyprowadza ją
+  // ze sluga i w miejscach mówiących o jednym pliku wychodzi „Media".
+  labels: {
+    singular: 'Zdjęcie',
+    plural: 'Media',
+  },
   admin: {
     group: 'Treść',
   },

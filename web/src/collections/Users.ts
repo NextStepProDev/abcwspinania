@@ -11,8 +11,8 @@ import type { CollectionConfig } from 'payload'
  */
 export const Users: CollectionConfig = {
   slug: 'users',
-  // Etykiety po polsku — to JEDYNA kolekcja, która ich nie miała, więc „Users"
-  // sterczało w menu obok „Kursy", „Opinie" i „Wiadomości". Panel obsługuje
+  // Etykiety po polsku — bez nich Payload składa nazwę ze sluga i w menu
+  // sterczało „Users" obok „Kursy", „Opinie" i „Wiadomości". Panel obsługuje
   // klient, nie programista.
   labels: {
     singular: 'Konto',
