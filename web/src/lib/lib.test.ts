@@ -13,6 +13,10 @@ import {
   nazwaMiesiaca,
   grupujPoMiesiacach,
   formatWiek,
+  czasCzytania,
+  kotwica,
+  spisTresci,
+  formatKategoria,
 } from '@/lib/format'
 import { jsonLd, organizationSchema } from '@/lib/schema'
 import type { Ustawienia } from '@/payload-types'
@@ -138,6 +142,71 @@ test('przedział wieku obsługuje wszystkie trzy warianty', () => {
   assert.equal(formatWiek(10, 14), '10–14 lat')
   assert.equal(formatWiek(18, null), '18+')
   assert.equal(formatWiek(null, null), null)
+})
+
+// --- treść z edytora --------------------------------------------------------
+
+// Minimalny fragment drzewa Lexical — tyle, ile czytają nasze funkcje.
+const akapit = (tekst: string) => ({
+  type: 'paragraph',
+  children: [{ type: 'text', text: tekst }],
+})
+const naglowek = (tekst: string) => ({
+  type: 'heading',
+  tag: 'h2',
+  children: [{ type: 'text', text: tekst }],
+})
+
+test('czas czytania liczy się z treści, nie jest wpisywany', () => {
+  const stoSlow = Array.from({ length: 100 }, () => 'słowo').join(' ')
+  assert.equal(czasCzytania({ root: { children: [akapit(stoSlow)] } }), 1)
+  const szescset = Array.from({ length: 600 }, () => 'słowo').join(' ')
+  assert.equal(czasCzytania({ root: { children: [akapit(szescset)] } }), 3)
+})
+
+test('pusta treść daje minutę, nie zero', () => {
+  // „0 min czytania" wygląda na błąd, nawet gdy jest prawdą.
+  assert.equal(czasCzytania(null), 1)
+  assert.equal(czasCzytania({ root: { children: [] } }), 1)
+})
+
+test('kotwica rozkłada polskie znaki zamiast je przepuszczać', () => {
+  assert.equal(kotwica('Rejon pod presją'), 'rejon-pod-presja')
+  assert.equal(kotwica('Co się zmieniło w sprzęcie'), 'co-sie-zmienilo-w-sprzecie')
+  // „ł" nie ma formy rozkładalnej w NFD, więc wymaga osobnej reguły.
+  assert.equal(kotwica('Ludzie, którzy przyjeżdżają'), 'ludzie-ktorzy-przyjezdzaja')
+})
+
+test('spis treści bierze tylko nagłówki drugiego stopnia', () => {
+  const tresc = {
+    root: {
+      children: [
+        akapit('wstęp'),
+        naglowek('Pierwszy kurs'),
+        akapit('treść'),
+        { type: 'heading', tag: 'h3', children: [{ type: 'text', text: 'Podrozdział' }] },
+        naglowek('Co dalej'),
+      ],
+    },
+  }
+  assert.deepEqual(spisTresci(tresc), [
+    { id: 'pierwszy-kurs', etykieta: 'Pierwszy kurs' },
+    { id: 'co-dalej', etykieta: 'Co dalej' },
+  ])
+})
+
+test('powtórzone nagłówki dostają różne kotwice', () => {
+  // Dwie identyczne kotwice sprawiłyby, że obie prowadzą do pierwszej.
+  const tresc = { root: { children: [naglowek('Sprzęt'), naglowek('Sprzęt')] } }
+  const spis = spisTresci(tresc)
+  assert.equal(spis[0].id, 'sprzet')
+  assert.equal(spis[1].id, 'sprzet-2')
+})
+
+test('nieznana kategoria nie znika, tylko wraca surowa', () => {
+  assert.equal(formatKategoria('poradniki'), 'Poradniki')
+  assert.equal(formatKategoria('cos-nowego'), 'cos-nowego')
+  assert.equal(formatKategoria(null), null)
 })
 
 // --- dane strukturalne ------------------------------------------------------

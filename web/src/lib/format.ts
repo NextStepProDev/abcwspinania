@@ -210,3 +210,142 @@ export function formatWiek(od?: number | null, doWieku?: number | null): string 
   if (doWieku) return `do ${doWieku} lat`
   return null
 }
+
+// --- Treść z edytora ---------------------------------------------------------
+
+/**
+ * Węzeł drzewa Lexical, w zakresie, który nas interesuje.
+ *
+ * Świadomie strukturalny, luźny typ zamiast importu z `@payloadcms/*`: ten plik
+ * ma zostać wolny od zależności runtime'owych, żeby testy szły gołym
+ * `node --test`.
+ */
+interface WezelLexical {
+  type?: string
+  tag?: string
+  text?: string
+  children?: WezelLexical[]
+}
+
+type TrescBogata = { root?: WezelLexical } | null | undefined
+
+/** Zbiera cały tekst z drzewa, pomijając znaczniki. */
+function zbierzTekst(wezel: WezelLexical | undefined): string {
+  if (!wezel) return ''
+  const wlasny = typeof wezel.text === 'string' ? wezel.text : ''
+  const dzieci = wezel.children?.map(zbierzTekst).join(' ') ?? ''
+  return `${wlasny} ${dzieci}`
+}
+
+/**
+ * Czas czytania w minutach.
+ *
+ * LICZONY, nie wpisywany w panelu: wartość wpisana ręcznie rozjeżdża się przy
+ * pierwszej korekcie tekstu, a nikt tego nie sprawdza, bo nikt nie mierzy.
+ *
+ * 200 słów na minutę to wartość dla tekstu ciągłego po polsku. Zaokrąglamy
+ * w górę i nigdy nie schodzimy poniżej jednej minuty — „0 min czytania"
+ * wygląda na błąd, nawet gdy jest prawdą.
+ */
+export function czasCzytania(tresc: TrescBogata): number {
+  const tekst = zbierzTekst(tresc?.root).trim()
+  if (!tekst) return 1
+  const slowa = tekst.split(/\s+/).filter(Boolean).length
+  return Math.max(1, Math.ceil(slowa / 200))
+}
+
+export function formatCzasCzytania(tresc: TrescBogata): string {
+  return `${czasCzytania(tresc)} min czytania`
+}
+
+/**
+ * Identyfikator kotwicy z tekstu nagłówka.
+ *
+ * Polskie znaki diakrytyczne rozkładamy na formę bazową (NFD) i obcinamy znaki
+ * łączące — inaczej „Rejon pod presją" dałoby kotwicę z „ą" w adresie, która
+ * po skopiowaniu z paska przeglądarki zamienia się w ciąg procentów.
+ */
+export function kotwica(tekst: string): string {
+  return tekst
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/ł/g, 'l')
+    .replace(/Ł/g, 'L')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+export interface PozycjaSpisu {
+  id: string
+  etykieta: string
+}
+
+/**
+ * Spis treści z nagłówków drugiego stopnia.
+ *
+ * Bierzemy WYŁĄCZNIE h2. Spis obejmujący h3 przy dłuższym tekście robi się
+ * dłuższy niż sekcja, którą opisuje, i przestaje pomagać w nawigacji.
+ */
+export function spisTresci(tresc: TrescBogata): PozycjaSpisu[] {
+  const wynik: PozycjaSpisu[] = []
+  const uzyte = new Set<string>()
+
+  const obejdz = (wezel: WezelLexical | undefined) => {
+    if (!wezel) return
+    if (wezel.type === 'heading' && wezel.tag === 'h2') {
+      const etykieta = zbierzTekst(wezel).replace(/\s+/g, ' ').trim()
+      if (etykieta) {
+        // Dwa nagłówki o tej samej treści dałyby dwie identyczne kotwice,
+        // a wtedy obie prowadzą do pierwszej.
+        let id = kotwica(etykieta)
+        let n = 2
+        while (uzyte.has(id)) id = `${kotwica(etykieta)}-${n++}`
+        uzyte.add(id)
+        wynik.push({ id, etykieta })
+      }
+    }
+    wezel.children?.forEach(obejdz)
+  }
+
+  obejdz(tresc?.root)
+  return wynik
+}
+
+const KATEGORIE: Record<string, string> = {
+  'z-zycia-szkoly': 'Z życia szkoły',
+  'historia-jury': 'Historia Jury',
+  poradniki: 'Poradniki',
+  relacje: 'Relacje',
+}
+
+export function formatKategoria(kategoria: string | null | undefined): string | null {
+  return kategoria ? (KATEGORIE[kategoria] ?? kategoria) : null
+}
+
+export const KATEGORIE_WPISOW = Object.entries(KATEGORIE).map(([wartosc, etykieta]) => ({
+  wartosc,
+  etykieta,
+}))
+
+const CZEGO: Record<string, string> = {
+  'kurs-skalkowy': 'Kurs skałkowy PZA',
+  'drogi-ubezpieczone': 'Drogi ubezpieczone',
+  trad: 'Asekuracja tradycyjna',
+  oboz: 'Obóz',
+  kurs: 'Szkolenie',
+}
+
+export function formatCzego(czego: string | null | undefined): string | null {
+  return czego ? (CZEGO[czego] ?? czego) : null
+}
+
+export const RODZAJE_OPINII = Object.entries(CZEGO).map(([wartosc, etykieta]) => ({
+  wartosc,
+  etykieta,
+}))
+
+/** Data publikacji wpisu: „12 września 2026”. */
+export function formatData(data: string): string {
+  return formatZakresDat(data)
+}

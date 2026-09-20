@@ -5,6 +5,8 @@ import {
   getCourses,
   getStronaGlowna,
   getUpcomingTerms,
+  getOpinions,
+  getPosts,
   getUstawienia,
   telHref,
   asImage,
@@ -14,6 +16,8 @@ import { pageMetadata } from '@/lib/seo'
 import { IKONY_WYBIERALNE, type NazwaIkony } from '@/components/Ikony'
 import { KafelKursu } from '@/components/KafelKursu'
 import { TabelaTerminow } from '@/components/Terminy'
+import { KafelWpisu } from '@/components/KafelWpisu'
+import { Cytat } from '@/components/Cytat'
 import { TloGorskie } from '@/components/TloGorskie'
 import { Przycisk, Odznaka, NaglowekSekcji, Kontener, MiejsceNaZdjecie } from '@/components/Ui'
 
@@ -31,12 +35,18 @@ export function generateMetadata(): Metadata {
 export default async function Home() {
   // Trzy niezależne zapytania — równolegle, bo szeregowo dołożyłyby sobie
   // czasy nawzajem, a żadne nie potrzebuje wyniku pozostałych.
-  const [tresc, kursy, terminy, ustawienia] = await Promise.all([
+  const [tresc, kursy, terminy, opinie, wpisy, ustawienia] = await Promise.all([
     getStronaGlowna(),
     getCourses(),
     getUpcomingTerms(4),
+    getOpinions(),
+    getPosts(3),
     getUstawienia(),
   ])
+  // Na stronę startową wchodzą opinie wyraźnie do tego zaznaczone; gdy nikt
+  // żadnej nie zaznaczył, bierzemy dwie pierwsze, żeby sekcja nie zniknęła.
+  const zaznaczone = opinie.filter((o) => o.naStronieGlownej)
+  const opinieNaStart = (zaznaczone.length > 0 ? zaznaczone : opinie).slice(0, 2)
   const tel = telHref(ustawienia)
   const lat = latOd(ustawienia.rokZalozenia)
 
@@ -186,6 +196,26 @@ export default async function Home() {
         </section>
       )}
 
+      {/* --- Opinie --- */}
+      {opinieNaStart.length > 0 && (
+        <section className="pb-16 lg:pb-24">
+          <Kontener>
+            <NaglowekSekcji
+              tytul="Co mówią kursanci"
+              link="/opinie"
+              etykietaLinku="Wszystkie opinie"
+            />
+            <ul className="grid gap-6 lg:grid-cols-2">
+              {opinieNaStart.map((o) => (
+                <li key={o.id} className="flex">
+                  <Cytat opinia={o} duzy />
+                </li>
+              ))}
+            </ul>
+          </Kontener>
+        </section>
+      )}
+
       {/* --- Najbliższe terminy --- */}
       {terminy.length > 0 && (
         <section className="pb-16 lg:pb-24">
@@ -218,6 +248,27 @@ export default async function Home() {
                   </li>
                 )
               })}
+            </ul>
+          </Kontener>
+        </section>
+      )}
+
+      {/* --- Ostatnie wpisy --- */}
+      {wpisy.length > 0 && (
+        <section className="pb-16 lg:pb-24">
+          <Kontener>
+            <NaglowekSekcji
+              tytul="Ostatnio pisaliśmy"
+              opis="Relacje z kursów, historia rejonu i rzeczy, które warto wiedzieć, zanim pierwszy raz wyjdziesz w skały."
+              link="/aktualnosci"
+              etykietaLinku="Wszystkie wpisy"
+            />
+            <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {wpisy.map((w) => (
+                <li key={w.id} className="flex">
+                  <KafelWpisu wpis={w} />
+                </li>
+              ))}
             </ul>
           </Kontener>
         </section>

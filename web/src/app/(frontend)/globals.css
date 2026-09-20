@@ -72,30 +72,50 @@ h3 {
 
 /* Treść z edytora w CMS-ie. Świadomie bez wtyczki @tailwindcss/typography —
    potrzebujemy kilku reguł, a nie całego systemu typograficznego, i nie
-   chcemy kolejnej zależności do pilnowania przy podbiciach Tailwinda. */
+   chcemy kolejnej zależności do pilnowania przy podbiciach Tailwinda.
+
+   ⚠️ Odstępy robimy MARGINESAMI, a nie `display:flex` + `gap`. Payload
+   opakowuje wynik <RichText> w dodatkowy <div class="payload-richtext">, więc
+   kontener ma tylko JEDNO dziecko — `gap` nie miał czego rozsuwać i wszystkie
+   akapity sklejały się w jeden blok. Marginesy działają niezależnie od tego,
+   ile opakowań wstawi po drodze biblioteka, i nie wiążą nas z jej nazwą klasy.
+   Preflight Tailwinda zeruje marginesy globalnie, więc trzeba je przywrócić
+   tutaj jawnie. */
 .tresc-bogata {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
   line-height: 1.7;
+}
+.tresc-bogata p,
+.tresc-bogata ul,
+.tresc-bogata ol,
+.tresc-bogata blockquote,
+.tresc-bogata figure {
+  margin-block: 0 1rem;
 }
 .tresc-bogata h2 {
   font-size: 1.75rem;
-  margin-top: 1.5rem;
-  scroll-margin-top: 6rem; /* pod nagłówek przyklejony do góry przy skoku z spisu treści */
+  margin-block: 2rem 0.75rem;
+  /* Odstęp pod przyklejonym nagłówkiem, gdy skaczemy tu ze spisu treści. */
+  scroll-margin-top: 6rem;
 }
 .tresc-bogata h3 {
   font-size: 1.25rem;
   font-weight: 600;
-  margin-top: 0.5rem;
+  margin-block: 1.5rem 0.5rem;
+}
+.tresc-bogata :is(h2, h3):first-child {
+  margin-top: 0;
+}
+.tresc-bogata > :last-child,
+.tresc-bogata .payload-richtext > :last-child {
+  margin-bottom: 0;
 }
 .tresc-bogata ul,
 .tresc-bogata ol {
   padding-left: 1.5rem;
   list-style: revert;
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
+}
+.tresc-bogata li + li {
+  margin-top: 0.375rem;
 }
 .tresc-bogata a {
   color: var(--color-rope);

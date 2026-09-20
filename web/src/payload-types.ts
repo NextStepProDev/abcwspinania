@@ -70,6 +70,9 @@ export interface Config {
     kursy: Kursy;
     obozy: Obozy;
     terminy: Terminy;
+    wpisy: Wpisy;
+    opinie: Opinie;
+    instruktorzy: Instruktorzy;
     media: Media;
     wiadomosci: Wiadomosci;
     users: User;
@@ -83,6 +86,9 @@ export interface Config {
     kursy: KursySelect<false> | KursySelect<true>;
     obozy: ObozySelect<false> | ObozySelect<true>;
     terminy: TerminySelect<false> | TerminySelect<true>;
+    wpisy: WpisySelect<false> | WpisySelect<true>;
+    opinie: OpinieSelect<false> | OpinieSelect<true>;
+    instruktorzy: InstruktorzySelect<false> | InstruktorzySelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     wiadomosci: WiadomosciSelect<false> | WiadomosciSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
@@ -98,10 +104,12 @@ export interface Config {
   globals: {
     ustawienia: Ustawienia;
     'strona-glowna': StronaGlowna;
+    'strona-o-nas': StronaONa;
   };
   globalsSelect: {
     ustawienia: UstawieniaSelect<false> | UstawieniaSelect<true>;
     'strona-glowna': StronaGlownaSelect<false> | StronaGlownaSelect<true>;
+    'strona-o-nas': StronaONasSelect<false> | StronaONasSelect<true>;
   };
   locale: null;
   widgets: {
@@ -434,6 +442,104 @@ export interface Terminy {
   createdAt: string;
 }
 /**
+ * Teksty na stronie. Najnowsze u góry.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "wpisy".
+ */
+export interface Wpisy {
+  id: number;
+  title: string;
+  /**
+   * Fragment adresu, bez polskich znaków.
+   */
+  slug: string;
+  kategoria: 'z-zycia-szkoly' | 'historia-jury' | 'poradniki' | 'relacje';
+  /**
+   * Dwa–trzy zdania na kafel i do opisu w wyszukiwarce.
+   */
+  lead?: string | null;
+  tresc?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  publishedAt: string;
+  autor?: string | null;
+  /**
+   * Duży kafel na górze listy. Sensownie: jeden wpis.
+   */
+  wyrozniony?: boolean | null;
+  cover?: (number | null) | Media;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * Wypowiedzi kursantów i rodziców. Publikujemy w całości, także krytyczne.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "opinie".
+ */
+export interface Opinie {
+  id: number;
+  /**
+   * Bez skracania. Literówki autora zostawiamy.
+   */
+  tresc: string;
+  /**
+   * Imię albo inicjały — nigdy pełne nazwisko bez zgody.
+   */
+  autor: string;
+  czego: 'kurs-skalkowy' | 'drogi-ubezpieczone' | 'trad' | 'oboz' | 'kurs';
+  /**
+   * Np. „maj 2017”. Puste = nie pokazujemy daty.
+   */
+  termin?: string | null;
+  opublikowana?: boolean | null;
+  /**
+   * Na stronę startową wchodzą dwie pierwsze zaznaczone.
+   */
+  naStronieGlownej?: boolean | null;
+  order?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "instruktorzy".
+ */
+export interface Instruktorzy {
+  id: number;
+  imie: string;
+  /**
+   * Np. „Szef szkoły, instruktor PZA”.
+   */
+  rola?: string | null;
+  /**
+   * Np. „PZA 366/WS”. Można sprawdzić na liście Związku.
+   */
+  licencja?: string | null;
+  /**
+   * Od kiedy się wspina, czym się zajmuje, ulubiony rejon.
+   */
+  opis?: string | null;
+  portret?: (number | null) | Media;
+  order?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Zgłoszenia z formularza na stronie. Nowe są u góry.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -520,6 +626,18 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'terminy';
         value: number | Terminy;
+      } | null)
+    | ({
+        relationTo: 'wpisy';
+        value: number | Wpisy;
+      } | null)
+    | ({
+        relationTo: 'opinie';
+        value: number | Opinie;
+      } | null)
+    | ({
+        relationTo: 'instruktorzy';
+        value: number | Instruktorzy;
       } | null)
     | ({
         relationTo: 'media';
@@ -693,6 +811,53 @@ export interface TerminySelect<T extends boolean = true> {
   wolneMiejsca?: T;
   status?: T;
   uwagi?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "wpisy_select".
+ */
+export interface WpisySelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  kategoria?: T;
+  lead?: T;
+  tresc?: T;
+  publishedAt?: T;
+  autor?: T;
+  wyrozniony?: T;
+  cover?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "opinie_select".
+ */
+export interface OpinieSelect<T extends boolean = true> {
+  tresc?: T;
+  autor?: T;
+  czego?: T;
+  termin?: T;
+  opublikowana?: T;
+  naStronieGlownej?: T;
+  order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "instruktorzy_select".
+ */
+export interface InstruktorzySelect<T extends boolean = true> {
+  imie?: T;
+  rola?: T;
+  licencja?: T;
+  opis?: T;
+  portret?: T;
+  order?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -911,6 +1076,50 @@ export interface StronaGlowna {
   createdAt?: string | null;
 }
 /**
+ * Instruktorzy zaciągają się z osobnej listy.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "strona-o-nas".
+ */
+export interface StronaONa {
+  id: number;
+  tytul?: string | null;
+  wstep?: string | null;
+  tresc?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  powodyLicencji?:
+    | {
+        tytul: string;
+        opis: string;
+        id?: string | null;
+      }[]
+    | null;
+  liczbyJura?:
+    | {
+        wartosc: string;
+        opis: string;
+        id?: string | null;
+      }[]
+    | null;
+  oJurze?: string | null;
+  zdjecie?: (number | null) | Media;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "ustawienia_select".
  */
@@ -968,6 +1177,34 @@ export interface StronaGlownaSelect<T extends boolean = true> {
       };
   ctaTytul?: T;
   ctaTekst?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "strona-o-nas_select".
+ */
+export interface StronaONasSelect<T extends boolean = true> {
+  tytul?: T;
+  wstep?: T;
+  tresc?: T;
+  powodyLicencji?:
+    | T
+    | {
+        tytul?: T;
+        opis?: T;
+        id?: T;
+      };
+  liczbyJura?:
+    | T
+    | {
+        wartosc?: T;
+        opis?: T;
+        id?: T;
+      };
+  oJurze?: T;
+  zdjecie?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

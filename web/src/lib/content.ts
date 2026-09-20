@@ -1,7 +1,18 @@
 import { getPayload } from 'payload'
 import config from '@payload-config'
 
-import type { Kursy, Obozy, Terminy, Media, Ustawienia, StronaGlowna } from '@/payload-types'
+import type {
+  Kursy,
+  Obozy,
+  Terminy,
+  Wpisy,
+  Opinie,
+  Instruktorzy,
+  Media,
+  Ustawienia,
+  StronaGlowna,
+  StronaONa,
+} from '@/payload-types'
 
 /**
  * JEDYNE wejście do treści z poziomu strony.
@@ -37,6 +48,16 @@ async function withPayloadSafe<T>(
 export type Kurs = Kursy
 export type Oboz = Obozy
 export type Termin = Terminy
+export type Wpis = Wpisy
+export type Opinia = Opinie
+export type Instruktor = Instruktorzy
+
+/**
+ * Payload składa nazwę typu ze sluga globala i odcina końcowe „s", więc
+ * `strona-o-nas` generuje interfejs `StronaONa`. Slug zostaje zgodny z trasą
+ * `/o-nas` — to ważniejsze niż ładna nazwa typu — a różnicę zasłania alias.
+ */
+export type StronaONas = StronaONa
 export type Obrazek = Media
 
 /**
@@ -277,4 +298,92 @@ export function asKurs(value: Termin['kurs']): Kurs | null {
 
 export function asOboz(value: Termin['oboz']): Oboz | null {
   return value && typeof value === 'object' ? value : null
+}
+
+// --- Aktualności -------------------------------------------------------------
+
+/**
+ * Wpisy do listy.
+ *
+ * `where` odsiewa teksty z datą w przyszłości: Payload ma szkice, ale data
+ * publikacji służy też do zaplanowania wpisu na później i bez tego filtra
+ * zaplanowany tekst byłby widoczny od razu.
+ */
+export function getPosts(limit = 50): Promise<Wpis[]> {
+  return withPayloadSafe(
+    'wpisy',
+    async (payload) => {
+      const { docs } = await payload.find({
+        collection: 'wpisy',
+        where: { publishedAt: { less_than_equal: new Date().toISOString() } },
+        limit,
+        sort: '-publishedAt',
+        depth: 1,
+      })
+      return docs
+    },
+    [],
+  )
+}
+
+export function getPost(slug: string): Promise<Wpis | null> {
+  return withPayloadSafe(
+    `wpis/${slug}`,
+    async (payload) => {
+      const { docs } = await payload.find({
+        collection: 'wpisy',
+        where: { slug: { equals: slug } },
+        limit: 1,
+        depth: 1,
+      })
+      return docs[0] ?? null
+    },
+    null,
+  )
+}
+
+// --- Opinie ------------------------------------------------------------------
+
+/** Tylko zaznaczone jako opublikowane — opinia to cudza wypowiedź. */
+export function getOpinions(): Promise<Opinia[]> {
+  return withPayloadSafe(
+    'opinie',
+    async (payload) => {
+      const { docs } = await payload.find({
+        collection: 'opinie',
+        where: { opublikowana: { equals: true } },
+        limit: 100,
+        sort: 'order',
+        depth: 0,
+      })
+      return docs
+    },
+    [],
+  )
+}
+
+// --- Instruktorzy -------------------------------------------------------------
+
+export function getInstructors(): Promise<Instruktor[]> {
+  return withPayloadSafe(
+    'instruktorzy',
+    async (payload) => {
+      const { docs } = await payload.find({
+        collection: 'instruktorzy',
+        limit: 50,
+        sort: 'order',
+        depth: 1,
+      })
+      return docs
+    },
+    [],
+  )
+}
+
+export function getStronaONas(): Promise<StronaONas | null> {
+  return withPayloadSafe(
+    'strona-o-nas',
+    (payload) => payload.findGlobal({ slug: 'strona-o-nas', depth: 1 }),
+    null,
+  )
 }

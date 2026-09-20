@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next'
 
-import { getCourses, getCamps } from '@/lib/content'
+import { getCourses, getCamps, getPosts } from '@/lib/content'
 import { SITE_URL } from '@/lib/site'
 
 /**
@@ -11,7 +11,7 @@ import { SITE_URL } from '@/lib/site'
  * przy najbliższej rewalidacji, bez pamiętania o niczym.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [courses, camps] = await Promise.all([getCourses(), getCamps()])
+  const [courses, camps, posts] = await Promise.all([getCourses(), getCamps(), getPosts(200)])
 
   const statyczne: MetadataRoute.Sitemap = [
     { url: SITE_URL, lastModified: new Date(), changeFrequency: 'monthly', priority: 1 },
@@ -33,6 +33,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 0.9,
+    },
+    {
+      url: `${SITE_URL}/aktualnosci`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
+    {
+      url: `${SITE_URL}/o-nas`,
+      lastModified: new Date(),
+      changeFrequency: 'yearly',
+      priority: 0.8,
+    },
+    {
+      url: `${SITE_URL}/opinie`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.7,
     },
     {
       url: `${SITE_URL}/kontakt`,
@@ -57,5 +75,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }))
 
-  return [...statyczne, ...zKursow, ...zObozow]
+  const zWpisow: MetadataRoute.Sitemap = posts.map((wpis) => ({
+    url: `${SITE_URL}/aktualnosci/${wpis.slug}`,
+    lastModified: new Date(wpis.updatedAt),
+    changeFrequency: 'yearly',
+    priority: 0.6,
+  }))
+
+  return [...statyczne, ...zKursow, ...zObozow, ...zWpisow]
 }

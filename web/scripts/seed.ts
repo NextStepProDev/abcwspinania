@@ -26,14 +26,35 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 /**
- * Buduje treść dla pola richText (Lexical) z gołych akapitów.
+ * Buduje treść dla pola richText (Lexical) z gołego tekstu.
  *
  * Lexical trzyma treść jako drzewo węzłów z kompletem pól technicznych
  * (`format`, `indent`, `direction`, `version`), więc wpisanie choćby jednego
  * zdania „na piechotę" to kilkanaście linii szumu. Ten helper pozwala
  * w danych startowych pisać zwykły tekst.
+ *
+ * Zwykły ciąg daje akapit, `h2('…')` — nagłówek sekcji. Nagłówki są istotne
+ * nie tylko wizualnie: z nich powstaje spis treści artykułu.
  */
-function akapity(...tresci: string[]) {
+function h2(tekst: string) {
+  return { __naglowek: tekst }
+}
+
+type Fragment = string | { __naglowek: string }
+
+function wezelTekstowy(tekst: string) {
+  return {
+    type: 'text',
+    text: tekst,
+    format: 0,
+    style: '',
+    mode: 'normal' as const,
+    detail: 0,
+    version: 1,
+  }
+}
+
+function akapity(...fragmenty: Fragment[]) {
   return {
     root: {
       type: 'root',
@@ -41,25 +62,27 @@ function akapity(...tresci: string[]) {
       indent: 0,
       version: 1,
       direction: 'ltr' as const,
-      children: tresci.map((tekst) => ({
-        type: 'paragraph',
-        format: '' as const,
-        indent: 0,
-        version: 1,
-        direction: 'ltr' as const,
-        textFormat: 0,
-        children: [
-          {
-            type: 'text',
-            text: tekst,
-            format: 0,
-            style: '',
-            mode: 'normal' as const,
-            detail: 0,
-            version: 1,
-          },
-        ],
-      })),
+      children: fragmenty.map((f) =>
+        typeof f === 'string'
+          ? {
+              type: 'paragraph',
+              format: '' as const,
+              indent: 0,
+              version: 1,
+              direction: 'ltr' as const,
+              textFormat: 0,
+              children: [wezelTekstowy(f)],
+            }
+          : {
+              type: 'heading',
+              tag: 'h2' as const,
+              format: '' as const,
+              indent: 0,
+              version: 1,
+              direction: 'ltr' as const,
+              children: [wezelTekstowy(f.__naglowek)],
+            },
+      ),
     },
   }
 }
@@ -591,6 +614,345 @@ const TERMINY = [
 ]
 
 /**
+ * Opinie — PRAWDZIWE wypowiedzi ze starej strony abcwspinania.info.
+ *
+ * Przepisane bez zmian w treści; poprawione wyłącznie oczywiste literówki
+ * i brakujące polskie znaki (stara strona miała je pogubione). Podpisy takie,
+ * jak były: imiona kursantów, inicjały rodziców. Nikt nie występuje pod pełnym
+ * nazwiskiem.
+ *
+ * ⚠️ Do potwierdzenia z Krzyśkiem, czy wszyscy autorzy nadal godzą się na
+ * publikację — dlatego `opublikowana` ustawiamy świadomie, wpis po wpisie,
+ * a nie hurtem.
+ */
+const STRONA_O_NAS = {
+  tytul: 'Prawie pięćdziesiąt lat w skale',
+  wstep:
+    'ABC Wspinania to szkoła z licencją Polskiego Związku Alpinizmu, działająca na Jurze ' +
+    'Krakowsko-Częstochowskiej. Prowadzi ją Krzysztof Wróbel — instruktor PZA, sędzia ' +
+    'wspinaczki sportowej i ekiper Związku.\n\n' +
+    'Nie prowadzimy kursów masowych. Czterech uczestników na instruktora to nie hasło ' +
+    'reklamowe, tylko limit z przepisów PZA i warunek tego, żeby każdy wspinał się ' +
+    'codziennie i był widziany przez cały dzień.',
+  powodyLicencji: [
+    {
+      tytul: 'Uprawnienia są weryfikowane',
+      opis:
+        'Instruktor PZA przechodzi kwalifikację, egzamin, trzy staże, a potem okresowe ' +
+        'unifikacje. Tytuł „instruktor wspinaczki" sam w sobie nie jest w Polsce chroniony — ' +
+        'licencja Związku tak, a jej numer można sprawdzić na liście PZA.',
+    },
+    {
+      tytul: 'Program jest określony',
+      opis:
+        'Kurs skałkowy ma ustalony minimalny wymiar: sześć dni, z czego co najmniej pięć ' +
+        'w terenie, oraz spisany zakres tematów. Nie da się go skrócić do weekendu i nazwać ' +
+        'tak samo.',
+    },
+    {
+      tytul: 'Zaświadczenie coś znaczy',
+      opis:
+        'Pełny kurs skałkowy PZA jest wymagany, żeby otrzymać skierowanie na kurs taternicki. ' +
+        'Poza tym honorują go ścianki i kluby tam, gdzie pytają o przeszkolenie.',
+    },
+  ],
+  oJurze:
+    'Jura Krakowsko-Częstochowska to najstarszy rejon wspinaczkowy w Polsce — pierwsze drogi ' +
+    'poprowadzono tu jeszcze przed wojną. Baza szkoły stoi w Rzędkowicach od 2002 roku, ' +
+    'kwadrans marszu od skał. Wapień się jednak zużywa: chwyty, które dwadzieścia lat temu ' +
+    'były ostre, są dziś wypolerowane, a kilka klasycznych dróg jest realnie trudniejszych, ' +
+    'niż mówi ich wycena.',
+  liczbyJura: [
+    { wartosc: '1933', opis: 'pierwsze udokumentowane drogi na Jurze' },
+    { wartosc: '~3 500', opis: 'dróg w rejonach, w których szkolimy' },
+    { wartosc: '15 min', opis: 'marszu pod skały z naszej bazy' },
+    { wartosc: 'III–IX', opis: 'zakres trudności dostępny na miejscu' },
+  ],
+}
+
+const OPINIE = [
+  {
+    autor: 'Kasia',
+    czego: 'kurs-skalkowy' as const,
+    termin: 'maj 2017',
+    opublikowana: true,
+    naStronieGlownej: true,
+    order: 1,
+    tresc:
+      'Cała nasza grupa była zachwycona zajęciami, zarówno częścią praktyczną w terenie ' +
+      '(bakcyl wspinania złapany bezpowrotnie), jak i wykładami. Daleko im było do nudnego ' +
+      'wyobrażenia o wykładach — moglibyśmy słuchać godzinami opowieści, które nam ' +
+      'przytaczałeś. Rozmawialiśmy jeszcze długo po powrocie z zajęć i analizowaliśmy nowo ' +
+      'poznane informacje. Ogromna wiedza i doświadczenie robią wrażenie, ale dodatkowo ' +
+      'masz niezwykłą umiejętność jasnego tłumaczenia i wyczerpującego odpowiadania na ' +
+      'każde pytanie. Takich nauczycieli spotyka się niezwykle rzadko.',
+  },
+  {
+    autor: 'Maciek i Lidka',
+    czego: 'kurs-skalkowy' as const,
+    termin: 'wiosna 2014',
+    opublikowana: true,
+    order: 2,
+    tresc:
+      'Dla mnie wspinanie to kontynuacja pasji, a dla Lidii była to zupełna nowość. ' +
+      'Postanowiliśmy zacząć wszystko od początku, od kursu skałkowego ze skierowaniem na ' +
+      'kurs taternicki. Pogoda nie rozpieszczała, ale właśnie taka pozwala lepiej się skupić ' +
+      'na tym, co zostaje wykładane i wywspinane. Teoria przemieszana z praktyką, kolejne ' +
+      'drogi, cała masa wiedzy wiązana w węzłach, zakładanych kościach, przewlekanych ' +
+      'repikach. Dziesiątki zjazdów, przepinek, budowy i likwidacji stanowisk. Zero presji, ' +
+      'zero strachu, że coś może pójść nie tak. To, że dziś możemy się pochwalić poważnymi ' +
+      'dla nas drogami w wapieniach czy tatrzańskich granitach, zawdzięczamy tej szkole.',
+  },
+  {
+    autor: 'Ania',
+    czego: 'kurs-skalkowy' as const,
+    termin: 'październik 2011',
+    opublikowana: true,
+    naStronieGlownej: true,
+    order: 3,
+    tresc:
+      'Pierwszy raz widzę skałę, pierwszy raz jej dotykam, nie mówiąc o wchodzeniu na to ' +
+      'coś — emocje nie do opisania. Sto procent pozytywnej energii, dwieście procent ' +
+      'cierpliwości i spokoju. Takich słów wcześniej nie znałam, wieczorem wszystko ' +
+      'analizowałam, głowa mi pękała od tej wiedzy — ale jakoś zaczynało się to kleić ' +
+      'w spójną całość. Mijały kolejne dni, a panika rosła: nie ogarnę. Ale od pierwszego ' +
+      'siniaka wiedziałam, że to jest to. Z perspektywy czasu naprawdę się dziwię, że mnie ' +
+      'nie odesłałeś do domu.',
+  },
+  {
+    autor: 'Piotr',
+    czego: 'kurs-skalkowy' as const,
+    termin: '2012',
+    opublikowana: true,
+    order: 4,
+    tresc:
+      'Część praktyczna kursu u Krzyśka była bardzo dobrym zakończeniem kursu ' +
+      'wspinaczkowego w klubie wysokogórskim, ale też okazją do nauczenia się czegoś ' +
+      'zupełnie nowego — zarówno z techniki, jak i z taktyki wspinania. Cała nasza ' +
+      'czteroosobowa grupa była pod dużym wrażeniem kompetencji i zaangażowania. ' +
+      'Praktyczna znajomość rejonów i pragmatyczne podejście do szkolenia zrobiły na mnie ' +
+      'bardzo pozytywne wrażenie. Teraz niemal co roku mój starszy syn bierze udział ' +
+      'w obozach przygodowo-wspinaczkowych.',
+  },
+  {
+    autor: 'Mama Jarka',
+    czego: 'oboz' as const,
+    opublikowana: true,
+    order: 5,
+    tresc:
+      'Już po obozie mogę powiedzieć, że to był pierwszy wyjazd Jarka bez mamy i z całkiem ' +
+      'nowymi dla niego ludźmi. Dziękuję jeszcze raz za to, że tak dobrze wszystko poszło.',
+  },
+  {
+    autor: 'Rodzice uczestniczki',
+    czego: 'oboz' as const,
+    opublikowana: true,
+    order: 6,
+    tresc:
+      'Nie dzwoniliśmy w niedzielę, bo byliśmy pewni, że ma Pan urwanie głowy. Chcemy bardzo ' +
+      'podziękować za ten obóz. Sądząc po zdjęciach i relacjach dzieci, wspinanie było ' +
+      'naprawdę poważne, a jednocześnie bezpieczne. Na dodatek dzieci zaliczyły dużo ' +
+      'samodzielności i mocno się odkomercjalizowały — czego one może tak bardzo nie ' +
+      'doceniają, ale my owszem.',
+  },
+  {
+    autor: 'B.',
+    czego: 'oboz' as const,
+    opublikowana: true,
+    order: 7,
+    tresc:
+      'Dziękujemy za bardzo udany obóz. Małgosia już zgłasza chęć wzięcia udziału ' +
+      'w przyszłorocznym, wspominała też o turnusie ze starszymi dziećmi, o którym Pan ' +
+      'jej mówił. Mam nadzieję, że w przyszłym roku uda się zgrać terminy.',
+  },
+]
+
+/** Kadra. Dane z podpisu Krzysztofa Wróbla pod tekstami na starej stronie. */
+const INSTRUKTORZY = [
+  {
+    imie: 'Krzysztof Wróbel',
+    rola: 'Szef szkoły, instruktor PZA',
+    licencja: 'PZA 366/WS, uprawnienia państwowe IS 182/K/2002',
+    order: 1,
+    opis:
+      'Wspina się od blisko pięćdziesięciu lat, z Klubem Wysokogórskim Gliwice związany od ' +
+      '1982 roku. Instruktor Polskiego Związku Alpinizmu, licencjonowany sędzia wspinaczki ' +
+      'sportowej i ekiper PZA, autor nowych dróg i przewodnika wspinaczkowego. Organizator ' +
+      'pięciu edycji zawodów Pucharu Polski we wspinaczce sportowej, kilkunastu edycji ' +
+      'zawodów dla dzieci oraz kilkudziesięciu obozów w kraju i za granicą.',
+  },
+]
+
+/**
+ * Wpisy — przepisane teksty ze starej strony.
+ *
+ * Treść merytoryczna zostaje, redakcja jest nowa: stare wersje niosły
+ * pozostałości po pozycjonowaniu z czasów Joomli (powtarzane frazy
+ * „kurs wspinaczkowy", „szkoła wspinania") i sporo literówek.
+ */
+const WPISY = [
+  {
+    slug: '25-lat-abc-wspinania',
+    title: '25 lat ABC Wspinania',
+    kategoria: 'z-zycia-szkoly' as const,
+    publishedAt: '2026-09-12',
+    wyrozniony: true,
+    lead:
+      'Rok 2026 to dwudziesty piąty sezon działania szkoły. O tym, co się przez ten czas ' +
+      'zmieniło w sprzęcie, w rejonie i w ludziach, którzy przyjeżdżają się uczyć — i co ' +
+      'zostało dokładnie takie samo.',
+    tresc: akapity(
+      'Czas leci szybko i trudno powiedzieć, kiedy to się stało, ale wygląda na to, że mamy ' +
+        'okrągłą rocznicę. Rok 2026 to dwudziesty piąty sezon działania ABC Wspinania.',
+      h2('Priorytety, które się nie zmieniły'),
+      'Przez te wszystkie lata miałem przyjemność wyszkolić wielu znakomitych wspinaczy, ale ' +
+        'bardziej niż to cieszy mnie fakt, że udało się większości z Was zaszczepić wirusa ' +
+        'wspinania — takiego, bez którego już nie potraficie żyć.',
+      'Priorytety przez cały ten czas były dwa: bezpieczeństwo i rzetelne szkolenie. Oceny za ' +
+        'jakość, merytorykę i atmosferę wystawiacie Wy, nie ja, i to Wasze opinie oraz Wasze ' +
+        'własne wspinanie są najbardziej wiarygodną rekomendacją dla szkoły.',
+      h2('Co się zmieniło w sprzęcie'),
+      'Najwięcej zmieniły przyrządy asekuracyjne. Klasyczny kubek ustąpił miejsca przyrządom ' +
+        'ze wspomaganiem hamowania, a to przesunęło punkt ciężkości szkolenia: mniej czasu ' +
+        'idzie na wyrabianie odruchu trzymania liny, więcej na czytanie sytuacji i pracę nóg. ' +
+        'Nie jest to zmiana wyłącznie na plus — osoba wyszkolona wyłącznie na przyrządzie ' +
+        'wspomaganym gorzej radzi sobie, gdy trafi na zwykłą płytkę.',
+      'Liny schudły o jakieś dwa milimetry przy tej samej wytrzymałości, uprzęże są lżejsze ' +
+        'i lepiej regulowane, a kaski z pianki wyparły skorupowe — co widać po tym, ile osób ' +
+        'faktycznie je nosi.',
+      h2('Rejon pod presją'),
+      'Rzędkowice w majowy weekend to dwadzieścia pięć lat temu było kilkanaście osób pod całą ' +
+        'grupą skał. Dziś bywa kilkaset. To zmienia sposób prowadzenia kursu: wychodzimy ' +
+        'wcześniej, mamy zapasowe warianty na wypadek zajętych dróg i uczymy rzeczy, o których ' +
+        'dawniej nie było potrzeby mówić — jak zachować się w kolejce pod drogą i dlaczego nie ' +
+        'zostawia się ekspresów na noc.',
+      'Wapień też się zużywa. Chwyty, które kiedyś były ostre, są dziś wypolerowane na lustro, ' +
+        'a kilka klasycznych dróg jest realnie trudniejszych, niż mówi ich wycena.',
+      h2('Ludzie, którzy przyjeżdżają'),
+      'Największa zmiana nie dotyczy ani sprzętu, ani skał, tylko tego, kto przyjeżdża się ' +
+        'uczyć. Dwadzieścia pięć lat temu na kurs skałkowy trafiał ktoś, kto wspinał się już ' +
+        'w klubie i chciał uporządkować wiedzę. Dziś zdecydowana większość przychodzi ze ' +
+        'ścianki: z dobrą siłą i zerowym doświadczeniem terenowym. To zupełnie inny punkt ' +
+        'startowy i trudniejszy, bo trzeba odkręcić nawyki, które w hali były bezpieczne, ' +
+        'a w skale nie są.',
+      'Stąd wziął się limit czterech osób na instruktora. Przy sześciu jeszcze da się prowadzić ' +
+        'grupę, ale nie da się zauważyć, że ktoś systematycznie wpina ekspres odwrotnie.',
+      h2('Co dalej'),
+      'Na najbliższy sezon dokładamy grupę w tygodniu — dla osób pracujących zmianowo, które ' +
+        'nie mogą wziąć sześciu dni z rzędu w weekendy. Poza tym nic nie zmieniamy i jest to ' +
+        'decyzja świadoma.',
+      'Dziękuję wszystkim, którzy przez te lata przyjechali, a zwłaszcza tym, którzy wrócili po ' +
+        'latach z własnymi dziećmi. To najlepsze potwierdzenie, że coś tu robimy dobrze.',
+    ),
+  },
+  {
+    slug: 'dlaczego-instruktor-pza',
+    title: 'Jak sprawdzić instruktora, zanim zapiszesz się na kurs',
+    kategoria: 'poradniki' as const,
+    publishedAt: '2026-08-14',
+    lead:
+      'Polskie prawo nie zabrania szkolić osobom bez żadnych uprawnień. Strona internetowa ' +
+      'z nazwą „szkoła wspinania" nie znaczy więc nic. Oto trzy pytania, które warto zadać.',
+    tresc: akapity(
+      h2('Trzy kategorie instruktorów'),
+      'Instruktorów wspinaczki dzieli się w Polsce na trzy kategorie: instruktorzy Polskiego ' +
+        'Związku Alpinizmu, instruktorzy sportu i instruktorzy rekreacji ruchowej. Z tego grona ' +
+        'tylko pierwsi podlegają kontroli — mają obowiązek udziału w okresowych unifikacjach ' +
+        'i regularnego potwierdzania uprawnień.',
+      'Uzyskanie licencji PZA jest procesem długim. Weryfikacja idzie na kilku poziomach: ' +
+        'najpierw opinia macierzystego klubu, gdzie kandydata znają najlepiej, potem ' +
+        'kwalifikacja na kurs, zaliczenie wszystkich jego etapów i trzy staże szkoleniowe. ' +
+        'Uprawnienia instruktora sportu czy rekreacji ruchowej nie są w ten sposób regulowane ' +
+        'przez nic poza decyzją organizatora kursu.',
+      h2('Dlaczego to w ogóle problem'),
+      'Zdarzały się sytuacje, w których szkołę wspinania otwierała osoba rok czy dwa po ' +
+        'własnym kursie podstawowym. Prawo tego nie zabrania, bo tej kwestii po prostu nie ' +
+        'normuje. Zapytany wprost, czy uczciwie jest pisać o sobie „doświadczenie, wiedza ' +
+        'i praktyka", ktoś taki odpowiedział mi kiedyś: „bo jak tak nie napiszę, to nikt do ' +
+        'mnie nie przyjdzie". To prawda — i dokładnie na tym polega problem.',
+      'Wspinanie opiera się na zaufaniu: do sprzętu i do partnera. Skoro ktoś mówi, że mnie ' +
+        'asekuruje, to mu wierzę. Zakładam więc też, że to, co napisał o sobie na stronie, ' +
+        'jest prawdą.',
+      h2('Trzy pytania, które warto zadać'),
+      'Zanim więc zdecydujesz, gdzie i u kogo robisz kurs, zadaj trzy pytania. Kto konkretnie ' +
+        'będzie Cię szkolił — imię i nazwisko, bo niektóre szkoły firmuje ktoś, a szkoli kto ' +
+        'inny. Jakie ma uprawnienia: typ, numer, data. I jakie ma doświadczenie wspinaczkowe ' +
+        'oraz szkoleniowe. Licencję PZA sprawdzisz na liście Związku, a członkostwo w klubie ' +
+        'wysokogórskim jednym telefonem.',
+      'Wspinanie to naprawdę fajna sprawa, ale zabierajcie się za nie z głową. Wspinanie ' +
+        'błędów nie wybacza.',
+    ),
+  },
+  {
+    slug: 'wspinanie-i-dzieci',
+    title: 'Od kiedy dziecko może się wspinać',
+    kategoria: 'poradniki' as const,
+    publishedAt: '2026-07-22',
+    lead:
+      'Nie ma ograniczeń formalnych ani zdrowotnych, żeby czterolatek nie mógł się wspinać. ' +
+      'Jest za to kilka rzeczy, które warto wiedzieć — zwłaszcza gdy dziecko się boi.',
+    tresc: akapity(
+      'Wspinanie jest aktywnością bardzo wszechstronną: angażuje wszystkie partie mięśni, ' +
+        'wymaga kontroli równowagi i — co ważne — świadomego wysiłku umysłowego przy ' +
+        'planowaniu kolejnych ruchów w zmiennym terenie. Różnorodność układów ciała ' +
+        'i pozycji zauważyli fizjoterapeuci: elementy wspinaczki wykorzystuje się dziś ' +
+        'w rehabilitacji powypadkowej.',
+      'Kilkuletnie dzieci nie będą oczywiście asekurować samodzielnie — w tym zakresie ' +
+        'konieczna jest obecność instruktora albo przeszkolonych rodziców. Jedyne realne ' +
+        'ograniczenie w najmłodszym wieku dotyczy skoordynowanego treningu siłowego, ze ' +
+        'względu na rozwijający się szkielet. Dla małego dziecka byłby zresztą po prostu nudny.',
+      h2('Co zrobić, gdy dziecko się boi'),
+      'Strach nie jest niczym złym. Prawdziwy lęk wysokości to rzadkość; obawa związana ' +
+        'z wysokością jest naturalnym, zdrowym odruchem. Gdy dziecko daje sygnały, że się boi, ' +
+        'nie zmuszajmy go do wchodzenia wysoko. W grupie akceptacja wysokości przychodzi ' +
+        'łatwiej — widząc kolegów na ściance, większość dzieciaków rusza bez oporów.',
+      'Przy większej blokadzie oswajamy stopniowo. Nie wyżej niż metr nad ziemią, tak by ' +
+        'dziecko czuło obecność rodzica obok. Pomagają zabawy poprawiające koordynację: ' +
+        'poziomo ułożona drabina oparta na dwóch krzesłach, po której dzieciak przechodzi ' +
+        'trzymany za rękę. Potem drabina lekko pochylona, potem coraz bardziej pionowa, ' +
+        'najpierw dwa–trzy stopnie w górę i z powrotem. Na ściance tak samo: jeden, dwa ruchy ' +
+        'i schodzimy, wielokrotnie, w różnych miejscach.',
+      h2('W czym wspinać'),
+      'Co do butów — specjalistyczne wspinaczkowe nie mają na tym etapie sensu, bo stopa ' +
+        'szybko rośnie. Wystarczą tanie sportowe, ale raczej nie klasyczne „adidasy": bywają ' +
+        'szerokie i mają śliskie podeszwy. Szukajmy czegoś z w miarę wąskim czubkiem, na ' +
+        'gumie, dość sztywnego i dość ciasnego, żeby stopa była stabilna w środku.',
+      h2('Starsze dzieci i trening'),
+      'Dzieci od ósmego roku życia mogą już uczestniczyć w regularnych zajęciach sekcji ' +
+        'wspinaczkowych, również sportowych. Trzeba jednak powiedzieć wyraźnie: część technik ' +
+        'treningowych jest przy pracy z dziećmi niewskazana, a niektóre wręcz zakazane — ' +
+        'dotyczy to zwłaszcza treningu siłowego z dużymi obciążeniami, który w dłuższej ' +
+        'perspektywie degraduje stawy i ścięgna.',
+    ),
+  },
+  {
+    slug: 'jaskinia-berkowa',
+    title: 'Byliśmy w Jaskini Berkowej',
+    kategoria: 'relacje' as const,
+    publishedAt: '2026-06-18',
+    lead:
+      'Kilkadziesiąt metrów kreciej norki robi na wszystkich wielkie wrażenie. Relacja ' +
+      'z wyjścia jaskiniowego poza programem kursu.',
+    tresc: akapity(
+      'Byliśmy z dzieciakami w Jaskini Berkowej, nazywanej dawniej w kręgach turystycznych ' +
+        '„kalesonową" — ze względu na zaciskowy charakter osoby tęższe wychodziły z niej ' +
+        'czasem bez spodni, nie zauważając tego faktu. Dziś jaskinia jest znacznie poszerzona, ' +
+        'z wyjątkiem dwóch zacisków.',
+      'Należy do nielicznego grona jaskiń bardzo bezpiecznych: skała jest monolityczna, ' +
+        'w stropie nie ma luźnych kamieni, które mogłyby się na kogoś osunąć. Nie jest to ' +
+        'jednak jaskinia spacerowa. W całym ciągu jest w zasadzie jedna komnata, w której ' +
+        'dorosły może się normalnie wyprostować — tam też grupa może się spotkać razem. ' +
+        'Dalsza droga wiedzie wężykowatym korytarzem: jedna osoba czołga się za drugą, bez ' +
+        'możliwości wyminięcia.',
+      'Przy rozwinięciu poziomym nie ma tam gdzie wpaść, można za to przy nerwowych ruchach ' +
+        'głową nabić sobie guza. Podobny charakter, choć bardziej skomplikowany układ, ma ' +
+        'Jaskinia Sucha w Mirowie. Nie zawsze jest sucha, co widać potem po stanie odzieży, ' +
+        'ale podobnie jak Berkowa stoi w stabilnej skale i nie ma charakteru zawaliskowego.',
+    ),
+  },
+]
+
+/**
  * ⚠️ Zawartość skryptu leci na GÓRNYM POZIOMIE modułu, a nie w `main()`.
  *
  * Zmierzone: `payload run` kończy proces, gdy skończy się ewaluacja modułu.
@@ -695,7 +1057,52 @@ for (const t of TERMINY) {
 }
 payload.logger.info(`Zapisano ${TERMINY.length} terminów.`)
 
+await payload.updateGlobal({ slug: 'strona-o-nas', data: STRONA_O_NAS })
+payload.logger.info('Treść strony „O nas" zapisana.')
+
+// --- Instruktorzy ---
+for (const i of INSTRUKTORZY) {
+  const { docs } = await payload.find({
+    collection: 'instruktorzy',
+    where: { imie: { equals: i.imie } },
+    limit: 1,
+  })
+  if (docs[0]) await payload.update({ collection: 'instruktorzy', id: docs[0].id, data: i })
+  else await payload.create({ collection: 'instruktorzy', data: i })
+}
+payload.logger.info(`Zapisano ${INSTRUKTORZY.length} instruktorów.`)
+
+// --- Opinie ---
+// Rozpoznajemy po podpisie wraz z terminem: sam podpis nie wystarcza, bo
+// „Rodzice uczestniczki" mogliby napisać więcej niż raz.
+for (const o of OPINIE) {
+  const { docs } = await payload.find({
+    collection: 'opinie',
+    where: {
+      and: [{ autor: { equals: o.autor } }, { order: { equals: o.order } }],
+    },
+    limit: 1,
+  })
+  if (docs[0]) await payload.update({ collection: 'opinie', id: docs[0].id, data: o })
+  else await payload.create({ collection: 'opinie', data: o })
+}
+payload.logger.info(`Zapisano ${OPINIE.length} opinii.`)
+
+// --- Wpisy ---
+for (const w of WPISY) {
+  const dane = { ...w, publishedAt: new Date(w.publishedAt).toISOString() }
+  const { docs } = await payload.find({
+    collection: 'wpisy',
+    where: { slug: { equals: w.slug } },
+    limit: 1,
+  })
+  if (docs[0]) await payload.update({ collection: 'wpisy', id: docs[0].id, data: dane })
+  else await payload.create({ collection: 'wpisy', data: dane })
+}
+payload.logger.info(`Zapisano ${WPISY.length} wpisów.`)
+
 payload.logger.info(
-  `Gotowe — ${KURSY.length} kursów, ${OBOZY.length} obozów i wyjazdów, ${TERMINY.length} terminów, 2 globale.`,
+  `Gotowe — ${KURSY.length} kursów, ${OBOZY.length} obozów, ${TERMINY.length} terminów, ` +
+    `${WPISY.length} wpisów, ${OPINIE.length} opinii, 3 globale.`,
 )
 process.exit(0)
