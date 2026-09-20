@@ -1,5 +1,5 @@
-import type { Kursy } from '@/payload-types'
-import { BRAND, CONTACT, SITE_URL } from '@/lib/site'
+import type { Kursy, Ustawienia } from '@/payload-types'
+import { BRAND, SITE_URL } from '@/lib/site'
 
 /**
  * Dane strukturalne schema.org.
@@ -8,27 +8,40 @@ import { BRAND, CONTACT, SITE_URL } from '@/lib/site'
  * widoczności w wyszukiwarce i w mapach, więc wchodzi od pierwszego dnia.
  *
  * Typ `SportsActivityLocation` jest węższy niż `LocalBusiness` i trafniejszy dla
- * szkoły wspinaczki. Pola kontaktowe doklejane warunkowo — Google woli brak pola
- * niż pole puste, a telefonu i adresu e-mail jeszcze nie potwierdziliśmy.
+ * szkoły wspinaczki.
+ *
+ * Dane bierzemy z globala `ustawienia`, a każde pole doklejamy WARUNKOWO —
+ * Google woli brak pola niż pole puste, a global może być jeszcze
+ * nieuzupełniony albo baza niedostępna przy budowaniu.
  */
-export function organizationSchema() {
+export function organizationSchema(u: Ustawienia) {
   const schema: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'SportsActivityLocation',
     name: BRAND,
-    legalName: CONTACT.legalName,
     url: SITE_URL,
-    address: {
-      '@type': 'PostalAddress',
-      streetAddress: CONTACT.street,
-      postalCode: CONTACT.postalCode,
-      addressLocality: CONTACT.locality,
-      addressCountry: CONTACT.country,
-    },
   }
 
-  if (CONTACT.phone) schema.telephone = CONTACT.phone
-  if (CONTACT.email) schema.email = CONTACT.email
+  if (u.nazwaFirmy) schema.legalName = u.nazwaFirmy
+
+  // Adres doklejamy w CAŁOŚCI albo wcale. Częściowy `PostalAddress` (sama
+  // miejscowość, bez ulicy) nie pomaga w mapach, a wygląda w danych jak
+  // kompletny — i nikt się nie zorientuje, że czegoś brakuje.
+  if (u.ulica && u.kodPocztowy && u.miejscowosc) {
+    schema.address = {
+      '@type': 'PostalAddress',
+      streetAddress: u.ulica,
+      postalCode: u.kodPocztowy,
+      addressLocality: u.miejscowosc,
+      addressCountry: 'PL',
+    }
+  }
+
+  if (u.telefon) schema.telephone = u.telefonE164 || u.telefon
+  if (u.email) schema.email = u.email
+
+  const profile = [u.facebook, u.youtube].filter(Boolean)
+  if (profile.length > 0) schema.sameAs = profile
 
   return schema
 }

@@ -70,6 +70,16 @@ export const Kursy: CollectionConfig = {
       },
     },
     {
+      name: 'cenaOd',
+      type: 'checkbox',
+      label: 'Pokaż jako „od tej kwoty"',
+      admin: {
+        description:
+          'Zaznacz, gdy kurs ma warianty droższe od podstawowego (inny rejon, ' +
+          'tryb weekendowy, mniejsza grupa). Inaczej cena na kaflu byłaby nieprawdą.',
+      },
+    },
+    {
       name: 'duration',
       type: 'text',
       label: 'Czas trwania',
@@ -94,6 +104,14 @@ export const Kursy: CollectionConfig = {
       label: 'Kolejność',
       admin: {
         description: 'Mniejsza liczba = wyżej na liście.',
+      },
+    },
+    {
+      name: 'wyrozniony',
+      type: 'checkbox',
+      label: 'Oznacz jako najpopularniejszy',
+      admin: {
+        description: 'Dokłada wyróżnioną odznakę na kaflu. Sensownie: jeden kurs.',
       },
     },
     {

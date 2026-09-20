@@ -1,19 +1,32 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import Link from 'next/link'
+import { Inter, Bricolage_Grotesque } from 'next/font/google'
 
+import { getUstawienia, telHref } from '@/lib/content'
 import { BRAND, SITE_URL } from '@/lib/site'
 import { jsonLd, organizationSchema } from '@/lib/schema'
 import { ogImage } from '@/lib/seo'
+import { Naglowek } from '@/components/Naglowek'
+import { Stopka } from '@/components/Stopka'
+import { PasekMobilny } from '@/components/PasekMobilny'
 import './globals.css'
 
-// Podzbiór `latin-ext` jest OBOWIĄZKOWY. Bez niego polskie znaki diakrytyczne
-// (ą, ę, ś, ż, ź, ć, ń, ó, ł) lecą na krój zapasowy i tekst rozjeżdża się
-// w środku wyrazu — widać to dopiero na gotowej stronie, nie w devtoolsach.
+// Podzbiór `latin-ext` jest OBOWIĄZKOWY w OBU krojach. Bez niego polskie znaki
+// diakrytyczne (ą, ę, ś, ż, ź, ć, ń, ó, ł) lecą na krój zapasowy i tekst
+// rozjeżdża się w środku wyrazu — widać to dopiero na gotowej stronie, nie
+// w devtoolsach. Przy kroju nagłówkowym boli podwójnie, bo idzie w 72 px.
 const inter = Inter({
   subsets: ['latin', 'latin-ext'],
   display: 'swap',
-  variable: '--font-sans',
+  variable: '--font-inter',
+})
+
+// Krój nagłówkowy z makiety. Zawężony do wag, których faktycznie używamy —
+// Bricolage jest zmienny, więc bez tego zaciągnęlibyśmy pełny zakres osi.
+const bricolage = Bricolage_Grotesque({
+  subsets: ['latin', 'latin-ext'],
+  display: 'swap',
+  weight: ['600', '800'],
+  variable: '--font-bricolage',
 })
 
 export const metadata: Metadata = {
@@ -25,7 +38,7 @@ export const metadata: Metadata = {
     template: `%s | ${BRAND}`,
   },
   description:
-    'Kursy wspinaczki skalnej, szkolenia i obozy dla dzieci i dorosłych. Jura Krakowsko-Częstochowska.',
+    'Kursy wspinaczki skalnej z licencją PZA, obozy dla dzieci i młodzieży, własna baza w Rzędkowicach. Jura Krakowsko-Częstochowska.',
   // Wskazany jawnie, bo plik manifestu musi leżeć w korzeniu `app/` (patrz
   // komentarz w src/app/manifest.ts), a stamtąd Next nie dokleja go sam
   // do <head> podstron w grupie tras.
@@ -38,15 +51,17 @@ export const metadata: Metadata = {
   },
 }
 
-const NAWIGACJA = [
-  { href: '/', etykieta: 'Kursy' },
-  { href: '/kontakt', etykieta: 'Kontakt' },
-]
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  // Jedno pobranie na całe drzewo — nagłówek, stopka, pasek i dane
+  // strukturalne dostają je właściwościami, zamiast wołać każde po swojemu.
+  const ustawienia = await getUstawienia()
+  const tel = telHref(ustawienia)
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pl" className={inter.variable}>
-      <body className="flex min-h-dvh flex-col font-sans antialiased">
+    <html lang="pl" className={`${inter.variable} ${bricolage.variable}`}>
+      {/* `pb-[68px]` robi miejsce pod przyklejony pasek mobilny, żeby nie
+          przykrywał końca stopki. Od `lg` paska nie ma, więc odstęp znika. */}
+      <body className="flex min-h-dvh flex-col pb-[68px] font-sans antialiased lg:pb-0">
         {/* Link pomijający nawigację — pierwsza rzecz pod Tabem. Bez niego osoba
             poruszająca się klawiaturą przechodzi przez całe menu na każdej
             podstronie, zanim dotrze do treści. */}
@@ -57,44 +72,21 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           Przejdź do treści
         </a>
 
-        <header className="border-b border-rock-100">
-          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
-            <Link href="/" className="text-lg font-semibold tracking-tight">
-              {BRAND}
-            </Link>
-            <nav aria-label="Główna">
-              <ul className="flex gap-6">
-                {NAWIGACJA.map((pozycja) => (
-                  <li key={pozycja.href}>
-                    <Link href={pozycja.href} className="text-rock-600 hover:text-rock-900">
-                      {pozycja.etykieta}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          </div>
-        </header>
+        <Naglowek telefon={ustawienia.telefon ?? null} telHref={tel} />
 
         <div id="tresc" className="flex-1">
           {children}
         </div>
 
-        <footer className="mt-16 border-t border-rock-100">
-          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-8 text-sm text-rock-600 sm:px-6">
-            <p>
-              © {new Date().getFullYear()} {BRAND}
-            </p>
-            <p>Jura Krakowsko-Częstochowska</p>
-          </div>
-        </footer>
+        <Stopka ustawienia={ustawienia} />
+        <PasekMobilny telefon={ustawienia.telefon ?? null} telHref={tel} />
 
         {/* Dane strukturalne w layoucie, więc są na KAŻDEJ podstronie.
             Dla firmy działającej lokalnie to najtańsza rzecz, jaką da się zrobić
             dla widoczności w wyszukiwarce i w mapach. */}
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: jsonLd(organizationSchema()) }}
+          dangerouslySetInnerHTML={{ __html: jsonLd(organizationSchema(ustawienia)) }}
         />
       </body>
     </html>

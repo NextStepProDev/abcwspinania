@@ -1,15 +1,40 @@
 @import 'tailwindcss';
 
-/* Paleta wyjściowa: wapień Jury i lina. Do zastąpienia po ustaleniu identyfikacji
-   wizualnej z klientem — celowo zebrana w jednym miejscu jako zmienne, żeby
-   podmiana nie oznaczała przechodzenia przez komponenty. */
+/* Paleta i typografia wzięte 1:1 z makiety.
+   Wartości są tokenami, nie literałami w komponentach — podmiana identyfikacji
+   wizualnej ma oznaczać edycję tego pliku, a nie przechodzenie przez widoki. */
 @theme {
+  /* Wapień Jury — od tła strony po ciemną stopkę. */
   --color-rock-50: #f7f5f1;
   --color-rock-100: #ece7df;
+  --color-rock-200: #e0d9cd;
   --color-rock-300: #c4b8a6;
+  --color-rock-400: #a5937c;
+  --color-rock-500: #8a7f70;
   --color-rock-600: #6b6152;
+  --color-rock-700: #494036;
+  --color-rock-800: #3a332a;
   --color-rock-900: #2a2620;
+  --color-rock-950: #1a1713;
+
+  /* Lina — kolor akcentu. */
   --color-rope: #c8552b;
+  --color-rope-dark: #a03f1e;
+  --color-rope-soft: #f5e8e2;
+  --color-rope-light: #f0a184;
+
+  /* Dostępność terminu: zielony znaczy „są miejsca". Osobne tokeny, bo to
+     komunikat stanu, a nie wariant akcentu — nie wolno ich zlać z `rope`. */
+  --color-wolne-bg: #e6ece2;
+  --color-wolne-text: #4a6640;
+
+  /* Tekst na ciemnym tle stopki i sekcji `rock-900`. */
+  --color-rock-fg: #cfc5b7;
+  --color-rock-fg-strong: #e4ddd2;
+  --color-rock-line: #423a30;
+
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-display: var(--font-bricolage), var(--font-inter), system-ui, sans-serif;
 }
 
 :root {
@@ -19,6 +44,17 @@
 body {
   background-color: var(--color-rock-50);
   color: var(--color-rock-900);
+}
+
+/* Nagłówki idą krojem wyświetleniowym z makiety. Ustawione raz, globalnie —
+   inaczej `font-display` trzeba by powtarzać przy każdym h1…h3 w kilkunastu
+   widokach i prędzej czy później gdzieś by go zabrakło. */
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
 /* Szanuj ustawienie systemowe — bez tego animacje wejścia sekcji potrafią
@@ -35,7 +71,7 @@ body {
 }
 
 /* Treść z edytora w CMS-ie. Świadomie bez wtyczki @tailwindcss/typography —
-   potrzebujemy pięciu reguł, a nie całego systemu typograficznego, i nie
+   potrzebujemy kilku reguł, a nie całego systemu typograficznego, i nie
    chcemy kolejnej zależności do pilnowania przy podbiciach Tailwinda. */
 .tresc-bogata {
   display: flex;
@@ -44,10 +80,9 @@ body {
   line-height: 1.7;
 }
 .tresc-bogata h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  margin-top: 1rem;
+  font-size: 1.75rem;
+  margin-top: 1.5rem;
+  scroll-margin-top: 6rem; /* pod nagłówek przyklejony do góry przy skoku z spisu treści */
 }
 .tresc-bogata h3 {
   font-size: 1.25rem;
@@ -69,4 +104,11 @@ body {
 }
 .tresc-bogata strong {
   font-weight: 600;
+}
+.tresc-bogata blockquote {
+  border-left: 3px solid var(--color-rope);
+  padding-left: 1.25rem;
+  font-size: 1.125rem;
+  line-height: 1.6;
+  color: var(--color-rock-700);
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 import { pageMetadata } from '@/lib/seo'
-import { CONTACT, telHref } from '@/lib/site'
+import { getUstawienia, telHref } from '@/lib/content'
 import { FormularzKontaktowy } from './FormularzKontaktowy'
 
 export function generateMetadata(): Metadata {
@@ -13,8 +13,9 @@ export function generateMetadata(): Metadata {
   })
 }
 
-export default function Kontakt() {
-  const tel = telHref()
+export default async function Kontakt() {
+  const ustawienia = await getUstawienia()
+  const tel = telHref(ustawienia)
 
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-12 px-4 py-12 sm:px-6">
@@ -42,11 +43,11 @@ export default function Kontakt() {
                 strukturalnych, żeby wyszukiwarka nie musiała go zgadywać
                 z samego tekstu. */}
             <address className="mt-2 not-italic leading-relaxed text-rock-600">
-              {CONTACT.legalName}
+              {ustawienia.nazwaFirmy}
               <br />
-              {CONTACT.street}
+              {ustawienia.ulica}
               <br />
-              {CONTACT.postalCode} {CONTACT.locality}
+              {ustawienia.kodPocztowy} {ustawienia.miejscowosc}
             </address>
           </section>
 
@@ -58,7 +59,7 @@ export default function Kontakt() {
               {/* Numer jako link tel: — na telefonie wystarczy stuknąć. */}
               <p className="mt-2">
                 <a href={tel} className="text-rope underline underline-offset-4">
-                  {CONTACT.phone}
+                  {ustawienia.telefon}
                 </a>
               </p>
             </section>

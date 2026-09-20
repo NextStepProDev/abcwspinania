@@ -91,8 +91,14 @@ export interface Config {
     defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    ustawienia: Ustawienia;
+    'strona-glowna': StronaGlowna;
+  };
+  globalsSelect: {
+    ustawienia: UstawieniaSelect<false> | UstawieniaSelect<true>;
+    'strona-glowna': StronaGlownaSelect<false> | StronaGlownaSelect<true>;
+  };
   locale: null;
   widgets: {
     collections: CollectionsWidget;
@@ -156,6 +162,10 @@ export interface Kursy {
    */
   price?: number | null;
   /**
+   * Zaznacz, gdy kurs ma warianty droższe od podstawowego (inny rejon, tryb weekendowy, mniejsza grupa). Inaczej cena na kaflu byłaby nieprawdą.
+   */
+  cenaOd?: boolean | null;
+  /**
    * Opisowo, np. „2 dni" albo „4 spotkania po 3 h".
    */
   duration?: string | null;
@@ -164,6 +174,10 @@ export interface Kursy {
    * Mniejsza liczba = wyżej na liście.
    */
   order?: number | null;
+  /**
+   * Dokłada wyróżnioną odznakę na kaflu. Sensownie: jeden kurs.
+   */
+  wyrozniony?: boolean | null;
   cover?: (number | null) | Media;
   updatedAt: string;
   createdAt: string;
@@ -345,9 +359,11 @@ export interface KursySelect<T extends boolean = true> {
   summary?: T;
   description?: T;
   price?: T;
+  cenaOd?: T;
   duration?: T;
   level?: T;
   order?: T;
+  wyrozniony?: T;
   cover?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -464,6 +480,170 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * Dane kontaktowe i informacje o szkole. Pokazują się na całej stronie.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ustawienia".
+ */
+export interface Ustawienia {
+  id: number;
+  /**
+   * Tak jak ma się wyświetlać, np. „609 465 237”. Puste = strona nie pokazuje telefonu.
+   */
+  telefon?: string | null;
+  /**
+   * Np. „+48609465237”. To trafia do linku klikalnego na telefonie. Puste = wyliczymy z pola wyżej.
+   */
+  telefonE164?: string | null;
+  email?: string | null;
+  /**
+   * Każda linia wyświetli się osobno, np. „Pon.–pt. 9:00–19:00”.
+   */
+  godziny?: string | null;
+  /**
+   * Np. że nie zawsze da się odebrać, bo trwają zajęcia w skałach.
+   */
+  uwagaKontaktowa?: string | null;
+  nazwaFirmy?: string | null;
+  ulica?: string | null;
+  kodPocztowy?: string | null;
+  miejscowosc?: string | null;
+  /**
+   * Pełny adres z pola „src” kodu osadzenia mapy. Puste = zamiast mapy pokazujemy sam adres.
+   */
+  mapaEmbed?: string | null;
+  /**
+   * Np. „366/WS”. Pokazuje się w stopce.
+   */
+  licencjaPza?: string | null;
+  uprawnieniaPanstwowe?: string | null;
+  /**
+   * Z tego liczymy „X lat doświadczenia”, żeby nie dezaktualizowało się co styczeń.
+   */
+  rokZalozenia?: number | null;
+  /**
+   * Jedno–dwa zdania. Widoczne w stopce.
+   */
+  opisKrotki?: string | null;
+  facebook?: string | null;
+  youtube?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Teksty na stronie startowej. Kursy, terminy i wpisy zaciągają się same.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "strona-glowna".
+ */
+export interface StronaGlowna {
+  id: number;
+  /**
+   * Krótkie wyróżnienie, np. „Licencja PZA”.
+   */
+  heroOdznaka?: string | null;
+  heroPodtytul?: string | null;
+  /**
+   * Jedyny nagłówek pierwszego stopnia na tej stronie — nie powtarzaj go niżej.
+   */
+  heroTytul: string;
+  heroTekst?: string | null;
+  /**
+   * Pasek pod nagłówkiem. Cztery kafle wyglądają najlepiej.
+   */
+  liczby?:
+    | {
+        wartosc: string;
+        opis: string;
+        /**
+         * Zwykle tylko pierwszy kafel.
+         */
+        wyrozniony?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  kursyTytul?: string | null;
+  kursyTekst?: string | null;
+  obozyOdznaka?: string | null;
+  obozyTytul?: string | null;
+  obozyTekst?: string | null;
+  obozyZdjecie?: (number | null) | Media;
+  dlaczego?:
+    | {
+        tytul: string;
+        opis: string;
+        ikona?: ('tarcza' | 'ludzie' | 'gory' | 'dom') | null;
+        id?: string | null;
+      }[]
+    | null;
+  ctaTytul?: string | null;
+  ctaTekst?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ustawienia_select".
+ */
+export interface UstawieniaSelect<T extends boolean = true> {
+  telefon?: T;
+  telefonE164?: T;
+  email?: T;
+  godziny?: T;
+  uwagaKontaktowa?: T;
+  nazwaFirmy?: T;
+  ulica?: T;
+  kodPocztowy?: T;
+  miejscowosc?: T;
+  mapaEmbed?: T;
+  licencjaPza?: T;
+  uprawnieniaPanstwowe?: T;
+  rokZalozenia?: T;
+  opisKrotki?: T;
+  facebook?: T;
+  youtube?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "strona-glowna_select".
+ */
+export interface StronaGlownaSelect<T extends boolean = true> {
+  heroOdznaka?: T;
+  heroPodtytul?: T;
+  heroTytul?: T;
+  heroTekst?: T;
+  liczby?:
+    | T
+    | {
+        wartosc?: T;
+        opis?: T;
+        wyrozniony?: T;
+        id?: T;
+      };
+  kursyTytul?: T;
+  kursyTekst?: T;
+  obozyOdznaka?: T;
+  obozyTytul?: T;
+  obozyTekst?: T;
+  obozyZdjecie?: T;
+  dlaczego?:
+    | T
+    | {
+        tytul?: T;
+        opis?: T;
+        ikona?: T;
+        id?: T;
+      };
+  ctaTytul?: T;
+  ctaTekst?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
