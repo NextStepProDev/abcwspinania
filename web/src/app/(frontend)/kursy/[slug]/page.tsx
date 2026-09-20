@@ -64,6 +64,7 @@ export default async function StronaKursu({ params }: Props) {
         <div className="absolute inset-0 bg-rock-950/65" />
         <Kontener className="relative flex flex-col gap-4 py-12 lg:py-16">
           <Okruszki
+            wariant="naCiemnym"
             sciezka={[
               { etykieta: 'Start', href: '/' },
               { etykieta: 'Kursy', href: '/kursy' },

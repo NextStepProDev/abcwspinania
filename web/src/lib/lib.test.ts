@@ -108,6 +108,24 @@ test('brak daty końcowej daje jedną datę, nie pusty zakres', () => {
   assert.equal(formatZakresDat('2026-05-16', null), '16 maja 2026')
 })
 
+test('daty są czytane w UTC, nie w strefie serwera', () => {
+  // Payload z pickerem „dayOnly" zapisuje datę kalendarzową jako północ UTC.
+  // Czytanie jej lokalnie cofa CAŁĄ stronę o dzień w każdej strefie na zachód
+  // od UTC. Zmierzone: pod TZ=America/New_York turnus „26 czerwca – 3 lipca"
+  // pokazywał się jako „25 czerwca – 2 lipca".
+  //
+  // Ten test przechodzi niezależnie od TZ procesu — sprawdź go także przez
+  // `TZ=America/New_York npm test`.
+  assert.equal(formatZakresDat('2026-09-12T00:00:00.000Z'), '12 września 2026')
+  assert.equal(
+    formatZakresDat('2027-06-26T00:00:00.000Z', '2027-07-03T00:00:00.000Z'),
+    '26 czerwca – 3 lipca 2027',
+  )
+  // Granica roku jest najczulsza: błąd o godzinę przenosi tu datę o rok.
+  assert.equal(formatZakresDat('2027-01-01T00:00:00.000Z'), '1 stycznia 2027')
+  assert.equal(nazwaMiesiaca('2027-01-01T00:00:00.000Z'), 'Styczeń 2027')
+})
+
 test('niepoprawna data nie wywraca renderowania', () => {
   assert.equal(formatZakresDat('bzdura'), '')
   assert.equal(nazwaMiesiaca('bzdura'), '')

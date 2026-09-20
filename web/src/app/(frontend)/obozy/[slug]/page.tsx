@@ -5,7 +5,7 @@ import { RichText } from '@payloadcms/richtext-lexical/react'
 import { getCamp, getCamps, getTermsForCamp, getUstawienia, telHref } from '@/lib/content'
 import { formatCena, formatWiek, formatZakresDat, formatWolneMiejsca, odmien } from '@/lib/format'
 import { pageMetadata } from '@/lib/seo'
-import { OkruszkiJasne } from '@/components/Okruszki'
+import { Okruszki } from '@/components/Okruszki'
 import { Ptaszek } from '@/components/Ikony'
 import { Przycisk, Odznaka, Kontener } from '@/components/Ui'
 import { TloGorskie } from '@/components/TloGorskie'
@@ -55,7 +55,8 @@ export default async function StronaObozu({ params }: Props) {
         <TloGorskie wariant="niski" />
         <div className="absolute inset-0 bg-rock-950/65" />
         <Kontener className="relative flex flex-col gap-4 py-12 lg:py-16">
-          <OkruszkiJasne
+          <Okruszki
+            wariant="naCiemnym"
             sciezka={[
               { etykieta: 'Start', href: '/' },
               { etykieta: 'Obozy i wyjazdy', href: '/obozy' },

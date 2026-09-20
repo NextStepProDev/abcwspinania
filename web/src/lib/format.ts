@@ -122,6 +122,21 @@ const MIESIACE_MIANOWNIK = [
 ]
 
 /**
+ * ⚠️ Daty czytamy w UTC (`getUTCDate`, nie `getDate`).
+ *
+ * Payload z pickerem „dayOnly" zapisuje DATĘ KALENDARZOWĄ jako północ UTC
+ * („2027-06-26T00:00:00.000Z"). To nie jest moment w czasie, tylko dzień
+ * w kalendarzu, więc przeliczanie go na strefę serwera jest błędem: przy
+ * dowolnej strefie na zachód od UTC północ UTC wypada poprzedniego dnia
+ * lokalnie i CAŁA strona cofa się o jeden dzień. Zmierzone pod
+ * TZ=America/New_York: turnus „26 czerwca – 3 lipca" pokazywał się jako
+ * „25 czerwca – 2 lipca".
+ *
+ * Kontener produkcyjny chodzi na UTC, więc błędu tam nie widać — ale widzi go
+ * każdy, kto odpali `npm run dev` w Amerykach, i zobaczyłby go serwis, gdyby
+ * komuś przyszło do głowy ustawić kontenerowi TZ. Przy datach kursów pomyłka
+ * o dzień znaczy, że ktoś przyjeżdża nie wtedy, co trzeba.
+ *
  * Zakres dat po polsku, skracany tam, gdzie powtórzenie nic nie wnosi.
  *
  *   4–9 maja 2026                (ten sam miesiąc — miesiąc raz)
@@ -135,20 +150,21 @@ const MIESIACE_MIANOWNIK = [
 export function formatZakresDat(od: string, doDaty?: string | null): string {
   const a = new Date(od)
   if (Number.isNaN(a.getTime())) return ''
-  const dzienA = a.getDate()
-  const miesiacA = MIESIACE_DOPELNIACZ[a.getMonth()]
-  const rokA = a.getFullYear()
+  const dzienA = a.getUTCDate()
+  const miesiacA = MIESIACE_DOPELNIACZ[a.getUTCMonth()]
+  const rokA = a.getUTCFullYear()
 
   if (!doDaty) return `${dzienA} ${miesiacA} ${rokA}`
 
   const b = new Date(doDaty)
   if (Number.isNaN(b.getTime())) return `${dzienA} ${miesiacA} ${rokA}`
-  const dzienB = b.getDate()
-  const miesiacB = MIESIACE_DOPELNIACZ[b.getMonth()]
-  const rokB = b.getFullYear()
+  const dzienB = b.getUTCDate()
+  const miesiacB = MIESIACE_DOPELNIACZ[b.getUTCMonth()]
+  const rokB = b.getUTCFullYear()
 
   if (rokA !== rokB) return `${dzienA} ${miesiacA} ${rokA} – ${dzienB} ${miesiacB} ${rokB}`
-  if (a.getMonth() !== b.getMonth()) return `${dzienA} ${miesiacA} – ${dzienB} ${miesiacB} ${rokB}`
+  if (a.getUTCMonth() !== b.getUTCMonth())
+    return `${dzienA} ${miesiacA} – ${dzienB} ${miesiacB} ${rokB}`
   // Półpauza bez spacji przy samych dniach — tak jak w „4–9 maja".
   return `${dzienA}–${dzienB} ${miesiacA} ${rokA}`
 }
@@ -162,18 +178,18 @@ export function formatZakresKrotki(od: string, doDaty?: string | null): string {
   return lata && lata.length === 1 ? pelny.replace(/\s*\d{4}/, '') : pelny
 }
 
-/** Nagłówek grupy w terminarzu: „Maj 2026”. */
+/** Nagłówek grupy w terminarzu: „Maj 2026”. W UTC — patrz `formatZakresDat`. */
 export function nazwaMiesiaca(data: string): string {
   const d = new Date(data)
   if (Number.isNaN(d.getTime())) return ''
-  return `${MIESIACE_MIANOWNIK[d.getMonth()]} ${d.getFullYear()}`
+  return `${MIESIACE_MIANOWNIK[d.getUTCMonth()]} ${d.getUTCFullYear()}`
 }
 
-/** Klucz do grupowania po miesiącu, sortowalny leksykalnie. */
+/** Klucz do grupowania po miesiącu, sortowalny leksykalnie. W UTC. */
 export function kluczMiesiaca(data: string): string {
   const d = new Date(data)
   if (Number.isNaN(d.getTime())) return ''
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
 }
 
 /**

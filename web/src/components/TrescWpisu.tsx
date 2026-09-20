@@ -17,6 +17,21 @@ import { kotwica, spisTresci, type PozycjaSpisu } from '@/lib/format'
  * o tej samej nazwie spis wskazywałby „sprzet-2", a dokument miałby dwa
  * razy „sprzet".
  */
+/**
+ * Płaski tekst nagłówka — do zapasowej kotwicy, gdy spis się rozjedzie.
+ *
+ * `SerializedLexicalNode` nie deklaruje pola `text` (mają je dopiero węzły
+ * tekstowe), więc sięgamy po nie przez zawężenie, a nie rzutowanie na `any`.
+ */
+function tekstNaglowka(node: SerializedHeadingNode): string {
+  return (node.children ?? [])
+    .map((c) => {
+      const { text } = c as unknown as { text?: unknown }
+      return typeof text === 'string' ? text : ''
+    })
+    .join(' ')
+}
+
 export function TrescWpisu({ tresc }: { tresc: Parameters<typeof spisTresci>[0] }) {
   const spis: PozycjaSpisu[] = spisTresci(tresc)
 
@@ -34,8 +49,11 @@ export function TrescWpisu({ tresc }: { tresc: Parameters<typeof spisTresci>[0] 
       if (Tag !== 'h2') return <Tag>{dzieci}</Tag>
 
       const pozycja = spis[licznik++]
-      // Zapasowa kotwica na wypadek rozjazdu — lepsza niż brak `id`.
-      const id = pozycja?.id ?? kotwica(String(naglowek.children?.length ?? licznik))
+      // Zapasowa kotwica liczona z WŁASNEGO tekstu nagłówka. Wcześniej stało
+      // tu `kotwica(String(children.length))`, co przy rozjeździe dawało `id`
+      // w rodzaju „2" albo pusty ciąg — identyfikator bez związku z treścią,
+      // łatwy do powtórzenia i nieprawidłowy jako atrybut `id`.
+      const id = pozycja?.id || kotwica(tekstNaglowka(naglowek)) || undefined
       return <h2 id={id}>{dzieci}</h2>
     },
   })

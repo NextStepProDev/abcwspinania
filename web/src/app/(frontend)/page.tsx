@@ -33,8 +33,8 @@ export function generateMetadata(): Metadata {
 }
 
 export default async function Home() {
-  // Trzy niezależne zapytania — równolegle, bo szeregowo dołożyłyby sobie
-  // czasy nawzajem, a żadne nie potrzebuje wyniku pozostałych.
+  // Wszystkie zapytania są od siebie niezależne, więc lecą równolegle —
+  // szeregowo dołożyłyby sobie czasy nawzajem.
   const [tresc, kursy, terminy, opinie, wpisy, ustawienia] = await Promise.all([
     getStronaGlowna(),
     getCourses(),

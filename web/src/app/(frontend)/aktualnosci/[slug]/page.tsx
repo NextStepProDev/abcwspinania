@@ -7,7 +7,7 @@ import { czasCzytania, formatData, formatKategoria, spisTresci } from '@/lib/for
 import { pageMetadata } from '@/lib/seo'
 import { jsonLd } from '@/lib/schema'
 import { SITE_URL, BRAND } from '@/lib/site'
-import { OkruszkiJasne } from '@/components/Okruszki'
+import { Okruszki } from '@/components/Okruszki'
 import { KafelWpisu } from '@/components/KafelWpisu'
 import { TrescWpisu } from '@/components/TrescWpisu'
 import { Odznaka, Kontener } from '@/components/Ui'
@@ -74,7 +74,8 @@ export default async function StronaWpisu({ params }: Props) {
         <TloGorskie wariant="niski" />
         <div className="absolute inset-0 bg-rock-950/65" />
         <Kontener className="relative flex flex-col gap-4 py-12 lg:py-16">
-          <OkruszkiJasne
+          <Okruszki
+            wariant="naCiemnym"
             sciezka={[
               { etykieta: 'Start', href: '/' },
               { etykieta: 'Aktualności', href: '/aktualnosci' },

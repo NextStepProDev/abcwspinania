@@ -29,6 +29,29 @@ const bricolage = Bricolage_Grotesque({
   variable: '--font-bricolage',
 })
 
+/**
+ * Co ile sekund strona publiczna odświeża treść z bazy.
+ *
+ * ⚠️ BEZ TEGO CAŁY CMS JEST BEZUŻYTECZNY DLA KLIENTA. Strona główna, „O nas",
+ * lista obozów i wszystkie podstrony szczegółowe renderują się statycznie —
+ * Next wypieka je przy budowaniu obrazu i bez `revalidate` serwuje tę wersję
+ * już zawsze. Zmierzone: po zmianie ceny kursu w bazie `/kursy` (dynamiczne,
+ * bo czyta parametry adresu) pokazywało nową kwotę, a strona główna
+ * i `/kursy/[slug]` w nieskończoność starą. Krzysiek poprawiałby cenę
+ * w panelu i nie widział żadnego efektu aż do kolejnego wdrożenia.
+ *
+ * Deklaracja stoi w layoucie, bo obejmuje wtedy cały segment `(frontend)` —
+ * pojedyncza podstrona, o której ktoś zapomni, nie może wypaść z tej reguły.
+ * Grupa `(payload)` ma własny layout i to jej nie dotyczy, więc panel i API
+ * zostają w pełni dynamiczne.
+ *
+ * Pięć minut to kompromis: Krzysiek zdąży zobaczyć własną poprawkę, jeszcze
+ * patrząc na stronę, a maszyna (2 OCPU) nie renderuje w kółko. Liczba wolnych
+ * miejsc, czyli rzecz najbardziej zmienna, i tak jest na `/terminarz`, które
+ * renderuje się na żądanie.
+ */
+export const revalidate = 300
+
 export const metadata: Metadata = {
   // Pozwala podawać `alternates.canonical` i `openGraph.url` jako ścieżki
   // względne — Next rozwija je o tę domenę.

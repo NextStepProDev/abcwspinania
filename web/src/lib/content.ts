@@ -212,10 +212,15 @@ export function getCamp(slug: string): Promise<Oboz | null> {
  * Odcinamy też wszystko sprzed dzisiaj. Data graniczna to POCZĄTEK dnia,
  * nie „teraz" — inaczej termin zaczynający się dziś rano znikałby ze strony
  * po południu, mimo że wciąż trwa.
+ *
+ * Północ liczona w UTC, nie lokalnie. Terminy zapisuje picker „dayOnly", czyli
+ * jako północ UTC; porównywanie ich z lokalną północą przesuwa granicę o offset
+ * strefy i przy strefach na zachód od UTC ucina termin zaczynający się DZIŚ.
+ * Ta sama zasada, co przy formatowaniu dat (patrz `formatZakresDat`).
  */
 function poczatekDzis(): string {
   const d = new Date()
-  d.setHours(0, 0, 0, 0)
+  d.setUTCHours(0, 0, 0, 0)
   return d.toISOString()
 }
 

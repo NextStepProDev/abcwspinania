@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { getCamps, getUpcomingTerms, asImage, asOboz } from '@/lib/content'
 import { formatCena, formatWiek, odmien } from '@/lib/format'
 import { pageMetadata } from '@/lib/seo'
-import { OkruszkiJasne } from '@/components/Okruszki'
+import { Okruszki } from '@/components/Okruszki'
 import { TabelaTerminow } from '@/components/Terminy'
 import { IKONY_WYBIERALNE, type NazwaIkony } from '@/components/Ikony'
 import { Przycisk, Odznaka, Kontener, MiejsceNaZdjecie } from '@/components/Ui'
@@ -38,7 +38,8 @@ export default async function StronaObozow() {
         <TloGorskie wariant="niski" />
         <div className="absolute inset-0 bg-rock-950/65" />
         <Kontener className="relative flex flex-col gap-4 py-12 lg:py-16">
-          <OkruszkiJasne
+          <Okruszki
+            wariant="naCiemnym"
             sciezka={[{ etykieta: 'Start', href: '/' }, { etykieta: 'Obozy i wyjazdy' }]}
           />
           <h1 className="max-w-[860px] text-balance text-[34px] leading-[1.03] text-white lg:text-[52px]">
