@@ -12,6 +12,11 @@ Nie ma w nim sekretów, a jest wszystko, czego potrzebuje ktoś wchodzący do
 projektu. Prywatne notatki idą do `pytania.md` — ignorowanego i nigdy niescalanego
 z plikiem publicznym.
 
+**Co jest obiecane klientowi, siedzi w `ZAKRES.md`** — osobno, bo to inny rodzaj
+wiedzy. Tutaj są decyzje techniczne i ich powody; tam zobowiązania z terminami,
+definicją „zrobione" dla każdej pozycji i listą rzeczy świadomie wyłączonych
+z zakresu. Zmienia się zakres — najpierw tamten plik.
+
 ---
 
 ## Stack
