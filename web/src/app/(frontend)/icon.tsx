@@ -1,5 +1,7 @@
 import { ImageResponse } from 'next/og'
 
+import { MARK_FIGURE, MARK_HEAD, MARK_VIEW_BOX } from '@/lib/mark'
+
 // The browser tab icon is generated from code — we keep no binary .ico, which
 // cannot be reviewed in a diff or corrected without a graphics editor.
 //
@@ -24,13 +26,16 @@ export default function Icon() {
         background: '#c8552b',
       }}
     >
-      <svg width="32" height="32" viewBox="0 0 48 48" fill="none">
+      {/* No diamond here: this icon's own background is the accent colour, so
+          drawing one would only shave the figure down. Strokes are thicker than
+          in the header (3.6 against 3.3) because thin ones vanish at 32 px. */}
+      <svg width="32" height="32" viewBox={MARK_VIEW_BOX} fill="none">
         <g stroke="#fff" strokeWidth="3.6" strokeLinecap="round" strokeLinejoin="round" fill="none">
-          <path d="M24 19.5V28" />
-          <path d="M24 21.5 17.5 14.5M24 21.5 30.5 14.5" />
-          <path d="M24 28l-5.5 3.5 1 6.5M24 28l4.5 5 .5 7" />
+          {MARK_FIGURE.map((d) => (
+            <path key={d} d={d} />
+          ))}
         </g>
-        <circle cx="24" cy="14.2" r="3.6" fill="#fff" />
+        <circle cx={MARK_HEAD.cx} cy={MARK_HEAD.cy} r="3.6" fill="#fff" />
       </svg>
     </div>,
     size,
