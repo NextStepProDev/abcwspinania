@@ -4,9 +4,28 @@
    The values are tokens, not literals inside components — swapping the visual
    identity should mean editing this file, not walking through every view. */
 @theme {
-  /* Jura limestone — from the page background to the dark footer. */
-  --color-rock-50: #f7f5f1;
+  /* Jura limestone — from the page background to the dark footer.
+
+     `rock-50` was lightened from #f7f5f1 on 24.09.2026, a call made in
+     development — NOT something Krzysiek asked for, so it is open to being
+     changed back. Each channel went up by the same 4 points rather than being
+     pulled towards white: that keeps the 6-point spread between red and blue
+     that makes this a warm limestone rather than a cold grey. Pulling it
+     halfway to white would have lightened it AND washed the warmth out.
+
+     ⚠️ Two of these values are also needed in TypeScript, which cannot read a
+     custom property: see `BRAND_COLORS` in `lib/site.ts`. Change one, change
+     both. */
+  --color-rock-50: #fbf9f5;
   --color-rock-100: #ece7df;
+  /* Sits between 50 and 100, and exists because those two tones do two
+     different jobs. `rock-100` is a BORDER in 31 places and a FILL in 9; at
+     1.17 contrast against the page it is already a whisper, so lightening it
+     wholesale would have dissolved the outlines that hold the layout together.
+     The fills — table headers, price badges, the image placeholder — move here
+     instead, six points lighter, while every border stays where it was.
+     Added 24.09.2026. */
+  --color-rock-75: #f2ede5;
   --color-rock-200: #e0d9cd;
   --color-rock-300: #c4b8a6;
   --color-rock-400: #a5937c;

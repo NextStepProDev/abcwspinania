@@ -21,3 +21,31 @@
 export const BRAND = 'ABC Wspinania'
 
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+
+/**
+ * The two palette values that TypeScript-generated assets need.
+ *
+ * The web manifest and the social card are built in TypeScript and cannot read
+ * a CSS custom property, so these have to be written out somewhere. Here, once,
+ * rather than once per file: lightening the page background on 24.09.2026 found
+ * two stale copies of the old value — the card's text colour, and the manifest's
+ * splash-screen background, which would have flashed the old shade on a phone
+ * before the page appeared. Neither would have failed loudly.
+ *
+ * ⚠️ These MUST match `--color-rock-50` and `--color-rock-900` in
+ * `app/(frontend)/globals.css`. A stylesheet cannot be imported from here, so
+ * nothing enforces it — changing a token means changing this too.
+ *
+ * ⚠️ This is NOT every colour in those files, and it is not meant to be. The
+ * logo mark carries its own literals (`#c8552b`, `#fff`, `#c4b8a6`), and the
+ * card's gradient writes the same two values again in decimal form —
+ * `rgba(200,85,43,…)` is the accent, `rgba(42,38,32,0)` is `ink`. They are left
+ * alone because this change did not touch them, but they are the next drift
+ * waiting to happen: anyone editing the accent has to grep for both spellings.
+ */
+export const BRAND_COLORS = {
+  /** `rock-50` — the page background, and light text on dark panels. */
+  surface: '#fbf9f5',
+  /** `rock-900` — the dark panels themselves. */
+  ink: '#2a2620',
+} as const

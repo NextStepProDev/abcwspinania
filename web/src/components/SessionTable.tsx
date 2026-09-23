@@ -78,7 +78,7 @@ export function SessionTable({ sessions }: { sessions: Session[] }) {
           scrolling inside a table of prices is particularly unpleasant. */}
       <table className="hidden w-full border-collapse text-[15px] sm:table">
         <thead>
-          <tr className="bg-rock-100 text-left">
+          <tr className="bg-rock-75 text-left">
             <th
               scope="col"
               className="px-6 py-3.5 text-[13px] font-semibold uppercase tracking-[0.04em] text-rock-600"
