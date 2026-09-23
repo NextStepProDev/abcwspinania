@@ -39,9 +39,28 @@ const STATIC_MEDIA_CACHE = 'public, max-age=604800, stale-while-revalidate=86400
  *    domeny, więc nic nie wychodzi na zewnątrz.
  * Świadomie BEZ upgrade-insecure-requests: całość i tak idzie po HTTPS.
  */
+// JEDYNE odstępstwo między dev a produkcją: 'unsafe-eval' w script-src.
+//
+// Deweloperski build Reacta woła eval() do odtwarzania stosów wywołań
+// i pozostałej diagnostyki. Bez tego na każdym wczytaniu strony w dev leci
+// do konsoli błąd „eval() is not supported in this environment", a komunikaty
+// o błędach tracą czytelne stosy. Zmierzone 20.09.2026: aplikacja działa
+// poprawnie także BEZ tego rozluźnienia — hydracja przechodzi, komponenty
+// kliknięte reagują — więc to wyłącznie wygoda w diagnozowaniu, nie warunek
+// działania.
+//
+// Produkcyjny build Reacta nie woła eval(), więc na produkcji polityka
+// zostaje wąska. Rozróżnienie po NODE_ENV: `next dev` ustawia 'development',
+// budowanie obrazu — 'production'.
+//
+// Świadomie NIE rozluźniamy tu connect-src: 'self' obejmuje już WebSocket do
+// tego samego źródła, więc HMR działa bez dopisywania ws:. (Gdy HMR nie
+// wstaje, przyczyną jest zwykle `allowedDevOrigins` niżej, a nie CSP.)
+const DEV = process.env.NODE_ENV !== 'production'
+
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  `script-src 'self' 'unsafe-inline'${DEV ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
@@ -69,7 +88,11 @@ const nextConfig: NextConfig = {
       },
     ]
   },
-  allowedDevOrigins: ['*.ngrok-free.app', '*.ngrok.app', '*.ngrok.dev'],
+  // `127.0.0.1` obok tuneli: wejście pod adresem IP zamiast `localhost` jest
+  // dla Next-a innym źródłem i blokuje kanał HMR („Blocked cross-origin request
+  // to Next.js dev resource"). Objaw jest mylący — strona renderuje się dobrze,
+  // ale komponenty klienckie nie ożywają, bo bootstrap dev nie dochodzi do końca.
+  allowedDevOrigins: ['127.0.0.1', '*.ngrok-free.app', '*.ngrok.app', '*.ngrok.dev'],
   turbopack: {
     root: path.resolve(dirname),
   },
@@ -78,7 +101,18 @@ const nextConfig: NextConfig = {
     // /api/media/file/**. Nie ma już zdalnego hosta, więc znika cała sekcja
     // remotePatterns i flaga dangerouslyAllowLocalIP, które istniały wyłącznie
     // po to, żeby optymalizator mógł sięgnąć do osobnego kontenera Strapi.
-    localPatterns: [{ pathname: '/api/media/file/**' }],
+    //
+    // ⚠️ KAŻDA kolekcja z uploadem potrzebuje TU własnego wpisu. Payload serwuje
+    // pliki pod /api/<slug>/file/**, a `next/image` z adresem spoza tej listy
+    // nie renderuje pustego miejsca, tylko RZUCA WYJĄTKIEM — cała podstrona
+    // zwraca 500. Zmierzone 23.09.2026 przy dodawaniu kolekcji `gallery-photos`:
+    // lint, typy, testy i `build` przeszły komplet, bo strona jest dynamiczna
+    // i przy budowaniu nie było w bazie ani jednego zdjęcia. Wyszło dopiero po
+    // wejściu na /galeria z prawdziwym plikiem.
+    localPatterns: [
+      { pathname: '/api/media/file/**' },
+      { pathname: '/api/gallery-photos/file/**' },
+    ],
     minimumCacheTTL: 60 * 60 * 24 * 30,
   },
 }

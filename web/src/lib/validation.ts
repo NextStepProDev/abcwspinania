@@ -1,71 +1,123 @@
+import { TOPIC_VALUES } from '@/lib/topics'
+
 /**
- * Walidacja formularza kontaktowego — czyste funkcje, bez importów z Payloada
- * ani z Next-a, żeby dało się je przetestować gołym `node --test`.
+ * Contact form validation — pure functions, no imports from Payload or Next, so
+ * they can be tested under bare `node --test`.
  *
- * Te same reguły obowiązują po stronie serwera. Walidacja w przeglądarce to
- * wygoda, nie zabezpieczenie — pola `required` w HTML-u omija każdy, kto wyśle
- * żądanie bez formularza.
+ * The same rules apply on the server side. Validation in the browser is a
+ * convenience, not a safeguard — HTML `required` attributes are bypassed by
+ * anyone sending a request without the form.
+ *
+ * The messages are Polish because the visitor reads them.
  */
 
-export interface DaneKontaktowe {
-  imie: string
+export interface ContactFormData {
+  name: string
   email: string
-  telefon: string
-  tresc: string
-  zgoda: boolean
+  phone: string
+  message: string
+  /** A choice from a list; empty means "not specified", not an error. */
+  topic: string
+  /** Free text, e.g. "pierwsza połowa czerwca". */
+  preferredDate: string
+  consent: boolean
 }
 
-export type BledyWalidacji = Partial<Record<keyof DaneKontaktowe, string>>
+export type ValidationErrors = Partial<Record<keyof ContactFormData, string>>
 
-const LIMITY = {
-  imie: 120,
-  email: 254, // maksimum długości adresu e-mail wg RFC 5321
-  telefon: 30,
-  tresc: 4000,
+const LIMITS = {
+  name: 120,
+  email: 254, // maximum email address length per RFC 5321
+  phone: 30,
+  message: 4000,
+  preferredDate: 200,
 } as const
 
-/**
- * Celowo liberalne. Adresy e-mail są zbyt różnorodne, żeby odsiewać je wyrażeniem
- * regularnym — ostrzejszy wzorzec odrzuca poprawne adresy i traci zapytanie.
- * Jedyne, co naprawdę sprawdzamy, to że jest małpa z czymś po obu stronach
- * i kropka w domenie.
- */
-const WZORZEC_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-export function walidujKontakt(dane: DaneKontaktowe): BledyWalidacji {
-  const bledy: BledyWalidacji = {}
-
-  const imie = dane.imie.trim()
-  if (!imie) bledy.imie = 'Podaj imię.'
-  else if (imie.length > LIMITY.imie) bledy.imie = `Imię może mieć najwyżej ${LIMITY.imie} znaków.`
-
-  const email = dane.email.trim()
-  if (!email) bledy.email = 'Podaj adres e-mail.'
-  else if (email.length > LIMITY.email) bledy.email = 'Adres e-mail jest za długi.'
-  else if (!WZORZEC_EMAIL.test(email)) bledy.email = 'Ten adres e-mail wygląda na niepełny.'
-
-  const telefon = dane.telefon.trim()
-  if (telefon.length > LIMITY.telefon) bledy.telefon = 'Numer telefonu jest za długi.'
-
-  const tresc = dane.tresc.trim()
-  if (!tresc) bledy.tresc = 'Napisz, w czym możemy pomóc.'
-  else if (tresc.length > LIMITY.tresc)
-    bledy.tresc = `Wiadomość może mieć najwyżej ${LIMITY.tresc} znaków.`
-
-  if (!dane.zgoda) bledy.zgoda = 'Bez zgody na przetwarzanie danych nie możemy odpisać.'
-
-  return bledy
-}
-
-export function jestPoprawny(bledy: BledyWalidacji): boolean {
-  return Object.keys(bledy).length === 0
-}
+// The set of allowed topics is checked server-side even though the browser
+// renders a `<select>`: a request sent without the form can carry anything, and
+// Payload would reject an unknown value with a database error — a 500 instead
+// of a message. The list comes from `lib/topics.ts`, the shared source for the
+// collection, the validation and the form.
 
 /**
- * Pułapka na roboty. Pole jest ukryte przed ludźmi, więc wypełnia je wyłącznie
- * automat wysyłający formularz „w ciemno". Świadomie NIE zwracamy wtedy błędu —
- * udajemy sukces, żeby autor bota nie dowiedział się, co go zdradziło.
+ * Deliberately liberal. Email addresses are too varied to sieve with a regular
+ * expression — a stricter pattern rejects valid addresses and loses the enquiry.
+ * The only thing genuinely checked is that there is an at sign with something on
+ * both sides and a dot in the domain.
  */
-export function wygladaNaBota(pulapka: string): boolean {
-  return pulapka.trim().length > 0
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+export function validateContact(data: ContactFormData): ValidationErrors {
+  const errors: ValidationErrors = {}
+
+  const name = data.name.trim()
+  if (!name) errors.name = 'Podaj imię.'
+  else if (name.length > LIMITS.name) errors.name = `Imię może mieć najwyżej ${LIMITS.name} znaków.`
+
+  const email = data.email.trim()
+  if (!email) errors.email = 'Podaj adres e-mail.'
+  else if (email.length > LIMITS.email) errors.email = 'Adres e-mail jest za długi.'
+  else if (!EMAIL_PATTERN.test(email)) errors.email = 'Ten adres e-mail wygląda na niepełny.'
+
+  const phone = data.phone.trim()
+  if (phone.length > LIMITS.phone) errors.phone = 'Numer telefonu jest za długi.'
+
+  const message = data.message.trim()
+  if (!message) errors.message = 'Napisz, w czym możemy pomóc.'
+  else if (message.length > LIMITS.message)
+    errors.message = `Wiadomość może mieć najwyżej ${LIMITS.message} znaków.`
+
+  const preferredDate = data.preferredDate.trim()
+  if (preferredDate.length > LIMITS.preferredDate)
+    errors.preferredDate = 'Ten opis terminu jest za długi.'
+
+  // An empty field is fine — choosing a topic is not mandatory. We only reject
+  // values outside the list, because those can only come from a request forged
+  // outside the form.
+  const topic = data.topic.trim()
+  if (topic && !TOPIC_VALUES.includes(topic)) errors.topic = 'Nie znamy takiego tematu zgłoszenia.'
+
+  if (!data.consent) errors.consent = 'Bez zgody na przetwarzanie danych nie możemy odpisać.'
+
+  return errors
+}
+
+export function isValid(errors: ValidationErrors): boolean {
+  return Object.keys(errors).length === 0
+}
+
+/**
+ * A honeypot for bots. The field is hidden from humans, so only an automated
+ * blind form submitter fills it in. We deliberately do NOT return an error —
+ * we fake success, so the bot's author never learns what gave it away.
+ */
+export function looksLikeBot(honeypot: string): boolean {
+  return honeypot.trim().length > 0
+}
+
+/**
+ * Newsletter sign-up validation.
+ *
+ * A separate function rather than a parameter to `validateContact()`: the
+ * newsletter collects one field and a different consent, and a shared function
+ * with half its fields optional stops enforcing anything very quickly.
+ */
+export interface NewsletterData {
+  email: string
+  consent: boolean
+}
+
+export type NewsletterErrors = Partial<Record<keyof NewsletterData, string>>
+
+export function validateNewsletter(data: NewsletterData): NewsletterErrors {
+  const errors: NewsletterErrors = {}
+
+  const email = data.email.trim()
+  if (!email) errors.email = 'Podaj adres e-mail.'
+  else if (email.length > LIMITS.email) errors.email = 'Adres e-mail jest za długi.'
+  else if (!EMAIL_PATTERN.test(email)) errors.email = 'Ten adres e-mail wygląda na niepełny.'
+
+  if (!data.consent) errors.consent = 'Bez zgody nie możemy nic wysyłać.'
+
+  return errors
 }

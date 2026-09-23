@@ -139,7 +139,7 @@ jobs:
         if: vars.SITE_URL != ''
         run: |
           # Wartość to lista akceptowalnych kodów HTTP rozdzielona spacjami.
-          # /api/kursy ma zwracać 200 nawet przy pustej kolekcji — publiczny
+          # /api/courses ma zwracać 200 nawet przy pustej kolekcji — publiczny
           # odczyt jest zadeklarowany w KODZIE (access.read w src/collections),
           # więc w odróżnieniu od poprzedniego CMS-a nie ma tu stanu „403 do
           # czasu wyklikania uprawnień".
@@ -147,7 +147,7 @@ jobs:
             ["${{ vars.SITE_URL }}/"]=200
             ["${{ vars.SITE_URL }}/robots.txt"]=200
             ["${{ vars.SITE_URL }}/sitemap.xml"]=200
-            ["${{ vars.SITE_URL }}/api/kursy"]=200
+            ["${{ vars.SITE_URL }}/api/courses"]=200
             ["${{ vars.SITE_URL }}/admin"]="200 302"
           )
           FAILED=0

@@ -3,15 +3,15 @@ import type { MetadataRoute } from 'next'
 import { BRAND } from '@/lib/site'
 
 /**
- * ⚠️ TEN PLIK MUSI LEŻEĆ W KORZENIU `app/`, tak jak robots.ts.
- * Zmierzone 19.09.2026: `manifest.ts` w grupie tras `(frontend)/` nie produkuje
- * ŻADNEJ trasy — znika z manifestu Next-a bez błędu. `sitemap.ts` i `icon.tsx`
- * w tym samym katalogu działają normalnie, więc nie jest to reguła ogólna
- * dla plików konwencji, tylko dotyczy tych dwóch.
+ * ⚠️ THIS FILE MUST LIVE AT THE ROOT OF `app/`, just like robots.ts.
+ * Measured 2026-09-19: `manifest.ts` inside the `(frontend)/` route group
+ * produces NO route at all — it disappears from the Next manifest without an
+ * error. `sitemap.ts` and `icon.tsx` in the same directory work normally, so
+ * this is not a general rule for convention files; it applies to these two.
  *
- * Manifest aplikacji webowej — decyduje, jak strona wygląda po dodaniu do
- * ekranu głównego telefonu. Dla szkoły, której goście trafiają głównie
- * z telefonu, to drobiazg za darmo.
+ * The web app manifest — it decides how the site looks once added to a phone's
+ * home screen. For a school whose visitors arrive mostly from a phone, this is
+ * a detail that costs nothing.
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {

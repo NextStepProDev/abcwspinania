@@ -1,61 +1,74 @@
-import type { Kursy } from '@/payload-types'
-import { BRAND, CONTACT, SITE_URL } from '@/lib/site'
+import type { Course, SiteConfig } from '@/payload-types'
+import { BRAND, SITE_URL } from '@/lib/site'
 
 /**
- * Dane strukturalne schema.org.
+ * schema.org structured data.
  *
- * Dla firmy działającej lokalnie to najtańsza rzecz, jaką da się zrobić dla
- * widoczności w wyszukiwarce i w mapach, więc wchodzi od pierwszego dnia.
+ * For a business operating locally this is the cheapest thing that can be done
+ * for visibility in search and in maps, so it goes in from day one.
  *
- * Typ `SportsActivityLocation` jest węższy niż `LocalBusiness` i trafniejszy dla
- * szkoły wspinaczki. Pola kontaktowe doklejane warunkowo — Google woli brak pola
- * niż pole puste, a telefonu i adresu e-mail jeszcze nie potwierdziliśmy.
+ * `SportsActivityLocation` is narrower than `LocalBusiness` and a better fit for
+ * a climbing school.
+ *
+ * The data comes from the `site-config` global, and every field is attached
+ * CONDITIONALLY — Google prefers a missing field to an empty one, and the global
+ * may not be filled in yet, or the database may be unreachable at build time.
  */
-export function organizationSchema() {
+export function organizationSchema(config: SiteConfig) {
   const schema: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'SportsActivityLocation',
     name: BRAND,
-    legalName: CONTACT.legalName,
     url: SITE_URL,
-    address: {
-      '@type': 'PostalAddress',
-      streetAddress: CONTACT.street,
-      postalCode: CONTACT.postalCode,
-      addressLocality: CONTACT.locality,
-      addressCountry: CONTACT.country,
-    },
   }
 
-  if (CONTACT.phone) schema.telephone = CONTACT.phone
-  if (CONTACT.email) schema.email = CONTACT.email
+  if (config.legalName) schema.legalName = config.legalName
+
+  // The address is attached IN FULL or not at all. A partial `PostalAddress`
+  // (just the town, no street) does not help in maps, yet looks complete in the
+  // data — and nobody would notice something is missing.
+  if (config.street && config.postalCode && config.city) {
+    schema.address = {
+      '@type': 'PostalAddress',
+      streetAddress: config.street,
+      postalCode: config.postalCode,
+      addressLocality: config.city,
+      addressCountry: 'PL',
+    }
+  }
+
+  if (config.phone) schema.telephone = config.phoneE164 || config.phone
+  if (config.email) schema.email = config.email
+
+  const profiles = [config.facebook, config.youtube].filter(Boolean)
+  if (profiles.length > 0) schema.sameAs = profiles
 
   return schema
 }
 
 /**
- * Serializacja do wstawienia w `<script type="application/ld+json">`.
- * `</` rozbite na wypadek, gdyby treść z CMS-a zawierała `</script>` — inaczej
- * przeglądarka zamknęłaby znacznik w środku danych.
+ * Serialisation for embedding in `<script type="application/ld+json">`.
+ * `</` is broken up in case content from the CMS contains `</script>` —
+ * otherwise the browser would close the tag in the middle of the data.
  */
 export function jsonLd(schema: unknown): string {
   return JSON.stringify(schema).replace(/</g, '\\u003c')
 }
 
 /**
- * Schemat pojedynczego kursu.
+ * Schema for a single course.
  *
- * `Course` z schema.org wymaga `provider`, inaczej Google traktuje wpis jako
- * niekompletny i pomija go w wynikach rozszerzonych. Cenę doklejamy tylko wtedy,
- * gdy jest w CMS-ie — kurs bez ceny to „wycena indywidualna", a nie darmowy,
- * i podanie tam zera byłoby wprowadzaniem w błąd.
+ * schema.org's `Course` requires a `provider`, otherwise Google treats the entry
+ * as incomplete and skips it in rich results. The price is attached only when it
+ * is in the CMS — a course without a price is "quoted individually", not free,
+ * and putting a zero there would be misleading.
  */
-export function courseSchema(kurs: Kursy) {
+export function courseSchema(course: Course) {
   const schema: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'Course',
-    name: kurs.title,
-    url: `${SITE_URL}/kursy/${kurs.slug}`,
+    name: course.title,
+    url: `${SITE_URL}/kursy/${course.slug}`,
     provider: {
       '@type': 'Organization',
       name: BRAND,
@@ -63,14 +76,14 @@ export function courseSchema(kurs: Kursy) {
     },
   }
 
-  if (kurs.summary) schema.description = kurs.summary
+  if (course.summary) schema.description = course.summary
 
-  if (typeof kurs.price === 'number') {
+  if (typeof course.price === 'number') {
     schema.offers = {
       '@type': 'Offer',
-      price: kurs.price,
+      price: course.price,
       priceCurrency: 'PLN',
-      url: `${SITE_URL}/kursy/${kurs.slug}`,
+      url: `${SITE_URL}/kursy/${course.slug}`,
     }
   }
 

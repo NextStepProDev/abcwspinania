@@ -1,15 +1,18 @@
-import type { Kursy } from '@/payload-types'
+import type { Course } from '@/payload-types'
 
 /**
- * Czyste funkcje formatujące — BEZ importów runtime'owych z Payloada.
+ * Pure formatting functions — NO runtime imports from Payload.
  *
- * To rozdzielenie jest celowe: `lib/content.ts` ciągnie za sobą cały silnik
- * Payloada i połączenie z bazą, więc testy jednostkowe odpalane gołym
- * `node --test` nie mogłyby go zaimportować. Tutaj wchodzi wyłącznie `import
- * type`, który znika przy kompilacji.
+ * The split is deliberate: `lib/content.ts` drags in the whole Payload engine
+ * and a database connection, so unit tests run under bare `node --test` could
+ * not import it. Only `import type` enters here, and that disappears at compile
+ * time.
+ *
+ * The output strings are Polish because they are read by visitors; the
+ * identifiers around them are not.
  */
 
-/** Cena do wyświetlenia. Brak ceny znaczy „wycena indywidualna", nie „0 zł". */
+/** Price for display. No price means "quoted individually", not "0 zł". */
 export function formatPrice(price: number | null | undefined): string {
   if (price === null || price === undefined) return 'wycena indywidualna'
   return new Intl.NumberFormat('pl-PL', {
@@ -19,12 +22,346 @@ export function formatPrice(price: number | null | undefined): string {
   }).format(price)
 }
 
-const LEVEL_LABELS: Record<NonNullable<Kursy['level']>, string> = {
-  poczatkujacy: 'początkujący',
-  sredniozaawansowany: 'średniozaawansowany',
-  zaawansowany: 'zaawansowany',
+/**
+ * Price with an optional "od" ("from") prefix.
+ *
+ * The school's real price list is made of variants (rock course: 6 days in the
+ * Jura, 6 days in the Rudawy, a weekend variant, a two-person version), so a
+ * single number on a card would be untrue. `priceFrom` turns the prefix on
+ * wherever there is more than one variant.
+ */
+export function formatPriceLabel(
+  price: number | null | undefined,
+  priceFrom?: boolean | null,
+): string {
+  const amount = formatPrice(price)
+  if (price === null || price === undefined) return amount
+  return priceFrom ? `od ${amount}` : amount
 }
 
-export function formatLevel(level: Kursy['level']): string | null {
+// Labels follow the mockup. The values stored in the database stay technical,
+// so renaming a label never requires an enum migration.
+const LEVEL_LABELS: Record<NonNullable<Course['level']>, string> = {
+  beginner: 'Od zera',
+  intermediate: 'Średniozaawansowany',
+  advanced: 'Zaawansowany',
+}
+
+export function formatLevel(level: Course['level']): string | null {
   return level ? LEVEL_LABELS[level] : null
+}
+
+export const LEVELS = Object.entries(LEVEL_LABELS).map(([value, label]) => ({
+  value,
+  label,
+}))
+
+/**
+ * Years elapsed since a given year.
+ *
+ * Computed rather than typed in — "25 years of experience" written by hand is
+ * false from the next January onwards and nobody remembers it is there.
+ */
+export function yearsSince(year: number | null | undefined, now = new Date()): number | null {
+  if (!year) return null
+  const years = now.getFullYear() - year
+  return years > 0 ? years : null
+}
+
+/**
+ * Polish noun inflection by count — the language has three forms, not two.
+ *
+ * Without this we get "2 wolne miejsc" or "5 wolne miejsca" in the schedule
+ * table, which is exactly where the text is shortest and most visible.
+ */
+export function pluralPl(count: number, one: string, few: string, many: string): string {
+  if (count === 1) return one
+  const lastDigit = count % 10
+  const lastTwo = count % 100
+  const useFew = lastDigit >= 2 && lastDigit <= 4 && !(lastTwo >= 12 && lastTwo <= 14)
+  return useFew ? few : many
+}
+
+/** "brak miejsc" / "1 wolne" / "3 wolne" / "5 wolnych". */
+export function formatSpotsLeft(spotsLeft: number | null | undefined): string {
+  if (spotsLeft === null || spotsLeft === undefined) return 'zapytaj o miejsca'
+  if (spotsLeft <= 0) return 'brak miejsc'
+  return `${spotsLeft} ${pluralPl(spotsLeft, 'wolne', 'wolne', 'wolnych')}`
+}
+
+// --- Dates and sessions ------------------------------------------------------
+
+const MONTHS_GENITIVE = [
+  'stycznia',
+  'lutego',
+  'marca',
+  'kwietnia',
+  'maja',
+  'czerwca',
+  'lipca',
+  'sierpnia',
+  'września',
+  'października',
+  'listopada',
+  'grudnia',
+]
+
+const MONTHS_NOMINATIVE = [
+  'Styczeń',
+  'Luty',
+  'Marzec',
+  'Kwiecień',
+  'Maj',
+  'Czerwiec',
+  'Lipiec',
+  'Sierpień',
+  'Wrzesień',
+  'Październik',
+  'Listopad',
+  'Grudzień',
+]
+
+/**
+ * ⚠️ Dates are read in UTC (`getUTCDate`, not `getDate`).
+ *
+ * With a "dayOnly" picker Payload stores a CALENDAR DATE as UTC midnight
+ * ("2027-06-26T00:00:00.000Z"). That is not a moment in time but a day in a
+ * calendar, so converting it into the server's timezone is a bug: in any zone
+ * west of UTC, UTC midnight falls on the previous day locally and the WHOLE
+ * site shifts back by one day. Measured under TZ=America/New_York: the session
+ * "26 czerwca – 3 lipca" displayed as "25 czerwca – 2 lipca".
+ *
+ * The production container runs on UTC, so the bug is invisible there — but it
+ * is visible to anyone running `npm run dev` in the Americas, and it would hit
+ * the live site if someone ever set TZ on the container. With course dates,
+ * being off by a day means somebody turns up on the wrong day.
+ *
+ * Polish date range, shortened wherever the repetition adds nothing:
+ *
+ *   4–9 maja 2026                (same month — month stated once)
+ *   30 maja – 4 czerwca 2026     (different months, same year — year once)
+ *   28 grudnia 2026 – 3 stycznia 2027
+ *   16 maja 2026                 (no end date)
+ *
+ * Deliberately hand-rolled rather than `Intl.DateTimeFormat.formatRange()`:
+ * that returns "4 maj – 9 maj", because it uses the nominative. Polish dates
+ * take the genitive.
+ */
+export function formatDateRange(from: string, to?: string | null): string {
+  const a = new Date(from)
+  if (Number.isNaN(a.getTime())) return ''
+  const dayA = a.getUTCDate()
+  const monthA = MONTHS_GENITIVE[a.getUTCMonth()]
+  const yearA = a.getUTCFullYear()
+
+  if (!to) return `${dayA} ${monthA} ${yearA}`
+
+  const b = new Date(to)
+  if (Number.isNaN(b.getTime())) return `${dayA} ${monthA} ${yearA}`
+  const dayB = b.getUTCDate()
+  const monthB = MONTHS_GENITIVE[b.getUTCMonth()]
+  const yearB = b.getUTCFullYear()
+
+  if (yearA !== yearB) return `${dayA} ${monthA} ${yearA} – ${dayB} ${monthB} ${yearB}`
+  if (a.getUTCMonth() !== b.getUTCMonth()) return `${dayA} ${monthA} – ${dayB} ${monthB} ${yearB}`
+  // An en dash without spaces between bare days, as in "4–9 maja".
+  return `${dayA}–${dayB} ${monthA} ${yearA}`
+}
+
+/** Short form for narrow table columns: "4–9 maja", no year. */
+export function formatDateRangeShort(from: string, to?: string | null): string {
+  const full = formatDateRange(from, to)
+  // The year is dropped only when it appears once — across a year boundary both
+  // numbers carry information and shortening would change the meaning.
+  const years = full.match(/\d{4}/g)
+  return years && years.length === 1 ? full.replace(/\s*\d{4}/, '') : full
+}
+
+/** Group heading in the schedule: "Maj 2026". In UTC — see `formatDateRange`. */
+export function monthName(date: string): string {
+  const d = new Date(date)
+  if (Number.isNaN(d.getTime())) return ''
+  return `${MONTHS_NOMINATIVE[d.getUTCMonth()]} ${d.getUTCFullYear()}`
+}
+
+/** Grouping key by month, lexically sortable. In UTC. */
+export function monthKey(date: string): string {
+  const d = new Date(date)
+  if (Number.isNaN(d.getTime())) return ''
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
+}
+
+/**
+ * Groups sessions by month, preserving input order.
+ *
+ * `Map` rather than a plain object matters here: a JS object orders keys that
+ * look like integers ascending, regardless of insertion order. Keys like
+ * "2026-05" are not integers, so it would happen to work — but that is a
+ * coincidence of the format, not a guarantee, and the first change to the key
+ * format would silently reorder the months.
+ */
+export function groupByMonth<T extends { startDate: string }>(
+  items: T[],
+): { key: string; name: string; items: T[] }[] {
+  const groups = new Map<string, T[]>()
+  for (const item of items) {
+    const k = monthKey(item.startDate)
+    if (!k) continue
+    const existing = groups.get(k)
+    if (existing) existing.push(item)
+    else groups.set(k, [item])
+  }
+  return [...groups.entries()].map(([key, list]) => ({
+    key,
+    name: monthName(list[0].startDate),
+    items: list,
+  }))
+}
+
+/** Age range on a camp badge: "10–14 lat", "od 12 lat", "18+". */
+export function formatAgeRange(from?: number | null, to?: number | null): string | null {
+  if (from && to) return `${from}–${to} lat`
+  if (from) return `${from}+`
+  if (to) return `do ${to} lat`
+  return null
+}
+
+// --- Editor content ----------------------------------------------------------
+
+/**
+ * A node of the Lexical tree, in the scope we care about.
+ *
+ * Deliberately a loose structural type rather than an import from
+ * `@payloadcms/*`: this file is to stay free of runtime dependencies so the
+ * tests run under bare `node --test`.
+ */
+interface LexicalNode {
+  type?: string
+  tag?: string
+  text?: string
+  children?: LexicalNode[]
+}
+
+type RichText = { root?: LexicalNode } | null | undefined
+
+/** Collects all text from the tree, ignoring markup. */
+function collectText(node: LexicalNode | undefined): string {
+  if (!node) return ''
+  const own = typeof node.text === 'string' ? node.text : ''
+  const children = node.children?.map(collectText).join(' ') ?? ''
+  return `${own} ${children}`
+}
+
+/**
+ * Reading time in minutes.
+ *
+ * COMPUTED, not typed into the panel: a hand-entered value drifts with the
+ * first correction to the text, and nobody checks it, because nobody measures.
+ *
+ * 200 words per minute is the figure for running Polish prose. We round up and
+ * never go below one minute — "0 min czytania" looks like a bug even when it is
+ * true.
+ */
+export function readingTime(content: RichText): number {
+  const text = collectText(content?.root).trim()
+  if (!text) return 1
+  const words = text.split(/\s+/).filter(Boolean).length
+  return Math.max(1, Math.ceil(words / 200))
+}
+
+export function formatReadingTime(content: RichText): string {
+  return `${readingTime(content)} min czytania`
+}
+
+/**
+ * Anchor id derived from a heading's text.
+ *
+ * Polish diacritics are decomposed to their base form (NFD) and the combining
+ * marks stripped — otherwise "Rejon pod presją" would produce an anchor with
+ * "ą" in the address, which turns into a string of percent signs once copied
+ * out of the browser's address bar.
+ */
+export function anchorId(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/ł/g, 'l')
+    .replace(/Ł/g, 'L')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+export interface TocEntry {
+  id: string
+  label: string
+}
+
+/**
+ * Table of contents built from level-two headings.
+ *
+ * We take h2 ONLY. A contents list that includes h3 grows longer than the
+ * section it describes on any long text, and stops helping with navigation.
+ */
+export function tableOfContents(content: RichText): TocEntry[] {
+  const entries: TocEntry[] = []
+  const used = new Set<string>()
+
+  const walk = (node: LexicalNode | undefined) => {
+    if (!node) return
+    if (node.type === 'heading' && node.tag === 'h2') {
+      const label = collectText(node).replace(/\s+/g, ' ').trim()
+      if (label) {
+        // Two headings with identical text would yield two identical anchors,
+        // and then both lead to the first one.
+        let id = anchorId(label)
+        let n = 2
+        while (used.has(id)) id = `${anchorId(label)}-${n++}`
+        used.add(id)
+        entries.push({ id, label })
+      }
+    }
+    node.children?.forEach(walk)
+  }
+
+  walk(content?.root)
+  return entries
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  'school-life': 'Z życia szkoły',
+  'jura-history': 'Historia Jury',
+  guides: 'Poradniki',
+  reports: 'Relacje',
+}
+
+export function formatCategory(category: string | null | undefined): string | null {
+  return category ? (CATEGORY_LABELS[category] ?? category) : null
+}
+
+export const POST_CATEGORIES = Object.entries(CATEGORY_LABELS).map(([value, label]) => ({
+  value,
+  label,
+}))
+
+const SUBJECT_LABELS: Record<string, string> = {
+  'rock-course': 'Kurs skałkowy PZA',
+  'bolted-routes': 'Drogi ubezpieczone',
+  trad: 'Asekuracja tradycyjna',
+  camp: 'Obóz',
+  training: 'Szkolenie',
+}
+
+export function formatSubject(subject: string | null | undefined): string | null {
+  return subject ? (SUBJECT_LABELS[subject] ?? subject) : null
+}
+
+export const TESTIMONIAL_SUBJECTS = Object.entries(SUBJECT_LABELS).map(([value, label]) => ({
+  value,
+  label,
+}))
+
+/** Post publication date: "12 września 2026". */
+export function formatDate(date: string): string {
+  return formatDateRange(date)
 }

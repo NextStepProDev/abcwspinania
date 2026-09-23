@@ -12,6 +12,11 @@ Nie ma w nim sekretów, a jest wszystko, czego potrzebuje ktoś wchodzący do
 projektu. Prywatne notatki idą do `pytania.md` — ignorowanego i nigdy niescalanego
 z plikiem publicznym.
 
+**Co jest obiecane klientowi, siedzi w `ZAKRES.md`** — osobno, bo to inny rodzaj
+wiedzy. Tutaj są decyzje techniczne i ich powody; tam zobowiązania z terminami,
+definicją „zrobione" dla każdej pozycji i listą rzeczy świadomie wyłączonych
+z zakresu. Zmienia się zakres — najpierw tamten plik.
+
 ---
 
 ## Stack
@@ -27,21 +32,69 @@ z plikiem publicznym.
 i API (`/api`) to ten sam serwer Next. Nie ma osobnego kontenera CMS-a ani
 subdomeny `api.*`.
 
-### Kolekcje
+### Kolekcje i globale
 
-| Kolekcja | Publiczny odczyt | Po co |
+| Kolekcja | Slug | Publiczny odczyt | Po co |
+|---|---|---|---|
+| `Courses` | `courses` | tak | oferta kursów, z podstroną każdego |
+| `Camps` | `camps` | tak | obozy, wyjazdy i zajęcia cykliczne |
+| `Sessions` | `sessions` | tak | terminy kursów i obozów |
+| `Posts` | `posts` | tak | aktualności |
+| `Testimonials` | `testimonials` | tak | opinie kursantów |
+| `Instructors` | `instructors` | tak | kadra |
+| `Media` | `media` | tak | okładki, portrety, zdjęcia w treści; `alt` nieobowiązkowy |
+| `GalleryPhotos` | `gallery-photos` | tak | zdjęcia na `/galeria` — osobna zakładka, nie znacznik w Mediach |
+| `Messages` | `messages` | **nie** | zgłoszenia z formularza — dane osobowe |
+| `Newsletter` | `newsletter` | **nie** | zapisy na newsletter — dane osobowe |
+| `Users` | `users` | **nie** | konta do panelu |
+
+| Global | Slug | Po co |
 |---|---|---|
-| `Kursy` | tak | oferta kursów, z podstroną każdego |
-| `Media` | tak | biblioteka zdjęć, `alt` wymagany |
-| `Wiadomosci` | **nie** | zgłoszenia z formularza — dane osobowe |
-| `Users` | **nie** | konta do panelu |
+| `SiteConfig` | `site-config` | kontakt, adres, licencja, profile |
+| `HomePage` | `home-page` | teksty strony startowej |
+| `AboutPage` | `about-page` | teksty podstrony „O nas" |
+| `EnglishPage` | `english-page` | jedyna podstrona po angielsku |
 
-`Wiadomosci` przyjmuje zapis od **każdego** (to formularz publiczny), ale odczyt,
-zmiana i kasowanie wymagają zalogowania. Publiczny odczyt byłby wyciekiem danych
-osobowych, nie udogodnieniem.
+`Messages` i `Newsletter` przyjmują zapis od **każdego** (to formularze
+publiczne), ale odczyt, zmiana i kasowanie wymagają zalogowania. Publiczny
+odczyt byłby wyciekiem danych osobowych, nie udogodnieniem.
+
+⚠️ **Slug globala nie może kończyć się na „s".** Payload wyprowadza nazwę
+generowanego typu ze sluga i obcina końcowe „s": `site-settings` dałoby typ
+`SiteSetting`, a `strona-o-nas` dawało `StronaONa` i wymagało aliasu
+w `content.ts`. Stąd `site-config`, a nie `site-settings`. Przy kolekcjach ta
+sama zasada działa NA NASZĄ KORZYŚĆ: `courses` → `Course`, `sessions` →
+`Session`, więc typy wychodzą w liczbie pojedynczej i aliasy są zbędne.
 
 Katalog nazywa się `web/`, a nie `frontend/` — po przejściu na Payload zawiera
 także backend, więc stara nazwa wprowadzałaby w błąd.
+
+### ⚠️ Język: kod po angielsku, treść po polsku
+
+Ustalone 23.09.2026, po tym jak szkielet urósł do stanu, w którym `getCourses()`
+stało obok `getUstawienia()` w jednym pliku. Granica jest jedna i nie ma od niej
+wyjątków:
+
+| Po **angielsku** | Po **polsku** |
+|---|---|
+| nazwy plików, komponentów, funkcji, zmiennych, typów | tekst widoczny na stronie |
+| **komentarze i nazwy testów** | `label`, `labels`, `admin.description` w kolekcjach (czyta je klient w panelu) |
+| slugi kolekcji i globali (= nazwy tabel w Postgresie) | komunikaty walidacji pokazywane odwiedzającemu |
+| nazwy pól (= kolumny w bazie) i wartości `select` | klauzule RODO w `src/lib/consent.ts` |
+| nazwy pól formularzy HTTP, parametry zapytań | **adresy podstron** (`/kursy`, `/obozy`, `/terminarz`) |
+| komunikaty commitów, logi dla programisty | tekst w `scripts/seed.ts` (to treść, nie kod) |
+
+**Adresy zostają polskie celowo.** To element strony widziany przez
+użytkownika i indeksowany przez wyszukiwarkę, a nie szczegół implementacji —
+polski serwis ma polskie adresy. Zmiana ich na angielskie zerwałaby też sens
+osobnej podstrony `/en`.
+
+**Parametry zapytań są angielskie** (`?level=beginner`, `?show=available`),
+bo to warstwa techniczna, a ich wartości pochodzą wprost z enumów w bazie.
+Mieszanie ich z polskim dawało `?kategoria=school-life`.
+
+Komentarz po polsku w nowym pliku to nie drobiazg do poprawienia później —
+to początek powrotu do stanu sprzed tej zmiany.
 
 ### Dlaczego Payload, a nie Strapi
 
@@ -292,9 +345,15 @@ pipeline'u SCSS dla jednego pustego arkusza.
 11. **Dokładnie jeden `<h1>` na stronę** — wymóg, nie preferencja.
 12. **Unikalne identyfikatory filtrów SVG** — duplikaty `id` między komponentami
     sprawiają, że jeden filtr nadpisuje drugi.
-13. `public/images` i `public/logo` dostają tydzień cache **bez `immutable`** —
-    te nazwy nie mają hasha. Podmieniasz zdjęcie → zmień nazwę pliku. Pliki
-    z biblioteki mediów mają hash, więc tam `immutable` jest bezpieczne.
+13. **Nic wgrywanego przez panel nie dostaje `immutable`.** `public/images`
+    i `public/logo` mają tydzień cache, pliki z Mediów i z galerii miesiąc —
+    wszystkie ze `stale-while-revalidate`, żadne z `immutable`. Powód jest
+    jeden dla wszystkich: **Payload nie dokłada hasha do nazwy pliku**
+    (zmierzone 23.09.2026 — `skaly.jpg` leży pod `/api/media/file/skaly.jpg`).
+    Adres nie zmienia się przy podmianie pliku, a `immutable` znaczy „nie
+    pytaj ponownie", więc stara wersja zostawałaby u odwiedzających miesiąc,
+    nie do ruszenia nawet odświeżeniem. Przy plikach z `public/` nadal
+    obowiązuje: podmieniasz zdjęcie → zmień nazwę pliku.
 14. **`upload.limits.fileSize` musi się zgadzać z `client_max_body_size`
     w nginx** (25 MB). Rozjazd daje 413 z nginx, zanim żądanie dojdzie do
     aplikacji — i błąd, którego nie widać w jej logach.
@@ -319,6 +378,81 @@ pipeline'u SCSS dla jednego pustego arkusza.
     w nginx wymagałoby osobnego bloku `location /admin`, w którym własny
     `add_header` kasuje dziedziczenie z bloku `server`. Nagłówek wysłany z obu
     miejsc dotarłby do przeglądarki podwójnie. **Nie dodawaj CSP do nginx.**
+
+    Skutek uboczny do zapamiętania: Payload ładuje edytor kodu (`monaco`)
+    z `cdn.jsdelivr.net`, a nasze `script-src 'self'` tego zabrania. Dziś to
+    nieszkodliwe, bo żadna kolekcja nie ma pola typu `code` ani `json`, więc
+    edytor nigdy się nie uruchamia. Gdy ktoś takie pole doda, **edytor po
+    prostu się nie pojawi** — bez komunikatu w panelu, z błędem wyłącznie
+    w konsoli przeglądarki. Wtedy decyzja: albo wpuścić ten adres do CSP
+    (czyli cudzy kod do zalogowanego panelu), albo serwować edytor z własnej
+    domeny. To samo `monaco` odpowiada za zgłoszenie `moderate` w `npm audit`
+    (`dompurify`) — nie trafia do zbudowanej aplikacji, jest zależnością
+    Payloada i zniknie przy jego podbiciu. Nie ruszamy tego osobno.
+
+20. **`alt` w Mediach jest NIEOBOWIĄZKOWY — to decyzja, nie niedopatrzenie.**
+    Był wymagany do 23.09.2026. Wymóg kupował gorszą dostępność, nie lepszą:
+    przy wgrywaniu zbiorczym stawia blokujący formularz przed każdym plikiem,
+    więc przy dwudziestym zdjęciu w pole wpada „zdjęcie" albo „IMG_4471".
+    Czytnik ekranu czyta taki śmieć na głos, podczas gdy pusty `alt` każe mu
+    zdjęcie ozdobne pominąć — i o to właśnie chodzi w specyfikacji.
+    **Każde miejsce renderujące obrazek musi pisać `alt={media.alt ?? ''}`**,
+    żeby brak opisu dawał `alt=""`, a nie brakujący atrybut. Dziś robi tak
+    komplet dziewięciu miejsc.
+
+21. **Galeria trzyma stan w ADRESIE, nie w przeglądarce.** Powiększone zdjęcie
+    to `/galeria?zdjecie=<id>`, renderowane na serwerze — ta sama zasada, którą
+    ma spisaną `Filters.tsx`. Dzięki temu działa bez JS, pojedyncze zdjęcie da
+    się wysłać, a przycisk Wstecz zamyka powiększenie bez sztuczek na historii.
+    Komponent kliencki (`GalleryLightboxBehavior.tsx`) robi **wyłącznie** to,
+    czego HTML nie umie: klawisze, pułapkę na ognisko, blokadę przewijania tła.
+    `canonical` zawsze wskazuje `/galeria` bez parametru — inaczej pięćdziesiąt
+    adresów z tą samą treścią konkurowałoby w indeksie.
+
+22. **Zdjęcia galerii to OSOBNA kolekcja, nie pole w Mediach.** Najpierw był
+    ptaszek „Pokaż w galerii" przy zdjęciu; padł przy pierwszym użyciu przez
+    klienta, bo wymagał wejścia w każde zdjęcie osobno — przy pięćdziesięciu
+    to pięćdziesiąt przejść przez formularz. Wgranie do własnej kolekcji jest
+    całą robotą. To ta sama decyzja co przy obozach wobec kursów: wspólna
+    kolekcja z przełącznikiem daje formularz, w którym połowa pól jest zawsze
+    nieistotna. Przyjęty koszt: zdjęcie potrzebne i jako okładka kursu, i w
+    galerii wgrywa się dwa razy.
+
+23. **⚠️ Kolekcja z uploadem wymaga DWÓCH wpisów poza samą kolekcją:**
+    w `images.localPatterns` (`next.config.ts`) **i** jako blok `location`
+    w `deploy/nginx.conf`. Pierwszy odpowiada za renderowanie, drugi za
+    cache przeglądarki. Bez wpisu w `localPatterns` Payload serwuje pliki pod `/api/<slug>/file/**`,
+    a `next/image` z adresem spoza tej listy **rzuca wyjątkiem** — podstrona
+    zwraca 500, a nie puste miejsce po obrazku. Zmierzone 23.09.2026 przy
+    `gallery-photos`: lint, typy, testy i `build` przeszły komplet, bo strona
+    jest dynamiczna i przy budowaniu baza była pusta. Wyszło dopiero po
+    wejściu na `/galeria` z prawdziwym plikiem. Brak bloku w nginx nie psuje
+    niczego widocznie — pliki po prostu wypadają z długiego cache'u i lecą
+    przez `location /`, co przy pięćdziesięciu zdjęciach na stronie widać
+    w czasie ładowania, a nie w logach. **Dodajesz kolekcję z plikami —
+    dopisz ją w obu miejscach od razu.**
+
+    Nowy blok kopiuj z bloku Mediów, nie z `location /` — musi mieć
+    `proxy_hide_header Cache-Control` i powtórzone nagłówki bezpieczeństwa,
+    bo własny `add_header` w bloku `location` kasuje dziedziczenie z bloku
+    `server`. Polityka cache'u: patrz zasada 13.
+
+24. **Powiększenie bierze ORYGINAŁ przez optymalizator Next-a, a nie drugi
+    wariant z Payloada.** Kuszące jest dołożenie `large` do `imageSizes`, ale
+    koszt sharpa wróciłby na moment wgrywania — czyli tam, gdzie już raz położył
+    wysyłkę (patrz komentarz w `Media.ts` o jednym wariancie zamiast trzech).
+    Optymalizator jest już włączony dla `/api/media/file/**` (`next.config.ts`)
+    i trzyma wynik 30 dni, więc ten sam rachunek płacimy raz, przy pierwszym
+    wyświetleniu. **Nie podawaj `quality`** — Next 16 dopuszcza domyślnie tylko
+    75. `priority` jest przestarzałe; pierwszy rząd kafelków dostaje
+    `loading="eager"`.
+
+25. **`(payload)/admin/importMap.js` jest GENEROWANY — nie formatuj go.**
+    Przepisuje go i `payload run`, i sam serwer deweloperski przy przeliczaniu
+    konfiguracji, zawsze bez formatowania. Zanim trafił do `.prettierignore`,
+    `format:check` w CI wywalał się po zmianach, które z tym plikiem nie miały
+    nic wspólnego, a cała różnica siedziała w cudzysłowach. Jest tam z tego
+    samego powodu co migracje i `payload-types.ts`.
 
 ---
 
@@ -443,7 +577,7 @@ docker run --rm -v "$PWD/..:/repo" -w /repo rhysd/actionlint:latest -color
    - **odzyskiwanie hasła do panelu nie zadziała**, bo mail z linkiem nie wyjdzie.
      Do czasu wpięcia Brevo hasło resetuje się ręcznie, przez bazę.
    Powiadomienie o nowej wiadomości dojdzie jako hook `afterChange` na kolekcji
-   `Wiadomosci`, bez zmiany tego, co już działa. Zgoda marketingowa do newslettera
+   `Messages`, bez zmiany tego, co już działa. Zgoda marketingowa do newslettera
    idzie tym samym wzorcem co `src/lib/consent.ts`: treść + wersja, nie samo „tak".
 3. **Moduł TFG** — wykaz umów do **14-tego** przez API (OpenAPI/Swagger).
    Wymaga konta technicznego z certyfikatem **powiązanym z zadeklarowanym
@@ -461,7 +595,9 @@ docker run --rm -v "$PWD/..:/repo" -w /repo rhysd/actionlint:latest -color
 - Czy domena zostaje `abcwspinania.info`. Występuje w `deploy/nginx.conf`
   (trzy bloki `server_name`) i w zmiennej repozytorium `SITE_URL`. Grep po
   `abcwspinania.info` musi zwracać wyłącznie te miejsca.
-- Telefon i adres e-mail — `CONTACT` w `web/src/lib/site.ts` czeka z pustymi
-  polami. Dopóki telefon jest pusty, strona **nie renderuje** linku `tel:`
-  zamiast renderować zepsuty.
-- Model treści: `Kursy` to na razie jedyna kolekcja treściowa i celowo minimalna.
+- Telefon i adres e-mail — wpisuje je Krzysiek w globalu `site-config`
+  w panelu, bez commita i deployu. Dopóki telefon jest pusty, strona **nie
+  renderuje** linku `tel:` zamiast renderować zepsuty.
+- Model treści: sześć kolekcji treściowych (`Courses`, `Camps`, `Sessions`,
+  `Posts`, `Testimonials`, `Instructors`) i cztery globale. Etykiety w panelu
+  są po polsku — to je widzi Krzysiek.

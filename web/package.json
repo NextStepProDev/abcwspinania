@@ -15,7 +15,8 @@
     "generate:types": "NODE_OPTIONS=--no-deprecation payload generate:types",
     "generate:importmap": "NODE_OPTIONS=--no-deprecation payload generate:importmap",
     "migrate:create": "NODE_OPTIONS=--no-deprecation payload migrate:create",
-    "migrate": "NODE_OPTIONS=--no-deprecation payload migrate"
+    "migrate": "NODE_OPTIONS=--no-deprecation payload migrate",
+    "seed": "NODE_OPTIONS=--no-deprecation payload run scripts/seed.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "3.90.1",
