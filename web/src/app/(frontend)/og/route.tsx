@@ -1,5 +1,5 @@
 import { ImageResponse } from 'next/og'
-import { BRAND } from '@/lib/site'
+import { BRAND, BRAND_COLORS } from '@/lib/site'
 import { OG_IMAGE_SIZE } from '@/lib/seo'
 
 // The card image shown when a link is shared (Facebook, Messenger, WhatsApp,
@@ -27,7 +27,7 @@ export function GET() {
         alignItems: 'flex-start',
         justifyContent: 'flex-end',
         padding: 80,
-        backgroundColor: '#2a2620',
+        backgroundColor: BRAND_COLORS.ink,
         backgroundImage:
           'radial-gradient(circle at 80% 15%, rgba(200,85,43,0.45), rgba(42,38,32,0) 60%)',
       }}
@@ -52,7 +52,9 @@ export function GET() {
           </g>
           <circle cx="24" cy="14.2" r="3.4" fill="#fff" />
         </svg>
-        <div style={{ display: 'flex', fontSize: 76, color: '#f7f5f1', fontWeight: 600 }}>
+        <div
+          style={{ display: 'flex', fontSize: 76, color: BRAND_COLORS.surface, fontWeight: 600 }}
+        >
           {BRAND}
         </div>
       </div>

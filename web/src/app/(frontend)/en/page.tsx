@@ -113,7 +113,7 @@ export default async function EnglishPage() {
           <div className="mt-7 overflow-x-auto rounded-xl bg-white shadow-[0_0_0_1px_rgba(42,38,32,0.06),0_4px_12px_rgba(42,38,32,0.08)]">
             <table className="w-full min-w-[560px] border-collapse text-[15px]">
               <thead>
-                <tr className="bg-rock-100 text-left">
+                <tr className="bg-rock-75 text-left">
                   <th
                     scope="col"
                     className="px-6 py-3.5 text-[13px] font-semibold uppercase tracking-[0.04em] text-rock-600"

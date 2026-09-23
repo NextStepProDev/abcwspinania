@@ -512,7 +512,17 @@ Są w kodzie i jadą z deployem.
 
 - **Nie ma workflow pilnującego `VERSION`.** W anovastudio został usunięty:
   Dependabot nie umie edytować tego pliku, a automatyczny bump powodował
-  konflikty scalania na tej jednej linii.
+  konflikty scalania na tej jednej linii. **Podbijamy ręcznie, w każdym PR-ze**
+  (ustalone 24.09.2026) — ostatnia cyfra przy poprawkach i drobiazgach,
+  środkowa przy nowej funkcji. Powód nie jest porządkowy: CI etykietuje obraz
+  zawartością tego pliku, więc dwa scalenia bez podbicia **nadpisują tę samą
+  etykietę** i „wdróż wersję 0.1.0" przestaje znaczyć cokolwiek konkretnego.
+  Od pierwszego wdrożenia u Krzyśka oznacza to brak możliwości cofnięcia się
+  do wcześniejszego stanu.
+- **`version` w `web/package.json` NIE jest synchronizowany z `VERSION`** i nie
+  ma być. Nic go nie czyta — pakiet jest prywatny, nie trafia do npm — a w
+  anovastudio stoi na `0.1.0` przy `VERSION` równym `1.8.6`. Jedynym numerem
+  wersji tego projektu jest plik `VERSION`.
 - **Deploy nie jest automatyczny.** Tylko `workflow_dispatch`. Wdrożenie na
   maszynę klienta to decyzja, nie skutek uboczny merge'a.
 - **Migracje nie są częścią deployu** — patrz wyżej.

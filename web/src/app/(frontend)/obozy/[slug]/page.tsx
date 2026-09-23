@@ -128,7 +128,7 @@ export default async function CampPage({ params }: Props) {
                     key={p.id ?? i}
                     className="flex flex-col gap-3 rounded-xl border border-rock-100 bg-white p-5 sm:flex-row sm:gap-6"
                   >
-                    <span className="shrink-0 self-start rounded-md bg-rock-100 px-3 py-1.5 text-[13px] font-semibold tabular-nums text-rock-600">
+                    <span className="shrink-0 self-start rounded-md bg-rock-75 px-3 py-1.5 text-[13px] font-semibold tabular-nums text-rock-600">
                       {p.time}
                     </span>
                     <div>

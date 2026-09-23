@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next'
 
-import { BRAND } from '@/lib/site'
+import { BRAND, BRAND_COLORS } from '@/lib/site'
 
 /**
  * ⚠️ THIS FILE MUST LIVE AT THE ROOT OF `app/`, just like robots.ts.
@@ -20,8 +20,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Kursy wspinaczki skalnej, szkolenia i obozy na Jurze Krakowsko-Częstochowskiej.',
     start_url: '/',
     display: 'standalone',
-    background_color: '#f7f5f1',
-    theme_color: '#2a2620',
+    background_color: BRAND_COLORS.surface,
+    theme_color: BRAND_COLORS.ink,
     lang: 'pl',
   }
 }

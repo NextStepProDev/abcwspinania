@@ -83,6 +83,12 @@ export function Header({ phone, telHref }: { phone: string | null; telHref: stri
         </nav>
 
         <div className="hidden shrink-0 items-center gap-0.5 lg:flex">
+          {/* `rock-100`, not the lighter `rock-75` the decorative fills moved
+              to: this chip is the ACTIVE STATE of the language switch, not
+              decoration. Two things mark it — this fill and the darker text
+              (PL inherits `rock-900`, EN is `rock-600`) — and the fill is the
+              one you notice first. Lightening it would leave the pair leaning
+              on a difference between two greys. */}
           <span className="rounded bg-rock-100 px-2.5 py-1.5 text-[13px] font-semibold">PL</span>
           <Link
             href="/en"

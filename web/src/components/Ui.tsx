@@ -64,7 +64,7 @@ type BadgeTone = 'accent' | 'neutral' | 'available' | 'dark' | 'onDark'
 
 const TONES: Record<BadgeTone, string> = {
   accent: 'bg-rope-soft text-rope-dark',
-  neutral: 'bg-rock-100 text-rock-600',
+  neutral: 'bg-rock-75 text-rock-600',
   available: 'bg-available-bg text-available-text',
   dark: 'bg-rope text-white',
   onDark: 'bg-rope/20 text-rope-light',
@@ -169,7 +169,7 @@ export function ImagePlaceholder({
       className={[
         'flex items-center justify-center border-b text-center',
         height,
-        dark ? 'border-rock-line bg-rock-800' : 'border-rock-200 bg-rock-100',
+        dark ? 'border-rock-line bg-rock-800' : 'border-rock-200 bg-rock-75',
       ].join(' ')}
     >
       <span
