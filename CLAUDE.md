@@ -42,7 +42,7 @@ subdomeny `api.*`.
 | `Posts` | `posts` | tak | aktualności |
 | `Testimonials` | `testimonials` | tak | opinie kursantów |
 | `Instructors` | `instructors` | tak | kadra |
-| `Media` | `media` | tak | biblioteka zdjęć, `alt` wymagany |
+| `Media` | `media` | tak | biblioteka zdjęć + źródło `/galeria`, `alt` nieobowiązkowy |
 | `Messages` | `messages` | **nie** | zgłoszenia z formularza — dane osobowe |
 | `Newsletter` | `newsletter` | **nie** | zapisy na newsletter — dane osobowe |
 | `Users` | `users` | **nie** | konta do panelu |
@@ -382,6 +382,42 @@ pipeline'u SCSS dla jednego pustego arkusza.
     domeny. To samo `monaco` odpowiada za zgłoszenie `moderate` w `npm audit`
     (`dompurify`) — nie trafia do zbudowanej aplikacji, jest zależnością
     Payloada i zniknie przy jego podbiciu. Nie ruszamy tego osobno.
+
+20. **`alt` w Mediach jest NIEOBOWIĄZKOWY — to decyzja, nie niedopatrzenie.**
+    Był wymagany do 23.09.2026. Wymóg kupował gorszą dostępność, nie lepszą:
+    przy wgrywaniu zbiorczym stawia blokujący formularz przed każdym plikiem,
+    więc przy dwudziestym zdjęciu w pole wpada „zdjęcie" albo „IMG_4471".
+    Czytnik ekranu czyta taki śmieć na głos, podczas gdy pusty `alt` każe mu
+    zdjęcie ozdobne pominąć — i o to właśnie chodzi w specyfikacji.
+    **Każde miejsce renderujące obrazek musi pisać `alt={media.alt ?? ''}`**,
+    żeby brak opisu dawał `alt=""`, a nie brakujący atrybut. Dziś robi tak
+    komplet dziewięciu miejsc.
+
+21. **Galeria trzyma stan w ADRESIE, nie w przeglądarce.** Powiększone zdjęcie
+    to `/galeria?zdjecie=<id>`, renderowane na serwerze — ta sama zasada, którą
+    ma spisaną `Filters.tsx`. Dzięki temu działa bez JS, pojedyncze zdjęcie da
+    się wysłać, a przycisk Wstecz zamyka powiększenie bez sztuczek na historii.
+    Komponent kliencki (`GalleryLightboxBehavior.tsx`) robi **wyłącznie** to,
+    czego HTML nie umie: klawisze, pułapkę na ognisko, blokadę przewijania tła.
+    `canonical` zawsze wskazuje `/galeria` bez parametru — inaczej pięćdziesiąt
+    adresów z tą samą treścią konkurowałoby w indeksie.
+
+22. **Powiększenie bierze ORYGINAŁ przez optymalizator Next-a, a nie drugi
+    wariant z Payloada.** Kuszące jest dołożenie `large` do `imageSizes`, ale
+    koszt sharpa wróciłby na moment wgrywania — czyli tam, gdzie już raz położył
+    wysyłkę (patrz komentarz w `Media.ts` o jednym wariancie zamiast trzech).
+    Optymalizator jest już włączony dla `/api/media/file/**` (`next.config.ts`)
+    i trzyma wynik 30 dni, więc ten sam rachunek płacimy raz, przy pierwszym
+    wyświetleniu. **Nie podawaj `quality`** — Next 16 dopuszcza domyślnie tylko
+    75. `priority` jest przestarzałe; pierwszy rząd kafelków dostaje
+    `loading="eager"`.
+
+23. **`(payload)/admin/importMap.js` jest GENEROWANY — nie formatuj go.**
+    Przepisuje go i `payload run`, i sam serwer deweloperski przy przeliczaniu
+    konfiguracji, zawsze bez formatowania. Zanim trafił do `.prettierignore`,
+    `format:check` w CI wywalał się po zmianach, które z tym plikiem nie miały
+    nic wspólnego, a cała różnica siedziała w cudzysłowach. Jest tam z tego
+    samego powodu co migracje i `payload-types.ts`.
 
 ---
 

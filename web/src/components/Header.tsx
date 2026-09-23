@@ -54,8 +54,11 @@ export function Header({ phone, telHref }: { phone: string | null; telHref: stri
           <Logo />
         </Link>
 
-        {/* Horizontal navigation — from `lg` up, because seven entries do not
-            fit below that. */}
+        {/* Horizontal navigation — from `lg` up, because the entries do not fit
+            below that. Eight of them since /galeria was added, and the row does
+            not wrap: if it ever overflows at the narrow end of `lg`, the fix is
+            a smaller gap here or moving the whole bar to `xl`, NOT letting the
+            labels wrap mid-word. */}
         <nav aria-label="Główna" className="hidden grow lg:block">
           <ul className="flex items-center gap-[22px]">
             {MAIN_NAV.map((item) => {

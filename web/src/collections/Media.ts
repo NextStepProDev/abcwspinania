@@ -5,8 +5,21 @@ import type { CollectionConfig } from 'payload'
 /**
  * Media library — the equivalent of Strapi's Media Library.
  *
- * `alt` is REQUIRED, enforced at the model level, so no image can be uploaded
- * without a description. Trusting people to remember does not work.
+ * `alt` is OPTIONAL. It used to be required, on the reasoning that trusting
+ * people to remember does not work — but the requirement bought worse
+ * accessibility, not better. Bulk upload puts one blocking form in front of
+ * every file, so by the twentieth photo the field gets filled with "photo" or
+ * "IMG_4471". A screen reader reads that junk aloud, whereas an empty alt makes
+ * it skip a decorative image entirely, which is what the spec actually asks for.
+ *
+ * Every render site already writes `alt={media.alt ?? ''}`, so a missing
+ * description yields `alt=""` — correct markup for a decorative image — rather
+ * than a missing attribute.
+ *
+ * `showInGallery` makes this collection do double duty: the library of photos
+ * used across the site AND the source for the /galeria page. A separate
+ * collection would mean uploading the same photo twice to show it in both
+ * places.
  */
 export const Media: CollectionConfig = {
   slug: 'media',
@@ -20,7 +33,13 @@ export const Media: CollectionConfig = {
   },
   admin: {
     group: 'Treść',
+    // Without an explicit column list the gallery tick is invisible on the list
+    // view, and the whole point of it is being set on many rows at once.
+    defaultColumns: ['filename', 'alt', 'showInGallery', 'createdAt'],
   },
+  // Newest first — the gallery page shows them in this order and the client
+  // asked for exactly that, so the list in the panel matches what he sees.
+  defaultSort: '-createdAt',
   access: {
     // Images are public — the only way the site can display them. In Strapi
     // this same setting lived in the DATABASE and had to be clicked through
@@ -51,10 +70,26 @@ export const Media: CollectionConfig = {
     {
       name: 'alt',
       type: 'text',
-      required: true,
       label: 'Opis alternatywny',
       admin: {
-        description: 'Co widać na zdjęciu. Czyta to Google i czytniki ekranu.',
+        description:
+          'Co widać na zdjęciu — czyta to Google i czytniki ekranu. Wypełnij, ' +
+          'gdy zdjęcie coś pokazuje: instruktora, skałę, sprzęt. Zostaw puste, ' +
+          'gdy jest tylko ozdobą, np. tłem sekcji.',
+      },
+    },
+    {
+      name: 'showInGallery',
+      type: 'checkbox',
+      defaultValue: false,
+      label: 'Pokaż w galerii',
+      // NO `disableBulkEdit` here, deliberately: Payload's "edit many" is the
+      // only reason this is a tick on the photo rather than a hand-ordered
+      // list. Fifty photos get the flag in one action from the list view.
+      admin: {
+        description:
+          'Zdjęcie trafia na podstronę „Galeria”. Możesz zaznaczyć kilka zdjęć ' +
+          'na liście i ustawić to pole wszystkim naraz.',
       },
     },
   ],

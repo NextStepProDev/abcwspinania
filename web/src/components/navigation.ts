@@ -22,6 +22,7 @@ export const MAIN_NAV: NavItem[] = [
   { href: '/obozy', label: 'Obozy i wyjazdy' },
   { href: '/terminarz', label: 'Terminarz' },
   { href: '/aktualnosci', label: 'Aktualności' },
+  { href: '/galeria', label: 'Galeria' },
   { href: '/o-nas', label: 'O nas' },
   { href: '/kontakt', label: 'Kontakt' },
 ]
@@ -35,6 +36,7 @@ export const OFFER_NAV: NavItem[] = [
 
 export const SCHOOL_NAV: NavItem[] = [
   { href: '/o-nas', label: 'O nas' },
+  { href: '/galeria', label: 'Galeria' },
   { href: '/aktualnosci', label: 'Aktualności' },
   { href: '/kontakt', label: 'Kontakt' },
   { href: '/en', label: 'In English' },

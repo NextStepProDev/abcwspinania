@@ -7,5 +7,10 @@ package-lock.json
 src/migrations
 # Typy generowane z konfiguracji kolekcji — jak wyżej.
 src/payload-types.ts
+# Mapa importów panelu — też generowana. Przepisuje ją i `payload run`, i sam
+# serwer deweloperski przy przeliczaniu konfiguracji, za każdym razem bez
+# formatowania. Bez tego wpisu `format:check` wywalał się w CI po zmianie, która
+# z tym plikiem nie miała nic wspólnego, a różnica była wyłącznie w cudzysłowach.
+src/app/(payload)/admin/importMap.js
 # Dokumentacja jest formatowana ręcznie, z rozmysłem co do łamania linii.
 *.md

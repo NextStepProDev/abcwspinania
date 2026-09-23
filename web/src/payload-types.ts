@@ -284,9 +284,13 @@ export interface Course {
 export interface Media {
   id: number;
   /**
-   * Co widać na zdjęciu. Czyta to Google i czytniki ekranu.
+   * Co widać na zdjęciu — czyta to Google i czytniki ekranu. Wypełnij, gdy zdjęcie coś pokazuje: instruktora, skałę, sprzęt. Zostaw puste, gdy jest tylko ozdobą, np. tłem sekcji.
    */
-  alt: string;
+  alt?: string | null;
+  /**
+   * Zdjęcie trafia na podstronę „Galeria”. Możesz zaznaczyć kilka zdjęć na liście i ustawić to pole wszystkim naraz.
+   */
+  showInGallery?: boolean | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -907,6 +911,7 @@ export interface InstructorsSelect<T extends boolean = true> {
  */
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
+  showInGallery?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;

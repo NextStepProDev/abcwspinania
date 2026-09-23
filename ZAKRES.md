@@ -33,7 +33,7 @@ Numeracja jak w wiadomości do Krzyśka.
 
 | # | Obietnica | Co znaczy „zrobione" | Stan |
 |---|---|---|---|
-| 1 | Strona z panelem, przeniesienie treści | 12 tras, panel po polsku, treść ze starej strony | **gotowe** |
+| 1 | Strona z panelem, przeniesienie treści | 13 tras, panel po polsku, treść ze starej strony | **gotowe** |
 | 1b | Przekierowania 301 ze **starych adresów Joomli** | każdy adres starej strony kieruje na odpowiednik; sprawdzone w Search Console | **do zrobienia** |
 | 2 | System zarządzania obozami | formularz zapisu + obsługa zgłoszeń w panelu (rozbicie niżej) | **do zrobienia** |
 | 3 | Powiadomienia mailowe | mail wychodzi przy nowym zgłoszeniu i zapisie na obóz | **do zrobienia** |
@@ -51,6 +51,7 @@ Numeracja jak w wiadomości do Krzyśka.
 | 14 | Monitoring dostępności | alert dochodzi do mnie, gdy strona nie odpowiada | **do zrobienia** |
 | 15 | Szkolenie i instrukcja | przejście przez panel + instrukcja na piśmie | **do zrobienia** |
 | 16 | Poprawki do końca grudnia w cenie | zobowiązanie terminowe, patrz wyżej | **w toku** |
+| 17 | **Galeria zdjęć** (poza pierwotną wyceną) | podstrona `/galeria`, zdjęcia zaznaczane ptaszkiem w bibliotece, powiększanie na pełny ekran | **gotowe, czeka na zdjęcia** |
 
 ### Rozbicie pozycji 2 — system obozów
 
@@ -133,6 +134,11 @@ Blokują dowiezienie albo mogą wymusić przeróbkę:
    z zastępnikami.
 6. **Zaliczki i rezygnacje** — zasady decydują o kształcie formularza zapisu,
    więc trzeba je znać przed budową pozycji 2.
+7. **Zgody na wizerunek w galerii** — galeria pokazuje zdjęcia z zajęć, więc
+   widać na nich ludzi. Przy dorosłych potrzebna jest ich zgoda, przy dzieciach
+   z obozów zgoda rodziców. **Dopóki to nie jest potwierdzone, do galerii wolno
+   zaznaczać wyłącznie zdjęcia bez rozpoznawalnych twarzy** (skały, sprzęt,
+   ujęcia z daleka). To ta sama sprawa co zgoda autorów opinii z punktu 3.
 
 ---
 

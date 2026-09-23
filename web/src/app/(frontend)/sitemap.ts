@@ -53,6 +53,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       priority: 0.7,
     },
+    {
+      // Only the bare address. The `?zdjecie=` variants carry the same page and
+      // point their canonical here, so listing them would compete with it.
+      url: `${SITE_URL}/galeria`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    },
     { url: `${SITE_URL}/en`, lastModified: new Date(), changeFrequency: 'yearly', priority: 0.6 },
     {
       url: `${SITE_URL}/kontakt`,

@@ -394,3 +394,32 @@ export function getEnglishPage(): Promise<EnglishPage | null> {
     null,
   )
 }
+
+// --- Gallery -----------------------------------------------------------------
+
+/**
+ * Photos ticked for the gallery page, newest first.
+ *
+ * Sorted by `createdAt`, not `updatedAt`: "newest" means newly taken and
+ * uploaded, and correcting a description years later must not shove an old
+ * photo back to the front of the gallery.
+ *
+ * `depth: 0` because nothing here points anywhere else — the photos ARE the
+ * content of this page.
+ */
+export function getGalleryImages(limit = 200): Promise<Image[]> {
+  return withPayloadSafe(
+    'gallery',
+    async (payload) => {
+      const { docs } = await payload.find({
+        collection: 'media',
+        where: { showInGallery: { equals: true } },
+        limit,
+        sort: '-createdAt',
+        depth: 0,
+      })
+      return docs
+    },
+    [],
+  )
+}

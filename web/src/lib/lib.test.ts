@@ -22,6 +22,7 @@ import { jsonLd, organizationSchema } from '@/lib/schema'
 import type { SiteConfig } from '@/payload-types'
 import { validateContact, validateNewsletter, isValid, looksLikeBot } from '@/lib/validation'
 import type { ContactFormData } from '@/lib/validation'
+import { galleryNeighbours, parseGalleryId, focusTrapTarget } from '@/lib/gallery'
 import {
   CONSENT_TEXT,
   CONSENT_VERSION,
@@ -381,4 +382,69 @@ test('the stored consent carries the version and the full clause', () => {
   const stored = consentForStorage()
   assert.ok(stored.includes(CONSENT_VERSION), 'without a version the clauses cannot be told apart')
   assert.ok(stored.includes(CONSENT_TEXT), 'we store the text, not a bare "yes"')
+})
+
+// --- gallery ----------------------------------------------------------------
+
+test('the gallery wraps around, so an arrow never dead-ends', () => {
+  const ids = [10, 20, 30]
+  assert.deepEqual(galleryNeighbours(ids, 10), { previousId: 30, nextId: 20 })
+  assert.deepEqual(galleryNeighbours(ids, 30), { previousId: 20, nextId: 10 })
+})
+
+test('a single photo has no neighbours — an arrow back to itself is a dead button', () => {
+  assert.deepEqual(galleryNeighbours([7], 7), { previousId: null, nextId: null })
+})
+
+test('an empty gallery yields no neighbours instead of throwing', () => {
+  assert.deepEqual(galleryNeighbours([], 7), { previousId: null, nextId: null })
+})
+
+test('a photo unticked since the link was saved has no neighbours', () => {
+  // The address can outlive the flag: someone bookmarks ?zdjecie=99, the client
+  // unticks that photo. Position -1 must not be read as "the last one".
+  assert.deepEqual(galleryNeighbours([10, 20], 99), { previousId: null, nextId: null })
+})
+
+test('a missing or non-numeric parameter opens no photo', () => {
+  const ids = [10, 20]
+  assert.equal(parseGalleryId(undefined, ids), null)
+  assert.equal(parseGalleryId('', ids), null)
+  assert.equal(parseGalleryId('abc', ids), null, 'NaN must not leak into the lookup')
+  assert.equal(parseGalleryId('2.5', ids), null, 'ids are whole numbers')
+})
+
+test('a parameter pointing outside the gallery opens no photo', () => {
+  // Otherwise an old bookmark renders an empty overlay over the grid.
+  assert.equal(parseGalleryId('99', [10, 20]), null)
+  assert.equal(parseGalleryId('10', []), null)
+  assert.equal(parseGalleryId('20', [10, 20]), 20)
+})
+
+test('Tab wraps at both ends of the enlarged photo', () => {
+  assert.equal(focusTrapTarget(false, 'last'), 'first')
+  assert.equal(focusTrapTarget(true, 'first'), 'last')
+})
+
+test('Tab in the middle of the overlay is left to the browser', () => {
+  assert.equal(focusTrapTarget(false, 'middle'), null)
+  assert.equal(focusTrapTarget(true, 'middle'), null)
+  assert.equal(focusTrapTarget(false, 'first'), null)
+  assert.equal(focusTrapTarget(true, 'last'), null)
+})
+
+test('shift+Tab straight after opening must not escape behind the overlay', () => {
+  // Focus starts on the dialog itself, before any of its links. Going forward
+  // the browser walks into the first link on its own; going BACKWARDS it would
+  // land on a gallery tile hidden underneath, with nothing to show for it.
+  assert.equal(focusTrapTarget(true, 'container'), 'last')
+  assert.equal(focusTrapTarget(false, 'container'), null)
+})
+
+test('an overlay with a single control traps Tab in both directions', () => {
+  // A one-photo gallery has no arrows, so "close" is the only link there is:
+  // the same element is both the first and the last, and Tab either way has
+  // nowhere to go but back to it.
+  assert.equal(focusTrapTarget(false, 'only'), 'first')
+  assert.equal(focusTrapTarget(true, 'only'), 'first')
 })
