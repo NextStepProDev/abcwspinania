@@ -74,6 +74,7 @@ export interface Config {
     testimonials: Testimonial;
     instructors: Instructor;
     media: Media;
+    'gallery-photos': GalleryPhoto;
     messages: Message;
     newsletter: Newsletter;
     users: User;
@@ -91,6 +92,7 @@ export interface Config {
     testimonials: TestimonialsSelect<false> | TestimonialsSelect<true>;
     instructors: InstructorsSelect<false> | InstructorsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    'gallery-photos': GalleryPhotosSelect<false> | GalleryPhotosSelect<true>;
     messages: MessagesSelect<false> | MessagesSelect<true>;
     newsletter: NewsletterSelect<false> | NewsletterSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
@@ -287,10 +289,6 @@ export interface Media {
    * Co widać na zdjęciu — czyta to Google i czytniki ekranu. Wypełnij, gdy zdjęcie coś pokazuje: instruktora, skałę, sprzęt. Zostaw puste, gdy jest tylko ozdobą, np. tłem sekcji.
    */
   alt?: string | null;
-  /**
-   * Zdjęcie trafia na podstronę „Galeria”. Możesz zaznaczyć kilka zdjęć na liście i ustawić to pole wszystkim naraz.
-   */
-  showInGallery?: boolean | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -548,6 +546,40 @@ export interface Instructor {
   createdAt: string;
 }
 /**
+ * Zdjęcia pokazywane na podstronie „Galeria”. Najnowsze są u góry.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "gallery-photos".
+ */
+export interface GalleryPhoto {
+  id: number;
+  /**
+   * Co widać na zdjęciu — czyta to Google i czytniki ekranu. Wypełnij, gdy zdjęcie coś pokazuje: instruktora, skałę, sprzęt. Zostaw puste, gdy jest tylko ozdobą.
+   */
+  alt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+  sizes?: {
+    medium?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
+}
+/**
  * Zgłoszenia z formularza na stronie. Nowe są u góry.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -682,6 +714,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'media';
         value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'gallery-photos';
+        value: number | GalleryPhoto;
       } | null)
     | ({
         relationTo: 'messages';
@@ -911,7 +947,38 @@ export interface InstructorsSelect<T extends boolean = true> {
  */
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
-  showInGallery?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+  sizes?:
+    | T
+    | {
+        medium?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "gallery-photos_select".
+ */
+export interface GalleryPhotosSelect<T extends boolean = true> {
+  alt?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;

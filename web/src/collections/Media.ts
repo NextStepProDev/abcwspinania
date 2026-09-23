@@ -16,10 +16,11 @@ import type { CollectionConfig } from 'payload'
  * description yields `alt=""` — correct markup for a decorative image — rather
  * than a missing attribute.
  *
- * `showInGallery` makes this collection do double duty: the library of photos
- * used across the site AND the source for the /galeria page. A separate
- * collection would mean uploading the same photo twice to show it in both
- * places.
+ * Gallery photos do NOT live here. They had a `showInGallery` tick for a
+ * while; it meant opening every photo to set it, so they moved to a
+ * collection of their own (`GalleryPhotos`). This one holds what the rest of
+ * the site points at: course and camp covers, instructor portraits, images in
+ * articles.
  */
 export const Media: CollectionConfig = {
   slug: 'media',
@@ -35,7 +36,7 @@ export const Media: CollectionConfig = {
     group: 'Treść',
     // Without an explicit column list the gallery tick is invisible on the list
     // view, and the whole point of it is being set on many rows at once.
-    defaultColumns: ['filename', 'alt', 'showInGallery', 'createdAt'],
+    defaultColumns: ['filename', 'alt', 'createdAt'],
   },
   // Newest first — the gallery page shows them in this order and the client
   // asked for exactly that, so the list in the panel matches what he sees.
@@ -76,20 +77,6 @@ export const Media: CollectionConfig = {
           'Co widać na zdjęciu — czyta to Google i czytniki ekranu. Wypełnij, ' +
           'gdy zdjęcie coś pokazuje: instruktora, skałę, sprzęt. Zostaw puste, ' +
           'gdy jest tylko ozdobą, np. tłem sekcji.',
-      },
-    },
-    {
-      name: 'showInGallery',
-      type: 'checkbox',
-      defaultValue: false,
-      label: 'Pokaż w galerii',
-      // NO `disableBulkEdit` here, deliberately: Payload's "edit many" is the
-      // only reason this is a tick on the photo rather than a hand-ordered
-      // list. Fifty photos get the flag in one action from the list view.
-      admin: {
-        description:
-          'Zdjęcie trafia na podstronę „Galeria”. Możesz zaznaczyć kilka zdjęć ' +
-          'na liście i ustawić to pole wszystkim naraz.',
       },
     },
   ],

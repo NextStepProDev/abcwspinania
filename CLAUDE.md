@@ -42,7 +42,8 @@ subdomeny `api.*`.
 | `Posts` | `posts` | tak | aktualności |
 | `Testimonials` | `testimonials` | tak | opinie kursantów |
 | `Instructors` | `instructors` | tak | kadra |
-| `Media` | `media` | tak | biblioteka zdjęć + źródło `/galeria`, `alt` nieobowiązkowy |
+| `Media` | `media` | tak | okładki, portrety, zdjęcia w treści; `alt` nieobowiązkowy |
+| `GalleryPhotos` | `gallery-photos` | tak | zdjęcia na `/galeria` — osobna zakładka, nie znacznik w Mediach |
 | `Messages` | `messages` | **nie** | zgłoszenia z formularza — dane osobowe |
 | `Newsletter` | `newsletter` | **nie** | zapisy na newsletter — dane osobowe |
 | `Users` | `users` | **nie** | konta do panelu |
@@ -344,9 +345,15 @@ pipeline'u SCSS dla jednego pustego arkusza.
 11. **Dokładnie jeden `<h1>` na stronę** — wymóg, nie preferencja.
 12. **Unikalne identyfikatory filtrów SVG** — duplikaty `id` między komponentami
     sprawiają, że jeden filtr nadpisuje drugi.
-13. `public/images` i `public/logo` dostają tydzień cache **bez `immutable`** —
-    te nazwy nie mają hasha. Podmieniasz zdjęcie → zmień nazwę pliku. Pliki
-    z biblioteki mediów mają hash, więc tam `immutable` jest bezpieczne.
+13. **Nic wgrywanego przez panel nie dostaje `immutable`.** `public/images`
+    i `public/logo` mają tydzień cache, pliki z Mediów i z galerii miesiąc —
+    wszystkie ze `stale-while-revalidate`, żadne z `immutable`. Powód jest
+    jeden dla wszystkich: **Payload nie dokłada hasha do nazwy pliku**
+    (zmierzone 23.09.2026 — `skaly.jpg` leży pod `/api/media/file/skaly.jpg`).
+    Adres nie zmienia się przy podmianie pliku, a `immutable` znaczy „nie
+    pytaj ponownie", więc stara wersja zostawałaby u odwiedzających miesiąc,
+    nie do ruszenia nawet odświeżeniem. Przy plikach z `public/` nadal
+    obowiązuje: podmieniasz zdjęcie → zmień nazwę pliku.
 14. **`upload.limits.fileSize` musi się zgadzać z `client_max_body_size`
     w nginx** (25 MB). Rozjazd daje 413 z nginx, zanim żądanie dojdzie do
     aplikacji — i błąd, którego nie widać w jej logach.
@@ -402,7 +409,35 @@ pipeline'u SCSS dla jednego pustego arkusza.
     `canonical` zawsze wskazuje `/galeria` bez parametru — inaczej pięćdziesiąt
     adresów z tą samą treścią konkurowałoby w indeksie.
 
-22. **Powiększenie bierze ORYGINAŁ przez optymalizator Next-a, a nie drugi
+22. **Zdjęcia galerii to OSOBNA kolekcja, nie pole w Mediach.** Najpierw był
+    ptaszek „Pokaż w galerii" przy zdjęciu; padł przy pierwszym użyciu przez
+    klienta, bo wymagał wejścia w każde zdjęcie osobno — przy pięćdziesięciu
+    to pięćdziesiąt przejść przez formularz. Wgranie do własnej kolekcji jest
+    całą robotą. To ta sama decyzja co przy obozach wobec kursów: wspólna
+    kolekcja z przełącznikiem daje formularz, w którym połowa pól jest zawsze
+    nieistotna. Przyjęty koszt: zdjęcie potrzebne i jako okładka kursu, i w
+    galerii wgrywa się dwa razy.
+
+23. **⚠️ Kolekcja z uploadem wymaga DWÓCH wpisów poza samą kolekcją:**
+    w `images.localPatterns` (`next.config.ts`) **i** jako blok `location`
+    w `deploy/nginx.conf`. Pierwszy odpowiada za renderowanie, drugi za
+    cache przeglądarki. Bez wpisu w `localPatterns` Payload serwuje pliki pod `/api/<slug>/file/**`,
+    a `next/image` z adresem spoza tej listy **rzuca wyjątkiem** — podstrona
+    zwraca 500, a nie puste miejsce po obrazku. Zmierzone 23.09.2026 przy
+    `gallery-photos`: lint, typy, testy i `build` przeszły komplet, bo strona
+    jest dynamiczna i przy budowaniu baza była pusta. Wyszło dopiero po
+    wejściu na `/galeria` z prawdziwym plikiem. Brak bloku w nginx nie psuje
+    niczego widocznie — pliki po prostu wypadają z długiego cache'u i lecą
+    przez `location /`, co przy pięćdziesięciu zdjęciach na stronie widać
+    w czasie ładowania, a nie w logach. **Dodajesz kolekcję z plikami —
+    dopisz ją w obu miejscach od razu.**
+
+    Nowy blok kopiuj z bloku Mediów, nie z `location /` — musi mieć
+    `proxy_hide_header Cache-Control` i powtórzone nagłówki bezpieczeństwa,
+    bo własny `add_header` w bloku `location` kasuje dziedziczenie z bloku
+    `server`. Polityka cache'u: patrz zasada 13.
+
+24. **Powiększenie bierze ORYGINAŁ przez optymalizator Next-a, a nie drugi
     wariant z Payloada.** Kuszące jest dołożenie `large` do `imageSizes`, ale
     koszt sharpa wróciłby na moment wgrywania — czyli tam, gdzie już raz położył
     wysyłkę (patrz komentarz w `Media.ts` o jednym wariancie zamiast trzech).
@@ -412,7 +447,7 @@ pipeline'u SCSS dla jednego pustego arkusza.
     75. `priority` jest przestarzałe; pierwszy rząd kafelków dostaje
     `loading="eager"`.
 
-23. **`(payload)/admin/importMap.js` jest GENEROWANY — nie formatuj go.**
+25. **`(payload)/admin/importMap.js` jest GENEROWANY — nie formatuj go.**
     Przepisuje go i `payload run`, i sam serwer deweloperski przy przeliczaniu
     konfiguracji, zawsze bez formatowania. Zanim trafił do `.prettierignore`,
     `format:check` w CI wywalał się po zmianach, które z tym plikiem nie miały

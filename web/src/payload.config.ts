@@ -9,6 +9,7 @@ import sharp from 'sharp'
 
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
+import { GalleryPhotos } from './collections/GalleryPhotos'
 import { Courses } from './collections/Courses'
 import { Camps } from './collections/Camps'
 import { Sessions } from './collections/Sessions'
@@ -77,6 +78,7 @@ export default buildConfig({
     Testimonials,
     Instructors,
     Media,
+    GalleryPhotos,
     Messages,
     Newsletter,
     Users,

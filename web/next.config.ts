@@ -101,7 +101,18 @@ const nextConfig: NextConfig = {
     // /api/media/file/**. Nie ma już zdalnego hosta, więc znika cała sekcja
     // remotePatterns i flaga dangerouslyAllowLocalIP, które istniały wyłącznie
     // po to, żeby optymalizator mógł sięgnąć do osobnego kontenera Strapi.
-    localPatterns: [{ pathname: '/api/media/file/**' }],
+    //
+    // ⚠️ KAŻDA kolekcja z uploadem potrzebuje TU własnego wpisu. Payload serwuje
+    // pliki pod /api/<slug>/file/**, a `next/image` z adresem spoza tej listy
+    // nie renderuje pustego miejsca, tylko RZUCA WYJĄTKIEM — cała podstrona
+    // zwraca 500. Zmierzone 23.09.2026 przy dodawaniu kolekcji `gallery-photos`:
+    // lint, typy, testy i `build` przeszły komplet, bo strona jest dynamiczna
+    // i przy budowaniu nie było w bazie ani jednego zdjęcia. Wyszło dopiero po
+    // wejściu na /galeria z prawdziwym plikiem.
+    localPatterns: [
+      { pathname: '/api/media/file/**' },
+      { pathname: '/api/gallery-photos/file/**' },
+    ],
     minimumCacheTTL: 60 * 60 * 24 * 30,
   },
 }

@@ -9,6 +9,7 @@ import type {
   Testimonial,
   Instructor,
   Media,
+  GalleryPhoto,
   SiteConfig,
   HomePage,
   AboutPage,
@@ -46,7 +47,7 @@ async function withPayloadSafe<T>(
   }
 }
 
-export type { Course, Camp, Session, Post, Testimonial, Instructor, SiteConfig }
+export type { Course, Camp, Session, Post, Testimonial, Instructor, SiteConfig, GalleryPhoto }
 
 /** An image from an `upload` field arrives as an object or as a bare id (at depth: 0). */
 export type Image = Media
@@ -398,22 +399,25 @@ export function getEnglishPage(): Promise<EnglishPage | null> {
 // --- Gallery -----------------------------------------------------------------
 
 /**
- * Photos ticked for the gallery page, newest first.
+ * Photos for the gallery page, newest first.
+ *
+ * Their own collection rather than a flag on Media — see `GalleryPhotos` for
+ * why. There is no `where` here because membership IS the collection: every
+ * photo uploaded there is in the gallery.
  *
  * Sorted by `createdAt`, not `updatedAt`: "newest" means newly taken and
  * uploaded, and correcting a description years later must not shove an old
- * photo back to the front of the gallery.
+ * photo back to the front.
  *
  * `depth: 0` because nothing here points anywhere else — the photos ARE the
  * content of this page.
  */
-export function getGalleryImages(limit = 200): Promise<Image[]> {
+export function getGalleryImages(limit = 200): Promise<GalleryPhoto[]> {
   return withPayloadSafe(
     'gallery',
     async (payload) => {
       const { docs } = await payload.find({
-        collection: 'media',
-        where: { showInGallery: { equals: true } },
+        collection: 'gallery-photos',
         limit,
         sort: '-createdAt',
         depth: 0,

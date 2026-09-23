@@ -51,7 +51,7 @@ Numeracja jak w wiadomości do Krzyśka.
 | 14 | Monitoring dostępności | alert dochodzi do mnie, gdy strona nie odpowiada | **do zrobienia** |
 | 15 | Szkolenie i instrukcja | przejście przez panel + instrukcja na piśmie | **do zrobienia** |
 | 16 | Poprawki do końca grudnia w cenie | zobowiązanie terminowe, patrz wyżej | **w toku** |
-| 17 | **Galeria zdjęć** (poza pierwotną wyceną) | podstrona `/galeria`, zdjęcia zaznaczane ptaszkiem w bibliotece, powiększanie na pełny ekran | **gotowe, czeka na zdjęcia** |
+| 17 | **Galeria zdjęć** (poza pierwotną wyceną) | podstrona `/galeria`, własna zakładka „Galeria" w panelu, powiększanie na pełny ekran | **gotowe, czeka na zdjęcia** |
 
 ### Rozbicie pozycji 2 — system obozów
 

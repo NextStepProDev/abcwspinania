@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 
-import type { Image as Photo } from '@/lib/content'
+import type { GalleryPhoto as Photo } from '@/lib/content'
 import { GALLERY_PATH, photoHref, tileDomId } from '@/lib/gallery'
 import { Arrow, Close } from '@/components/Icons'
 
