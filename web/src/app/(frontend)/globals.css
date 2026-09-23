@@ -1,10 +1,10 @@
 @import 'tailwindcss';
 
-/* Paleta i typografia wzięte 1:1 z makiety.
-   Wartości są tokenami, nie literałami w komponentach — podmiana identyfikacji
-   wizualnej ma oznaczać edycję tego pliku, a nie przechodzenie przez widoki. */
+/* Palette and typography taken 1:1 from the mockup.
+   The values are tokens, not literals inside components — swapping the visual
+   identity should mean editing this file, not walking through every view. */
 @theme {
-  /* Wapień Jury — od tła strony po ciemną stopkę. */
+  /* Jura limestone — from the page background to the dark footer. */
   --color-rock-50: #f7f5f1;
   --color-rock-100: #ece7df;
   --color-rock-200: #e0d9cd;
@@ -17,18 +17,19 @@
   --color-rock-900: #2a2620;
   --color-rock-950: #1a1713;
 
-  /* Lina — kolor akcentu. */
+  /* Rope — the accent colour. */
   --color-rope: #c8552b;
   --color-rope-dark: #a03f1e;
   --color-rope-soft: #f5e8e2;
   --color-rope-light: #f0a184;
 
-  /* Dostępność terminu: zielony znaczy „są miejsca". Osobne tokeny, bo to
-     komunikat stanu, a nie wariant akcentu — nie wolno ich zlać z `rope`. */
-  --color-wolne-bg: #e6ece2;
-  --color-wolne-text: #4a6640;
+  /* Session availability: green means "spots left". Separate tokens, because
+     this is a status message, not an accent variant — they must not be folded
+     into `rope`. */
+  --color-available-bg: #e6ece2;
+  --color-available-text: #4a6640;
 
-  /* Tekst na ciemnym tle stopki i sekcji `rock-900`. */
+  /* Text on the dark footer and on `rock-900` sections. */
   --color-rock-fg: #cfc5b7;
   --color-rock-fg-strong: #e4ddd2;
   --color-rock-line: #423a30;
@@ -46,9 +47,9 @@ body {
   color: var(--color-rock-900);
 }
 
-/* Nagłówki idą krojem wyświetleniowym z makiety. Ustawione raz, globalnie —
-   inaczej `font-display` trzeba by powtarzać przy każdym h1…h3 w kilkunastu
-   widokach i prędzej czy później gdzieś by go zabrakło. */
+/* Headings use the display typeface from the mockup. Set once, globally —
+   otherwise `font-display` would have to be repeated on every h1…h3 across a
+   dozen views, and sooner or later one would be missed. */
 h1,
 h2,
 h3 {
@@ -57,8 +58,8 @@ h3 {
   letter-spacing: -0.03em;
 }
 
-/* Szanuj ustawienie systemowe — bez tego animacje wejścia sekcji potrafią
-   wywołać mdłości u osób wrażliwych na ruch. */
+/* Respect the system setting — without it section entry animations can make
+   motion-sensitive people feel sick. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -70,62 +71,63 @@ h3 {
   }
 }
 
-/* Treść z edytora w CMS-ie. Świadomie bez wtyczki @tailwindcss/typography —
-   potrzebujemy kilku reguł, a nie całego systemu typograficznego, i nie
-   chcemy kolejnej zależności do pilnowania przy podbiciach Tailwinda.
+/* Content from the CMS editor. Deliberately without the
+   @tailwindcss/typography plugin — we need a handful of rules, not a whole
+   typographic system, and we do not want another dependency to watch at
+   Tailwind upgrade time.
 
-   ⚠️ Odstępy robimy MARGINESAMI, a nie `display:flex` + `gap`. Payload
-   opakowuje wynik <RichText> w dodatkowy <div class="payload-richtext">, więc
-   kontener ma tylko JEDNO dziecko — `gap` nie miał czego rozsuwać i wszystkie
-   akapity sklejały się w jeden blok. Marginesy działają niezależnie od tego,
-   ile opakowań wstawi po drodze biblioteka, i nie wiążą nas z jej nazwą klasy.
-   Preflight Tailwinda zeruje marginesy globalnie, więc trzeba je przywrócić
-   tutaj jawnie. */
-.tresc-bogata {
+   ⚠️ Spacing uses MARGINS, not `display:flex` + `gap`. Payload wraps the
+   <RichText> output in an extra <div class="payload-richtext">, so the
+   container has only ONE child — `gap` had nothing to push apart and every
+   paragraph ran together into one block. Margins work regardless of how many
+   wrappers the library inserts, and do not tie us to its class name. Tailwind's
+   preflight zeroes margins globally, so they have to be restored explicitly
+   here. */
+.rich-text {
   line-height: 1.7;
 }
-.tresc-bogata p,
-.tresc-bogata ul,
-.tresc-bogata ol,
-.tresc-bogata blockquote,
-.tresc-bogata figure {
+.rich-text p,
+.rich-text ul,
+.rich-text ol,
+.rich-text blockquote,
+.rich-text figure {
   margin-block: 0 1rem;
 }
-.tresc-bogata h2 {
+.rich-text h2 {
   font-size: 1.75rem;
   margin-block: 2rem 0.75rem;
-  /* Odstęp pod przyklejonym nagłówkiem, gdy skaczemy tu ze spisu treści. */
+  /* Clearance under the sticky header when jumping here from the contents. */
   scroll-margin-top: 6rem;
 }
-.tresc-bogata h3 {
+.rich-text h3 {
   font-size: 1.25rem;
   font-weight: 600;
   margin-block: 1.5rem 0.5rem;
 }
-.tresc-bogata :is(h2, h3):first-child {
+.rich-text :is(h2, h3):first-child {
   margin-top: 0;
 }
-.tresc-bogata > :last-child,
-.tresc-bogata .payload-richtext > :last-child {
+.rich-text > :last-child,
+.rich-text .payload-richtext > :last-child {
   margin-bottom: 0;
 }
-.tresc-bogata ul,
-.tresc-bogata ol {
+.rich-text ul,
+.rich-text ol {
   padding-left: 1.5rem;
   list-style: revert;
 }
-.tresc-bogata li + li {
+.rich-text li + li {
   margin-top: 0.375rem;
 }
-.tresc-bogata a {
+.rich-text a {
   color: var(--color-rope);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-.tresc-bogata strong {
+.rich-text strong {
   font-weight: 600;
 }
-.tresc-bogata blockquote {
+.rich-text blockquote {
   border-left: 3px solid var(--color-rope);
   padding-left: 1.25rem;
   font-size: 1.125rem;

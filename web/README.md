@@ -26,7 +26,9 @@ src/
 │   ├── manifest.ts      ← tak samo
 │   ├── (frontend)/      ← strona: /, /kontakt, /kursy/[slug], og, sitemap, icon
 │   └── (payload)/       ← panel i API (boilerplate Payloada)
-├── collections/         ← Kursy, Media, Wiadomosci, Users
+├── collections/         ← Courses, Camps, Sessions, Posts, Testimonials,
+│                        Instructors, Media, Messages, Newsletter, Users
+├── globals/             ← SiteConfig, HomePage, AboutPage, EnglishPage
 ├── lib/                 ← content (dane), format, validation, consent, seo, schema, site
 ├── migrations/          ← commitowane, stosowane workflowem Migrate
 └── payload-types.ts     ← GENEROWANE, commitowane, pilnowane w CI

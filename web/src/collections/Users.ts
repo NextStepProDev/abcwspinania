@@ -1,19 +1,20 @@
 import type { CollectionConfig } from 'payload'
 
 /**
- * Konta do panelu — Ty i Krzysiek.
+ * Admin panel accounts.
  *
- * Różnica wobec Strapiego, warta zapamiętania: tam były DWA niezależne światy
- * użytkowników (administratorzy panelu i osobno użytkownicy API z wtyczki
- * users-permissions), które nie wiedziały o swoim istnieniu. Tutaj logowanie to
- * zwykła właściwość kolekcji (`auth: true`), więc konta uczestników na etapie
- * rezerwacji będą po prostu drugą kolekcją z tym samym mechanizmem.
+ * A difference from Strapi worth remembering: there were TWO independent worlds
+ * of users there (panel administrators and, separately, API users from the
+ * users-permissions plugin) that knew nothing of each other. Here logging in is
+ * an ordinary property of a collection (`auth: true`), so participant accounts
+ * at the booking stage will simply be a second collection using the same
+ * mechanism.
  */
 export const Users: CollectionConfig = {
   slug: 'users',
-  // Etykiety po polsku — bez nich Payload składa nazwę ze sluga i w menu
-  // sterczało „Users" obok „Kursy", „Opinie" i „Wiadomości". Panel obsługuje
-  // klient, nie programista.
+  // Polish labels — without them Payload derives the name from the slug and
+  // "Users" stuck out in the menu next to "Kursy", "Opinie" and "Wiadomości".
+  // The client operates this panel, not a developer.
   labels: {
     singular: 'Konto',
     plural: 'Konta panelu',
@@ -23,8 +24,8 @@ export const Users: CollectionConfig = {
     group: 'System',
   },
   auth: true,
-  // Bez `access.read: () => true` — dane kont nie są publiczne. Payload
-  // domyślnie wymaga zalogowania, więc świadomie NIE otwieramy tego.
+  // No `access.read: () => true` — account data is not public. Payload requires
+  // authentication by default, so we deliberately do NOT open this up.
   fields: [
     {
       name: 'name',

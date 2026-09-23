@@ -3,26 +3,26 @@ import Image from 'next/image'
 
 import {
   getCourses,
-  getStronaGlowna,
-  getUpcomingTerms,
-  getOpinions,
+  getHomePage,
+  getUpcomingSessions,
+  getTestimonials,
   getPosts,
-  getUstawienia,
+  getSiteConfig,
   telHref,
   asImage,
 } from '@/lib/content'
-import { latOd } from '@/lib/format'
+import { yearsSince } from '@/lib/format'
 import { pageMetadata } from '@/lib/seo'
-import { IKONY_WYBIERALNE, type NazwaIkony } from '@/components/Ikony'
-import { KafelKursu } from '@/components/KafelKursu'
-import { TabelaTerminow } from '@/components/Terminy'
-import { KafelWpisu } from '@/components/KafelWpisu'
-import { Cytat } from '@/components/Cytat'
-import { TloGorskie } from '@/components/TloGorskie'
-import { Przycisk, Odznaka, NaglowekSekcji, Kontener, MiejsceNaZdjecie } from '@/components/Ui'
+import { SELECTABLE_ICONS, type IconName } from '@/components/Icons'
+import { CourseCard } from '@/components/CourseCard'
+import { SessionTable } from '@/components/SessionTable'
+import { PostCard } from '@/components/PostCard'
+import { Quote } from '@/components/Quote'
+import { MountainBackdrop } from '@/components/MountainBackdrop'
+import { Button, Badge, SectionHeading, Container, ImagePlaceholder } from '@/components/Ui'
 
-// Eksportowane jako generateMetadata, NIE jako `export const metadata` —
-// tamta forma wymaga literału i nie przyjmie wywołania funkcji (reguła 7).
+// Exported as generateMetadata, NOT as `export const metadata` — that form
+// requires a literal and will not accept a function call (rule 7).
 export function generateMetadata(): Metadata {
   return pageMetadata({
     title: 'Szkoła wspinaczki na Jurze',
@@ -33,272 +33,270 @@ export function generateMetadata(): Metadata {
 }
 
 export default async function Home() {
-  // Wszystkie zapytania są od siebie niezależne, więc lecą równolegle —
-  // szeregowo dołożyłyby sobie czasy nawzajem.
-  const [tresc, kursy, terminy, opinie, wpisy, ustawienia] = await Promise.all([
-    getStronaGlowna(),
+  // Every query is independent of the others, so they run in parallel — run in
+  // series they would add up their latencies.
+  const [content, courses, sessions, testimonials, posts, siteConfig] = await Promise.all([
+    getHomePage(),
     getCourses(),
-    getUpcomingTerms(4),
-    getOpinions(),
+    getUpcomingSessions(4),
+    getTestimonials(),
     getPosts(3),
-    getUstawienia(),
+    getSiteConfig(),
   ])
-  // Na stronę startową wchodzą opinie wyraźnie do tego zaznaczone; gdy nikt
-  // żadnej nie zaznaczył, bierzemy dwie pierwsze, żeby sekcja nie zniknęła.
-  const zaznaczone = opinie.filter((o) => o.naStronieGlownej)
-  const opinieNaStart = (zaznaczone.length > 0 ? zaznaczone : opinie).slice(0, 2)
-  const tel = telHref(ustawienia)
-  const lat = latOd(ustawienia.rokZalozenia)
+  // The homepage shows testimonials explicitly marked for it; when nobody has
+  // marked any, we take the first two so the section does not vanish.
+  const marked = testimonials.filter((t) => t.onHomepage)
+  const homepageTestimonials = (marked.length > 0 ? marked : testimonials).slice(0, 2)
+  const tel = telHref(siteConfig)
+  const years = yearsSince(siteConfig.foundedYear)
 
   return (
     <main>
-      {/* --- Nagłówek powitalny --- */}
+      {/* --- Hero header --- */}
       <section className="relative isolate overflow-hidden bg-rock-950">
-        <TloGorskie />
+        <MountainBackdrop />
         <div className="absolute inset-0 bg-rock-950/60" />
-        <Kontener className="relative flex min-h-[520px] flex-col justify-center gap-6 py-16 lg:min-h-[640px] lg:py-0">
-          {(tresc?.heroOdznaka || tresc?.heroPodtytul) && (
+        <Container className="relative flex min-h-[520px] flex-col justify-center gap-6 py-16 lg:min-h-[640px] lg:py-0">
+          {(content?.heroBadge || content?.heroSubtitle) && (
             <div className="flex flex-wrap items-center gap-3">
-              {tresc.heroOdznaka && (
-                <Odznaka ton="ciemna" wersaliki>
-                  {tresc.heroOdznaka}
-                </Odznaka>
+              {content.heroBadge && (
+                <Badge tone="dark" uppercase>
+                  {content.heroBadge}
+                </Badge>
               )}
-              {tresc.heroPodtytul && (
-                <span className="text-sm font-medium text-rock-100">{tresc.heroPodtytul}</span>
+              {content.heroSubtitle && (
+                <span className="text-sm font-medium text-rock-100">{content.heroSubtitle}</span>
               )}
             </div>
           )}
 
-          {/* Dokładnie jeden <h1> na stronę (reguła 11). Tekst zastępczy jest
-              tu po to, żeby strona miała nagłówek także zanim ktokolwiek
-              wypełni panel — pusty h1 jest gorszy niż zachowawczy. */}
+          {/* Exactly one <h1> per page (rule 11). The fallback text is here so
+              the page has a heading even before anyone fills in the panel — an
+              empty h1 is worse than a conservative one. */}
           <h1 className="max-w-[830px] text-balance text-[40px] leading-[0.98] text-white sm:text-[56px] lg:text-[72px] lg:tracking-[-0.035em]">
-            {tresc?.heroTytul ?? 'Naucz się wspinać na jurajskim wapieniu'}
+            {content?.heroTitle ?? 'Naucz się wspinać na jurajskim wapieniu'}
           </h1>
 
-          {tresc?.heroTekst && (
+          {content?.heroText && (
             <p className="max-w-[620px] text-[17px] leading-7 text-rock-fg-strong lg:text-[19px] lg:leading-[30px]">
-              {tresc.heroTekst}
+              {content.heroText}
             </p>
           )}
 
           <div className="mt-2 flex flex-wrap items-center gap-3.5">
-            <Przycisk href="/kursy" duzy zeStrzalka>
+            <Button href="/kursy" large withArrow>
               Zobacz kursy
-            </Przycisk>
+            </Button>
             {tel && (
-              <Przycisk href={tel} wariant="obrysJasny" duzy>
-                Zadzwoń: {ustawienia.telefon}
-              </Przycisk>
+              <Button href={tel} variant="outlineLight" large>
+                Zadzwoń: {siteConfig.phone}
+              </Button>
             )}
           </div>
-        </Kontener>
+        </Container>
       </section>
 
-      {/* --- Pasek z liczbami --- */}
-      {tresc?.liczby && tresc.liczby.length > 0 && (
+      {/* --- Stats bar --- */}
+      {content?.stats && content.stats.length > 0 && (
         <section className="border-b border-rock-100 bg-white">
-          <Kontener className="grid grid-cols-2 gap-8 py-10 lg:grid-cols-4 lg:gap-10">
-            {tresc.liczby.map((k) => (
-              <div key={k.id ?? k.wartosc} className="flex flex-col gap-1">
+          <Container className="grid grid-cols-2 gap-8 py-10 lg:grid-cols-4 lg:gap-10">
+            {content.stats.map((stat) => (
+              <div key={stat.id ?? stat.value} className="flex flex-col gap-1">
                 <div
                   className={`font-display text-[22px] font-extrabold tracking-[-0.02em] lg:text-[30px] ${
-                    k.wyrozniony ? 'text-rope' : 'text-rock-900'
+                    stat.highlighted ? 'text-rope' : 'text-rock-900'
                   }`}
                 >
-                  {/* „25 lat" liczone z roku założenia, żeby nie zestarzało się
-                      w styczniu. Panel może to nadpisać własnym tekstem. */}
-                  {k.wartosc === '{lat}' && lat ? `${lat} lat` : k.wartosc}
+                  {/* "25 lat" is computed from the founding year so it does not
+                      go stale in January. The panel can override it with its own
+                      text. */}
+                  {stat.value === '{lat}' && years ? `${years} lat` : stat.value}
                 </div>
-                <div className="text-sm leading-5 text-rock-600">{k.opis}</div>
+                <div className="text-sm leading-5 text-rock-600">{stat.caption}</div>
               </div>
             ))}
-          </Kontener>
+          </Container>
         </section>
       )}
 
-      {/* --- Kursy --- */}
+      {/* --- Courses --- */}
       <section className="py-16 lg:py-24">
-        <Kontener>
-          <NaglowekSekcji
+        <Container>
+          <SectionHeading
             id="kursy"
-            tytul={tresc?.kursyTytul ?? 'Kursy'}
-            opis={tresc?.kursyTekst}
+            title={content?.coursesTitle ?? 'Kursy'}
+            description={content?.coursesText}
             link="/kursy"
-            etykietaLinku="Wszystkie kursy"
+            linkLabel="Wszystkie kursy"
           />
 
-          {kursy.length === 0 ? (
-            // Stan pusty jest CZĘŚCIĄ PROJEKTU, nie awarią: getCourses() celowo
-            // zwraca pustą listę, gdy baza jest nieosiągalna (build w CI) albo
-            // gdy w panelu nie ma jeszcze treści (reguła 2).
+          {courses.length === 0 ? (
+            // The empty state is PART OF THE DESIGN, not a failure: getCourses()
+            // deliberately returns an empty list when the database is
+            // unreachable (a CI build) or when the panel has no content yet
+            // (rule 2).
             <p className="text-rock-600">Oferta kursów pojawi się tutaj po dodaniu jej w panelu.</p>
           ) : (
             <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {kursy.slice(0, 4).map((kurs) => (
-                <li key={kurs.id} className="flex">
+              {courses.slice(0, 4).map((course) => (
+                <li key={course.id} className="flex">
                   <div className="flex w-full">
-                    <KafelKursu kurs={kurs} />
+                    <CourseCard course={course} />
                   </div>
                 </li>
               ))}
             </ul>
           )}
-        </Kontener>
+        </Container>
       </section>
 
-      {/* --- Obozy --- */}
-      {tresc?.obozyTytul && (
+      {/* --- Camps --- */}
+      {content?.campsTitle && (
         <section className="pb-16 lg:pb-24">
-          <Kontener>
+          <Container>
             <div className="grid overflow-hidden rounded-2xl bg-rock-900 lg:grid-cols-2">
               <div className="flex flex-col justify-center gap-5 p-8 lg:p-16">
-                {tresc.obozyOdznaka && (
+                {content.campsBadge && (
                   <span className="self-start">
-                    <Odznaka ton="naCiemnym" wersaliki>
-                      {tresc.obozyOdznaka}
-                    </Odznaka>
+                    <Badge tone="onDark" uppercase>
+                      {content.campsBadge}
+                    </Badge>
                   </span>
                 )}
                 <h2 className="text-[28px] leading-[1.05] text-white lg:text-[40px]">
-                  {tresc.obozyTytul}
+                  {content.campsTitle}
                 </h2>
-                {tresc.obozyTekst && (
-                  <p className="text-[17px] leading-7 text-rock-fg">{tresc.obozyTekst}</p>
+                {content.campsText && (
+                  <p className="text-[17px] leading-7 text-rock-fg">{content.campsText}</p>
                 )}
                 <div className="mt-2">
-                  <Przycisk href="/obozy">Terminy obozów</Przycisk>
+                  <Button href="/obozy">Terminy obozów</Button>
                 </div>
               </div>
 
               {(() => {
-                const zdjecie = asImage(tresc.obozyZdjecie)
-                const medium = zdjecie?.sizes?.medium
-                return zdjecie?.url ? (
+                const image = asImage(content.campsImage)
+                const medium = image?.sizes?.medium
+                return image?.url ? (
                   <Image
-                    src={medium?.url ?? zdjecie.url}
-                    alt={zdjecie.alt ?? ''}
-                    width={medium?.width ?? zdjecie.width ?? 750}
-                    height={medium?.height ?? zdjecie.height ?? 500}
+                    src={medium?.url ?? image.url}
+                    alt={image.alt ?? ''}
+                    width={medium?.width ?? image.width ?? 750}
+                    height={medium?.height ?? image.height ?? 500}
                     className="h-full min-h-[240px] w-full object-cover lg:min-h-[380px]"
                   />
                 ) : (
-                  <MiejsceNaZdjecie
-                    opis="Zdjęcie · obóz w Rzędkowicach"
-                    wysokosc="min-h-[240px] lg:min-h-[380px] h-full"
-                    ciemne
+                  <ImagePlaceholder
+                    caption="Zdjęcie · obóz w Rzędkowicach"
+                    height="min-h-[240px] lg:min-h-[380px] h-full"
+                    dark
                   />
                 )
               })()}
             </div>
-          </Kontener>
+          </Container>
         </section>
       )}
 
-      {/* --- Opinie --- */}
-      {opinieNaStart.length > 0 && (
+      {/* --- Testimonials --- */}
+      {homepageTestimonials.length > 0 && (
         <section className="pb-16 lg:pb-24">
-          <Kontener>
-            <NaglowekSekcji
-              tytul="Co mówią kursanci"
-              link="/opinie"
-              etykietaLinku="Wszystkie opinie"
-            />
+          <Container>
+            <SectionHeading title="Co mówią kursanci" link="/opinie" linkLabel="Wszystkie opinie" />
             <ul className="grid gap-6 lg:grid-cols-2">
-              {opinieNaStart.map((o) => (
-                <li key={o.id} className="flex">
-                  <Cytat opinia={o} duzy />
+              {homepageTestimonials.map((testimonial) => (
+                <li key={testimonial.id} className="flex">
+                  <Quote testimonial={testimonial} large />
                 </li>
               ))}
             </ul>
-          </Kontener>
+          </Container>
         </section>
       )}
 
-      {/* --- Najbliższe terminy --- */}
-      {terminy.length > 0 && (
+      {/* --- Upcoming sessions --- */}
+      {sessions.length > 0 && (
         <section className="pb-16 lg:pb-24">
-          <Kontener>
-            <NaglowekSekcji
-              tytul="Najbliższe terminy"
+          <Container>
+            <SectionHeading
+              title="Najbliższe terminy"
               link="/terminarz"
-              etykietaLinku="Pełny terminarz"
+              linkLabel="Pełny terminarz"
             />
-            <TabelaTerminow terminy={terminy} />
-          </Kontener>
+            <SessionTable sessions={sessions} />
+          </Container>
         </section>
       )}
 
-      {/* --- Dlaczego instruktor z licencją --- */}
-      {tresc?.dlaczego && tresc.dlaczego.length > 0 && (
+      {/* --- Why a licensed instructor --- */}
+      {content?.reasons && content.reasons.length > 0 && (
         <section className="pb-16 lg:pb-24">
-          <Kontener>
+          <Container>
             <h2 className="mb-9 max-w-[700px] text-[32px] leading-[1.05] lg:text-[44px]">
               Dlaczego instruktor z licencją
             </h2>
             <ul className="grid gap-8 lg:grid-cols-3">
-              {tresc.dlaczego.map((p) => {
-                const Ikona = IKONY_WYBIERALNE[(p.ikona ?? 'tarcza') as NazwaIkony]
+              {content.reasons.map((reason) => {
+                const Icon = SELECTABLE_ICONS[(reason.icon ?? 'shield') as IconName]
                 return (
-                  <li key={p.id ?? p.tytul} className="flex flex-col gap-3">
-                    <Ikona rozmiar={28} className="text-rope" />
-                    <h3 className="text-xl font-semibold tracking-[-0.01em]">{p.tytul}</h3>
-                    <p className="text-[15px] leading-6 text-rock-600">{p.opis}</p>
+                  <li key={reason.id ?? reason.title} className="flex flex-col gap-3">
+                    <Icon size={28} className="text-rope" />
+                    <h3 className="text-xl font-semibold tracking-[-0.01em]">{reason.title}</h3>
+                    <p className="text-[15px] leading-6 text-rock-600">{reason.description}</p>
                   </li>
                 )
               })}
             </ul>
-          </Kontener>
+          </Container>
         </section>
       )}
 
-      {/* --- Ostatnie wpisy --- */}
-      {wpisy.length > 0 && (
+      {/* --- Latest posts --- */}
+      {posts.length > 0 && (
         <section className="pb-16 lg:pb-24">
-          <Kontener>
-            <NaglowekSekcji
-              tytul="Ostatnio pisaliśmy"
-              opis="Relacje z kursów, historia rejonu i rzeczy, które warto wiedzieć, zanim pierwszy raz wyjdziesz w skały."
+          <Container>
+            <SectionHeading
+              title="Ostatnio pisaliśmy"
+              description="Relacje z kursów, historia rejonu i rzeczy, które warto wiedzieć, zanim pierwszy raz wyjdziesz w skały."
               link="/aktualnosci"
-              etykietaLinku="Wszystkie wpisy"
+              linkLabel="Wszystkie wpisy"
             />
             <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {wpisy.map((w) => (
-                <li key={w.id} className="flex">
-                  <KafelWpisu wpis={w} />
+              {posts.map((post) => (
+                <li key={post.id} className="flex">
+                  <PostCard post={post} />
                 </li>
               ))}
             </ul>
-          </Kontener>
+          </Container>
         </section>
       )}
 
-      {/* --- Wezwanie końcowe --- */}
-      {tresc?.ctaTytul && (
+      {/* --- Closing call to action --- */}
+      {content?.ctaTitle && (
         <section className="pb-16 lg:pb-24">
-          <Kontener>
+          <Container>
             <div className="flex flex-col items-start justify-between gap-8 rounded-2xl bg-rope px-8 py-12 lg:flex-row lg:items-center lg:px-16 lg:py-14">
               <div className="max-w-[640px]">
                 <h2 className="text-[26px] leading-[1.08] text-white lg:text-[38px]">
-                  {tresc.ctaTytul}
+                  {content.ctaTitle}
                 </h2>
-                {tresc.ctaTekst && (
-                  <p className="mt-2.5 text-[17px] leading-7 text-rope-soft">{tresc.ctaTekst}</p>
+                {content.ctaText && (
+                  <p className="mt-2.5 text-[17px] leading-7 text-rope-soft">{content.ctaText}</p>
                 )}
               </div>
               <div className="flex shrink-0 flex-wrap gap-3.5">
-                <Przycisk href="/kontakt" wariant="jasny" duzy>
+                <Button href="/kontakt" variant="light" large>
                   Napisz do nas
-                </Przycisk>
+                </Button>
                 {tel && (
-                  <Przycisk href={tel} wariant="obrysJasny" duzy>
-                    {ustawienia.telefon}
-                  </Przycisk>
+                  <Button href={tel} variant="outlineLight" large>
+                    {siteConfig.phone}
+                  </Button>
                 )}
               </div>
             </div>
-          </Kontener>
+          </Container>
         </section>
       )}
     </main>

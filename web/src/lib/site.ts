@@ -1,22 +1,22 @@
 /**
- * Stałe identyfikujące serwis, które NIE pochodzą z CMS-a.
+ * Constants identifying the site that do NOT come from the CMS.
  *
- * Został tu tylko ten zestaw, który musi być znany bez połączenia z bazą:
- * nazwa marki i adres serwisu (potrzebne przy budowaniu, w `metadataBase`
- * i w mapie strony).
+ * Only the set that must be known without a database connection stayed here:
+ * the brand name and the site address (needed at build time, in `metadataBase`
+ * and in the sitemap).
  *
- * Dane kontaktowe — telefon, e-mail, adres, licencja — PRZENIOSŁY SIĘ do
- * globala `ustawienia` w panelu. Powód: były tu z pustymi wartościami
- * i komentarzem „do potwierdzenia z klientem", więc ich uzupełnienie
- * wymagałoby commita, budowania obrazu i deployu na maszynę klienta.
- * Czyta je `getUstawienia()` z `lib/content.ts`.
+ * Contact details — phone, email, address, licence — MOVED to the `site-config`
+ * global in the panel. Reason: they sat here with empty values and a "to be
+ * confirmed with the client" comment, so filling them in would have required a
+ * commit, an image build and a deploy to the client's machine. `getSiteConfig()`
+ * in `lib/content.ts` reads them.
  *
- * Domena jest WARTOŚCIĄ WYJŚCIOWĄ do potwierdzenia z klientem. Gdy się zmieni,
- * podmieniamy w dwóch miejscach i nigdzie indziej:
- *   1. deploy/nginx.conf (server_name w trzech blokach),
- *   2. zmienna repozytorium SITE_URL w GitHubie — to ona jest wpiekana
- *      w obraz przy budowaniu i trafia tutaj jako NEXT_PUBLIC_SITE_URL.
- * Grep po "abcwspinania.info" musi zwracać wyłącznie te pliki.
+ * The domain is an INPUT to be confirmed with the client. When it changes, we
+ * swap it in two places and nowhere else:
+ *   1. deploy/nginx.conf (server_name in three blocks),
+ *   2. the SITE_URL repository variable in GitHub — that one is baked into the
+ *      image at build time and arrives here as NEXT_PUBLIC_SITE_URL.
+ * Grepping for "abcwspinania.info" must return those files only.
  */
 export const BRAND = 'ABC Wspinania'
 

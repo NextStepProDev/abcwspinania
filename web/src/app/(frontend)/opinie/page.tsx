@@ -1,12 +1,12 @@
 import type { Metadata } from 'next'
 
-import { getOpinions, getUstawienia, telHref } from '@/lib/content'
-import { odmien, RODZAJE_OPINII } from '@/lib/format'
+import { getTestimonials, getSiteConfig, telHref } from '@/lib/content'
+import { pluralPl, TESTIMONIAL_SUBJECTS } from '@/lib/format'
 import { pageMetadata } from '@/lib/seo'
-import { Okruszki } from '@/components/Okruszki'
-import { Filtry } from '@/components/Filtry'
-import { Cytat } from '@/components/Cytat'
-import { Przycisk, Kontener } from '@/components/Ui'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { Filters } from '@/components/Filters'
+import { Quote } from '@/components/Quote'
+import { Button, Container } from '@/components/Ui'
 
 export function generateMetadata(): Metadata {
   return pageMetadata({
@@ -17,25 +17,25 @@ export function generateMetadata(): Metadata {
   })
 }
 
-const FILTRY = [{ wartosc: 'wszystkie', etykieta: 'Wszystkie' }, ...RODZAJE_OPINII]
+const FILTER_OPTIONS = [{ value: 'all', label: 'Wszystkie' }, ...TESTIMONIAL_SUBJECTS]
 
-type Props = { searchParams: Promise<{ kurs?: string }> }
+type Props = { searchParams: Promise<{ subject?: string }> }
 
-export default async function StronaOpinii({ searchParams }: Props) {
-  const { kurs = 'wszystkie' } = await searchParams
-  const [wszystkie, ustawienia] = await Promise.all([getOpinions(), getUstawienia()])
-  const tel = telHref(ustawienia)
+export default async function TestimonialsPage({ searchParams }: Props) {
+  const { subject = 'all' } = await searchParams
+  const [all, siteConfig] = await Promise.all([getTestimonials(), getSiteConfig()])
+  const tel = telHref(siteConfig)
 
-  const opinie = kurs === 'wszystkie' ? wszystkie : wszystkie.filter((o) => o.czego === kurs)
+  const testimonials = subject === 'all' ? all : all.filter((t) => t.subject === subject)
 
   return (
     <main>
-      <Kontener className="pb-8 pt-8">
-        <Okruszki
-          sciezka={[
-            { etykieta: 'Start', href: '/' },
-            { etykieta: 'Kursy', href: '/kursy' },
-            { etykieta: 'Opinie' },
+      <Container className="pb-8 pt-8">
+        <Breadcrumbs
+          trail={[
+            { label: 'Start', href: '/' },
+            { label: 'Kursy', href: '/kursy' },
+            { label: 'Opinie' },
           ]}
         />
         <h1 className="mt-5 max-w-[800px] text-balance text-[36px] leading-[1.05] lg:text-[52px]">
@@ -46,40 +46,40 @@ export default async function StronaOpinii({ searchParams }: Props) {
           wynika dla kogoś, kto się dopiero zastanawia. Podpisujemy imieniem i nazwą szkolenia,
           nigdy pełnym nazwiskiem bez zgody.
         </p>
-      </Kontener>
+      </Container>
 
-      {wszystkie.length > 0 && (
-        <Kontener>
-          <Filtry
-            etykieta="Czego dotyczy:"
-            filtry={FILTRY}
-            aktywny={kurs}
-            bazowyHref="/opinie"
-            parametr="kurs"
-            podsumowanie={`${opinie.length} ${odmien(opinie.length, 'opinia', 'opinie', 'opinii')}`}
+      {all.length > 0 && (
+        <Container>
+          <Filters
+            label="Czego dotyczy:"
+            options={FILTER_OPTIONS}
+            active={subject}
+            baseHref="/opinie"
+            param="subject"
+            summary={`${testimonials.length} ${pluralPl(testimonials.length, 'opinia', 'opinie', 'opinii')}`}
           />
-        </Kontener>
+        </Container>
       )}
 
-      <Kontener className="py-10">
-        {opinie.length === 0 ? (
+      <Container className="py-10">
+        {testimonials.length === 0 ? (
           <p className="text-rock-600">
-            {wszystkie.length === 0
+            {all.length === 0
               ? 'Opinie pojawią się tutaj po dodaniu ich w panelu.'
               : 'Dla tego szkolenia nie mamy jeszcze opinii.'}
           </p>
         ) : (
-          // `columns` zamiast siatki: opinie mają bardzo różną długość,
-          // a w siatce najdłuższa rozpychałaby cały rząd.
+          // `columns` rather than a grid: testimonials vary a lot in length,
+          // and in a grid the longest one would stretch the whole row.
           <div className="gap-6 md:columns-2 lg:columns-3 [&>*]:mb-6 [&>*]:break-inside-avoid">
-            {opinie.map((o) => (
-              <Cytat key={o.id} opinia={o} />
+            {testimonials.map((testimonial) => (
+              <Quote key={testimonial.id} testimonial={testimonial} />
             ))}
           </div>
         )}
-      </Kontener>
+      </Container>
 
-      <Kontener className="pb-16 lg:pb-24">
+      <Container className="pb-16 lg:pb-24">
         <div className="flex flex-col items-start justify-between gap-6 rounded-2xl bg-rock-900 p-8 lg:flex-row lg:items-center lg:p-12">
           <div className="max-w-[640px]">
             <h2 className="text-[24px] leading-tight text-white lg:text-[30px]">
@@ -91,17 +91,17 @@ export default async function StronaOpinii({ searchParams }: Props) {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Przycisk href="/kontakt" duzy>
+            <Button href="/kontakt" large>
               Dodaj opinię
-            </Przycisk>
+            </Button>
             {tel && (
-              <Przycisk href={tel} wariant="obrysJasny" duzy>
-                {ustawienia.telefon}
-              </Przycisk>
+              <Button href={tel} variant="outlineLight" large>
+                {siteConfig.phone}
+              </Button>
             )}
           </div>
         </div>
-      </Kontener>
+      </Container>
     </main>
   )
 }

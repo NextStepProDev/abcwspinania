@@ -2,52 +2,49 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 
-import { getCourses, getUpcomingTerms, asImage } from '@/lib/content'
-import { formatCena, formatLevel, formatZakresKrotki, odmien, POZIOMY } from '@/lib/format'
+import { getCourses, getUpcomingSessions, asImage } from '@/lib/content'
+import { formatPriceLabel, formatLevel, formatDateRangeShort, pluralPl, LEVELS } from '@/lib/format'
 import { pageMetadata } from '@/lib/seo'
-import { Okruszki } from '@/components/Okruszki'
-import { Filtry } from '@/components/Filtry'
-import { Ptaszek, Zegar, Ludzie, Certyfikat, Pinezka } from '@/components/Ikony'
-import { Przycisk, Odznaka, Kontener, MiejsceNaZdjecie } from '@/components/Ui'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { Filters } from '@/components/Filters'
+import { Check, Clock, People, Certificate, Pin } from '@/components/Icons'
+import { Button, Badge, Container, ImagePlaceholder } from '@/components/Ui'
 
 export function generateMetadata(): Metadata {
   return pageMetadata({
     title: 'Kursy wspinaczki',
     description:
       'Kursy wspinaczki skalnej według programu PZA: pełny kurs skałkowy, drogi ubezpieczone, asekuracja tradycyjna, ścianka i szkolenia indywidualne.',
-    // Canonical BEZ parametru filtra — odfiltrowane widoki mają tę samą treść
-    // w innej kolejności i nie ma powodu, żeby konkurowały w indeksie.
+    // Canonical WITHOUT the filter parameter — filtered views hold the same
+    // content in a different order and have no reason to compete in the index.
     path: '/kursy',
   })
 }
 
-const FILTRY = [
-  { wartosc: 'wszystkie', etykieta: 'Wszystkie' },
-  ...POZIOMY.map((p) => ({ wartosc: p.wartosc, etykieta: p.etykieta })),
-]
+const FILTER_OPTIONS = [{ value: 'all', label: 'Wszystkie' }, ...LEVELS]
 
-type Props = { searchParams: Promise<{ poziom?: string }> }
+type Props = { searchParams: Promise<{ level?: string }> }
 
-export default async function StronaKursow({ searchParams }: Props) {
-  const { poziom: wybrany = 'wszystkie' } = await searchParams
-  const [wszystkie, terminy] = await Promise.all([getCourses(), getUpcomingTerms()])
+export default async function CoursesPage({ searchParams }: Props) {
+  const { level: selected = 'all' } = await searchParams
+  const [all, sessions] = await Promise.all([getCourses(), getUpcomingSessions()])
 
-  const kursy = wybrany === 'wszystkie' ? wszystkie : wszystkie.filter((k) => k.level === wybrany)
+  const courses = selected === 'all' ? all : all.filter((course) => course.level === selected)
 
-  // Najbliższy termin dla każdego kursu — terminy przychodzą już posortowane
-  // rosnąco, więc pierwszy trafiony jest tym właściwym.
-  const najblizszy = new Map<number, string>()
-  for (const t of terminy) {
-    const id = typeof t.kurs === 'object' ? t.kurs?.id : t.kurs
-    if (typeof id === 'number' && !najblizszy.has(id)) {
-      najblizszy.set(id, formatZakresKrotki(t.dataOd, t.dataDo))
+  // The nearest session for each course — sessions arrive already sorted
+  // ascending, so the first hit is the right one.
+  const nearestSession = new Map<number, string>()
+  for (const session of sessions) {
+    const id = typeof session.course === 'object' ? session.course?.id : session.course
+    if (typeof id === 'number' && !nearestSession.has(id)) {
+      nearestSession.set(id, formatDateRangeShort(session.startDate, session.endDate))
     }
   }
 
   return (
     <main>
-      <Kontener className="pb-8 pt-8">
-        <Okruszki sciezka={[{ etykieta: 'Start', href: '/' }, { etykieta: 'Kursy' }]} />
+      <Container className="pb-8 pt-8">
+        <Breadcrumbs trail={[{ label: 'Start', href: '/' }, { label: 'Kursy' }]} />
         <h1 className="mt-5 max-w-[800px] text-balance text-[36px] leading-[1.05] lg:text-[52px]">
           Kursy wspinaczki
         </h1>
@@ -55,36 +52,36 @@ export default async function StronaKursow({ searchParams }: Props) {
           Od pierwszego dotknięcia skały po samodzielne zakładanie asekuracji. Wszystkie prowadzone
           według programu Polskiego Związku Alpinizmu, w grupach do czterech osób na instruktora.
         </p>
-      </Kontener>
+      </Container>
 
-      <Kontener>
-        <Filtry
-          etykieta="Poziom:"
-          filtry={FILTRY}
-          aktywny={wybrany}
-          bazowyHref="/kursy"
-          parametr="poziom"
-          podsumowanie={`${kursy.length} ${odmien(kursy.length, 'kurs', 'kursy', 'kursów')}`}
+      <Container>
+        <Filters
+          label="Poziom:"
+          options={FILTER_OPTIONS}
+          active={selected}
+          baseHref="/kursy"
+          param="level"
+          summary={`${courses.length} ${pluralPl(courses.length, 'kurs', 'kursy', 'kursów')}`}
         />
-      </Kontener>
+      </Container>
 
-      <Kontener className="py-10">
-        {kursy.length === 0 ? (
+      <Container className="py-10">
+        {courses.length === 0 ? (
           <p className="text-rock-600">
-            {wszystkie.length === 0
+            {all.length === 0
               ? 'Oferta kursów pojawi się tutaj po dodaniu jej w panelu.'
               : 'Na tym poziomie nie mamy teraz kursu. Zobacz pozostałe albo napisz — dobierzemy coś pod Ciebie.'}
           </p>
         ) : (
           <ul className="flex flex-col gap-6">
-            {kursy.map((kurs) => {
-              const cover = asImage(kurs.cover)
+            {courses.map((course) => {
+              const cover = asImage(course.cover)
               const medium = cover?.sizes?.medium
-              const poziomEtykieta = formatLevel(kurs.level)
-              const termin = najblizszy.get(kurs.id)
+              const levelLabel = formatLevel(course.level)
+              const nearest = nearestSession.get(course.id)
 
               return (
-                <li key={kurs.id}>
+                <li key={course.id}>
                   <article className="grid overflow-hidden rounded-xl bg-white shadow-[0_0_0_1px_rgba(42,38,32,0.06),0_4px_12px_rgba(42,38,32,0.08)] lg:grid-cols-[260px_1fr_260px]">
                     {cover?.url ? (
                       <Image
@@ -95,48 +92,49 @@ export default async function StronaKursow({ searchParams }: Props) {
                         className="h-48 w-full object-cover lg:h-full"
                       />
                     ) : (
-                      <MiejsceNaZdjecie opis="Zdjęcie · skała" wysokosc="h-48 lg:h-full" />
+                      <ImagePlaceholder caption="Zdjęcie · skała" height="h-48 lg:h-full" />
                     )}
 
                     <div className="flex flex-col gap-3 p-6 lg:p-7">
                       <div className="flex flex-wrap gap-2">
-                        {kurs.wyrozniony && <Odznaka ton="akcent">Najpopularniejszy</Odznaka>}
-                        {poziomEtykieta && <Odznaka>{poziomEtykieta}</Odznaka>}
+                        {course.featured && <Badge tone="accent">Najpopularniejszy</Badge>}
+                        {levelLabel && <Badge>{levelLabel}</Badge>}
                       </div>
                       <h2 className="text-[22px] font-semibold leading-tight tracking-[-0.01em]">
                         <Link
-                          href={`/kursy/${kurs.slug}`}
+                          href={`/kursy/${course.slug}`}
                           className="text-rock-900 hover:text-rope"
                         >
-                          {kurs.title}
+                          {course.title}
                         </Link>
                       </h2>
-                      {kurs.summary && (
-                        <p className="text-[15px] leading-6 text-rock-600">{kurs.summary}</p>
+                      {course.summary && (
+                        <p className="text-[15px] leading-6 text-rock-600">{course.summary}</p>
                       )}
                       <ul className="mt-1 flex flex-wrap gap-x-5 gap-y-2 text-sm text-rock-600">
-                        {kurs.duration && (
+                        {course.duration && (
                           <li className="flex items-center gap-2">
-                            <Zegar rozmiar={15} className="text-rope" />
-                            {kurs.duration}
+                            <Clock size={15} className="text-rope" />
+                            {course.duration}
                           </li>
                         )}
-                        {kurs.grupaMax && (
+                        {course.maxGroupSize && (
                           <li className="flex items-center gap-2">
-                            <Ludzie rozmiar={15} className="text-rope" />
-                            maks. {kurs.grupaMax} {odmien(kurs.grupaMax, 'osoba', 'osoby', 'osób')}
+                            <People size={15} className="text-rope" />
+                            maks. {course.maxGroupSize}{' '}
+                            {pluralPl(course.maxGroupSize, 'osoba', 'osoby', 'osób')}
                           </li>
                         )}
-                        {kurs.certyfikat && (
+                        {course.certificate && (
                           <li className="flex items-center gap-2">
-                            <Certyfikat rozmiar={15} className="text-rope" />
-                            {kurs.certyfikat}
+                            <Certificate size={15} className="text-rope" />
+                            {course.certificate}
                           </li>
                         )}
-                        {kurs.miejsce && (
+                        {course.location && (
                           <li className="flex items-center gap-2">
-                            <Pinezka rozmiar={15} className="text-rope" />
-                            {kurs.miejsce}
+                            <Pin size={15} className="text-rope" />
+                            {course.location}
                           </li>
                         )}
                       </ul>
@@ -144,13 +142,13 @@ export default async function StronaKursow({ searchParams }: Props) {
 
                     <div className="flex flex-col justify-center gap-2 border-t border-rock-100 p-6 lg:border-l lg:border-t-0 lg:p-7">
                       <span className="text-[22px] font-semibold tabular-nums">
-                        {formatCena(kurs.price, kurs.cenaOd)}
+                        {formatPriceLabel(course.price, course.priceFrom)}
                       </span>
                       <span className="text-[13px] text-rock-600">
-                        {termin ? `najbliższy termin: ${termin}` : 'termin do uzgodnienia'}
+                        {nearest ? `najbliższy termin: ${nearest}` : 'termin do uzgodnienia'}
                       </span>
                       <div className="mt-2">
-                        <Przycisk href={`/kursy/${kurs.slug}`}>Szczegóły kursu</Przycisk>
+                        <Button href={`/kursy/${course.slug}`}>Szczegóły kursu</Button>
                       </div>
                     </div>
                   </article>
@@ -159,11 +157,11 @@ export default async function StronaKursow({ searchParams }: Props) {
             })}
           </ul>
         )}
-      </Kontener>
+      </Container>
 
-      {/* --- Cennik zbiorczy --- */}
-      {wszystkie.length > 0 && (
-        <Kontener className="pb-16 lg:pb-24">
+      {/* --- Combined price list --- */}
+      {all.length > 0 && (
+        <Container className="pb-16 lg:pb-24">
           <h2 className="text-[32px] leading-[1.05] lg:text-[44px]">Cennik</h2>
           <p className="mt-3 max-w-[680px] text-[17px] leading-7 text-rock-600">
             Podane kwoty to koszt szkolenia. Nie obejmują noclegu, wyżywienia ani dojazdu — ale mamy
@@ -207,34 +205,34 @@ export default async function StronaKursow({ searchParams }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {wszystkie.map((k) => (
-                  <tr key={k.id} className="border-b border-rock-100 last:border-0">
+                {all.map((course) => (
+                  <tr key={course.id} className="border-b border-rock-100 last:border-0">
                     <td className="px-6 py-4">
                       <Link
-                        href={`/kursy/${k.slug}`}
+                        href={`/kursy/${course.slug}`}
                         className="font-medium text-rock-900 hover:text-rope"
                       >
-                        {k.title}
+                        {course.title}
                       </Link>
                     </td>
-                    <td className="px-6 py-4 text-rock-600">{k.duration ?? '—'}</td>
+                    <td className="px-6 py-4 text-rock-600">{course.duration ?? '—'}</td>
                     <td className="px-6 py-4 text-rock-600">
-                      {k.grupaMax
-                        ? `do ${k.grupaMax} ${odmien(k.grupaMax, 'osoby', 'osób', 'osób')}`
+                      {course.maxGroupSize
+                        ? `do ${course.maxGroupSize} ${pluralPl(course.maxGroupSize, 'osoby', 'osób', 'osób')}`
                         : '—'}
                     </td>
                     <td className="px-6 py-4 text-rock-600">
-                      {k.certyfikat ? (
+                      {course.certificate ? (
                         <span className="flex items-center gap-2">
-                          <Ptaszek rozmiar={15} className="text-rope" />
-                          {k.certyfikat}
+                          <Check size={15} className="text-rope" />
+                          {course.certificate}
                         </span>
                       ) : (
                         '—'
                       )}
                     </td>
                     <td className="px-6 py-4 text-right font-semibold tabular-nums">
-                      {formatCena(k.price, k.cenaOd)}
+                      {formatPriceLabel(course.price, course.priceFrom)}
                     </td>
                   </tr>
                 ))}
@@ -258,7 +256,7 @@ export default async function StronaKursow({ searchParams }: Props) {
               </p>
             </div>
           </div>
-        </Kontener>
+        </Container>
       )}
     </main>
   )

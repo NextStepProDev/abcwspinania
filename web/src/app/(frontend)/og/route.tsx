@@ -2,17 +2,18 @@ import { ImageResponse } from 'next/og'
 import { BRAND } from '@/lib/site'
 import { OG_IMAGE_SIZE } from '@/lib/seo'
 
-// Obrazek karty pokazywany przy udostępnianiu linku (Facebook, Messenger,
-// WhatsApp, X). Stary serwis nie miał ŻADNYCH znaczników Open Graph — link
-// wrzucony na Facebooka pokazywał się bez obrazka i bez tytułu.
+// The card image shown when a link is shared (Facebook, Messenger, WhatsApp,
+// X). The old site had NO Open Graph tags at all — a link posted to Facebook
+// showed up with no image and no title.
 //
-// Świadomie ZWYKŁA trasa `/og`, a nie konwencja pliku `opengraph-image.tsx`:
-// przy tamtej, na podstronach z własnym blokiem `openGraph` (a takie mamy —
-// każda ma swój tytuł i opis), Next gubił og:image w gotowym HTML-u części stron.
-// Jawny URL z `ogImage()` jest przewidywalny.
+// Deliberately a PLAIN `/og` route rather than the `opengraph-image.tsx` file
+// convention: with that one, on pages carrying their own `openGraph` block (and
+// ours all do — each has its own title and description), Next dropped og:image
+// from the finished HTML of some pages. An explicit URL from `ogImage()` is
+// predictable.
 //
-// force-static = obrazek powstaje raz, przy buildzie, a nie przy każdym żądaniu
-// od crawlera.
+// force-static = the image is produced once, at build time, rather than on every
+// crawler request.
 export const dynamic = 'force-static'
 
 export function GET() {
@@ -31,10 +32,10 @@ export function GET() {
           'radial-gradient(circle at 80% 15%, rgba(200,85,43,0.45), rgba(42,38,32,0) 60%)',
       }}
     >
-      {/* Znak + nazwa. Ścieżka jest odrysem tego samego kształtu, co
-          `components/Znak.tsx` — satori renderuje poza Reactem strony, więc
-          import komponentu wciągnąłby tu jego zależności. Zmieniasz znak,
-          zmieniasz oba pliki. */}
+      {/* Mark plus name. The path traces the same shape as
+          `components/Logo.tsx` — satori renders outside the site's React, so
+          importing the component would drag its dependencies in. Change the
+          mark, change both files. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
         <svg width="72" height="72" viewBox="0 0 48 48" fill="none">
           <path d="M24 3 45 24 24 45 3 24Z" fill="#c8552b" />

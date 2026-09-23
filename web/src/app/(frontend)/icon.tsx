@@ -1,13 +1,14 @@
 import { ImageResponse } from 'next/og'
 
-// Ikona karty przeglądarki generowana z kodu — nie trzymamy binarnego .ico,
-// którego nie da się przejrzeć w diffie ani poprawić bez edytora graficznego.
+// The browser tab icon is generated from code — we keep no binary .ico, which
+// cannot be reviewed in a diff or corrected without a graphics editor.
 //
-// Rysunek jest ODRYSEM znaku ze starej strony (romb z sylwetką wspinacza) —
-// ten sam kształt co w `components/Znak.tsx`. Powielenie ścieżki jest tutaj
-// świadome: `ImageResponse` renderuje przez satori, w osobnym środowisku
-// bez Reacta strony, więc import komponentu wciągnąłby tu jego zależności.
-// Podmieniając znak, podmień OBA pliki.
+// The drawing is a TRACING of the mark from the old site (a diamond with a
+// climber's figure) — the same shape as in `components/Logo.tsx`. Duplicating
+// the path is deliberate here: `ImageResponse` renders through satori, in a
+// separate environment without the site's React, so importing the component
+// would drag its dependencies in. When you replace the mark, replace BOTH
+// files.
 export const size = { width: 32, height: 32 }
 export const contentType = 'image/png'
 

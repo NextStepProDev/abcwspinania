@@ -3,21 +3,21 @@
 import { getPayload } from 'payload'
 import config from '@payload-config'
 
-import { zgodaDoZapisu, zgodaNewsletteraDoZapisu } from '@/lib/consent'
-import { walidujKontakt, walidujNewsletter, jestPoprawny, wygladaNaBota } from '@/lib/validation'
-import type { BledyWalidacji, BledyNewslettera } from '@/lib/validation'
-import type { Wiadomosci } from '@/payload-types'
+import { consentForStorage, newsletterConsentForStorage } from '@/lib/consent'
+import { validateContact, validateNewsletter, isValid, looksLikeBot } from '@/lib/validation'
+import type { ValidationErrors, NewsletterErrors } from '@/lib/validation'
+import type { Message } from '@/payload-types'
 
-type Temat = Wiadomosci['temat']
+type Topic = Message['topic']
 
-/** Czy kurs o tym identyfikatorze wciąż istnieje. Błąd traktujemy jak „nie". */
-async function kursIstnieje(
+/** Whether a course with this id still exists. An error is treated as "no". */
+async function courseExists(
   payload: Awaited<ReturnType<typeof getPayload>>,
   id: number,
 ): Promise<boolean> {
   try {
     const { totalDocs } = await payload.count({
-      collection: 'kursy',
+      collection: 'courses',
       where: { id: { equals: id } },
     })
     return totalDocs > 0
@@ -26,138 +26,139 @@ async function kursIstnieje(
   }
 }
 
-export interface StanFormularza {
-  status: 'bezczynny' | 'wyslano' | 'blad'
-  bledy?: BledyWalidacji
-  komunikat?: string
+export interface ContactFormState {
+  status: 'idle' | 'sent' | 'error'
+  errors?: ValidationErrors
+  message?: string
 }
 
-export async function wyslijWiadomosc(
-  _poprzedni: StanFormularza,
+export async function sendMessage(
+  _previous: ContactFormState,
   formData: FormData,
-): Promise<StanFormularza> {
-  const dane = {
-    imie: String(formData.get('imie') ?? ''),
+): Promise<ContactFormState> {
+  const data = {
+    name: String(formData.get('name') ?? ''),
     email: String(formData.get('email') ?? ''),
-    telefon: String(formData.get('telefon') ?? ''),
-    tresc: String(formData.get('tresc') ?? ''),
-    temat: String(formData.get('temat') ?? ''),
-    preferowanyTermin: String(formData.get('preferowanyTermin') ?? ''),
-    zgoda: formData.get('zgoda') === 'on',
+    phone: String(formData.get('phone') ?? ''),
+    message: String(formData.get('message') ?? ''),
+    topic: String(formData.get('topic') ?? ''),
+    preferredDate: String(formData.get('preferredDate') ?? ''),
+    consent: formData.get('consent') === 'on',
   }
 
-  // Identyfikator kursu, z którego podstrony przyszło zgłoszenie. Pole `kurs`
-  // w kolekcji istnieje od początku właśnie po to. Parsujemy ostrożnie: wartość
-  // przychodzi z formularza, więc może być czymkolwiek, a `NaN` w relacji
-  // wywaliłby zapis.
-  const surowyKurs = Number(formData.get('kurs'))
-  const kursId = Number.isInteger(surowyKurs) && surowyKurs > 0 ? surowyKurs : undefined
+  // The id of the course whose page the enquiry came from. The `course` field
+  // in the collection exists for exactly this. We parse cautiously: the value
+  // comes from the form, so it can be anything, and a `NaN` in a relationship
+  // would break the save.
+  const rawCourse = Number(formData.get('course'))
+  const courseId = Number.isInteger(rawCourse) && rawCourse > 0 ? rawCourse : undefined
 
-  // Pułapka na roboty — udajemy sukces, nic nie zapisując.
-  if (wygladaNaBota(String(formData.get('strona-www') ?? ''))) {
-    return { status: 'wyslano' }
+  // The bot honeypot — we fake success and store nothing.
+  if (looksLikeBot(String(formData.get('website') ?? ''))) {
+    return { status: 'sent' }
   }
 
-  // Walidacja po stronie SERWERA. Atrybuty `required` w HTML-u są wygodą dla
-  // odwiedzającego, a nie zabezpieczeniem — omija je każdy, kto wyśle żądanie
-  // bez formularza.
-  const bledy = walidujKontakt(dane)
-  if (!jestPoprawny(bledy)) {
-    return { status: 'blad', bledy, komunikat: 'Popraw zaznaczone pola.' }
+  // SERVER-side validation. HTML `required` attributes are a convenience for the
+  // visitor, not a safeguard — they are bypassed by anyone sending a request
+  // without the form.
+  const errors = validateContact(data)
+  if (!isValid(errors)) {
+    return { status: 'error', errors, message: 'Popraw zaznaczone pola.' }
   }
 
   try {
     const payload = await getPayload({ config })
 
-    // Przypisanie kursu to METADANA, a wiadomość to rzecz, po którą tu
-    // jesteśmy. Gdyby kurs zniknął z panelu między wyświetleniem formularza
-    // a wysyłką, relacja wskazywałaby na nieistniejący wpis i Payload odrzuciłby
-    // CAŁY zapis — osoba pisząca zobaczyłaby błąd i straciła swoją wiadomość.
-    // Sprawdzamy więc wcześniej i w razie czego zapisujemy bez przypisania.
-    const kurs = kursId && (await kursIstnieje(payload, kursId)) ? kursId : undefined
+    // The course assignment is METADATA, while the message is the thing we are
+    // here for. Should the course disappear from the panel between the form
+    // being displayed and submitted, the relationship would point at a
+    // non-existent entry and Payload would reject the WHOLE save — the person
+    // writing would see an error and lose their message. So we check first and,
+    // if need be, save without the assignment.
+    const course = courseId && (await courseExists(payload, courseId)) ? courseId : undefined
 
     await payload.create({
-      collection: 'wiadomosci',
+      collection: 'messages',
       data: {
-        imie: dane.imie.trim(),
-        email: dane.email.trim(),
-        telefon: dane.telefon.trim() || undefined,
-        tresc: dane.tresc.trim(),
-        // Puste pole wyboru zapisujemy jako brak wartości, nie jako pusty ciąg —
-        // Payload odrzuciłby '' jako wartość spoza listy opcji.
-        temat: (dane.temat.trim() || undefined) as Temat,
-        preferowanyTermin: dane.preferowanyTermin.trim() || undefined,
-        kurs,
-        status: 'nowa',
-        zgodaTresc: zgodaDoZapisu(),
-        zgodaData: new Date().toISOString(),
+        name: data.name.trim(),
+        email: data.email.trim(),
+        phone: data.phone.trim() || undefined,
+        message: data.message.trim(),
+        // An empty select is stored as no value rather than an empty string —
+        // Payload would reject '' as a value outside the list of options.
+        topic: (data.topic.trim() || undefined) as Topic,
+        preferredDate: data.preferredDate.trim() || undefined,
+        course,
+        status: 'new',
+        consentText: consentForStorage(),
+        consentDate: new Date().toISOString(),
       },
-      // Formularz jest publiczny, więc żądanie nie ma zalogowanego użytkownika.
-      // `overrideAccess: false` wymusza przejście przez regułę `create` kolekcji
-      // zamiast obchodzenia jej — gdyby ktoś kiedyś tę regułę zaostrzył,
-      // formularz przestanie działać GŁOŚNO, a nie po cichu ją ominie.
+      // The form is public, so the request carries no authenticated user.
+      // `overrideAccess: false` forces it through the collection's `create`
+      // rule rather than bypassing it — should anyone ever tighten that rule,
+      // the form will break LOUDLY instead of silently going around it.
       overrideAccess: false,
     })
-    return { status: 'wyslano' }
+    return { status: 'sent' }
   } catch (error) {
-    // Odwiedzającemu nie pokazujemy treści błędu — bywa w niej fragment
-    // zapytania do bazy. Do logu trafia wszystko.
-    console.error('Nie udało się zapisać wiadomości z formularza:', error)
+    // The visitor is not shown the error text — it sometimes contains a
+    // fragment of a database query. Everything goes to the log.
+    console.error('Failed to store a message from the contact form:', error)
     return {
-      status: 'blad',
-      komunikat: 'Nie udało się wysłać wiadomości. Spróbuj ponownie za chwilę albo zadzwoń.',
+      status: 'error',
+      message: 'Nie udało się wysłać wiadomości. Spróbuj ponownie za chwilę albo zadzwoń.',
     }
   }
 }
 
 // --- Newsletter --------------------------------------------------------------
 
-export interface StanNewslettera {
-  status: 'bezczynny' | 'zapisano' | 'blad'
-  bledy?: BledyNewslettera
-  komunikat?: string
+export interface NewsletterState {
+  status: 'idle' | 'subscribed' | 'error'
+  errors?: NewsletterErrors
+  message?: string
 }
 
 /**
- * Zapis na newsletter.
+ * Newsletter sign-up.
  *
- * Wysyłki jeszcze nie ma (Brevo to osobny etap) — adres trafia do bazy
- * i tam czeka. To świadome: pole, które niczego nie zapisuje, traci adresy
- * osób zainteresowanych, a takich nie da się odzyskać.
+ * Sending is not wired up yet (Brevo is a separate stage) — the address lands in
+ * the database and waits there. That is deliberate: a field that stores nothing
+ * loses the addresses of interested people, and those cannot be recovered.
  */
-export async function zapiszNaNewsletter(
-  _poprzedni: StanNewslettera,
+export async function subscribeToNewsletter(
+  _previous: NewsletterState,
   formData: FormData,
-): Promise<StanNewslettera> {
-  const dane = {
+): Promise<NewsletterState> {
+  const data = {
     email: String(formData.get('email') ?? ''),
-    zgoda: formData.get('zgoda-newsletter') === 'on',
+    consent: formData.get('newsletter-consent') === 'on',
   }
 
-  if (wygladaNaBota(String(formData.get('strona-www') ?? ''))) {
-    return { status: 'zapisano' }
+  if (looksLikeBot(String(formData.get('website') ?? ''))) {
+    return { status: 'subscribed' }
   }
 
-  const bledy = walidujNewsletter(dane)
-  if (!jestPoprawny(bledy)) {
-    return { status: 'blad', bledy }
+  const errors = validateNewsletter(data)
+  if (!isValid(errors)) {
+    return { status: 'error', errors }
   }
 
-  const email = dane.email.trim().toLowerCase()
+  const email = data.email.trim().toLowerCase()
 
   try {
     const payload = await getPayload({ config })
 
-    // Adres jest w kolekcji unikalny, więc powtórny zapis wywaliłby się na
-    // ograniczeniu bazy. Dla osoby po drugiej stronie powtórny zapis to nie
-    // błąd, tylko potwierdzenie — i tak to raportujemy. Przy okazji wskrzesza
-    // to kogoś, kto się wcześniej wypisał i teraz wraca.
-    // ⚠️ `overrideAccess: true` — jedyne miejsce w kodzie, gdzie obchodzimy
-    // regułę dostępu. Odczyt kolekcji wymaga zalogowania (lista adresów to
-    // dane osobowe), a tutaj żądanie przychodzi od anonimowego odwiedzającego.
-    // Jest to bezpieczne, bo sprawdzamy WYŁĄCZNIE adres, który ta osoba sama
-    // przed chwilą podała, i odpowiadamy identycznie niezależnie od wyniku —
-    // nie powstaje więc sposób na sprawdzanie, kto jest na liście.
+    // The address is unique in the collection, so a repeat sign-up would fail on
+    // a database constraint. For the person on the other side a repeat sign-up
+    // is not an error but a confirmation — and that is how we report it. It also
+    // revives someone who unsubscribed earlier and is now coming back.
+    // ⚠️ `overrideAccess: true` — the only place in the code where an access
+    // rule is bypassed. Reading this collection requires authentication (a list
+    // of addresses is personal data), and here the request comes from an
+    // anonymous visitor. It is safe because we check ONLY the address that this
+    // person supplied a moment ago, and we answer identically regardless of the
+    // result — so no way of probing who is on the list comes into being.
     const { docs } = await payload.find({
       collection: 'newsletter',
       where: { email: { equals: email } },
@@ -166,40 +167,40 @@ export async function zapiszNaNewsletter(
     })
 
     if (docs[0]) {
-      if (docs[0].status === 'wypisany') {
+      if (docs[0].status === 'unsubscribed') {
         await payload.update({
           collection: 'newsletter',
           id: docs[0].id,
           data: {
-            status: 'zapisany',
-            zgodaTresc: zgodaNewsletteraDoZapisu(),
-            zgodaData: new Date().toISOString(),
+            status: 'subscribed',
+            consentText: newsletterConsentForStorage(),
+            consentDate: new Date().toISOString(),
           },
           overrideAccess: true,
         })
       }
-      return { status: 'zapisano' }
+      return { status: 'subscribed' }
     }
 
     await payload.create({
       collection: 'newsletter',
       data: {
         email,
-        status: 'zapisany',
-        zgodaTresc: zgodaNewsletteraDoZapisu(),
-        zgodaData: new Date().toISOString(),
+        status: 'subscribed',
+        consentText: newsletterConsentForStorage(),
+        consentDate: new Date().toISOString(),
       },
-      // Tworzenie przechodzi przez regułę `create` kolekcji, tak jak przy
-      // formularzu kontaktowym — zaostrzenie jej ma zepsuć formularz GŁOŚNO.
+      // Creation goes through the collection's `create` rule, exactly as with
+      // the contact form — tightening it must break the form LOUDLY.
       overrideAccess: false,
     })
 
-    return { status: 'zapisano' }
+    return { status: 'subscribed' }
   } catch (error) {
-    console.error('Nie udało się zapisać adresu na newsletter:', error)
+    console.error('Failed to store a newsletter subscription:', error)
     return {
-      status: 'blad',
-      komunikat: 'Nie udało się zapisać. Spróbuj ponownie za chwilę.',
+      status: 'error',
+      message: 'Nie udało się zapisać. Spróbuj ponownie za chwilę.',
     }
   }
 }

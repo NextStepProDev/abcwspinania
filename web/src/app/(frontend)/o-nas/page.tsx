@@ -2,12 +2,12 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import { RichText } from '@payloadcms/richtext-lexical/react'
 
-import { getStronaONas, getInstructors, getUstawienia, asImage } from '@/lib/content'
-import { latOd } from '@/lib/format'
+import { getAboutPage, getInstructors, getSiteConfig, asImage } from '@/lib/content'
+import { yearsSince } from '@/lib/format'
 import { pageMetadata } from '@/lib/seo'
-import { Okruszki } from '@/components/Okruszki'
-import { Tarcza, Ptaszek, Certyfikat, Strzalka } from '@/components/Ikony'
-import { Kontener, MiejsceNaZdjecie } from '@/components/Ui'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { Shield, Check, Certificate, Arrow } from '@/components/Icons'
+import { Container, ImagePlaceholder } from '@/components/Ui'
 import Link from 'next/link'
 
 export function generateMetadata(): Metadata {
@@ -19,86 +19,85 @@ export function generateMetadata(): Metadata {
   })
 }
 
-const IKONY_POWODOW = [Tarcza, Ptaszek, Certyfikat]
+const REASON_ICONS = [Shield, Check, Certificate]
 
-export default async function StronaONas() {
-  const [tresc, instruktorzy, ustawienia] = await Promise.all([
-    getStronaONas(),
+export default async function AboutPage() {
+  const [content, instructors, siteConfig] = await Promise.all([
+    getAboutPage(),
     getInstructors(),
-    getUstawienia(),
+    getSiteConfig(),
   ])
-  const lat = latOd(ustawienia.rokZalozenia)
-  const zdjecie = asImage(tresc?.zdjecie)
-  const medium = zdjecie?.sizes?.medium
+  const years = yearsSince(siteConfig.foundedYear)
+  const image = asImage(content?.image)
+  const medium = image?.sizes?.medium
 
   return (
     <main>
-      <Kontener className="grid gap-10 py-8 lg:grid-cols-[1fr_420px] lg:items-center lg:gap-14 lg:py-12">
+      <Container className="grid gap-10 py-8 lg:grid-cols-[1fr_420px] lg:items-center lg:gap-14 lg:py-12">
         <div>
-          <Okruszki sciezka={[{ etykieta: 'Start', href: '/' }, { etykieta: 'O nas' }]} />
+          <Breadcrumbs trail={[{ label: 'Start', href: '/' }, { label: 'O nas' }]} />
           <h1 className="mt-5 max-w-[700px] text-balance text-[36px] leading-[1.05] lg:text-[52px]">
-            {tresc?.tytul ?? 'O szkole'}
+            {content?.title ?? 'O szkole'}
           </h1>
-          {tresc?.wstep && (
+          {content?.intro && (
             <p className="mt-5 max-w-[640px] whitespace-pre-line text-[17px] leading-7 text-rock-600">
-              {tresc.wstep}
+              {content.intro}
             </p>
           )}
-          {lat && (
+          {years && (
             <p className="mt-4 text-[15px] text-rock-600">
-              Szkolimy od {ustawienia.rokZalozenia} roku, czyli {lat} lat.
-              {ustawienia.licencjaPza &&
-                ` Licencja instruktorska PZA nr ${ustawienia.licencjaPza}.`}
+              Szkolimy od {siteConfig.foundedYear} roku, czyli {years} years.
+              {siteConfig.pzaLicence && ` Licencja instruktorska PZA nr ${siteConfig.pzaLicence}.`}
             </p>
           )}
         </div>
 
-        {zdjecie?.url ? (
+        {image?.url ? (
           <Image
-            src={medium?.url ?? zdjecie.url}
-            alt={zdjecie.alt ?? ''}
-            width={medium?.width ?? zdjecie.width ?? 750}
-            height={medium?.height ?? zdjecie.height ?? 500}
+            src={medium?.url ?? image.url}
+            alt={image.alt ?? ''}
+            width={medium?.width ?? image.width ?? 750}
+            height={medium?.height ?? image.height ?? 500}
             className="h-full max-h-[380px] w-full rounded-2xl object-cover"
           />
         ) : (
-          <MiejsceNaZdjecie
-            opis="Zdjęcie · instruktor przy skale"
-            wysokosc="h-[280px] lg:h-[380px]"
+          <ImagePlaceholder
+            caption="Zdjęcie · instruktor przy skale"
+            height="h-[280px] lg:h-[380px]"
           />
         )}
-      </Kontener>
+      </Container>
 
-      {tresc?.powodyLicencji && tresc.powodyLicencji.length > 0 && (
-        <Kontener className="py-12 lg:py-16">
+      {content?.licenceReasons && content.licenceReasons.length > 0 && (
+        <Container className="py-12 lg:py-16">
           <h2 className="mb-8 max-w-[700px] text-[32px] leading-[1.05] lg:text-[44px]">
             Dlaczego licencja PZA ma znaczenie
           </h2>
           <ul className="grid gap-8 lg:grid-cols-3">
-            {tresc.powodyLicencji.map((p, i) => {
-              const Ikona = IKONY_POWODOW[i % IKONY_POWODOW.length]
+            {content.licenceReasons.map((p, i) => {
+              const Icon = REASON_ICONS[i % REASON_ICONS.length]
               return (
                 <li key={p.id ?? i} className="flex flex-col gap-3">
-                  <Ikona rozmiar={28} className="text-rope" />
-                  <h3 className="text-xl font-semibold tracking-[-0.01em]">{p.tytul}</h3>
-                  <p className="text-[15px] leading-6 text-rock-600">{p.opis}</p>
+                  <Icon size={28} className="text-rope" />
+                  <h3 className="text-xl font-semibold tracking-[-0.01em]">{p.title}</h3>
+                  <p className="text-[15px] leading-6 text-rock-600">{p.description}</p>
                 </li>
               )
             })}
           </ul>
-        </Kontener>
+        </Container>
       )}
 
-      {instruktorzy.length > 0 && (
-        <Kontener className="pb-12 lg:pb-16">
+      {instructors.length > 0 && (
+        <Container className="pb-12 lg:pb-16">
           <h2 className="text-[32px] leading-[1.05] lg:text-[44px]">Instruktorzy</h2>
           <p className="mt-3 max-w-[680px] text-[17px] leading-7 text-rock-600">
             Każdy z licencją PZA, każdy wspina się dalej na własną rękę — instruktor, który przestał
             się wspinać, przestaje rozumieć, co jest trudne.
           </p>
           <ul className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {instruktorzy.map((i) => {
-              const portret = asImage(i.portret)
+            {instructors.map((i) => {
+              const portret = asImage(i.portrait)
               const mini = portret?.sizes?.medium
               return (
                 <li
@@ -114,46 +113,44 @@ export default async function StronaONas() {
                       className="h-[240px] w-full border-b border-rock-200 object-cover"
                     />
                   ) : (
-                    <MiejsceNaZdjecie opis="Portret" wysokosc="h-[240px]" />
+                    <ImagePlaceholder caption="Portret" height="h-[240px]" />
                   )}
                   <div className="flex flex-col gap-2 p-6">
-                    <h3 className="text-[19px] font-semibold">{i.imie}</h3>
-                    {i.rola && <p className="text-[14px] text-rope">{i.rola}</p>}
-                    {i.licencja && (
-                      <p className="text-[13px] text-rock-600">Licencja {i.licencja}</p>
-                    )}
-                    {i.opis && <p className="mt-1 text-[15px] leading-6 text-rock-600">{i.opis}</p>}
+                    <h3 className="text-[19px] font-semibold">{i.name}</h3>
+                    {i.role && <p className="text-[14px] text-rope">{i.role}</p>}
+                    {i.license && <p className="text-[13px] text-rock-600">Licencja {i.license}</p>}
+                    {i.bio && <p className="mt-1 text-[15px] leading-6 text-rock-600">{i.bio}</p>}
                   </div>
                 </li>
               )
             })}
           </ul>
-        </Kontener>
+        </Container>
       )}
 
-      {(tresc?.oJurze || (tresc?.liczbyJura && tresc.liczbyJura.length > 0)) && (
+      {(content?.aboutJura || (content?.juraFacts && content.juraFacts.length > 0)) && (
         <section className="pb-12 lg:pb-16">
-          <Kontener>
+          <Container>
             <div className="rounded-2xl bg-rock-900 p-8 lg:p-14">
               <h2 className="text-[28px] leading-[1.05] text-white lg:text-[38px]">
                 Wspinanie na Jurze
               </h2>
-              {tresc?.oJurze && (
+              {content?.aboutJura && (
                 <p className="mt-4 max-w-[760px] text-[17px] leading-7 text-rock-fg">
-                  {tresc.oJurze}
+                  {content.aboutJura}
                 </p>
               )}
-              {tresc?.liczbyJura && tresc.liczbyJura.length > 0 && (
+              {content?.juraFacts && content.juraFacts.length > 0 && (
                 <dl className="mt-9 grid grid-cols-2 gap-7 lg:grid-cols-4">
-                  {tresc.liczbyJura.map((l, i) => (
-                    <div key={l.id ?? i}>
-                      <dt className="sr-only">{l.opis}</dt>
+                  {content.juraFacts.map((fact, i) => (
+                    <div key={fact.id ?? i}>
+                      <dt className="sr-only">{fact.caption}</dt>
                       <dd>
                         <span className="block font-display text-[26px] font-extrabold text-rope-light lg:text-[32px]">
-                          {l.wartosc}
+                          {fact.value}
                         </span>
                         <span className="mt-1 block text-[14px] leading-5 text-rock-fg">
-                          {l.opis}
+                          {fact.caption}
                         </span>
                       </dd>
                     </div>
@@ -161,30 +158,30 @@ export default async function StronaONas() {
                 </dl>
               )}
             </div>
-          </Kontener>
+          </Container>
         </section>
       )}
 
-      {tresc?.tresc && (
-        <Kontener className="pb-12 lg:pb-16">
-          <div className="tresc-bogata max-w-[720px]">
-            <RichText data={tresc.tresc} />
+      {content?.content && (
+        <Container className="pb-12 lg:pb-16">
+          <div className="rich-text max-w-[720px]">
+            <RichText data={content.content} />
           </div>
-        </Kontener>
+        </Container>
       )}
 
-      <Kontener className="pb-16 lg:pb-24">
+      <Container className="pb-16 lg:pb-24">
         <ul className="grid gap-5 md:grid-cols-2">
           {[
             {
               href: '/opinie',
-              tytul: 'Opinie kursantów',
-              opis: 'Wszystkie, które dostajemy — razem z krytyką.',
+              title: 'Opinie kursantów',
+              description: 'Wszystkie, które dostajemy — razem z krytyką.',
             },
             {
               href: '/en',
-              tytul: 'Courses in English',
-              opis: 'Prowadzimy kursy po angielsku. Skrót oferty na osobnej stronie.',
+              title: 'Courses in English',
+              description: 'Prowadzimy kursy po angielsku. Skrót oferty na osobnej stronie.',
             },
           ].map((k) => (
             <li key={k.href}>
@@ -193,15 +190,17 @@ export default async function StronaONas() {
                 className="flex items-center gap-4 rounded-2xl border border-rock-200 bg-white p-6 transition-colors hover:border-rope"
               >
                 <span className="grow">
-                  <span className="block text-[17px] font-semibold">{k.tytul}</span>
-                  <span className="mt-1 block text-[15px] leading-6 text-rock-600">{k.opis}</span>
+                  <span className="block text-[17px] font-semibold">{k.title}</span>
+                  <span className="mt-1 block text-[15px] leading-6 text-rock-600">
+                    {k.description}
+                  </span>
                 </span>
-                <Strzalka rozmiar={20} className="shrink-0 text-rope" />
+                <Arrow size={20} className="shrink-0 text-rope" />
               </Link>
             </li>
           ))}
         </ul>
-      </Kontener>
+      </Container>
     </main>
   )
 }

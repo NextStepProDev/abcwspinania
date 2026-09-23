@@ -3,22 +3,21 @@ import type { MetadataRoute } from 'next'
 import { SITE_URL } from '@/lib/site'
 
 /**
- * ⚠️ TEN PLIK MUSI LEŻEĆ W KORZENIU `app/`, a nie w grupie tras.
- * Zmierzone 19.09.2026: `robots.ts` w `(frontend)/` nie produkuje ŻADNEJ trasy —
- * `/robots.txt` znika z manifestu bez błędu i bez ostrzeżenia. `sitemap.ts`
- * w tym samym katalogu działa normalnie.
+ * ⚠️ THIS FILE MUST LIVE AT THE ROOT OF `app/`, not inside a route group.
+ * Measured 2026-09-19: `robots.ts` inside `(frontend)/` produces NO route at
+ * all — `/robots.txt` disappears from the manifest with no error and no
+ * warning. `sitemap.ts` in the same directory works normally.
  *
- * Blokujemy wyłącznie to, co nie ma prawa być w wynikach wyszukiwania.
- * W szczególności NIE blokujemy katalogu ze zdjęciami — mają trafiać
- * do Google Grafiki.
+ * We block only what has no business being in search results. In particular we
+ * do NOT block the image directory — those are meant to reach Google Images.
  */
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: '*',
       allow: '/',
-      // Panel i API nie są treścią. Indeksowanie ich nic nie daje, a wystawia
-      // w wynikach wyszukiwania ekran logowania i strukturę API.
+      // The panel and the API are not content. Indexing them gains nothing and
+      // exposes a login screen and the API structure in search results.
       disallow: ['/admin', '/api/'],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,

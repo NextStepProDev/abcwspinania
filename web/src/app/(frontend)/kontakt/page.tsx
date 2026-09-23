@@ -1,11 +1,11 @@
 import type { Metadata } from 'next'
 
-import { getCourse, getUstawienia, telHref } from '@/lib/content'
+import { getCourse, getSiteConfig, telHref } from '@/lib/content'
 import { pageMetadata } from '@/lib/seo'
-import { Okruszki } from '@/components/Okruszki'
-import { Telefon, Koperta, Pinezka, Zegar } from '@/components/Ikony'
-import { Kontener } from '@/components/Ui'
-import { FormularzKontaktowy } from './FormularzKontaktowy'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { Phone, Envelope, Pin, Clock } from '@/components/Icons'
+import { Container } from '@/components/Ui'
+import { ContactForm } from './ContactForm'
 
 export function generateMetadata(): Metadata {
   return pageMetadata({
@@ -16,29 +16,29 @@ export function generateMetadata(): Metadata {
   })
 }
 
-type Props = { searchParams: Promise<{ kurs?: string; oboz?: string }> }
+type Props = { searchParams: Promise<{ course?: string; camp?: string }> }
 
 export default async function Kontakt({ searchParams }: Props) {
-  const { kurs: slugKursu, oboz } = await searchParams
-  const [ustawienia, kurs] = await Promise.all([
-    getUstawienia(),
-    // Slug pochodzi z adresu, więc może wskazywać na nic — wtedy po prostu
-    // nie podpowiadamy niczego, zamiast pokazywać błąd.
-    slugKursu ? getCourse(slugKursu) : Promise.resolve(null),
+  const { course: courseSlug, camp } = await searchParams
+  const [siteConfig, course] = await Promise.all([
+    getSiteConfig(),
+    // The slug comes from the address, so it may point at nothing — in that
+    // case we simply suggest nothing rather than showing an error.
+    courseSlug ? getCourse(courseSlug) : Promise.resolve(null),
   ])
-  const tel = telHref(ustawienia)
+  const tel = telHref(siteConfig)
 
-  const adres = [
-    ustawienia.ulica,
-    [ustawienia.kodPocztowy, ustawienia.miejscowosc].filter(Boolean).join(' '),
+  const address = [
+    siteConfig.street,
+    [siteConfig.postalCode, siteConfig.city].filter(Boolean).join(' '),
   ]
     .filter(Boolean)
     .join(', ')
 
   return (
     <main>
-      <Kontener className="pb-8 pt-8">
-        <Okruszki sciezka={[{ etykieta: 'Start', href: '/' }, { etykieta: 'Kontakt' }]} />
+      <Container className="pb-8 pt-8">
+        <Breadcrumbs trail={[{ label: 'Start', href: '/' }, { label: 'Kontakt' }]} />
         <h1 className="mt-5 max-w-[800px] text-balance text-[36px] leading-[1.05] lg:text-[52px]">
           Kontakt
         </h1>
@@ -46,16 +46,16 @@ export default async function Kontakt({ searchParams }: Props) {
           Odpowiadamy zwykle tego samego dnia. Jeśli sprawa jest pilna albo chcesz dopytać o poziom
           — po prostu zadzwoń.
         </p>
-      </Kontener>
+      </Container>
 
-      <Kontener className="grid gap-8 pb-16 lg:grid-cols-[1fr_380px] lg:gap-12 lg:pb-24">
+      <Container className="grid gap-8 pb-16 lg:grid-cols-[1fr_380px] lg:gap-12 lg:pb-24">
         <section aria-labelledby="formularz">
           <h2 id="formularz" className="sr-only">
             Formularz kontaktowy
           </h2>
-          <FormularzKontaktowy
-            temat={oboz ? 'oboz' : undefined}
-            kurs={kurs ? { id: kurs.id, title: kurs.title } : undefined}
+          <ContactForm
+            topic={camp ? 'camp' : undefined}
+            course={course ? { id: course.id, title: course.title } : undefined}
           />
         </section>
 
@@ -63,94 +63,94 @@ export default async function Kontakt({ searchParams }: Props) {
           <div className="rounded-2xl border border-rock-200 bg-white p-6">
             <h2 className="text-lg font-semibold">Dane kontaktowe</h2>
             <dl className="mt-4 flex flex-col gap-4">
-              {ustawienia.telefon && tel && (
-                <PozycjaKontaktu ikona={<Telefon rozmiar={18} />} etykieta="Telefon">
+              {siteConfig.phone && tel && (
+                <ContactRow icon={<Phone size={18} />} label="Telefon">
                   <a href={tel} className="font-semibold text-rock-900 hover:text-rope">
-                    {ustawienia.telefon}
+                    {siteConfig.phone}
                   </a>
-                </PozycjaKontaktu>
+                </ContactRow>
               )}
-              {ustawienia.email && (
-                <PozycjaKontaktu ikona={<Koperta rozmiar={18} />} etykieta="E-mail">
+              {siteConfig.email && (
+                <ContactRow icon={<Envelope size={18} />} label="E-mail">
                   <a
-                    href={`mailto:${ustawienia.email}`}
+                    href={`mailto:${siteConfig.email}`}
                     className="break-all text-rock-900 hover:text-rope"
                   >
-                    {ustawienia.email}
+                    {siteConfig.email}
                   </a>
-                </PozycjaKontaktu>
+                </ContactRow>
               )}
-              {adres && (
-                <PozycjaKontaktu ikona={<Pinezka rozmiar={18} />} etykieta="Adres">
+              {address && (
+                <ContactRow icon={<Pin size={18} />} label="Adres">
                   {/* Adres w znaczniku <address> i równolegle w danych
                       strukturalnych, żeby wyszukiwarka nie musiała go zgadywać. */}
-                  <address className="not-italic leading-6">{adres}</address>
-                </PozycjaKontaktu>
+                  <address className="not-italic leading-6">{address}</address>
+                </ContactRow>
               )}
-              {ustawienia.godziny && (
-                <PozycjaKontaktu ikona={<Zegar rozmiar={18} />} etykieta="Kiedy dzwonić">
-                  <span className="whitespace-pre-line leading-6">{ustawienia.godziny}</span>
-                </PozycjaKontaktu>
+              {siteConfig.openingHours && (
+                <ContactRow icon={<Clock size={18} />} label="Kiedy dzwonić">
+                  <span className="whitespace-pre-line leading-6">{siteConfig.openingHours}</span>
+                </ContactRow>
               )}
             </dl>
 
-            {ustawienia.uwagaKontaktowa && (
+            {siteConfig.contactNote && (
               <p className="mt-5 border-t border-rock-100 pt-4 text-[14px] leading-6 text-rock-600">
-                {ustawienia.uwagaKontaktowa}
+                {siteConfig.contactNote}
               </p>
             )}
           </div>
 
-          {ustawienia.mapaEmbed ? (
+          {siteConfig.mapEmbedUrl ? (
             <iframe
-              src={ustawienia.mapaEmbed}
-              title={`Mapa — ${ustawienia.miejscowosc ?? 'baza szkoły'}`}
+              src={siteConfig.mapEmbedUrl}
+              title={`Mapa — ${siteConfig.city ?? 'baza szkoły'}`}
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
               className="h-[260px] w-full rounded-2xl border border-rock-200"
             />
           ) : (
-            // Mapy nie osadzamy „na wszelki wypadek": zewnętrzna ramka wymaga
-            // rozluźnienia CSP i ustawia ciasteczka, więc wchodzi dopiero, gdy
-            // klient poda konkretny adres osadzenia.
+            // The map is not embedded "just in case": an external frame needs
+            // a looser CSP and sets cookies, so it only appears once the client
+            // supplies a concrete embed address.
             <div className="flex h-[180px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-rock-300 bg-white px-6 text-center">
-              <Pinezka rozmiar={22} className="text-rock-400" />
+              <Pin size={22} className="text-rock-400" />
               <p className="text-sm text-rock-600">
                 Mapa pojawi się po podaniu adresu osadzenia w panelu.
               </p>
             </div>
           )}
 
-          {ustawienia.dojazd && (
+          {siteConfig.directions && (
             <div className="rounded-2xl border border-rock-200 bg-white p-6">
               <h2 className="text-lg font-semibold">Jak dojechać</h2>
               <p className="mt-2 whitespace-pre-line text-[15px] leading-6 text-rock-600">
-                {ustawienia.dojazd}
+                {siteConfig.directions}
               </p>
             </div>
           )}
         </aside>
-      </Kontener>
+      </Container>
     </main>
   )
 }
 
-function PozycjaKontaktu({
-  ikona,
-  etykieta,
+function ContactRow({
+  icon,
+  label,
   children,
 }: {
-  ikona: React.ReactNode
-  etykieta: string
+  icon: React.ReactNode
+  label: string
   children: React.ReactNode
 }) {
   return (
     <div className="flex gap-3.5">
       <span aria-hidden="true" className="mt-0.5 shrink-0 text-rope">
-        {ikona}
+        {icon}
       </span>
       <div>
-        <dt className="text-[13px] uppercase tracking-[0.04em] text-rock-600">{etykieta}</dt>
+        <dt className="text-[13px] uppercase tracking-[0.04em] text-rock-600">{label}</dt>
         <dd className="mt-0.5">{children}</dd>
       </div>
     </div>

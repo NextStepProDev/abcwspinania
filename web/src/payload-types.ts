@@ -67,14 +67,14 @@ export interface Config {
   };
   blocks: {};
   collections: {
-    kursy: Kursy;
-    obozy: Obozy;
-    terminy: Terminy;
-    wpisy: Wpisy;
-    opinie: Opinie;
-    instruktorzy: Instruktorzy;
+    courses: Course;
+    camps: Camp;
+    sessions: Session;
+    posts: Post;
+    testimonials: Testimonial;
+    instructors: Instructor;
     media: Media;
-    wiadomosci: Wiadomosci;
+    messages: Message;
     newsletter: Newsletter;
     users: User;
     'payload-kv': PayloadKv;
@@ -84,14 +84,14 @@ export interface Config {
   };
   collectionsJoins: {};
   collectionsSelect: {
-    kursy: KursySelect<false> | KursySelect<true>;
-    obozy: ObozySelect<false> | ObozySelect<true>;
-    terminy: TerminySelect<false> | TerminySelect<true>;
-    wpisy: WpisySelect<false> | WpisySelect<true>;
-    opinie: OpinieSelect<false> | OpinieSelect<true>;
-    instruktorzy: InstruktorzySelect<false> | InstruktorzySelect<true>;
+    courses: CoursesSelect<false> | CoursesSelect<true>;
+    camps: CampsSelect<false> | CampsSelect<true>;
+    sessions: SessionsSelect<false> | SessionsSelect<true>;
+    posts: PostsSelect<false> | PostsSelect<true>;
+    testimonials: TestimonialsSelect<false> | TestimonialsSelect<true>;
+    instructors: InstructorsSelect<false> | InstructorsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
-    wiadomosci: WiadomosciSelect<false> | WiadomosciSelect<true>;
+    messages: MessagesSelect<false> | MessagesSelect<true>;
     newsletter: NewsletterSelect<false> | NewsletterSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
@@ -104,16 +104,16 @@ export interface Config {
   };
   fallbackLocale: null;
   globals: {
-    ustawienia: Ustawienia;
-    'strona-glowna': StronaGlowna;
-    'strona-o-nas': StronaONa;
-    'strona-en': StronaEn;
+    'site-config': SiteConfig;
+    'home-page': HomePage;
+    'about-page': AboutPage;
+    'english-page': EnglishPage;
   };
   globalsSelect: {
-    ustawienia: UstawieniaSelect<false> | UstawieniaSelect<true>;
-    'strona-glowna': StronaGlownaSelect<false> | StronaGlownaSelect<true>;
-    'strona-o-nas': StronaONasSelect<false> | StronaONasSelect<true>;
-    'strona-en': StronaEnSelect<false> | StronaEnSelect<true>;
+    'site-config': SiteConfigSelect<false> | SiteConfigSelect<true>;
+    'home-page': HomePageSelect<false> | HomePageSelect<true>;
+    'about-page': AboutPageSelect<false> | AboutPageSelect<true>;
+    'english-page': EnglishPageSelect<false> | EnglishPageSelect<true>;
   };
   locale: null;
   widgets: {
@@ -145,9 +145,9 @@ export interface UserAuthOperations {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "kursy".
+ * via the `definition` "courses".
  */
-export interface Kursy {
+export interface Course {
   id: number;
   title: string;
   /**
@@ -180,12 +180,12 @@ export interface Kursy {
   /**
    * Zaznacz, gdy kurs ma warianty droższe od podstawowego (inny rejon, tryb weekendowy, mniejsza grupa). Inaczej cena na kaflu byłaby nieprawdą.
    */
-  cenaOd?: boolean | null;
+  priceFrom?: boolean | null;
   /**
    * Opisowo, np. „2 dni" albo „4 spotkania po 3 h".
    */
   duration?: string | null;
-  level?: ('poczatkujacy' | 'sredniozaawansowany' | 'zaawansowany') | null;
+  level?: ('beginner' | 'intermediate' | 'advanced') | null;
   /**
    * Mniejsza liczba = wyżej na liście.
    */
@@ -193,19 +193,19 @@ export interface Kursy {
   /**
    * Na jednego instruktora. Przepisy PZA dopuszczają najwyżej 4 przy kursach skalnych.
    */
-  grupaMax?: number | null;
+  maxGroupSize?: number | null;
   /**
    * Np. „Rzędkowice” albo „Jura, rejon dobierany do grupy”.
    */
-  miejsce?: string | null;
+  location?: string | null;
   /**
    * Np. „zaświadczenie PZA”. Puste = nie pokazujemy tej pozycji.
    */
-  certyfikat?: string | null;
+  certificate?: string | null;
   /**
    * Wymagania wstępne i do kogo kurs jest kierowany.
    */
-  dlaKogo?: {
+  audience?: {
     root: {
       type: string;
       children: {
@@ -228,50 +228,50 @@ export interface Kursy {
         /**
          * Np. „Dzień 1”. Puste = policzymy numer automatycznie.
          */
-        etykieta?: string | null;
-        tytul: string;
-        opis?: string | null;
+        caption?: string | null;
+        title: string;
+        description?: string | null;
         id?: string | null;
       }[]
     | null;
-  wCenie?:
+  included?:
     | {
-        pozycja: string;
+        item: string;
         id?: string | null;
       }[]
     | null;
-  pozaCena?:
+  excluded?:
     | {
-        pozycja: string;
+        item: string;
         id?: string | null;
       }[]
     | null;
   /**
    * Realny cennik ma warianty (inny rejon, tryb weekendowy, mniejsza grupa). Jeśli dodasz choć jeden, zaznacz też „Pokaż jako od tej kwoty” wyżej.
    */
-  warianty?:
+  variants?:
     | {
-        nazwa: string;
-        cena?: number | null;
-        opis?: string | null;
+        name: string;
+        price?: number | null;
+        note?: string | null;
         id?: string | null;
       }[]
     | null;
   faq?:
     | {
-        pytanie: string;
-        odpowiedz: string;
+        question: string;
+        answer: string;
         id?: string | null;
       }[]
     | null;
   /**
    * Na stronę /en. Puste = pokażemy nazwę polską.
    */
-  tytulEn?: string | null;
+  titleEn?: string | null;
   /**
    * Dokłada wyróżnioną odznakę na kaflu. Sensownie: jeden kurs.
    */
-  wyrozniony?: boolean | null;
+  featured?: boolean | null;
   cover?: (number | null) | Media;
   updatedAt: string;
   createdAt: string;
@@ -311,14 +311,14 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "obozy".
+ * via the `definition` "camps".
  */
-export interface Obozy {
+export interface Camp {
   id: number;
   /**
    * Obozy pokazują się osobno, wyjazdy i zajęcia w sekcji „Poza obozami”.
    */
-  typ: 'oboz' | 'wyjazd' | 'zajecia';
+  kind: 'camp' | 'trip' | 'classes';
   title: string;
   /**
    * Fragment adresu, np. „oboz-mlodziezowy”. Bez polskich znaków.
@@ -343,53 +343,53 @@ export interface Obozy {
     };
     [k: string]: unknown;
   } | null;
-  wiekOd?: number | null;
+  ageFrom?: number | null;
   /**
    * Puste przy obu polach = brak ograniczeń wieku.
    */
-  wiekDo?: number | null;
+  ageTo?: number | null;
   /**
    * Odpowiednik oznaczeń R i Z używanych w nazwach turnusów.
    */
-  poziom?: ('rekreacyjny' | 'zaawansowany') | null;
+  level?: ('recreational' | 'advanced') | null;
   /**
    * Puste znaczy „wycena indywidualna”.
    */
-  cena?: number | null;
-  cenaOd?: boolean | null;
+  price?: number | null;
+  priceFrom?: boolean | null;
   /**
    * Np. „/ mies.” przy zajęciach cyklicznych. Zwykle puste.
    */
-  jednostkaCeny?: string | null;
+  priceUnit?: string | null;
   /**
    * Opisowo, np. „8 dni” albo „1,5 h tygodniowo”.
    */
-  czas?: string | null;
-  grupaMax?: number | null;
-  miejsce?: string | null;
-  nocleg?: boolean | null;
-  wyzywienie?: boolean | null;
-  atrakcje?:
+  duration?: string | null;
+  maxGroupSize?: number | null;
+  location?: string | null;
+  accommodation?: boolean | null;
+  meals?: boolean | null;
+  highlights?:
     | {
-        pozycja: string;
+        item: string;
         id?: string | null;
       }[]
     | null;
   /**
    * Dotyczy obozów. Przy wyjazdach zwykle puste.
    */
-  planDnia?:
+  dailySchedule?:
     | {
-        godzina: string;
-        tytul: string;
-        opis?: string | null;
+        time: string;
+        title: string;
+        description?: string | null;
         id?: string | null;
       }[]
     | null;
   /**
    * Używana w sekcji „Poza obozami”, gdy nie ma zdjęcia.
    */
-  ikona?: ('gory' | 'ludzie' | 'dom' | 'tarcza') | null;
+  icon?: ('mountains' | 'people' | 'house' | 'shield') | null;
   cover?: (number | null) | Media;
   /**
    * Mniejsza liczba = wyżej na liście.
@@ -403,45 +403,45 @@ export interface Obozy {
  * Kalendarz kursów i obozów. Najbliższe terminy są u góry.
  *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "terminy".
+ * via the `definition` "sessions".
  */
-export interface Terminy {
+export interface Session {
   id: number;
   /**
    * Składany automatycznie z dat i nazwy — służy tylko do rozpoznania wpisu.
    */
-  etykieta?: string | null;
+  label?: string | null;
   /**
    * Wypełnij ALBO to pole, ALBO „Obóz lub wyjazd” — nie oba naraz.
    */
-  kurs?: (number | null) | Kursy;
-  oboz?: (number | null) | Obozy;
-  dataOd: string;
+  course?: (number | null) | Course;
+  camp?: (number | null) | Camp;
+  startDate: string;
   /**
    * Puste przy zajęciach jednodniowych.
    */
-  dataDo?: string | null;
+  endDate?: string | null;
   /**
    * Np. „Rzędkowice”. Puste = weźmiemy miejsce z kursu lub obozu.
    */
-  miejsce?: string | null;
+  location?: string | null;
   /**
    * Puste = cena z kursu lub obozu. Wypełnij tylko przy odstępstwie.
    */
-  cena?: number | null;
-  limitMiejsc?: number | null;
+  price?: number | null;
+  capacity?: number | null;
   /**
    * Zmniejsz po każdym zapisie. Puste = strona napisze „zapytaj o miejsca”.
    */
-  wolneMiejsca?: number | null;
+  spotsLeft?: number | null;
   /**
    * Odwołane i zakończone znikają ze strony, ale zostają w panelu.
    */
-  status: 'otwarty' | 'brak-miejsc' | 'odwolany' | 'zakonczony';
+  status: 'open' | 'waitlist' | 'cancelled' | 'finished';
   /**
    * Np. „wariant weekendowy” albo „grupa w tygodniu”.
    */
-  uwagi?: string | null;
+  note?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -449,21 +449,21 @@ export interface Terminy {
  * Teksty na stronie. Najnowsze u góry.
  *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "wpisy".
+ * via the `definition` "posts".
  */
-export interface Wpisy {
+export interface Post {
   id: number;
   title: string;
   /**
    * Fragment adresu, bez polskich znaków.
    */
   slug: string;
-  kategoria: 'z-zycia-szkoly' | 'historia-jury' | 'poradniki' | 'relacje';
+  category: 'school-life' | 'jura-history' | 'guides' | 'reports';
   /**
    * Dwa–trzy zdania na kafel i do opisu w wyszukiwarce.
    */
   lead?: string | null;
-  tresc?: {
+  content?: {
     root: {
       type: string;
       children: {
@@ -479,11 +479,11 @@ export interface Wpisy {
     [k: string]: unknown;
   } | null;
   publishedAt: string;
-  autor?: string | null;
+  author?: string | null;
   /**
    * Duży kafel na górze listy. Sensownie: jeden wpis.
    */
-  wyrozniony?: boolean | null;
+  featured?: boolean | null;
   cover?: (number | null) | Media;
   updatedAt: string;
   createdAt: string;
@@ -493,52 +493,52 @@ export interface Wpisy {
  * Wypowiedzi kursantów i rodziców. Publikujemy w całości, także krytyczne.
  *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "opinie".
+ * via the `definition` "testimonials".
  */
-export interface Opinie {
+export interface Testimonial {
   id: number;
   /**
    * Bez skracania. Literówki autora zostawiamy.
    */
-  tresc: string;
+  quote: string;
   /**
    * Imię albo inicjały — nigdy pełne nazwisko bez zgody.
    */
-  autor: string;
-  czego: 'kurs-skalkowy' | 'drogi-ubezpieczone' | 'trad' | 'oboz' | 'kurs';
+  author: string;
+  subject: 'rock-course' | 'bolted-routes' | 'trad' | 'camp' | 'training';
   /**
    * Np. „maj 2017”. Puste = nie pokazujemy daty.
    */
-  termin?: string | null;
-  opublikowana?: boolean | null;
+  period?: string | null;
+  published?: boolean | null;
   /**
    * Na stronę startową wchodzą dwie pierwsze zaznaczone.
    */
-  naStronieGlownej?: boolean | null;
+  onHomepage?: boolean | null;
   order?: number | null;
   updatedAt: string;
   createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "instruktorzy".
+ * via the `definition` "instructors".
  */
-export interface Instruktorzy {
+export interface Instructor {
   id: number;
-  imie: string;
+  name: string;
   /**
    * Np. „Szef szkoły, instruktor PZA”.
    */
-  rola?: string | null;
+  role?: string | null;
   /**
    * Np. „PZA 366/WS”. Można sprawdzić na liście Związku.
    */
-  licencja?: string | null;
+  license?: string | null;
   /**
    * Od kiedy się wspina, czym się zajmuje, ulubiony rejon.
    */
-  opis?: string | null;
-  portret?: (number | null) | Media;
+  bio?: string | null;
+  portrait?: (number | null) | Media;
   order?: number | null;
   updatedAt: string;
   createdAt: string;
@@ -547,32 +547,32 @@ export interface Instruktorzy {
  * Zgłoszenia z formularza na stronie. Nowe są u góry.
  *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "wiadomosci".
+ * via the `definition` "messages".
  */
-export interface Wiadomosci {
+export interface Message {
   id: number;
-  imie: string;
+  name: string;
   email: string;
-  telefon?: string | null;
-  tresc: string;
+  phone?: string | null;
+  message: string;
   /**
    * Wybrane przez osobę piszącą. Wypełnia się samo, gdy pisze z podstrony kursu.
    */
-  temat?: ('kurs-skalkowy' | 'drogi-ubezpieczone' | 'trad' | 'scianka' | 'oboz' | 'indywidualne' | 'inna') | null;
+  topic?: ('rock-course' | 'bolted-routes' | 'trad' | 'indoor-wall' | 'camp' | 'private-lesson' | 'other') | null;
   /**
    * Nieobowiązkowe, wpisywane własnymi słowami.
    */
-  preferowanyTermin?: string | null;
+  preferredDate?: string | null;
   /**
    * Wypełnione automatycznie, gdy ktoś pisze z podstrony kursu.
    */
-  kurs?: (number | null) | Kursy;
-  status?: ('nowa' | 'w-toku' | 'zalatwiona') | null;
+  course?: (number | null) | Course;
+  status?: ('new' | 'in-progress' | 'resolved') | null;
   /**
    * Dokładne brzmienie klauzuli zaakceptowanej przez osobę wysyłającą. Zapisujemy TREŚĆ, a nie samo „tak" — inaczej po zmianie klauzuli nie da się wykazać, na co ktoś faktycznie wyraził zgodę.
    */
-  zgodaTresc: string;
-  zgodaData: string;
+  consentText: string;
+  consentDate: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -591,12 +591,12 @@ export interface Newsletter {
   /**
    * Wypisanych NIE kasujemy — trzeba móc wykazać, że i kiedy ktoś zgodę wycofał.
    */
-  status: 'zapisany' | 'wypisany';
+  status: 'subscribed' | 'unsubscribed';
   /**
    * Dokładne brzmienie klauzuli zaakceptowanej przy zapisie.
    */
-  zgodaTresc: string;
-  zgodaData: string;
+  consentText: string;
+  consentDate: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -652,36 +652,36 @@ export interface PayloadLockedDocument {
   id: number;
   document?:
     | ({
-        relationTo: 'kursy';
-        value: number | Kursy;
+        relationTo: 'courses';
+        value: number | Course;
       } | null)
     | ({
-        relationTo: 'obozy';
-        value: number | Obozy;
+        relationTo: 'camps';
+        value: number | Camp;
       } | null)
     | ({
-        relationTo: 'terminy';
-        value: number | Terminy;
+        relationTo: 'sessions';
+        value: number | Session;
       } | null)
     | ({
-        relationTo: 'wpisy';
-        value: number | Wpisy;
+        relationTo: 'posts';
+        value: number | Post;
       } | null)
     | ({
-        relationTo: 'opinie';
-        value: number | Opinie;
+        relationTo: 'testimonials';
+        value: number | Testimonial;
       } | null)
     | ({
-        relationTo: 'instruktorzy';
-        value: number | Instruktorzy;
+        relationTo: 'instructors';
+        value: number | Instructor;
       } | null)
     | ({
         relationTo: 'media';
         value: number | Media;
       } | null)
     | ({
-        relationTo: 'wiadomosci';
-        value: number | Wiadomosci;
+        relationTo: 'messages';
+        value: number | Message;
       } | null)
     | ({
         relationTo: 'newsletter';
@@ -735,59 +735,59 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "kursy_select".
+ * via the `definition` "courses_select".
  */
-export interface KursySelect<T extends boolean = true> {
+export interface CoursesSelect<T extends boolean = true> {
   title?: T;
   slug?: T;
   summary?: T;
   description?: T;
   price?: T;
-  cenaOd?: T;
+  priceFrom?: T;
   duration?: T;
   level?: T;
   order?: T;
-  grupaMax?: T;
-  miejsce?: T;
-  certyfikat?: T;
-  dlaKogo?: T;
+  maxGroupSize?: T;
+  location?: T;
+  certificate?: T;
+  audience?: T;
   program?:
     | T
     | {
-        etykieta?: T;
-        tytul?: T;
-        opis?: T;
+        caption?: T;
+        title?: T;
+        description?: T;
         id?: T;
       };
-  wCenie?:
+  included?:
     | T
     | {
-        pozycja?: T;
+        item?: T;
         id?: T;
       };
-  pozaCena?:
+  excluded?:
     | T
     | {
-        pozycja?: T;
+        item?: T;
         id?: T;
       };
-  warianty?:
+  variants?:
     | T
     | {
-        nazwa?: T;
-        cena?: T;
-        opis?: T;
+        name?: T;
+        price?: T;
+        note?: T;
         id?: T;
       };
   faq?:
     | T
     | {
-        pytanie?: T;
-        odpowiedz?: T;
+        question?: T;
+        answer?: T;
         id?: T;
       };
-  tytulEn?: T;
-  wyrozniony?: T;
+  titleEn?: T;
+  featured?: T;
   cover?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -795,40 +795,40 @@ export interface KursySelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "obozy_select".
+ * via the `definition` "camps_select".
  */
-export interface ObozySelect<T extends boolean = true> {
-  typ?: T;
+export interface CampsSelect<T extends boolean = true> {
+  kind?: T;
   title?: T;
   slug?: T;
   summary?: T;
   description?: T;
-  wiekOd?: T;
-  wiekDo?: T;
-  poziom?: T;
-  cena?: T;
-  cenaOd?: T;
-  jednostkaCeny?: T;
-  czas?: T;
-  grupaMax?: T;
-  miejsce?: T;
-  nocleg?: T;
-  wyzywienie?: T;
-  atrakcje?:
+  ageFrom?: T;
+  ageTo?: T;
+  level?: T;
+  price?: T;
+  priceFrom?: T;
+  priceUnit?: T;
+  duration?: T;
+  maxGroupSize?: T;
+  location?: T;
+  accommodation?: T;
+  meals?: T;
+  highlights?:
     | T
     | {
-        pozycja?: T;
+        item?: T;
         id?: T;
       };
-  planDnia?:
+  dailySchedule?:
     | T
     | {
-        godzina?: T;
-        tytul?: T;
-        opis?: T;
+        time?: T;
+        title?: T;
+        description?: T;
         id?: T;
       };
-  ikona?: T;
+  icon?: T;
   cover?: T;
   order?: T;
   updatedAt?: T;
@@ -837,36 +837,36 @@ export interface ObozySelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "terminy_select".
+ * via the `definition` "sessions_select".
  */
-export interface TerminySelect<T extends boolean = true> {
-  etykieta?: T;
-  kurs?: T;
-  oboz?: T;
-  dataOd?: T;
-  dataDo?: T;
-  miejsce?: T;
-  cena?: T;
-  limitMiejsc?: T;
-  wolneMiejsca?: T;
+export interface SessionsSelect<T extends boolean = true> {
+  label?: T;
+  course?: T;
+  camp?: T;
+  startDate?: T;
+  endDate?: T;
+  location?: T;
+  price?: T;
+  capacity?: T;
+  spotsLeft?: T;
   status?: T;
-  uwagi?: T;
+  note?: T;
   updatedAt?: T;
   createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "wpisy_select".
+ * via the `definition` "posts_select".
  */
-export interface WpisySelect<T extends boolean = true> {
+export interface PostsSelect<T extends boolean = true> {
   title?: T;
   slug?: T;
-  kategoria?: T;
+  category?: T;
   lead?: T;
-  tresc?: T;
+  content?: T;
   publishedAt?: T;
-  autor?: T;
-  wyrozniony?: T;
+  author?: T;
+  featured?: T;
   cover?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -874,29 +874,29 @@ export interface WpisySelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "opinie_select".
+ * via the `definition` "testimonials_select".
  */
-export interface OpinieSelect<T extends boolean = true> {
-  tresc?: T;
-  autor?: T;
-  czego?: T;
-  termin?: T;
-  opublikowana?: T;
-  naStronieGlownej?: T;
+export interface TestimonialsSelect<T extends boolean = true> {
+  quote?: T;
+  author?: T;
+  subject?: T;
+  period?: T;
+  published?: T;
+  onHomepage?: T;
   order?: T;
   updatedAt?: T;
   createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "instruktorzy_select".
+ * via the `definition` "instructors_select".
  */
-export interface InstruktorzySelect<T extends boolean = true> {
-  imie?: T;
-  rola?: T;
-  licencja?: T;
-  opis?: T;
-  portret?: T;
+export interface InstructorsSelect<T extends boolean = true> {
+  name?: T;
+  role?: T;
+  license?: T;
+  bio?: T;
+  portrait?: T;
   order?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -935,19 +935,19 @@ export interface MediaSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "wiadomosci_select".
+ * via the `definition` "messages_select".
  */
-export interface WiadomosciSelect<T extends boolean = true> {
-  imie?: T;
+export interface MessagesSelect<T extends boolean = true> {
+  name?: T;
   email?: T;
-  telefon?: T;
-  tresc?: T;
-  temat?: T;
-  preferowanyTermin?: T;
-  kurs?: T;
+  phone?: T;
+  message?: T;
+  topic?: T;
+  preferredDate?: T;
+  course?: T;
   status?: T;
-  zgodaTresc?: T;
-  zgodaData?: T;
+  consentText?: T;
+  consentDate?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -958,8 +958,8 @@ export interface WiadomosciSelect<T extends boolean = true> {
 export interface NewsletterSelect<T extends boolean = true> {
   email?: T;
   status?: T;
-  zgodaTresc?: T;
-  zgodaData?: T;
+  consentText?: T;
+  consentDate?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1031,52 +1031,52 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
  * Dane kontaktowe i informacje o szkole. Pokazują się na całej stronie.
  *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "ustawienia".
+ * via the `definition` "site-config".
  */
-export interface Ustawienia {
+export interface SiteConfig {
   id: number;
   /**
    * Tak jak ma się wyświetlać, np. „609 465 237”. Puste = strona nie pokazuje telefonu.
    */
-  telefon?: string | null;
+  phone?: string | null;
   /**
    * Np. „+48609465237”. To trafia do linku klikalnego na telefonie. Puste = wyliczymy z pola wyżej.
    */
-  telefonE164?: string | null;
+  phoneE164?: string | null;
   email?: string | null;
   /**
    * Każda linia wyświetli się osobno, np. „Pon.–pt. 9:00–19:00”.
    */
-  godziny?: string | null;
+  openingHours?: string | null;
   /**
    * Np. że nie zawsze da się odebrać, bo trwają zajęcia w skałach.
    */
-  uwagaKontaktowa?: string | null;
-  nazwaFirmy?: string | null;
-  ulica?: string | null;
-  kodPocztowy?: string | null;
-  miejscowosc?: string | null;
+  contactNote?: string | null;
+  legalName?: string | null;
+  street?: string | null;
+  postalCode?: string | null;
+  city?: string | null;
   /**
    * Kilka zdań: skąd, ile jedzie się samochodem, czym komunikacją.
    */
-  dojazd?: string | null;
+  directions?: string | null;
   /**
    * Pełny adres z pola „src” kodu osadzenia mapy. Puste = zamiast mapy pokazujemy sam adres.
    */
-  mapaEmbed?: string | null;
+  mapEmbedUrl?: string | null;
   /**
    * Np. „366/WS”. Pokazuje się w stopce.
    */
-  licencjaPza?: string | null;
-  uprawnieniaPanstwowe?: string | null;
+  pzaLicence?: string | null;
+  stateQualifications?: string | null;
   /**
    * Z tego liczymy „X lat doświadczenia”, żeby nie dezaktualizowało się co styczeń.
    */
-  rokZalozenia?: number | null;
+  foundedYear?: number | null;
   /**
    * Jedno–dwa zdania. Widoczne w stopce.
    */
-  opisKrotki?: string | null;
+  shortDescription?: string | null;
   facebook?: string | null;
   youtube?: string | null;
   updatedAt?: string | null;
@@ -1086,50 +1086,50 @@ export interface Ustawienia {
  * Teksty na stronie startowej. Kursy, terminy i wpisy zaciągają się same.
  *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "strona-glowna".
+ * via the `definition` "home-page".
  */
-export interface StronaGlowna {
+export interface HomePage {
   id: number;
   /**
    * Krótkie wyróżnienie, np. „Licencja PZA”.
    */
-  heroOdznaka?: string | null;
-  heroPodtytul?: string | null;
+  heroBadge?: string | null;
+  heroSubtitle?: string | null;
   /**
    * Jedyny nagłówek pierwszego stopnia na tej stronie — nie powtarzaj go niżej.
    */
-  heroTytul: string;
-  heroTekst?: string | null;
+  heroTitle: string;
+  heroText?: string | null;
   /**
    * Pasek pod nagłówkiem. Cztery kafle wyglądają najlepiej.
    */
-  liczby?:
+  stats?:
     | {
-        wartosc: string;
-        opis: string;
+        value: string;
+        caption: string;
         /**
          * Zwykle tylko pierwszy kafel.
          */
-        wyrozniony?: boolean | null;
+        highlighted?: boolean | null;
         id?: string | null;
       }[]
     | null;
-  kursyTytul?: string | null;
-  kursyTekst?: string | null;
-  obozyOdznaka?: string | null;
-  obozyTytul?: string | null;
-  obozyTekst?: string | null;
-  obozyZdjecie?: (number | null) | Media;
-  dlaczego?:
+  coursesTitle?: string | null;
+  coursesText?: string | null;
+  campsBadge?: string | null;
+  campsTitle?: string | null;
+  campsText?: string | null;
+  campsImage?: (number | null) | Media;
+  reasons?:
     | {
-        tytul: string;
-        opis: string;
-        ikona?: ('tarcza' | 'ludzie' | 'gory' | 'dom') | null;
+        title: string;
+        description: string;
+        icon?: ('shield' | 'people' | 'mountains' | 'house') | null;
         id?: string | null;
       }[]
     | null;
-  ctaTytul?: string | null;
-  ctaTekst?: string | null;
+  ctaTitle?: string | null;
+  ctaText?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1137,13 +1137,13 @@ export interface StronaGlowna {
  * Instruktorzy zaciągają się z osobnej listy.
  *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "strona-o-nas".
+ * via the `definition` "about-page".
  */
-export interface StronaONa {
+export interface AboutPage {
   id: number;
-  tytul?: string | null;
-  wstep?: string | null;
-  tresc?: {
+  title?: string | null;
+  intro?: string | null;
+  content?: {
     root: {
       type: string;
       children: {
@@ -1158,22 +1158,22 @@ export interface StronaONa {
     };
     [k: string]: unknown;
   } | null;
-  powodyLicencji?:
+  licenceReasons?:
     | {
-        tytul: string;
-        opis: string;
+        title: string;
+        description: string;
         id?: string | null;
       }[]
     | null;
-  liczbyJura?:
+  juraFacts?:
     | {
-        wartosc: string;
-        opis: string;
+        value: string;
+        caption: string;
         id?: string | null;
       }[]
     | null;
-  oJurze?: string | null;
-  zdjecie?: (number | null) | Media;
+  aboutJura?: string | null;
+  image?: (number | null) | Media;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1181,44 +1181,44 @@ export interface StronaONa {
  * Tabela kursów składa się sama z cen podanych przy kursach.
  *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "strona-en".
+ * via the `definition` "english-page".
  */
-export interface StronaEn {
+export interface EnglishPage {
   id: number;
   badge?: string | null;
-  tytul?: string | null;
+  title?: string | null;
   lead?: string | null;
-  oNas?: string | null;
-  baza?: string | null;
-  sezon?: string | null;
-  dojazd?: string | null;
+  about?: string | null;
+  accommodation?: string | null;
+  season?: string | null;
+  directions?: string | null;
   /**
    * Np. co jest wliczone w cenę.
    */
-  kursOpis?: string | null;
+  coursesNote?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "ustawienia_select".
+ * via the `definition` "site-config_select".
  */
-export interface UstawieniaSelect<T extends boolean = true> {
-  telefon?: T;
-  telefonE164?: T;
+export interface SiteConfigSelect<T extends boolean = true> {
+  phone?: T;
+  phoneE164?: T;
   email?: T;
-  godziny?: T;
-  uwagaKontaktowa?: T;
-  nazwaFirmy?: T;
-  ulica?: T;
-  kodPocztowy?: T;
-  miejscowosc?: T;
-  dojazd?: T;
-  mapaEmbed?: T;
-  licencjaPza?: T;
-  uprawnieniaPanstwowe?: T;
-  rokZalozenia?: T;
-  opisKrotki?: T;
+  openingHours?: T;
+  contactNote?: T;
+  legalName?: T;
+  street?: T;
+  postalCode?: T;
+  city?: T;
+  directions?: T;
+  mapEmbedUrl?: T;
+  pzaLicence?: T;
+  stateQualifications?: T;
+  foundedYear?: T;
+  shortDescription?: T;
   facebook?: T;
   youtube?: T;
   updatedAt?: T;
@@ -1227,82 +1227,82 @@ export interface UstawieniaSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "strona-glowna_select".
+ * via the `definition` "home-page_select".
  */
-export interface StronaGlownaSelect<T extends boolean = true> {
-  heroOdznaka?: T;
-  heroPodtytul?: T;
-  heroTytul?: T;
-  heroTekst?: T;
-  liczby?:
+export interface HomePageSelect<T extends boolean = true> {
+  heroBadge?: T;
+  heroSubtitle?: T;
+  heroTitle?: T;
+  heroText?: T;
+  stats?:
     | T
     | {
-        wartosc?: T;
-        opis?: T;
-        wyrozniony?: T;
+        value?: T;
+        caption?: T;
+        highlighted?: T;
         id?: T;
       };
-  kursyTytul?: T;
-  kursyTekst?: T;
-  obozyOdznaka?: T;
-  obozyTytul?: T;
-  obozyTekst?: T;
-  obozyZdjecie?: T;
-  dlaczego?:
+  coursesTitle?: T;
+  coursesText?: T;
+  campsBadge?: T;
+  campsTitle?: T;
+  campsText?: T;
+  campsImage?: T;
+  reasons?:
     | T
     | {
-        tytul?: T;
-        opis?: T;
-        ikona?: T;
+        title?: T;
+        description?: T;
+        icon?: T;
         id?: T;
       };
-  ctaTytul?: T;
-  ctaTekst?: T;
+  ctaTitle?: T;
+  ctaText?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "strona-o-nas_select".
+ * via the `definition` "about-page_select".
  */
-export interface StronaONasSelect<T extends boolean = true> {
-  tytul?: T;
-  wstep?: T;
-  tresc?: T;
-  powodyLicencji?:
+export interface AboutPageSelect<T extends boolean = true> {
+  title?: T;
+  intro?: T;
+  content?: T;
+  licenceReasons?:
     | T
     | {
-        tytul?: T;
-        opis?: T;
+        title?: T;
+        description?: T;
         id?: T;
       };
-  liczbyJura?:
+  juraFacts?:
     | T
     | {
-        wartosc?: T;
-        opis?: T;
+        value?: T;
+        caption?: T;
         id?: T;
       };
-  oJurze?: T;
-  zdjecie?: T;
+  aboutJura?: T;
+  image?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "strona-en_select".
+ * via the `definition` "english-page_select".
  */
-export interface StronaEnSelect<T extends boolean = true> {
+export interface EnglishPageSelect<T extends boolean = true> {
   badge?: T;
-  tytul?: T;
+  title?: T;
   lead?: T;
-  oNas?: T;
-  baza?: T;
-  sezon?: T;
-  dojazd?: T;
-  kursOpis?: T;
+  about?: T;
+  accommodation?: T;
+  season?: T;
+  directions?: T;
+  coursesNote?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

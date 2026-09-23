@@ -1,51 +1,54 @@
 /**
- * Treść startowa serwisu.
+ * Starting content for the site.
  *
- * Skąd te dane: z DZIAŁAJĄCEJ strony abcwspinania.info, nie z makiety. Makieta
- * była poglądowa i zaniżała ceny mniej więcej dwukrotnie (kurs skalny 1 690 zł
- * wobec realnych 2 400 zł), gubiła połowę oferty (kurs wielowyciągowy, prace
- * wysokościowe) i twierdziła, że nocleg trzeba sobie znaleźć — podczas gdy
- * szkoła ma własną bazę z pokojami, kuchnią i salą ze ścianką. Ceny i fakty
- * pochodzą stąd; teksty są napisane od nowa, bo oryginały niosą pozostałości
- * po pozycjonowaniu z czasów Joomli.
+ * Where the data comes from: the LIVE abcwspinania.info site, not the mockup.
+ * The mockup was indicative — it understated prices roughly twofold (rock
+ * course at 1 690 zł against a real 2 400 zł), dropped half the offer
+ * (multi-pitch course, rope access work) and claimed accommodation had to be
+ * found by the participant, while the school has its own base with rooms, a
+ * kitchen and a climbing wall. Prices and facts come from there; the copy is
+ * written anew, because the originals carry leftovers of Joomla-era SEO.
  *
- * Skrypt jest IDEMPOTENTNY — rozpoznaje wpisy po `slug` i aktualizuje zamiast
- * tworzyć duplikaty. Można go puszczać wielokrotnie.
+ * The script is IDEMPOTENT — it matches entries by `slug` and updates rather
+ * than creating duplicates. It can be run repeatedly.
  *
- * ⚠️ NIE URUCHAMIAĆ NA PRODUKCJI. To dane wyjściowe do poprawienia przez
- * Krzyśka, a nie treść docelowa; nadpisanie tym jego zmian byłoby stratą pracy.
- * Blokada jest niżej i jest celowo twarda.
+ * ⚠️ DO NOT RUN IN PRODUCTION. This is starting data for the client to correct,
+ * not final content; overwriting his edits with it would waste his work. The
+ * guard is below and is deliberately hard.
+ *
+ * The seeded copy itself stays Polish — it is what visitors and the client
+ * read.
  */
 import { getPayload } from 'payload'
 import config from '@payload-config'
 
 if (process.env.NODE_ENV === 'production') {
   throw new Error(
-    'Skrypt zasilający nie działa na produkcji — nadpisałby treść wprowadzoną przez klienta.',
+    'The seed script does not run in production — it would overwrite content entered by the client.',
   )
 }
 
 /**
- * Buduje treść dla pola richText (Lexical) z gołego tekstu.
+ * Builds richText (Lexical) content from plain text.
  *
- * Lexical trzyma treść jako drzewo węzłów z kompletem pól technicznych
- * (`format`, `indent`, `direction`, `version`), więc wpisanie choćby jednego
- * zdania „na piechotę" to kilkanaście linii szumu. Ten helper pozwala
- * w danych startowych pisać zwykły tekst.
+ * Lexical stores content as a tree of nodes with a full set of technical fields
+ * (`format`, `indent`, `direction`, `version`), so writing even a single
+ * sentence by hand is a dozen lines of noise. This helper lets the starting
+ * data be written as ordinary text.
  *
- * Zwykły ciąg daje akapit, `h2('…')` — nagłówek sekcji. Nagłówki są istotne
- * nie tylko wizualnie: z nich powstaje spis treści artykułu.
+ * A plain string yields a paragraph, `h2('…')` a section heading. The headings
+ * matter beyond the visual: the article's table of contents is built from them.
  */
-function h2(tekst: string) {
-  return { __naglowek: tekst }
+function h2(text: string) {
+  return { __heading: text }
 }
 
-type Fragment = string | { __naglowek: string }
+type Fragment = string | { __heading: string }
 
-function wezelTekstowy(tekst: string) {
+function textNode(text: string) {
   return {
     type: 'text',
-    text: tekst,
+    text: text,
     format: 0,
     style: '',
     mode: 'normal' as const,
@@ -54,7 +57,7 @@ function wezelTekstowy(tekst: string) {
   }
 }
 
-function akapity(...fragmenty: Fragment[]) {
+function richText(...fragments: Fragment[]) {
   return {
     root: {
       type: 'root',
@@ -62,7 +65,7 @@ function akapity(...fragmenty: Fragment[]) {
       indent: 0,
       version: 1,
       direction: 'ltr' as const,
-      children: fragmenty.map((f) =>
+      children: fragments.map((f) =>
         typeof f === 'string'
           ? {
               type: 'paragraph',
@@ -71,7 +74,7 @@ function akapity(...fragmenty: Fragment[]) {
               version: 1,
               direction: 'ltr' as const,
               textFormat: 0,
-              children: [wezelTekstowy(f)],
+              children: [textNode(f)],
             }
           : {
               type: 'heading',
@@ -80,118 +83,119 @@ function akapity(...fragmenty: Fragment[]) {
               indent: 0,
               version: 1,
               direction: 'ltr' as const,
-              children: [wezelTekstowy(f.__naglowek)],
+              children: [textNode(f.__heading)],
             },
       ),
     },
   }
 }
 
-const USTAWIENIA = {
-  telefon: '609 465 237',
-  telefonE164: '+48609465237',
+const SITE_CONFIG = {
+  phone: '609 465 237',
+  phoneE164: '+48609465237',
   email: 'biuro@abcwspinania.info',
-  godziny: 'Najpewniej wieczorem, po zajęciach.',
-  uwagaKontaktowa:
+  openingHours: 'Najpewniej wieczorem, po zajęciach.',
+  contactNote:
     'Bywa, że nie odbieramy — zwykle znaczy to, że trwają zajęcia w skałach. ' +
     'Oddzwaniamy tego samego dnia. W pilnej sprawie najszybciej działa SMS.',
-  nazwaFirmy: 'ABC Wspinania — Krzysztof Wróbel',
-  ulica: 'Jurajska 47',
-  kodPocztowy: '42-421',
-  miejscowosc: 'Rzędkowice',
-  dojazd:
+  legalName: 'ABC Wspinania — Krzysztof Wróbel',
+  street: 'Jurajska 47',
+  postalCode: '42-421',
+  city: 'Rzędkowice',
+  directions:
     'Z Katowic i z Częstochowy około godziny samochodem, zjazd z DK78 na Kroczyce. ' +
     'Parking pod skałami bezpłatny.\n' +
     'Komunikacją: pociąg do Zawiercia, dalej autobus w stronę Kroczyc.',
-  licencjaPza: '366/WS',
-  uprawnieniaPanstwowe: 'IS 182/K/2002',
-  rokZalozenia: 2001,
-  opisKrotki:
+  pzaLicence: '366/WS',
+  stateQualifications: 'IS 182/K/2002',
+  foundedYear: 2001,
+  shortDescription:
     'Szkoła wspinaczki z licencją Polskiego Związku Alpinizmu. Szkolimy na Jurze ' +
     'Krakowsko-Częstochowskiej, z własnej bazy w Rzędkowicach.',
 }
 
-const STRONA_GLOWNA = {
-  heroOdznaka: 'Licencja PZA',
-  heroPodtytul: 'Rzędkowice, Jura Krakowsko-Częstochowska',
-  heroTytul: 'Naucz się wspinać na jurajskim wapieniu',
-  heroTekst:
+const HOME_PAGE = {
+  heroBadge: 'Licencja PZA',
+  heroSubtitle: 'Rzędkowice, Jura Krakowsko-Częstochowska',
+  heroTitle: 'Naucz się wspinać na jurajskim wapieniu',
+  heroText:
     'Kursy prowadzone według programu Polskiego Związku Alpinizmu, przez instruktora ' +
     'z licencją weryfikowaną co sezon. Czterech uczestników na instruktora, sześć dni, ' +
     'z czego pięć w skale. Baza stoi kwadrans od skał.',
-  liczby: [
-    { wartosc: 'Licencja PZA', opis: 'weryfikowana co sezon, nie nadana raz', wyrozniony: true },
-    // Znacznik {lat} podstawia liczbę wyliczoną z roku założenia — inaczej
-    // „25 lat" trzeba by poprawiać ręcznie w każdym styczniu.
-    { wartosc: '{lat}', opis: 'szkolenia na Jurze' },
-    { wartosc: 'maks. 4 osoby', opis: 'na jednego instruktora' },
-    { wartosc: 'Własna baza', opis: 'nocleg i kuchnia kwadrans od skał' },
+  stats: [
+    { value: 'Licencja PZA', caption: 'weryfikowana co sezon, nie nadana raz', featured: true },
+    // The {lat} marker substitutes a figure computed from the founding year —
+    // otherwise "25 lat" would have to be corrected by hand every January.
+    { value: '{lat}', caption: 'szkolenia na Jurze' },
+    { value: 'maks. 4 osoby', caption: 'na jednego instruktora' },
+    { value: 'Własna baza', caption: 'nocleg i kuchnia kwadrans od skał' },
   ],
-  kursyTytul: 'Kursy',
-  kursyTekst:
+  coursesTitle: 'Kursy',
+  coursesText:
     'Od pierwszego dotknięcia skały po samodzielne zakładanie asekuracji. ' +
     'Każdy kurs kończy się sprawdzeniem umiejętności i zaświadczeniem według programu PZA.',
-  obozyOdznaka: 'Obozy',
-  obozyTytul: 'Tydzień w skałach — dla dzieci i młodzieży',
-  obozyTekst:
+  campsBadge: 'Obozy',
+  campsTitle: 'Tydzień w skałach — dla dzieci i młodzieży',
+  campsText:
     'Turnusy ośmio- i dziewięciodniowe, nocleg w pokojach z łazienkami i pełne wyżywienie. ' +
     'Grupy dobierane wiekiem i doświadczeniem: osobno dla tych, którzy dopiero zaczynają, ' +
     'osobno dla kursantów po szkoleniu. Rodzice dostają galerię uzupełnianą na bieżąco.',
-  dlaczego: [
+  reasons: [
     {
-      ikona: 'tarcza' as const,
-      tytul: 'Licencja, nie deklaracja',
-      opis:
+      icon: 'shield' as const,
+      title: 'Licencja, nie deklaracja',
+      description:
         'Tytuł „instruktor wspinaczki" nie jest w Polsce chroniony — nadać go sobie może ' +
         'każdy. Licencja PZA wymaga kwalifikacji, egzaminu, trzech staży i okresowej ' +
         'weryfikacji. Numer można sprawdzić na liście Związku przed zapisaniem się.',
     },
     {
-      ikona: 'ludzie' as const,
-      tytul: 'Cztery osoby, nie dwanaście',
-      opis:
+      icon: 'people' as const,
+      title: 'Cztery osoby, nie dwanaście',
+      description:
         'Limit wynika z przepisów PZA i z tego, co da się realnie upilnować. Przy sześciu ' +
         'osobach grupę jeszcze się prowadzi, ale nie sposób zauważyć, że ktoś systematycznie ' +
         'wpina ekspres odwrotnie.',
     },
     {
-      ikona: 'dom' as const,
-      tytul: 'Własna baza kwadrans od skał',
-      opis:
+      icon: 'house' as const,
+      title: 'Własna baza kwadrans od skał',
+      description:
         'Pokoje z łazienkami, wspólna kuchnia i sala wykładowa ze ścianką. Nie trzeba szukać ' +
         'kwatery ani dojeżdżać na zajęcia — przy załamaniu pogody teoria odbywa się na miejscu.',
     },
   ],
-  ctaTytul: 'Nie wiesz, który kurs wybrać?',
-  ctaTekst:
+  ctaTitle: 'Nie wiesz, który kurs wybrać?',
+  ctaText:
     'Napisz albo zadzwoń. Dobierzemy szkolenie do tego, co już umiesz i ile masz czasu — ' +
     'czasem odradzamy droższy kurs, bo tańszy wystarczy.',
 }
 
 /**
- * Kursy z realnej oferty.
+ * Courses from the real offer.
  *
- * `cenaOd` tam, gdzie cennik ma warianty (inny rejon, tryb weekendowy, mniejsza
- * grupa) — pokazanie jednej liczby bez „od" byłoby wprowadzaniem w błąd.
+ * `priceFrom` wherever the price list has variants (a different region, a
+ * weekend mode, a smaller group) — showing one figure without "od" would be
+ * misleading.
  */
-const KURSY = [
+const COURSES = [
   {
     slug: 'kurs-wspinaczki-skalnej-pza',
     title: 'Kurs wspinaczki skalnej PZA',
-    tytulEn: 'Rock climbing course (PZA syllabus)',
+    titleEn: 'Rock climbing course (PZA syllabus)',
     summary:
       'Pełny kurs skałkowy według programu Związku. Sześć dni, pięć w skale — od pierwszego ' +
       'węzła po samodzielne prowadzenie drogi z dolną asekuracją.',
     price: 2400,
-    cenaOd: true,
+    priceFrom: true,
     duration: '6 dni',
-    level: 'poczatkujacy' as const,
-    grupaMax: 4,
-    miejsce: 'Rzędkowice',
-    certyfikat: 'zaświadczenie PZA',
-    wyrozniony: true,
+    level: 'beginner' as const,
+    maxGroupSize: 4,
+    location: 'Rzędkowice',
+    certificate: 'zaświadczenie PZA',
+    featured: true,
     order: 1,
-    dlaKogo: akapity(
+    audience: richText(
       'Kurs jest napisany dla osób, które nigdy nie dotknęły skały. Nie wymagamy ' +
         'przygotowania ani własnego sprzętu — wystarczy sprawność pozwalająca przejść ' +
         'podejście pod skały z plecakiem.',
@@ -203,90 +207,90 @@ const KURSY = [
     ),
     program: [
       {
-        tytul: 'Sprzęt, węzły, asekuracja górna',
-        opis:
+        title: 'Sprzęt, węzły, asekuracja górna',
+        description:
           'Uprząż, przyrządy, lina. Ósemka, kluczka, półwyblinka, wyblinka. Pierwsze wejścia ' +
           'na wędce i nauka asekurowania partnera.',
       },
       {
-        tytul: 'Technika ruchu i praca nóg',
-        opis:
+        title: 'Technika ruchu i praca nóg',
+        description:
           'Chwyty i stopnie, pozycja frontalna i boczna, wspinaczka statyczna i dynamiczna. ' +
           'Cały dzień w łatwym terenie, żeby ruch wszedł w nawyk.',
       },
       {
-        tytul: 'Zjazdy i wychodzenie po linie',
-        opis:
+        title: 'Zjazdy i wychodzenie po linie',
+        description:
           'Zjazd w wysokim przyrządzie z autoasekuracją, stanowisko zjazdowe, przepinka, ' +
           'prusikowanie i wyjście z sytuacji awaryjnej.',
       },
       {
-        tytul: 'Asekuracja dolna',
-        opis:
+        title: 'Asekuracja dolna',
+        description:
           'Wpinanie ekspresów, prowadzenie liny, rozmieszczanie przelotów, asekuracja ' +
           'prowadzącego i wychwytywanie odpadnięć.',
       },
       {
-        tytul: 'Punkty własne i stanowiska',
-        opis:
+        title: 'Punkty własne i stanowiska',
+        description:
           'Kostki, kostki mechaniczne, punkty naturalne. Łączenie punktów, budowa stanowisk ' +
           'dolnych, górnych i pośrednich.',
       },
       {
-        tytul: 'Sprawdzian i zaświadczenie',
-        opis:
+        title: 'Sprawdzian i zaświadczenie',
+        description:
           'Część teoretyczna i praktyczna. Warunkiem zaliczenia jest samodzielne pokonanie ' +
           'z dolną asekuracją drogi o trudności co najmniej IV w skali UIAA.',
       },
     ],
-    wCenie: [
-      { pozycja: 'Instruktor z licencją PZA przez sześć dni' },
-      { pozycja: 'Komplet sprzętu: uprząż, kask, buty, liny, przyrządy' },
-      { pozycja: 'Materiały szkoleniowe i program kursu na piśmie' },
-      { pozycja: 'Zaświadczenie PZA po zaliczeniu sprawdzianu' },
+    included: [
+      { item: 'Instruktor z licencją PZA przez sześć dni' },
+      { item: 'Komplet sprzętu: uprząż, kask, buty, liny, przyrządy' },
+      { item: 'Materiały szkoleniowe i program kursu na piśmie' },
+      { item: 'Zaświadczenie PZA po zaliczeniu sprawdzianu' },
     ],
-    pozaCena: [
-      { pozycja: 'Nocleg — pokoje w naszej bazie, 70 zł za dobę' },
-      { pozycja: 'Wyżywienie (do dyspozycji wspólna kuchnia)' },
-      { pozycja: 'Dojazd na miejsce' },
-      { pozycja: 'Odzież własna' },
+    excluded: [
+      { item: 'Nocleg — pokoje w naszej bazie, 70 zł za dobę' },
+      { item: 'Wyżywienie (do dyspozycji wspólna kuchnia)' },
+      { item: 'Dojazd na miejsce' },
+      { item: 'Odzież własna' },
     ],
-    warianty: [
-      { nazwa: 'Jura, sześć dni pod rząd', cena: 2400, opis: 'wariant podstawowy' },
-      { nazwa: 'Rudawy Janowickie, sześć dni', cena: 2600 },
-      { nazwa: 'Jura, tryb weekendowy', cena: 2500, opis: 'dwa razy piątek–niedziela' },
-      { nazwa: 'Dwie osoby na instruktora', cena: 2800, opis: 'Sokoliki lub Rudawy' },
+    variants: [
+      { name: 'Jura, sześć dni pod rząd', price: 2400, note: 'wariant podstawowy' },
+      { name: 'Rudawy Janowickie, sześć dni', price: 2600 },
+      { name: 'Jura, tryb weekendowy', price: 2500, note: 'dwa razy piątek–niedziela' },
+      { name: 'Dwie osoby na instruktora', price: 2800, note: 'Sokoliki lub Rudawy' },
     ],
     faq: [
       {
-        pytanie: 'Czy muszę mieć własny sprzęt?',
-        odpowiedz:
+        question: 'Czy muszę mieć własny sprzęt?',
+        answer:
           'Nie. Cały sprzęt techniczny dajemy my. Przywieź wygodne ubranie i buty, w których ' +
           'wejdziesz pod skały — reszta czeka na miejscu.',
       },
       {
-        pytanie: 'Czy dam radę bez przygotowania?',
-        odpowiedz:
+        question: 'Czy dam radę bez przygotowania?',
+        answer:
           'Tak. Kurs jest pisany dla osób, które nigdy nie dotknęły skały. Wystarczy sprawność ' +
           'pozwalająca przejść podejście z plecakiem. Jeśli wspinasz się już na ściance, ' +
           'pierwszego dnia przeskoczymy podstawy i pójdziemy dalej.',
       },
       {
-        pytanie: 'Co przy złej pogodzie?',
-        odpowiedz:
+        question: 'Co przy złej pogodzie?',
+        answer:
           'Mamy na miejscu salę wykładową ze ścianką, więc teoria idzie pod dachem, a zajęcia ' +
           'praktyczne przenosimy. Kurs zawsze kończy się w pełnym wymiarze — zdarzało się, że ' +
           'dokładaliśmy dwa dodatkowe dni w kolejnym miesiącu, bez dopłaty.',
       },
       {
-        pytanie: 'Czy kurs muszę zrobić w jednym ciągu?',
-        odpowiedz:
+        question: 'Czy kurs muszę zrobić w jednym ciągu?',
+        answer:
           'Nie. Jest wariant weekendowy: dwa razy piątek–niedziela w tym samym sezonie. ' +
           'Dla osób pracujących zmianowo dokładamy też grupę w tygodniu.',
       },
       {
-        pytanie: 'Po co mi to zaświadczenie?',
-        odpowiedz:
+        question: 'Po co mi to zaświadczenie?',
+        answer:
           'Pełny kurs skałkowy PZA jest wymagany, żeby dostać skierowanie na kurs taternicki. ' +
           'Poza tym honorują je ścianki i kluby tam, gdzie pytają o przeszkolenie.',
       },
@@ -299,17 +303,17 @@ const KURSY = [
       'Wspinanie na drogach ze stałą asekuracją. Asekuracja górna i dolna, wpinanie, ' +
       'opuszczanie partnera, podstawy zjazdu. Dobry pierwszy kontakt ze skałą.',
     price: 1500,
-    cenaOd: true,
+    priceFrom: true,
     duration: '3 dni',
-    level: 'poczatkujacy' as const,
-    grupaMax: 4,
-    miejsce: 'Rzędkowice',
-    certyfikat: 'zaświadczenie PZA',
-    tytulEn: 'Sport climbing (bolted routes)',
+    level: 'beginner' as const,
+    maxGroupSize: 4,
+    location: 'Rzędkowice',
+    certificate: 'zaświadczenie PZA',
+    titleEn: 'Sport climbing (bolted routes)',
     order: 2,
-    warianty: [
-      { nazwa: 'Trzy dni', cena: 1500 },
-      { nazwa: 'Cztery dni', cena: 1600, opis: 'więcej czasu na drogi własne' },
+    variants: [
+      { name: 'Trzy dni', price: 1500 },
+      { name: 'Cztery dni', price: 1600, note: 'więcej czasu na drogi własne' },
     ],
   },
   {
@@ -320,13 +324,13 @@ const KURSY = [
       'i likwidacja stanowisk. Kontynuacja kursu na drogach ubezpieczonych.',
     price: 1800,
     duration: '4 dni',
-    level: 'sredniozaawansowany' as const,
-    grupaMax: 4,
-    miejsce: 'Jura, rejon dobierany do grupy',
-    certyfikat: 'zaświadczenie PZA',
-    tytulEn: 'Traditional protection',
+    level: 'intermediate' as const,
+    maxGroupSize: 4,
+    location: 'Jura, rejon dobierany do grupy',
+    certificate: 'zaświadczenie PZA',
+    titleEn: 'Traditional protection',
     order: 3,
-    dlaKogo: akapity(
+    audience: richText(
       'Kurs jest kontynuacją szkolenia na drogach ubezpieczonych i wymaga jego ukończenia ' +
         'albo równoważnego doświadczenia. Nie jest to szkolenie od zera.',
       'Po zaliczeniu wyszkolenie odpowiada poziomowi podstawowego kursu skałkowego, ' +
@@ -340,12 +344,12 @@ const KURSY = [
       'Samodzielne korzystanie ze ścianki: sprzęt, węzły, asekuracja górna i dolna, technika ' +
       'ruchu. Sprzęt omawiamy pod kątem pierwszych własnych zakupów.',
     price: 700,
-    cenaOd: true,
+    priceFrom: true,
     duration: 'ok. 16 h, min. 2 dni',
-    level: 'poczatkujacy' as const,
-    grupaMax: 6,
-    certyfikat: 'zaświadczenie PZA',
-    tytulEn: 'Introduction to indoor climbing',
+    level: 'beginner' as const,
+    maxGroupSize: 6,
+    certificate: 'zaświadczenie PZA',
+    titleEn: 'Introduction to indoor climbing',
     order: 4,
   },
   {
@@ -356,9 +360,9 @@ const KURSY = [
       'szkolenia w ramach wyjazdu na sześć do dziesięciu dni.',
     price: 2400,
     duration: '4 dni szkolenia',
-    level: 'zaawansowany' as const,
-    grupaMax: 4,
-    miejsce: 'Austria, Chorwacja, Włochy lub Hiszpania',
+    level: 'advanced' as const,
+    maxGroupSize: 4,
+    location: 'Austria, Chorwacja, Włochy lub Hiszpania',
     order: 5,
   },
   {
@@ -368,13 +372,13 @@ const KURSY = [
       'Szkolenie zawodowe z dostępu linowego. Osobno krótszy wariant obejmujący samą technikę ' +
       'zjazdów.',
     price: 2000,
-    cenaOd: true,
+    priceFrom: true,
     duration: '3 dni',
-    level: 'sredniozaawansowany' as const,
+    level: 'intermediate' as const,
     order: 6,
-    warianty: [
-      { nazwa: 'Pełne szkolenie', cena: 2000, opis: 'trzy dni' },
-      { nazwa: 'Sama technika zjazdów', cena: 1200, opis: 'dostęp linowy' },
+    variants: [
+      { name: 'Pełne szkolenie', price: 2000, note: 'trzy dni' },
+      { name: 'Sama technika zjazdów', price: 1200, note: 'dostęp linowy' },
     ],
   },
   {
@@ -385,304 +389,304 @@ const KURSY = [
       'wyjściem — technika, konkretna droga, przygotowanie do kursu.',
     price: null,
     duration: 'do uzgodnienia',
-    level: 'zaawansowany' as const,
-    grupaMax: 1,
-    tytulEn: 'Private guiding, one to one',
+    level: 'advanced' as const,
+    maxGroupSize: 1,
+    titleEn: 'Private guiding, one to one',
     order: 7,
   },
 ]
 
 /**
- * Obozy, wyjazdy i zajęcia — z realnej oferty JURA LATO 2026.
+ * Camps, trips and classes — from the real JURA LATO 2026 offer.
  *
- * Oznaczenia R i Z pochodzą ze starej strony: R to turnusy rekreacyjno-
- * -przygodowe dla niezaawansowanych, Z — dla uczestników po kursach.
+ * The R and Z markings come from the old site: R are recreational/adventure
+ * sessions for beginners, Z are for participants who have done a course.
  */
-const OBOZY = [
+const CAMPS = [
   {
     slug: 'oboz-przygodowy',
     title: 'Obóz wspinaczkowo-przygodowy',
-    typ: 'oboz' as const,
+    kind: 'camp' as const,
     summary:
       'Osiem dni na Jurze dla tych, którzy dopiero zaczynają. Wspinanie na wędce, jaskinie, ' +
       'mosty linowe i gry terenowe. Nocleg w pokojach z łazienkami i pełne wyżywienie.',
-    poziom: 'rekreacyjny' as const,
-    wiekOd: 8,
-    wiekDo: 16,
-    cena: 2500,
-    czas: '8 dni',
-    grupaMax: 8,
-    miejsce: 'Rzędkowice',
-    nocleg: true,
-    wyzywienie: true,
-    ikona: 'gory' as const,
+    level: 'recreational' as const,
+    ageFrom: 8,
+    ageTo: 16,
+    price: 2500,
+    duration: '8 dni',
+    maxGroupSize: 8,
+    location: 'Rzędkowice',
+    accommodation: true,
+    meals: true,
+    icon: 'mountains' as const,
     order: 1,
-    atrakcje: [
-      { pozycja: 'Wspinaczka skałkowa pod okiem instruktorów' },
-      { pozycja: 'Wejścia do jaskiń — bezpiecznych, bez pionowych progów' },
-      { pozycja: 'Mosty linowe i wahadło, czyli skok odwagi' },
-      { pozycja: 'Zjazdy na linie' },
-      { pozycja: 'Marsze na orientację z mapą i gry terenowe' },
-      { pozycja: 'Wycieczka po amonity do kamieniołomu' },
-      { pozycja: 'Strzelanie z łuku i slackline' },
-      { pozycja: 'Wieczorne ognisko' },
+    highlights: [
+      { item: 'Wspinaczka skałkowa pod okiem instruktorów' },
+      { item: 'Wejścia do jaskiń — bezpiecznych, bez pionowych progów' },
+      { item: 'Mosty linowe i wahadło, czyli skok odwagi' },
+      { item: 'Zjazdy na linie' },
+      { item: 'Marsze na orientację z mapą i gry terenowe' },
+      { item: 'Wycieczka po amonity do kamieniołomu' },
+      { item: 'Strzelanie z łuku i slackline' },
+      { item: 'Wieczorne ognisko' },
     ],
-    planDnia: [
+    dailySchedule: [
       {
-        godzina: '08:00',
-        tytul: 'Śniadanie i odprawa',
-        opis: 'Plan dnia, przydział grup, przegląd sprzętu i prognozy.',
+        time: '08:00',
+        title: 'Śniadanie i odprawa',
+        description: 'Plan dnia, przydział grup, przegląd sprzętu i prognozy.',
       },
       {
-        godzina: '09:30',
-        tytul: 'Wyjście w skały',
-        opis: 'Rzędkowice, Podlesice albo Kroczyce — rejon dobierany do grupy i pogody.',
+        time: '09:30',
+        title: 'Wyjście w skały',
+        description: 'Rzędkowice, Podlesice albo Kroczyce — rejon dobierany do grupy i pogody.',
       },
       {
-        godzina: '16:00',
-        tytul: 'Powrót i obiad',
-        opis: 'Czas wolny i regeneracja. Przy upałach wyjazd nad zalew.',
+        time: '16:00',
+        title: 'Powrót i obiad',
+        description: 'Czas wolny i regeneracja. Przy upałach wyjazd nad zalew.',
       },
       {
-        godzina: '19:00',
-        tytul: 'Teoria i ognisko',
-        opis: 'Węzły, czytanie topo, historia wspinania na Jurze. Potem ognisko.',
+        time: '19:00',
+        title: 'Teoria i ognisko',
+        description: 'Węzły, czytanie topo, historia wspinania na Jurze. Potem ognisko.',
       },
     ],
   },
   {
     slug: 'oboz-dla-zaawansowanych',
     title: 'Obóz dla zaawansowanych',
-    typ: 'oboz' as const,
+    kind: 'camp' as const,
     summary:
       'Turnus dla uczestników po kursie wspinaczkowym. Więcej samodzielności, trudniejsze ' +
       'drogi i wyjazd w Sudety zamiast na Jurę.',
-    poziom: 'zaawansowany' as const,
-    wiekOd: 12,
-    wiekDo: 18,
-    cena: 2800,
-    czas: '9 dni',
-    grupaMax: 6,
-    miejsce: 'Sudety',
-    nocleg: true,
-    wyzywienie: true,
-    ikona: 'gory' as const,
+    level: 'advanced' as const,
+    ageFrom: 12,
+    ageTo: 18,
+    price: 2800,
+    duration: '9 dni',
+    maxGroupSize: 6,
+    location: 'Sudety',
+    accommodation: true,
+    meals: true,
+    icon: 'mountains' as const,
     order: 2,
-    atrakcje: [
-      { pozycja: 'Drogi wielowyciągowe' },
-      { pozycja: 'Samodzielne prowadzenie pod okiem instruktora' },
-      { pozycja: 'Praca w linie i autoratownictwo' },
-      { pozycja: 'Planowanie dnia w rejonie' },
+    highlights: [
+      { item: 'Drogi wielowyciągowe' },
+      { item: 'Samodzielne prowadzenie pod okiem instruktora' },
+      { item: 'Praca w linie i autoratownictwo' },
+      { item: 'Planowanie dnia w rejonie' },
     ],
   },
   {
     slug: 'wycieczki-i-zielone-szkoly',
     title: 'Wycieczki i zielone szkoły',
-    typ: 'wyjazd' as const,
+    kind: 'trip' as const,
     summary:
       'Obsługa wycieczek szkolnych — od kilkugodzinnych zajęć w plenerze po komplet ' +
       'z transportem, noclegiem i wyżywieniem. Dla grup szkolnych, firm i rodzin.',
-    cena: null,
-    czas: 'od kilku godzin do kilku dni',
-    grupaMax: 25,
-    miejsce: 'Jura Krakowsko-Częstochowska',
-    ikona: 'ludzie' as const,
+    price: null,
+    duration: 'od kilku godzin do kilku dni',
+    maxGroupSize: 25,
+    location: 'Jura Krakowsko-Częstochowska',
+    icon: 'people' as const,
     order: 3,
-    atrakcje: [
-      { pozycja: 'Wspinaczka skałkowa' },
-      { pozycja: 'Mosty linowe i wahadło linowe' },
-      { pozycja: 'Wejścia do jaskiń' },
-      { pozycja: 'Marsze na orientację' },
-      { pozycja: 'Strzelanie z łuku, slackline, gry terenowe' },
+    highlights: [
+      { item: 'Wspinaczka skałkowa' },
+      { item: 'Mosty linowe i wahadło linowe' },
+      { item: 'Wejścia do jaskiń' },
+      { item: 'Marsze na orientację' },
+      { item: 'Strzelanie z łuku, slackline, gry terenowe' },
     ],
   },
   {
     slug: 'wyjscia-jaskiniowe',
     title: 'Wyjścia jaskiniowe',
-    typ: 'wyjazd' as const,
+    kind: 'trip' as const,
     summary:
       'Jura ma pod ziemią drugie tyle co nad nią. Wchodzimy w jaskinie o stabilnej skale, ' +
       'bez luźnych kamieni w stropie — w kaskach, z oświetleniem i liną tam, gdzie trzeba.',
-    cena: null,
-    czas: 'pół dnia',
-    grupaMax: 8,
-    miejsce: 'Jaskinia Berkowa, Jaskinia Sucha w Mirowie',
-    ikona: 'tarcza' as const,
+    price: null,
+    duration: 'pół dnia',
+    maxGroupSize: 8,
+    location: 'Jaskinia Berkowa, Jaskinia Sucha w Mirowie',
+    icon: 'shield' as const,
     order: 4,
   },
   {
     slug: 'zajecia-dla-dzieci',
     title: 'Cotygodniowe zajęcia dla dzieci',
-    typ: 'zajecia' as const,
+    kind: 'classes' as const,
     summary:
       'Treningi przez cały rok: zimą na ściance, od maja w skale. Nacisk na technikę ' +
       'i pewność ruchu, bez wyścigu o trudności i bez obciążeń, które szkodzą rosnącym stawom.',
-    cena: null,
-    czas: '1,5 h tygodniowo',
-    wiekOd: 7,
-    wiekDo: 15,
-    grupaMax: 8,
-    ikona: 'ludzie' as const,
+    price: null,
+    duration: '1,5 h tygodniowo',
+    ageFrom: 7,
+    ageTo: 15,
+    maxGroupSize: 8,
+    icon: 'people' as const,
     order: 5,
   },
 ]
 
 /**
- * Turnusy i terminy.
+ * Sessions and dates.
  *
- * ⚠️ Układ turnusów i CENY pochodzą z prawdziwej oferty JURA LATO 2026 ze
- * starej strony (cztery turnusy: dwa lipcowe, jeden sierpniowy, jeden dla
- * zaawansowanych w Sudetach). Same DATY przesunęliśmy o sezon do przodu, bo
- * lato 2026 już minęło — terminy z przeszłości są odfiltrowywane, więc strona
- * wyglądałaby na pustą, czyli dokładnie odwrotnie, niż ma działać treść
- * startowa.
+ * ⚠️ The arrangement of camp sessions and the PRICES come from the real JURA
+ * LATO 2026 offer on the old site (four sessions: two in July, one in August,
+ * one for advanced participants in the Sudetes). Only the DATES were moved a
+ * season forward, because summer 2026 has passed — past sessions are filtered
+ * out, so the site would look empty, which is exactly the opposite of what
+ * starting content is for.
  *
- * Krzysiek musi potwierdzić faktyczne daty sezonu 2027. Terminy kursów są
- * wyłącznie poglądowe: stara strona podaje jedynie, że sezon trwa od kwietnia
- * do października, a zajęcia zaczynają się w sobotę albo poniedziałek.
+ * The client has to confirm the actual 2027 season dates. The course dates are
+ * purely indicative: the old site only states that the season runs from April
+ * to October and that classes start on a Saturday or a Monday.
  */
-const TERMINY = [
-  // Obozy — daty rzeczywiste.
+const SESSIONS = [
+  // Camps — real dates.
   {
-    oboz: 'oboz-przygodowy',
-    dataOd: '2027-06-26',
-    dataDo: '2027-07-03',
-    cena: 2500,
-    wolneMiejsca: 3,
-    uwagi: 'turnus 1R',
+    camp: 'oboz-przygodowy',
+    startDate: '2027-06-26',
+    endDate: '2027-07-03',
+    price: 2500,
+    spotsLeft: 3,
+    note: 'turnus 1R',
   },
   {
-    oboz: 'oboz-dla-zaawansowanych',
-    dataOd: '2027-07-10',
-    dataDo: '2027-07-18',
-    cena: 2800,
-    wolneMiejsca: 0,
-    status: 'brak-miejsc' as const,
-    uwagi: 'turnus 2Z',
+    camp: 'oboz-dla-zaawansowanych',
+    startDate: '2027-07-10',
+    endDate: '2027-07-18',
+    price: 2800,
+    spotsLeft: 0,
+    status: 'waitlist' as const,
+    note: 'turnus 2Z',
   },
   {
-    oboz: 'oboz-przygodowy',
-    dataOd: '2027-07-23',
-    dataDo: '2027-07-30',
-    cena: 2500,
-    wolneMiejsca: 6,
-    uwagi: 'turnus 3R',
+    camp: 'oboz-przygodowy',
+    startDate: '2027-07-23',
+    endDate: '2027-07-30',
+    price: 2500,
+    spotsLeft: 6,
+    note: 'turnus 3R',
   },
   {
-    oboz: 'oboz-przygodowy',
-    dataOd: '2027-08-21',
-    dataDo: '2027-08-28',
-    cena: 2500,
-    wolneMiejsca: 8,
-    uwagi: 'turnus 4R',
+    camp: 'oboz-przygodowy',
+    startDate: '2027-08-21',
+    endDate: '2027-08-28',
+    price: 2500,
+    spotsLeft: 8,
+    note: 'turnus 4R',
   },
-  // Kursy — daty poglądowe do podmiany w panelu.
+  // Courses — indicative dates, to be replaced in the panel.
   {
-    kurs: 'kurs-wspinaczki-skalnej-pza',
-    dataOd: '2027-05-01',
-    dataDo: '2027-05-06',
-    wolneMiejsca: 2,
-  },
-  {
-    kurs: 'kurs-na-drogach-ubezpieczonych',
-    dataOd: '2027-05-15',
-    dataDo: '2027-05-17',
-    wolneMiejsca: 4,
+    course: 'kurs-wspinaczki-skalnej-pza',
+    startDate: '2027-05-01',
+    endDate: '2027-05-06',
+    spotsLeft: 2,
   },
   {
-    kurs: 'kurs-wspinaczki-skalnej-pza',
-    dataOd: '2027-05-29',
-    dataDo: '2027-06-03',
-    wolneMiejsca: 4,
+    course: 'kurs-na-drogach-ubezpieczonych',
+    startDate: '2027-05-15',
+    endDate: '2027-05-17',
+    spotsLeft: 4,
   },
   {
-    kurs: 'kurs-asekuracji-tradycyjnej',
-    dataOd: '2027-06-05',
-    dataDo: '2027-06-08',
-    wolneMiejsca: 3,
+    course: 'kurs-wspinaczki-skalnej-pza',
+    startDate: '2027-05-29',
+    endDate: '2027-06-03',
+    spotsLeft: 4,
   },
   {
-    kurs: 'kurs-wspinaczki-skalnej-pza',
-    dataOd: '2027-06-19',
-    dataDo: '2027-06-24',
-    wolneMiejsca: 0,
-    status: 'brak-miejsc' as const,
+    course: 'kurs-asekuracji-tradycyjnej',
+    startDate: '2027-06-05',
+    endDate: '2027-06-08',
+    spotsLeft: 3,
   },
   {
-    kurs: 'kurs-wspinaczki-skalnej-pza',
-    dataOd: '2026-10-10',
-    dataDo: '2026-10-15',
-    wolneMiejsca: 4,
-    uwagi: 'ostatni termin w sezonie',
+    course: 'kurs-wspinaczki-skalnej-pza',
+    startDate: '2027-06-19',
+    endDate: '2027-06-24',
+    spotsLeft: 0,
+    status: 'waitlist' as const,
+  },
+  {
+    course: 'kurs-wspinaczki-skalnej-pza',
+    startDate: '2026-10-10',
+    endDate: '2026-10-15',
+    spotsLeft: 4,
+    note: 'ostatni termin w sezonie',
   },
 ]
 
 /**
- * Opinie — PRAWDZIWE wypowiedzi ze starej strony abcwspinania.info.
+ * Testimonials — REAL statements from the old abcwspinania.info site.
  *
- * Przepisane bez zmian w treści; poprawione wyłącznie oczywiste literówki
- * i brakujące polskie znaki (stara strona miała je pogubione). Podpisy takie,
- * jak były: imiona kursantów, inicjały rodziców. Nikt nie występuje pod pełnym
- * nazwiskiem.
+ * Transcribed without changes to the wording; only obvious typos and missing
+ * Polish diacritics were corrected (the old site had lost them). The
+ * attributions are as they were: participants' first names, parents' initials.
+ * Nobody appears under a full surname.
  *
- * ⚠️ Do potwierdzenia z Krzyśkiem, czy wszyscy autorzy nadal godzą się na
- * publikację — dlatego `opublikowana` ustawiamy świadomie, wpis po wpisie,
- * a nie hurtem.
+ * ⚠️ To be confirmed with the client whether every author still consents to
+ * publication — which is why `published` is set deliberately, entry by entry,
+ * rather than wholesale.
  */
-const STRONA_O_NAS = {
-  tytul: 'Prawie pięćdziesiąt lat w skale',
-  wstep:
+const ABOUT_PAGE = {
+  title: 'Prawie pięćdziesiąt lat w skale',
+  intro:
     'ABC Wspinania to szkoła z licencją Polskiego Związku Alpinizmu, działająca na Jurze ' +
     'Krakowsko-Częstochowskiej. Prowadzi ją Krzysztof Wróbel — instruktor PZA, sędzia ' +
     'wspinaczki sportowej i ekiper Związku.\n\n' +
     'Nie prowadzimy kursów masowych. Czterech uczestników na instruktora to nie hasło ' +
     'reklamowe, tylko limit z przepisów PZA i warunek tego, żeby każdy wspinał się ' +
     'codziennie i był widziany przez cały dzień.',
-  powodyLicencji: [
+  licenceReasons: [
     {
-      tytul: 'Uprawnienia są weryfikowane',
-      opis:
+      title: 'Uprawnienia są weryfikowane',
+      description:
         'Instruktor PZA przechodzi kwalifikację, egzamin, trzy staże, a potem okresowe ' +
         'unifikacje. Tytuł „instruktor wspinaczki" sam w sobie nie jest w Polsce chroniony — ' +
         'licencja Związku tak, a jej numer można sprawdzić na liście PZA.',
     },
     {
-      tytul: 'Program jest określony',
-      opis:
+      title: 'Program jest określony',
+      description:
         'Kurs skałkowy ma ustalony minimalny wymiar: sześć dni, z czego co najmniej pięć ' +
         'w terenie, oraz spisany zakres tematów. Nie da się go skrócić do weekendu i nazwać ' +
         'tak samo.',
     },
     {
-      tytul: 'Zaświadczenie coś znaczy',
-      opis:
+      title: 'Zaświadczenie coś znaczy',
+      description:
         'Pełny kurs skałkowy PZA jest wymagany, żeby otrzymać skierowanie na kurs taternicki. ' +
         'Poza tym honorują go ścianki i kluby tam, gdzie pytają o przeszkolenie.',
     },
   ],
-  oJurze:
+  aboutJura:
     'Jura Krakowsko-Częstochowska to najstarszy rejon wspinaczkowy w Polsce — pierwsze drogi ' +
     'poprowadzono tu jeszcze przed wojną. Baza szkoły stoi w Rzędkowicach od 2002 roku, ' +
     'kwadrans marszu od skał. Wapień się jednak zużywa: chwyty, które dwadzieścia lat temu ' +
     'były ostre, są dziś wypolerowane, a kilka klasycznych dróg jest realnie trudniejszych, ' +
     'niż mówi ich wycena.',
-  liczbyJura: [
-    { wartosc: '1933', opis: 'pierwsze udokumentowane drogi na Jurze' },
-    { wartosc: '~3 500', opis: 'dróg w rejonach, w których szkolimy' },
-    { wartosc: '15 min', opis: 'marszu pod skały z naszej bazy' },
-    { wartosc: 'III–IX', opis: 'zakres trudności dostępny na miejscu' },
+  juraFacts: [
+    { value: '1933', caption: 'pierwsze udokumentowane drogi na Jurze' },
+    { value: '~3 500', caption: 'dróg w rejonach, w których szkolimy' },
+    { value: '15 min', caption: 'marszu pod skały z naszej bazy' },
+    { value: 'III–IX', caption: 'zakres trudności dostępny na miejscu' },
   ],
 }
 
-/** Strona po angielsku — treść przepisana z sekcji „In English" starej strony. */
-const STRONA_EN = {
+/** The English page — copy transcribed from the old site's "In English" section. */
+const ENGLISH_PAGE = {
   badge: 'Licensed by the Polish Mountaineering Association',
-  tytul: 'Learn to climb on Polish Jura limestone',
+  title: 'Learn to climb on Polish Jura limestone',
   lead:
     'Rock climbing courses in English, led by instructors licensed by the Polish ' +
     'Mountaineering Association. Four climbers per instructor, six days on real ' +
     'limestone, certificate on completion.',
-  oNas:
+  about:
     'ABC Wspinania is a climbing school based in Rzędkowice, in the Kraków-Częstochowa ' +
     'Upland — the oldest climbing region in Poland, with roughly 3,500 routes within ' +
     'a fifteen-minute walk of our base.\n\n' +
@@ -695,35 +699,35 @@ const STRONA_EN = {
     'We do not run mass courses. A maximum of four participants per instructor is not ' +
     'a marketing line — it is the regulatory limit, and the condition for everyone ' +
     'climbing every day rather than queuing below a route.',
-  baza:
+  accommodation:
     'The school has its own base ten to fifteen minutes from the crags: rooms with ' +
     'private bathrooms, a shared kitchen and a lecture room with a climbing wall. ' +
     'Accommodation costs 70 PLN per night and is not included in the course price. ' +
     'Sleeping bags are not needed.',
-  sezon:
+  season:
     'The main season runs from May to September; courses usually start on a Saturday or ' +
     'a Monday. In March, April and October dates are arranged individually. There is also ' +
     'a weekend format for people who cannot take six days off in a row.',
-  dojazd:
+  directions:
     'Rzędkowice is about an hour by car from Kraków and from Katowice, both served by ' +
     'international airports. By train, take a service to Zawiercie and continue by bus ' +
     'towards Kroczyce.\n\n' +
     'Write or call in English. We confirm the date by email before asking for any deposit.',
-  kursOpis:
+  coursesNote:
     'Prices cover the training itself: an instructor, all technical equipment (harness, ' +
     'helmet, shoes, ropes and hardware) and a certificate. Accommodation, meals and travel ' +
     'are not included.',
 }
 
-const OPINIE = [
+const TESTIMONIALS = [
   {
-    autor: 'Kasia',
-    czego: 'kurs-skalkowy' as const,
-    termin: 'maj 2017',
-    opublikowana: true,
-    naStronieGlownej: true,
+    author: 'Kasia',
+    subject: 'rock-course' as const,
+    period: 'maj 2017',
+    published: true,
+    onHomepage: true,
     order: 1,
-    tresc:
+    quote:
       'Cała nasza grupa była zachwycona zajęciami, zarówno częścią praktyczną w terenie ' +
       '(bakcyl wspinania złapany bezpowrotnie), jak i wykładami. Daleko im było do nudnego ' +
       'wyobrażenia o wykładach — moglibyśmy słuchać godzinami opowieści, które nam ' +
@@ -733,12 +737,12 @@ const OPINIE = [
       'każde pytanie. Takich nauczycieli spotyka się niezwykle rzadko.',
   },
   {
-    autor: 'Maciek i Lidka',
-    czego: 'kurs-skalkowy' as const,
-    termin: 'wiosna 2014',
-    opublikowana: true,
+    author: 'Maciek i Lidka',
+    subject: 'rock-course' as const,
+    period: 'wiosna 2014',
+    published: true,
     order: 2,
-    tresc:
+    quote:
       'Dla mnie wspinanie to kontynuacja pasji, a dla Lidii była to zupełna nowość. ' +
       'Postanowiliśmy zacząć wszystko od początku, od kursu skałkowego ze skierowaniem na ' +
       'kurs taternicki. Pogoda nie rozpieszczała, ale właśnie taka pozwala lepiej się skupić ' +
@@ -749,13 +753,13 @@ const OPINIE = [
       'dla nas drogami w wapieniach czy tatrzańskich granitach, zawdzięczamy tej szkole.',
   },
   {
-    autor: 'Ania',
-    czego: 'kurs-skalkowy' as const,
-    termin: 'październik 2011',
-    opublikowana: true,
-    naStronieGlownej: true,
+    author: 'Ania',
+    subject: 'rock-course' as const,
+    period: 'październik 2011',
+    published: true,
+    onHomepage: true,
     order: 3,
-    tresc:
+    quote:
       'Pierwszy raz widzę skałę, pierwszy raz jej dotykam, nie mówiąc o wchodzeniu na to ' +
       'coś — emocje nie do opisania. Sto procent pozytywnej energii, dwieście procent ' +
       'cierpliwości i spokoju. Takich słów wcześniej nie znałam, wieczorem wszystko ' +
@@ -765,12 +769,12 @@ const OPINIE = [
       'nie odesłałeś do domu.',
   },
   {
-    autor: 'Piotr',
-    czego: 'kurs-skalkowy' as const,
-    termin: '2012',
-    opublikowana: true,
+    author: 'Piotr',
+    subject: 'rock-course' as const,
+    period: '2012',
+    published: true,
     order: 4,
-    tresc:
+    quote:
       'Część praktyczna kursu u Krzyśka była bardzo dobrym zakończeniem kursu ' +
       'wspinaczkowego w klubie wysokogórskim, ale też okazją do nauczenia się czegoś ' +
       'zupełnie nowego — zarówno z techniki, jak i z taktyki wspinania. Cała nasza ' +
@@ -780,20 +784,20 @@ const OPINIE = [
       'w obozach przygodowo-wspinaczkowych.',
   },
   {
-    autor: 'Mama Jarka',
-    czego: 'oboz' as const,
-    opublikowana: true,
+    author: 'Mama Jarka',
+    subject: 'camp' as const,
+    published: true,
     order: 5,
-    tresc:
+    quote:
       'Już po obozie mogę powiedzieć, że to był pierwszy wyjazd Jarka bez mamy i z całkiem ' +
       'nowymi dla niego ludźmi. Dziękuję jeszcze raz za to, że tak dobrze wszystko poszło.',
   },
   {
-    autor: 'Rodzice uczestniczki',
-    czego: 'oboz' as const,
-    opublikowana: true,
+    author: 'Rodzice uczestniczki',
+    subject: 'camp' as const,
+    published: true,
     order: 6,
-    tresc:
+    quote:
       'Nie dzwoniliśmy w niedzielę, bo byliśmy pewni, że ma Pan urwanie głowy. Chcemy bardzo ' +
       'podziękować za ten obóz. Sądząc po zdjęciach i relacjach dzieci, wspinanie było ' +
       'naprawdę poważne, a jednocześnie bezpieczne. Na dodatek dzieci zaliczyły dużo ' +
@@ -801,25 +805,25 @@ const OPINIE = [
       'doceniają, ale my owszem.',
   },
   {
-    autor: 'B.',
-    czego: 'oboz' as const,
-    opublikowana: true,
+    author: 'B.',
+    subject: 'camp' as const,
+    published: true,
     order: 7,
-    tresc:
+    quote:
       'Dziękujemy za bardzo udany obóz. Małgosia już zgłasza chęć wzięcia udziału ' +
       'w przyszłorocznym, wspominała też o turnusie ze starszymi dziećmi, o którym Pan ' +
       'jej mówił. Mam nadzieję, że w przyszłym roku uda się zgrać terminy.',
   },
 ]
 
-/** Kadra. Dane z podpisu Krzysztofa Wróbla pod tekstami na starej stronie. */
-const INSTRUKTORZY = [
+/** Staff. Details taken from the author byline under texts on the old site. */
+const INSTRUCTORS = [
   {
-    imie: 'Krzysztof Wróbel',
-    rola: 'Szef szkoły, instruktor PZA',
-    licencja: 'PZA 366/WS, uprawnienia państwowe IS 182/K/2002',
+    name: 'Krzysztof Wróbel',
+    role: 'Szef szkoły, instruktor PZA',
+    license: 'PZA 366/WS, uprawnienia państwowe IS 182/K/2002',
     order: 1,
-    opis:
+    bio:
       'Wspina się od blisko pięćdziesięciu lat, z Klubem Wysokogórskim Gliwice związany od ' +
       '1982 roku. Instruktor Polskiego Związku Alpinizmu, licencjonowany sędzia wspinaczki ' +
       'sportowej i ekiper PZA, autor nowych dróg i przewodnika wspinaczkowego. Organizator ' +
@@ -829,24 +833,24 @@ const INSTRUKTORZY = [
 ]
 
 /**
- * Wpisy — przepisane teksty ze starej strony.
+ * Posts — texts rewritten from the old site.
  *
- * Treść merytoryczna zostaje, redakcja jest nowa: stare wersje niosły
- * pozostałości po pozycjonowaniu z czasów Joomli (powtarzane frazy
- * „kurs wspinaczkowy", „szkoła wspinania") i sporo literówek.
+ * The substance stays, the editing is new: the old versions carried leftovers
+ * of Joomla-era SEO (the phrases "kurs wspinaczkowy" and "szkoła wspinania"
+ * repeated over and over) and a good number of typos.
  */
-const WPISY = [
+const POSTS = [
   {
     slug: '25-lat-abc-wspinania',
     title: '25 lat ABC Wspinania',
-    kategoria: 'z-zycia-szkoly' as const,
+    category: 'school-life' as const,
     publishedAt: '2026-09-12',
-    wyrozniony: true,
+    featured: true,
     lead:
       'Rok 2026 to dwudziesty piąty sezon działania szkoły. O tym, co się przez ten czas ' +
       'zmieniło w sprzęcie, w rejonie i w ludziach, którzy przyjeżdżają się uczyć — i co ' +
       'zostało dokładnie takie samo.',
-    tresc: akapity(
+    content: richText(
       'Czas leci szybko i trudno powiedzieć, kiedy to się stało, ale wygląda na to, że mamy ' +
         'okrągłą rocznicę. Rok 2026 to dwudziesty piąty sezon działania ABC Wspinania.',
       h2('Priorytety, które się nie zmieniły'),
@@ -893,12 +897,12 @@ const WPISY = [
   {
     slug: 'dlaczego-instruktor-pza',
     title: 'Jak sprawdzić instruktora, zanim zapiszesz się na kurs',
-    kategoria: 'poradniki' as const,
+    category: 'guides' as const,
     publishedAt: '2026-08-14',
     lead:
       'Polskie prawo nie zabrania szkolić osobom bez żadnych uprawnień. Strona internetowa ' +
       'z nazwą „szkoła wspinania" nie znaczy więc nic. Oto trzy pytania, które warto zadać.',
-    tresc: akapity(
+    content: richText(
       h2('Trzy kategorie instruktorów'),
       'Instruktorów wspinaczki dzieli się w Polsce na trzy kategorie: instruktorzy Polskiego ' +
         'Związku Alpinizmu, instruktorzy sportu i instruktorzy rekreacji ruchowej. Z tego grona ' +
@@ -931,12 +935,12 @@ const WPISY = [
   {
     slug: 'wspinanie-i-dzieci',
     title: 'Od kiedy dziecko może się wspinać',
-    kategoria: 'poradniki' as const,
+    category: 'guides' as const,
     publishedAt: '2026-07-22',
     lead:
       'Nie ma ograniczeń formalnych ani zdrowotnych, żeby czterolatek nie mógł się wspinać. ' +
       'Jest za to kilka rzeczy, które warto wiedzieć — zwłaszcza gdy dziecko się boi.',
-    tresc: akapity(
+    content: richText(
       'Wspinanie jest aktywnością bardzo wszechstronną: angażuje wszystkie partie mięśni, ' +
         'wymaga kontroli równowagi i — co ważne — świadomego wysiłku umysłowego przy ' +
         'planowaniu kolejnych ruchów w zmiennym terenie. Różnorodność układów ciała ' +
@@ -973,12 +977,12 @@ const WPISY = [
   {
     slug: 'jaskinia-berkowa',
     title: 'Byliśmy w Jaskini Berkowej',
-    kategoria: 'relacje' as const,
+    category: 'reports' as const,
     publishedAt: '2026-06-18',
     lead:
       'Kilkadziesiąt metrów kreciej norki robi na wszystkich wielkie wrażenie. Relacja ' +
       'z wyjścia jaskiniowego poza programem kursu.',
-    tresc: akapity(
+    content: richText(
       'Byliśmy z dzieciakami w Jaskini Berkowej, nazywanej dawniej w kręgach turystycznych ' +
         '„kalesonową" — ze względu na zaciskowy charakter osoby tęższe wychodziły z niej ' +
         'czasem bez spodni, nie zauważając tego faktu. Dziś jaskinia jest znacznie poszerzona, ' +
@@ -998,159 +1002,161 @@ const WPISY = [
 ]
 
 /**
- * ⚠️ Zawartość skryptu leci na GÓRNYM POZIOMIE modułu, a nie w `main()`.
+ * ⚠️ The body of the script runs at the MODULE TOP LEVEL, not inside `main()`.
  *
- * Zmierzone: `payload run` kończy proces, gdy skończy się ewaluacja modułu.
- * Wywołanie `main()` bez `await` (nawet z `.catch()`) zwraca sterowanie
- * natychmiast, więc runner gasi proces w środku `getPayload()` — BEZ błędu
- * i z kodem wyjścia 0. Objaw: skrypt „przechodzi", a w bazie nie ma nic.
- * Top-level await wstrzymuje ewaluację i to naprawia.
+ * Measured: `payload run` ends the process once module evaluation finishes.
+ * Calling `main()` without `await` (even with `.catch()`) returns control
+ * immediately, so the runner kills the process in the middle of `getPayload()`
+ * — with NO error and exit code 0. The symptom: the script "passes" and the
+ * database is empty. Top-level await suspends evaluation and fixes it.
  */
 const payload = await getPayload({ config })
 
-await payload.updateGlobal({ slug: 'ustawienia', data: USTAWIENIA })
-payload.logger.info('Ustawienia serwisu zapisane.')
+await payload.updateGlobal({ slug: 'site-config', data: SITE_CONFIG })
+payload.logger.info('Site config saved.')
 
-await payload.updateGlobal({ slug: 'strona-glowna', data: STRONA_GLOWNA })
-payload.logger.info('Treść strony głównej zapisana.')
+await payload.updateGlobal({ slug: 'home-page', data: HOME_PAGE })
+payload.logger.info('Homepage content saved.')
 
-for (const kurs of KURSY) {
+for (const course of COURSES) {
   const { docs } = await payload.find({
-    collection: 'kursy',
-    where: { slug: { equals: kurs.slug } },
-    // Jawny limit także tutaj — reguła 3 nie ma wyjątku dla skryptów,
-    // a domyślne 10 przy szukaniu po unikalnym slugu tylko myli.
+    collection: 'courses',
+    where: { slug: { equals: course.slug } },
+    // An explicit limit here too — rule 3 has no exception for scripts, and the
+    // default of 10 when looking up a unique slug is only confusing.
     limit: 1,
   })
 
   if (docs[0]) {
-    await payload.update({ collection: 'kursy', id: docs[0].id, data: kurs })
-    payload.logger.info(`Zaktualizowano kurs: ${kurs.title}`)
+    await payload.update({ collection: 'courses', id: docs[0].id, data: course })
+    payload.logger.info(`Updated course: ${course.title}`)
   } else {
-    await payload.create({ collection: 'kursy', data: kurs })
-    payload.logger.info(`Dodano kurs: ${kurs.title}`)
+    await payload.create({ collection: 'courses', data: course })
+    payload.logger.info(`Added course: ${course.title}`)
   }
 }
 
-// --- Obozy ---
-const idObozu = new Map<string, number>()
-for (const oboz of OBOZY) {
+// --- Camps ---
+const campIds = new Map<string, number>()
+for (const camp of CAMPS) {
   const { docs } = await payload.find({
-    collection: 'obozy',
-    where: { slug: { equals: oboz.slug } },
+    collection: 'camps',
+    where: { slug: { equals: camp.slug } },
     limit: 1,
   })
-  const zapisany = docs[0]
-    ? await payload.update({ collection: 'obozy', id: docs[0].id, data: oboz })
-    : await payload.create({ collection: 'obozy', data: oboz })
-  idObozu.set(oboz.slug, zapisany.id)
-  payload.logger.info(`${docs[0] ? 'Zaktualizowano' : 'Dodano'} obóz: ${oboz.title}`)
+  const saved = docs[0]
+    ? await payload.update({ collection: 'camps', id: docs[0].id, data: camp })
+    : await payload.create({ collection: 'camps', data: camp })
+  campIds.set(camp.slug, saved.id)
+  payload.logger.info(`${docs[0] ? 'Updated' : 'Added'} camp: ${camp.title}`)
 }
 
-// --- Terminy ---
-const idKursu = new Map<string, number>()
-for (const kurs of KURSY) {
+// --- Sessions ---
+const courseIds = new Map<string, number>()
+for (const course of COURSES) {
   const { docs } = await payload.find({
-    collection: 'kursy',
-    where: { slug: { equals: kurs.slug } },
+    collection: 'courses',
+    where: { slug: { equals: course.slug } },
     limit: 1,
   })
-  if (docs[0]) idKursu.set(kurs.slug, docs[0].id)
+  if (docs[0]) courseIds.set(course.slug, docs[0].id)
 }
 
-// Terminy nie mają sluga ani żadnego innego naturalnego klucza — jedyne, co je
-// odróżnia, to para (data, powiązanie). Gdybyśmy dopasowywali po niej, zmiana
-// daty w tym pliku NIE zaktualizowałaby wpisu, tylko dołożyła drugi obok
-// starego. Zmierzone: po przesunięciu sezonu w bazie zrobiło się 20 terminów
-// zamiast 10.
+// Sessions have no slug or any other natural key — the only thing telling them
+// apart is the (date, relation) pair. Matching on that would mean a change of
+// date in this file does NOT update the entry but adds a second one next to the
+// old. Measured: after moving the season forward the database held 20 sessions
+// instead of 10.
 //
-// Dlatego terminy kasujemy w całości i zakładamy od nowa. Jest to bezpieczne
-// WYŁĄCZNIE dlatego, że skrypt nie działa na produkcji (blokada na górze
-// pliku), a lokalnie nie ma tu danych, których szkoda.
-const { docs: stareTerminy } = await payload.find({
-  collection: 'terminy',
+// So sessions are deleted wholesale and recreated. That is safe ONLY because
+// the script does not run in production (the guard at the top of this file) and
+// locally there is no data here worth keeping.
+const { docs: oldSessions } = await payload.find({
+  collection: 'sessions',
   limit: 500,
   depth: 0,
 })
-for (const stary of stareTerminy) {
-  await payload.delete({ collection: 'terminy', id: stary.id })
+for (const old of oldSessions) {
+  await payload.delete({ collection: 'sessions', id: old.id })
 }
-if (stareTerminy.length > 0) {
-  payload.logger.info(`Usunięto ${stareTerminy.length} wcześniejszych terminów.`)
+if (oldSessions.length > 0) {
+  payload.logger.info(`Removed ${oldSessions.length} earlier sessions.`)
 }
 
-for (const t of TERMINY) {
-  const powiazanie = t.kurs ? { kurs: idKursu.get(t.kurs) } : { oboz: idObozu.get(t.oboz!) }
-  const id = Object.values(powiazanie)[0]
+for (const session of SESSIONS) {
+  const relation = session.course
+    ? { course: courseIds.get(session.course) }
+    : { camp: campIds.get(session.camp!) }
+  const id = Object.values(relation)[0]
   if (!id) {
-    payload.logger.warn(`Pomijam termin ${t.dataOd} — brak powiązanego wpisu.`)
+    payload.logger.warn(`Skipping session ${session.startDate} — no related entry.`)
     continue
   }
 
   await payload.create({
-    collection: 'terminy',
+    collection: 'sessions',
     data: {
-      ...powiazanie,
-      dataOd: new Date(t.dataOd).toISOString(),
-      dataDo: t.dataDo ? new Date(t.dataDo).toISOString() : undefined,
-      cena: t.cena,
-      wolneMiejsca: t.wolneMiejsca,
-      status: t.status ?? ('otwarty' as const),
-      uwagi: t.uwagi,
+      ...relation,
+      startDate: new Date(session.startDate).toISOString(),
+      endDate: session.endDate ? new Date(session.endDate).toISOString() : undefined,
+      price: session.price,
+      spotsLeft: session.spotsLeft,
+      status: session.status ?? ('open' as const),
+      note: session.note,
     },
   })
 }
-payload.logger.info(`Zapisano ${TERMINY.length} terminów.`)
+payload.logger.info(`Saved ${SESSIONS.length} sessions.`)
 
-await payload.updateGlobal({ slug: 'strona-o-nas', data: STRONA_O_NAS })
-payload.logger.info('Treść strony „O nas" zapisana.')
+await payload.updateGlobal({ slug: 'about-page', data: ABOUT_PAGE })
+payload.logger.info('About page content saved.')
 
-await payload.updateGlobal({ slug: 'strona-en', data: STRONA_EN })
-payload.logger.info('Treść strony po angielsku zapisana.')
+await payload.updateGlobal({ slug: 'english-page', data: ENGLISH_PAGE })
+payload.logger.info('English page content saved.')
 
-// --- Instruktorzy ---
-for (const i of INSTRUKTORZY) {
+// --- Instructors ---
+for (const i of INSTRUCTORS) {
   const { docs } = await payload.find({
-    collection: 'instruktorzy',
-    where: { imie: { equals: i.imie } },
+    collection: 'instructors',
+    where: { name: { equals: i.name } },
     limit: 1,
   })
-  if (docs[0]) await payload.update({ collection: 'instruktorzy', id: docs[0].id, data: i })
-  else await payload.create({ collection: 'instruktorzy', data: i })
+  if (docs[0]) await payload.update({ collection: 'instructors', id: docs[0].id, data: i })
+  else await payload.create({ collection: 'instructors', data: i })
 }
-payload.logger.info(`Zapisano ${INSTRUKTORZY.length} instruktorów.`)
+payload.logger.info(`Saved ${INSTRUCTORS.length} instructors.`)
 
-// --- Opinie ---
-// Rozpoznajemy po podpisie wraz z terminem: sam podpis nie wystarcza, bo
-// „Rodzice uczestniczki" mogliby napisać więcej niż raz.
-for (const o of OPINIE) {
+// --- Testimonials ---
+// Matched on the attribution together with the order: the attribution alone is
+// not enough, because "Rodzice uczestniczki" could have written more than once.
+for (const o of TESTIMONIALS) {
   const { docs } = await payload.find({
-    collection: 'opinie',
+    collection: 'testimonials',
     where: {
-      and: [{ autor: { equals: o.autor } }, { order: { equals: o.order } }],
+      and: [{ author: { equals: o.author } }, { order: { equals: o.order } }],
     },
     limit: 1,
   })
-  if (docs[0]) await payload.update({ collection: 'opinie', id: docs[0].id, data: o })
-  else await payload.create({ collection: 'opinie', data: o })
+  if (docs[0]) await payload.update({ collection: 'testimonials', id: docs[0].id, data: o })
+  else await payload.create({ collection: 'testimonials', data: o })
 }
-payload.logger.info(`Zapisano ${OPINIE.length} opinii.`)
+payload.logger.info(`Saved ${TESTIMONIALS.length} testimonials.`)
 
-// --- Wpisy ---
-for (const w of WPISY) {
-  const dane = { ...w, publishedAt: new Date(w.publishedAt).toISOString() }
+// --- Posts ---
+for (const w of POSTS) {
+  const data = { ...w, publishedAt: new Date(w.publishedAt).toISOString() }
   const { docs } = await payload.find({
-    collection: 'wpisy',
+    collection: 'posts',
     where: { slug: { equals: w.slug } },
     limit: 1,
   })
-  if (docs[0]) await payload.update({ collection: 'wpisy', id: docs[0].id, data: dane })
-  else await payload.create({ collection: 'wpisy', data: dane })
+  if (docs[0]) await payload.update({ collection: 'posts', id: docs[0].id, data: data })
+  else await payload.create({ collection: 'posts', data: data })
 }
-payload.logger.info(`Zapisano ${WPISY.length} wpisów.`)
+payload.logger.info(`Saved ${POSTS.length} posts.`)
 
 payload.logger.info(
-  `Gotowe — ${KURSY.length} kursów, ${OBOZY.length} obozów, ${TERMINY.length} terminów, ` +
-    `${WPISY.length} wpisów, ${OPINIE.length} opinii, 4 globale.`,
+  `Done — ${COURSES.length} courses, ${CAMPS.length} camps, ${SESSIONS.length} sessions, ` +
+    `${POSTS.length} posts, ${TESTIMONIALS.length} testimonials, 4 globals.`,
 )
 process.exit(0)

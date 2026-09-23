@@ -3,27 +3,27 @@ import Image from 'next/image'
 import { notFound } from 'next/navigation'
 
 import { getPost, getPosts, asImage } from '@/lib/content'
-import { czasCzytania, formatData, formatKategoria, spisTresci } from '@/lib/format'
+import { readingTime, formatDate, formatCategory, tableOfContents } from '@/lib/format'
 import { pageMetadata } from '@/lib/seo'
 import { jsonLd } from '@/lib/schema'
 import { SITE_URL, BRAND } from '@/lib/site'
-import { Okruszki } from '@/components/Okruszki'
-import { KafelWpisu } from '@/components/KafelWpisu'
-import { TrescWpisu } from '@/components/TrescWpisu'
-import { Odznaka, Kontener } from '@/components/Ui'
-import { TloGorskie } from '@/components/TloGorskie'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { PostCard } from '@/components/PostCard'
+import { PostContent } from '@/components/PostContent'
+import { Badge, Container } from '@/components/Ui'
+import { MountainBackdrop } from '@/components/MountainBackdrop'
 
 type Props = { params: Promise<{ slug: string }> }
 
 export async function generateStaticParams() {
-  const wpisy = await getPosts()
-  return wpisy.map((w) => ({ slug: w.slug }))
+  const posts = await getPosts()
+  return posts.map((w) => ({ slug: w.slug }))
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
-  const wpis = await getPost(slug)
-  if (!wpis)
+  const post = await getPost(slug)
+  if (!post)
     return pageMetadata({
       title: 'Nie znaleziono wpisu',
       description: '',
@@ -31,92 +31,92 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     })
 
   return pageMetadata({
-    title: wpis.title,
-    description: wpis.lead ?? `${wpis.title} — ${BRAND}.`,
-    path: `/aktualnosci/${wpis.slug}`,
+    title: post.title,
+    description: post.lead ?? `${post.title} — ${BRAND}.`,
+    path: `/aktualnosci/${post.slug}`,
   })
 }
 
-export default async function StronaWpisu({ params }: Props) {
+export default async function PostPage({ params }: Props) {
   const { slug } = await params
-  const wpis = await getPost(slug)
-  if (!wpis) notFound()
+  const post = await getPost(slug)
+  if (!post) notFound()
 
-  const wszystkie = await getPosts()
-  const kategoria = formatKategoria(wpis.kategoria)
-  const spis = spisTresci(wpis.tresc)
-  const cover = asImage(wpis.cover)
+  const all = await getPosts()
+  const category = formatCategory(post.category)
+  const toc = tableOfContents(post.content)
+  const cover = asImage(post.cover)
   const medium = cover?.sizes?.medium
 
-  // „Czytaj dalej": najpierw z tej samej kategorii, potem czymkolwiek — byle
-  // sekcja nie była pusta przy małej liczbie wpisów.
-  const inne = wszystkie.filter((w) => w.id !== wpis.id)
-  const powiazane = [
-    ...inne.filter((w) => w.kategoria === wpis.kategoria),
-    ...inne.filter((w) => w.kategoria !== wpis.kategoria),
+  // "Read next": same category first, then anything — so the section is not
+  // empty while there are few posts.
+  const rest = all.filter((other) => other.id !== post.id)
+  const related = [
+    ...rest.filter((w) => w.category === post.category),
+    ...rest.filter((w) => w.category !== post.category),
   ].slice(0, 3)
 
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'Article',
-    headline: wpis.title,
-    datePublished: wpis.publishedAt,
-    dateModified: wpis.updatedAt,
-    url: `${SITE_URL}/aktualnosci/${wpis.slug}`,
-    ...(wpis.lead ? { description: wpis.lead } : {}),
-    ...(wpis.autor ? { author: { '@type': 'Person', name: wpis.autor } } : {}),
+    headline: post.title,
+    datePublished: post.publishedAt,
+    dateModified: post.updatedAt,
+    url: `${SITE_URL}/aktualnosci/${post.slug}`,
+    ...(post.lead ? { description: post.lead } : {}),
+    ...(post.author ? { author: { '@type': 'Person', name: post.author } } : {}),
     publisher: { '@type': 'Organization', name: BRAND, url: SITE_URL },
   }
 
   return (
     <main>
       <section className="relative isolate overflow-hidden bg-rock-950">
-        <TloGorskie wariant="niski" />
+        <MountainBackdrop variant="short" />
         <div className="absolute inset-0 bg-rock-950/65" />
-        <Kontener className="relative flex flex-col gap-4 py-12 lg:py-16">
-          <Okruszki
-            wariant="naCiemnym"
-            sciezka={[
-              { etykieta: 'Start', href: '/' },
-              { etykieta: 'Aktualności', href: '/aktualnosci' },
-              { etykieta: wpis.title },
+        <Container className="relative flex flex-col gap-4 py-12 lg:py-16">
+          <Breadcrumbs
+            variant="onDark"
+            trail={[
+              { label: 'Start', href: '/' },
+              { label: 'Aktualności', href: '/aktualnosci' },
+              { label: post.title },
             ]}
           />
-          {kategoria && (
+          {category && (
             <span className="self-start">
-              <Odznaka ton="ciemna">{kategoria}</Odznaka>
+              <Badge tone="dark">{category}</Badge>
             </span>
           )}
           <h1 className="max-w-[860px] text-balance text-[32px] leading-[1.05] text-white lg:text-[48px]">
-            {wpis.title}
+            {post.title}
           </h1>
           <div className="flex flex-wrap items-center gap-2 text-sm text-rock-fg">
-            {wpis.autor && (
+            {post.author && (
               <>
-                <span className="font-medium text-white">{wpis.autor}</span>
+                <span className="font-medium text-white">{post.author}</span>
                 <span aria-hidden="true">·</span>
               </>
             )}
-            <time dateTime={wpis.publishedAt.slice(0, 10)}>{formatData(wpis.publishedAt)}</time>
+            <time dateTime={post.publishedAt.slice(0, 10)}>{formatDate(post.publishedAt)}</time>
             <span aria-hidden="true">·</span>
-            <span>{czasCzytania(wpis.tresc)} min czytania</span>
+            <span>{readingTime(post.content)} min czytania</span>
           </div>
-        </Kontener>
+        </Container>
       </section>
 
-      <Kontener className="grid gap-10 py-12 lg:grid-cols-[240px_1fr] lg:gap-16 lg:py-16">
+      <Container className="grid gap-10 py-12 lg:grid-cols-[240px_1fr] lg:gap-16 lg:py-16">
         {/* Spis treści składany z nagłówków w treści — nie ma go w panelu,
             więc nie może się rozjechać z tekstem. */}
-        {spis.length > 1 ? (
+        {toc.length > 1 ? (
           <nav aria-label="Spis treści" className="lg:sticky lg:top-28 lg:self-start">
             <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-[0.06em] text-rock-600">
               W tym tekście
             </h2>
             <ul className="flex flex-col gap-2 border-l border-rock-200 pl-4">
-              {spis.map((p) => (
+              {toc.map((p) => (
                 <li key={p.id}>
                   <a href={`#${p.id}`} className="text-[15px] text-rock-600 hover:text-rope">
-                    {p.etykieta}
+                    {p.label}
                   </a>
                 </li>
               ))}
@@ -138,20 +138,20 @@ export default async function StronaWpisu({ params }: Props) {
             />
           )}
 
-          {wpis.lead && <p className="mb-7 text-[19px] leading-8 text-rock-700">{wpis.lead}</p>}
+          {post.lead && <p className="mb-7 text-[19px] leading-8 text-rock-700">{post.lead}</p>}
 
-          {wpis.tresc && <TrescWpisu tresc={wpis.tresc} />}
+          {post.content && <PostContent content={post.content} />}
 
-          {wpis.autor && (
+          {post.author && (
             <div className="mt-10 flex gap-4 rounded-2xl border border-rock-100 bg-white p-6">
               <span
                 aria-hidden="true"
                 className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-rope text-lg font-semibold text-white"
               >
-                {wpis.autor.charAt(0)}
+                {post.author.charAt(0)}
               </span>
               <div>
-                <h2 className="text-[17px] font-semibold">{wpis.autor}</h2>
+                <h2 className="text-[17px] font-semibold">{post.author}</h2>
                 <p className="mt-1 text-[15px] leading-6 text-rock-600">
                   Instruktor wspinaczki skalnej PZA, prowadzi ABC Wspinania.
                 </p>
@@ -159,19 +159,19 @@ export default async function StronaWpisu({ params }: Props) {
             </div>
           )}
         </article>
-      </Kontener>
+      </Container>
 
-      {powiazane.length > 0 && (
-        <Kontener className="pb-16 lg:pb-24">
+      {related.length > 0 && (
+        <Container className="pb-16 lg:pb-24">
           <h2 className="mb-8 text-[28px] leading-[1.05] lg:text-[36px]">Czytaj dalej</h2>
           <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {powiazane.map((w) => (
+            {related.map((w) => (
               <li key={w.id} className="flex">
-                <KafelWpisu wpis={w} />
+                <PostCard post={w} />
               </li>
             ))}
           </ul>
-        </Kontener>
+        </Container>
       )}
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(schema) }} />

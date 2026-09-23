@@ -3,12 +3,13 @@
 import { useEffect } from 'react'
 
 /**
- * Granica błędu dla całej strony. Musi być komponentem klienckim — tego wymaga
- * Next. Pokazuje komunikat po ludzku i daje przycisk ponowienia, zamiast
- * zostawiać gościa z pustym ekranem.
+ * The error boundary for the whole site. It has to be a client component — Next
+ * requires that. It shows a message in plain language and offers a retry button
+ * instead of leaving the visitor with a blank screen.
  *
- * Treści błędu NIE pokazujemy odwiedzającemu: bywa w niej ścieżka pliku albo
- * fragment zapytania do bazy. Trafia do konsoli, gdzie jest przydatna.
+ * The error text is NOT shown to the visitor: it sometimes contains a file path
+ * or a fragment of a database query. It goes to the console, where it is
+ * useful.
  */
 export default function Error({
   error,
@@ -18,7 +19,7 @@ export default function Error({
   reset: () => void
 }) {
   useEffect(() => {
-    console.error('Błąd renderowania strony:', error)
+    console.error('Page render error:', error)
   }, [error])
 
   return (

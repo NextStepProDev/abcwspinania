@@ -1,21 +1,21 @@
 import type { CollectionConfig } from 'payload'
 
 /**
- * Zapisy na newsletter.
+ * Newsletter subscriptions.
  *
- * Osobna kolekcja od `Wiadomosci`, mimo że obie zbierają adresy e-mail:
- * to inna podstawa przetwarzania (zgoda marketingowa kontra odpowiedź na
- * zapytanie), inny okres przechowywania i inny tryb wycofania. Trzymanie
- * ich razem kończy się wysyłką newslettera do osób, które tylko o coś
- * zapytały.
+ * A separate collection from `Messages`, even though both collect email
+ * addresses: this is a different legal basis for processing (marketing consent
+ * versus answering an enquiry), a different retention period and a different
+ * withdrawal path. Keeping them together ends with the newsletter going out to
+ * people who merely asked a question.
  *
- * Tak jak przy formularzu kontaktowym, ZAPISUJEMY TREŚĆ ZGODY, nie samo
- * „tak" — po zmianie brzmienia klauzuli inaczej nie da się wykazać, na co
- * dana osoba faktycznie się zgodziła.
+ * As with the contact form, WE STORE THE CONSENT TEXT, not a bare "yes" — once
+ * the wording of the clause changes there is otherwise no way to show what a
+ * given person actually agreed to.
  *
- * Wysyłki jeszcze nie ma (Brevo to osobny etap). Zapis do bazy działa od
- * pierwszego dnia i nic nie ginie po drodze — adresy czekają na wpięcie
- * dostawcy.
+ * Sending is not wired up yet (Brevo is a separate stage). Persisting to the
+ * database works from day one and nothing is lost on the way — the addresses
+ * wait for the provider to be plugged in.
  */
 export const Newsletter: CollectionConfig = {
   slug: 'newsletter',
@@ -27,8 +27,8 @@ export const Newsletter: CollectionConfig = {
     description: 'Adresy zapisane przez formularz w stopce. Wysyłki jeszcze nie ma.',
   },
   access: {
-    // Zapisać może każdy — to formularz publiczny. Czytać i kasować tylko
-    // zalogowani: lista adresów to dane osobowe.
+    // Anyone may subscribe — this is a public form. Only authenticated users
+    // may read or delete: a list of addresses is personal data.
     create: () => true,
     read: ({ req }) => Boolean(req.user),
     update: ({ req }) => Boolean(req.user),
@@ -50,19 +50,19 @@ export const Newsletter: CollectionConfig = {
     {
       name: 'status',
       type: 'select',
-      defaultValue: 'zapisany',
+      defaultValue: 'subscribed',
       required: true,
       label: 'Status',
       options: [
-        { label: 'zapisany', value: 'zapisany' },
-        { label: 'wypisany', value: 'wypisany' },
+        { label: 'zapisany', value: 'subscribed' },
+        { label: 'wypisany', value: 'unsubscribed' },
       ],
       admin: {
         description: 'Wypisanych NIE kasujemy — trzeba móc wykazać, że i kiedy ktoś zgodę wycofał.',
       },
     },
     {
-      name: 'zgodaTresc',
+      name: 'consentText',
       type: 'textarea',
       required: true,
       label: 'Treść zgody',
@@ -72,7 +72,7 @@ export const Newsletter: CollectionConfig = {
       },
     },
     {
-      name: 'zgodaData',
+      name: 'consentDate',
       type: 'date',
       required: true,
       label: 'Data zgody',

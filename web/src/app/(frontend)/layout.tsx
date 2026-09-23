@@ -1,27 +1,29 @@
 import type { Metadata } from 'next'
 import { Inter, Bricolage_Grotesque } from 'next/font/google'
 
-import { getUstawienia, telHref } from '@/lib/content'
+import { getSiteConfig, telHref } from '@/lib/content'
 import { BRAND, SITE_URL } from '@/lib/site'
 import { jsonLd, organizationSchema } from '@/lib/schema'
 import { ogImage } from '@/lib/seo'
-import { Naglowek } from '@/components/Naglowek'
-import { Stopka } from '@/components/Stopka'
-import { PasekMobilny } from '@/components/PasekMobilny'
+import { Header } from '@/components/Header'
+import { Footer } from '@/components/Footer'
+import { MobileActionBar } from '@/components/MobileActionBar'
 import './globals.css'
 
-// Podzbiór `latin-ext` jest OBOWIĄZKOWY w OBU krojach. Bez niego polskie znaki
-// diakrytyczne (ą, ę, ś, ż, ź, ć, ń, ó, ł) lecą na krój zapasowy i tekst
-// rozjeżdża się w środku wyrazu — widać to dopiero na gotowej stronie, nie
-// w devtoolsach. Przy kroju nagłówkowym boli podwójnie, bo idzie w 72 px.
+// The `latin-ext` subset is MANDATORY in BOTH typefaces. Without it Polish
+// diacritics (ą, ę, ś, ż, ź, ć, ń, ó, ł) fall back to a substitute face and the
+// text breaks apart mid-word — visible only on the finished page, not in
+// devtools. With the display face it hurts twice as much, because it runs at
+// 72 px.
 const inter = Inter({
   subsets: ['latin', 'latin-ext'],
   display: 'swap',
   variable: '--font-inter',
 })
 
-// Krój nagłówkowy z makiety. Zawężony do wag, których faktycznie używamy —
-// Bricolage jest zmienny, więc bez tego zaciągnęlibyśmy pełny zakres osi.
+// The display typeface from the mockup. Narrowed to the weights we actually
+// use — Bricolage is variable, so without this we would pull the full axis
+// range.
 const bricolage = Bricolage_Grotesque({
   subsets: ['latin', 'latin-ext'],
   display: 'swap',
@@ -30,31 +32,33 @@ const bricolage = Bricolage_Grotesque({
 })
 
 /**
- * Co ile sekund strona publiczna odświeża treść z bazy.
+ * How often, in seconds, the public site refreshes its content from the
+ * database.
  *
- * ⚠️ BEZ TEGO CAŁY CMS JEST BEZUŻYTECZNY DLA KLIENTA. Strona główna, „O nas",
- * lista obozów i wszystkie podstrony szczegółowe renderują się statycznie —
- * Next wypieka je przy budowaniu obrazu i bez `revalidate` serwuje tę wersję
- * już zawsze. Zmierzone: po zmianie ceny kursu w bazie `/kursy` (dynamiczne,
- * bo czyta parametry adresu) pokazywało nową kwotę, a strona główna
- * i `/kursy/[slug]` w nieskończoność starą. Krzysiek poprawiałby cenę
- * w panelu i nie widział żadnego efektu aż do kolejnego wdrożenia.
+ * ⚠️ WITHOUT THIS THE WHOLE CMS IS USELESS TO THE CLIENT. The homepage, the
+ * About page, the camp list and every detail page render statically — Next
+ * bakes them when the image is built and, without `revalidate`, serves that
+ * version forever. Measured: after changing a course price in the database,
+ * `/kursy` (dynamic, because it reads query parameters) showed the new figure
+ * while the homepage and `/kursy/[slug]` showed the old one indefinitely. The
+ * client would correct a price in the panel and see no effect at all until the
+ * next deploy.
  *
- * Deklaracja stoi w layoucie, bo obejmuje wtedy cały segment `(frontend)` —
- * pojedyncza podstrona, o której ktoś zapomni, nie może wypaść z tej reguły.
- * Grupa `(payload)` ma własny layout i to jej nie dotyczy, więc panel i API
- * zostają w pełni dynamiczne.
+ * The declaration sits in the layout, because it then covers the whole
+ * `(frontend)` segment — a single page somebody forgets about cannot fall out
+ * of this rule. The `(payload)` group has its own layout and is unaffected, so
+ * the panel and the API stay fully dynamic.
  *
- * Pięć minut to kompromis: Krzysiek zdąży zobaczyć własną poprawkę, jeszcze
- * patrząc na stronę, a maszyna (2 OCPU) nie renderuje w kółko. Liczba wolnych
- * miejsc, czyli rzecz najbardziej zmienna, i tak jest na `/terminarz`, które
- * renderuje się na żądanie.
+ * Five minutes is a compromise: the client sees his own correction while still
+ * looking at the page, and the machine (2 OCPU) does not render in circles. The
+ * number of spots left, the most volatile figure, is on `/terminarz` anyway,
+ * which renders on demand.
  */
 export const revalidate = 300
 
 export const metadata: Metadata = {
-  // Pozwala podawać `alternates.canonical` i `openGraph.url` jako ścieżki
-  // względne — Next rozwija je o tę domenę.
+  // Lets `alternates.canonical` and `openGraph.url` be given as relative paths
+  // — Next expands them with this domain.
   metadataBase: new URL(SITE_URL),
   title: {
     default: `${BRAND} — szkoła wspinaczki na Jurze`,
@@ -62,9 +66,9 @@ export const metadata: Metadata = {
   },
   description:
     'Kursy wspinaczki skalnej z licencją PZA, obozy dla dzieci i młodzieży, własna baza w Rzędkowicach. Jura Krakowsko-Częstochowska.',
-  // Wskazany jawnie, bo plik manifestu musi leżeć w korzeniu `app/` (patrz
-  // komentarz w src/app/manifest.ts), a stamtąd Next nie dokleja go sam
-  // do <head> podstron w grupie tras.
+  // Stated explicitly, because the manifest file has to live at the root of
+  // `app/` (see the comment in src/app/manifest.ts), and from there Next does
+  // not attach it to the <head> of pages inside a route group.
   manifest: '/manifest.webmanifest',
   openGraph: {
     type: 'website',
@@ -75,41 +79,42 @@ export const metadata: Metadata = {
 }
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  // Jedno pobranie na całe drzewo — nagłówek, stopka, pasek i dane
-  // strukturalne dostają je właściwościami, zamiast wołać każde po swojemu.
-  const ustawienia = await getUstawienia()
-  const tel = telHref(ustawienia)
+  // One fetch for the whole tree — the header, footer, action bar and
+  // structured data receive it through props instead of each fetching its own.
+  const siteConfig = await getSiteConfig()
+  const tel = telHref(siteConfig)
 
   return (
     <html lang="pl" className={`${inter.variable} ${bricolage.variable}`}>
-      {/* `pb-[68px]` robi miejsce pod przyklejony pasek mobilny, żeby nie
-          przykrywał końca stopki. Od `lg` paska nie ma, więc odstęp znika. */}
+      {/* `pb-[68px]` makes room for the pinned mobile bar so it does not cover
+          the end of the footer. From `lg` up there is no bar, so the padding
+          disappears. */}
       <body className="flex min-h-dvh flex-col pb-[68px] font-sans antialiased lg:pb-0">
-        {/* Link pomijający nawigację — pierwsza rzecz pod Tabem. Bez niego osoba
-            poruszająca się klawiaturą przechodzi przez całe menu na każdej
-            podstronie, zanim dotrze do treści. */}
+        {/* Skip link — the first thing under Tab. Without it someone navigating
+            by keyboard walks through the entire menu on every page before
+            reaching the content. */}
         <a
-          href="#tresc"
+          href="#content"
           className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-rock-900 focus:px-4 focus:py-2 focus:text-rock-50"
         >
           Przejdź do treści
         </a>
 
-        <Naglowek telefon={ustawienia.telefon ?? null} telHref={tel} />
+        <Header phone={siteConfig.phone ?? null} telHref={tel} />
 
-        <div id="tresc" className="flex-1">
+        <div id="content" className="flex-1">
           {children}
         </div>
 
-        <Stopka ustawienia={ustawienia} />
-        <PasekMobilny telefon={ustawienia.telefon ?? null} telHref={tel} />
+        <Footer config={siteConfig} />
+        <MobileActionBar phone={siteConfig.phone ?? null} telHref={tel} />
 
-        {/* Dane strukturalne w layoucie, więc są na KAŻDEJ podstronie.
-            Dla firmy działającej lokalnie to najtańsza rzecz, jaką da się zrobić
-            dla widoczności w wyszukiwarce i w mapach. */}
+        {/* Structured data in the layout, so it is on EVERY page. For a
+            business operating locally this is the cheapest thing that can be
+            done for visibility in search and in maps. */}
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: jsonLd(organizationSchema(ustawienia)) }}
+          dangerouslySetInnerHTML={{ __html: jsonLd(organizationSchema(siteConfig)) }}
         />
       </body>
     </html>

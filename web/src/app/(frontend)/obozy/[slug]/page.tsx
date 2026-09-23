@@ -2,133 +2,141 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { RichText } from '@payloadcms/richtext-lexical/react'
 
-import { getCamp, getCamps, getTermsForCamp, getUstawienia, telHref } from '@/lib/content'
-import { formatCena, formatWiek, formatZakresDat, formatWolneMiejsca, odmien } from '@/lib/format'
+import { getCamp, getCamps, getSessionsForCamp, getSiteConfig, telHref } from '@/lib/content'
+import {
+  formatPriceLabel,
+  formatAgeRange,
+  formatDateRange,
+  formatSpotsLeft,
+  pluralPl,
+} from '@/lib/format'
 import { pageMetadata } from '@/lib/seo'
-import { Okruszki } from '@/components/Okruszki'
-import { Ptaszek } from '@/components/Ikony'
-import { Przycisk, Odznaka, Kontener } from '@/components/Ui'
-import { TloGorskie } from '@/components/TloGorskie'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { Check } from '@/components/Icons'
+import { Button, Badge, Container } from '@/components/Ui'
+import { MountainBackdrop } from '@/components/MountainBackdrop'
 
 type Props = { params: Promise<{ slug: string }> }
 
 export async function generateStaticParams() {
-  const obozy = await getCamps()
-  return obozy.map((o) => ({ slug: o.slug }))
+  const camps = await getCamps()
+  return camps.map((o) => ({ slug: o.slug }))
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
-  const oboz = await getCamp(slug)
-  if (!oboz)
+  const camp = await getCamp(slug)
+  if (!camp)
     return pageMetadata({ title: 'Nie znaleziono', description: '', path: `/obozy/${slug}` })
 
   return pageMetadata({
-    title: oboz.title,
-    description: oboz.summary ?? `${oboz.title} — ABC Wspinania.`,
-    path: `/obozy/${oboz.slug}`,
+    title: camp.title,
+    description: camp.summary ?? `${camp.title} — ABC Wspinania.`,
+    path: `/obozy/${camp.slug}`,
   })
 }
 
-export default async function StronaObozu({ params }: Props) {
+export default async function CampPage({ params }: Props) {
   const { slug } = await params
-  const oboz = await getCamp(slug)
-  if (!oboz) notFound()
+  const camp = await getCamp(slug)
+  if (!camp) notFound()
 
-  const [terminy, ustawienia] = await Promise.all([getTermsForCamp(oboz.id), getUstawienia()])
-  const tel = telHref(ustawienia)
-  const wiek = formatWiek(oboz.wiekOd, oboz.wiekDo)
+  const [sessions, siteConfig] = await Promise.all([getSessionsForCamp(camp.id), getSiteConfig()])
+  const tel = telHref(siteConfig)
+  const ageRange = formatAgeRange(camp.ageFrom, camp.ageTo)
 
-  const fakty = [
-    oboz.czas && { etykieta: 'Czas trwania', wartosc: oboz.czas },
-    wiek && { etykieta: 'Wiek', wartosc: wiek },
-    oboz.grupaMax && {
-      etykieta: 'Grupa',
-      wartosc: `do ${oboz.grupaMax} ${odmien(oboz.grupaMax, 'osoby', 'osób', 'osób')}`,
+  const facts = [
+    camp.duration && { label: 'Czas trwania', value: camp.duration },
+    ageRange && { label: 'Wiek', value: ageRange },
+    camp.maxGroupSize && {
+      label: 'Grupa',
+      value: `do ${camp.maxGroupSize} ${pluralPl(camp.maxGroupSize, 'osoby', 'osób', 'osób')}`,
     },
-    oboz.miejsce && { etykieta: 'Miejsce', wartosc: oboz.miejsce },
-  ].filter(Boolean) as { etykieta: string; wartosc: string }[]
+    camp.location && { label: 'Miejsce', value: camp.location },
+  ].filter(Boolean) as { label: string; value: string }[]
 
   return (
     <main>
       <section className="relative isolate overflow-hidden bg-rock-950">
-        <TloGorskie wariant="niski" />
+        <MountainBackdrop variant="short" />
         <div className="absolute inset-0 bg-rock-950/65" />
-        <Kontener className="relative flex flex-col gap-4 py-12 lg:py-16">
-          <Okruszki
-            wariant="naCiemnym"
-            sciezka={[
-              { etykieta: 'Start', href: '/' },
-              { etykieta: 'Obozy i wyjazdy', href: '/obozy' },
-              { etykieta: oboz.title },
+        <Container className="relative flex flex-col gap-4 py-12 lg:py-16">
+          <Breadcrumbs
+            variant="onDark"
+            trail={[
+              { label: 'Start', href: '/' },
+              { label: 'Obozy i wyjazdy', href: '/obozy' },
+              { label: camp.title },
             ]}
           />
           <div className="flex flex-wrap gap-2">
-            {wiek && <Odznaka ton="ciemna">{wiek}</Odznaka>}
-            {oboz.poziom === 'zaawansowany' && <Odznaka ton="naCiemnym">po kursie</Odznaka>}
+            {ageRange && <Badge tone="dark">{ageRange}</Badge>}
+            {camp.level === 'advanced' && <Badge tone="onDark">po kursie</Badge>}
           </div>
           <h1 className="max-w-[860px] text-balance text-[34px] leading-[1.03] text-white lg:text-[52px]">
-            {oboz.title}
+            {camp.title}
           </h1>
-          {oboz.summary && (
+          {camp.summary && (
             <p className="max-w-[640px] text-[17px] leading-7 text-rock-fg-strong">
-              {oboz.summary}
+              {camp.summary}
             </p>
           )}
-        </Kontener>
+        </Container>
       </section>
 
-      <Kontener className="grid gap-10 py-12 lg:grid-cols-[1fr_360px] lg:gap-14 lg:py-16">
+      <Container className="grid gap-10 py-12 lg:grid-cols-[1fr_360px] lg:gap-14 lg:py-16">
         <div className="flex flex-col gap-12">
-          {fakty.length > 0 && (
+          {facts.length > 0 && (
             <dl className="grid grid-cols-2 gap-5 rounded-xl border border-rock-100 bg-white p-6 lg:grid-cols-4">
-              {fakty.map((f) => (
-                <div key={f.etykieta}>
+              {facts.map((f) => (
+                <div key={f.label}>
                   <dt className="text-[13px] uppercase tracking-[0.04em] text-rock-600">
-                    {f.etykieta}
+                    {f.label}
                   </dt>
-                  <dd className="mt-1.5 font-semibold">{f.wartosc}</dd>
+                  <dd className="mt-1.5 font-semibold">{f.value}</dd>
                 </div>
               ))}
             </dl>
           )}
 
-          {oboz.description && (
-            <section className="tresc-bogata">
-              <RichText data={oboz.description} />
+          {camp.description && (
+            <section className="rich-text">
+              <RichText data={camp.description} />
             </section>
           )}
 
-          {oboz.atrakcje && oboz.atrakcje.length > 0 && (
+          {camp.highlights && camp.highlights.length > 0 && (
             <section>
               <h2 className="mb-4 text-[28px] leading-tight lg:text-[32px]">Co w programie</h2>
               <ul className="grid gap-2.5 sm:grid-cols-2">
-                {oboz.atrakcje.map((a, i) => (
+                {camp.highlights.map((a, i) => (
                   <li key={a.id ?? i} className="flex gap-2.5 text-[15px] leading-6">
-                    <Ptaszek rozmiar={17} className="mt-0.5 shrink-0 text-rope" />
-                    {a.pozycja}
+                    <Check size={17} className="mt-0.5 shrink-0 text-rope" />
+                    {a.item}
                   </li>
                 ))}
               </ul>
             </section>
           )}
 
-          {oboz.planDnia && oboz.planDnia.length > 0 && (
+          {camp.dailySchedule && camp.dailySchedule.length > 0 && (
             <section>
               <h2 className="mb-5 text-[28px] leading-tight lg:text-[32px]">Jak wygląda dzień</h2>
               <ol className="flex flex-col gap-4">
-                {oboz.planDnia.map((p, i) => (
+                {camp.dailySchedule.map((p, i) => (
                   <li
                     key={p.id ?? i}
                     className="flex flex-col gap-3 rounded-xl border border-rock-100 bg-white p-5 sm:flex-row sm:gap-6"
                   >
                     <span className="shrink-0 self-start rounded-md bg-rock-100 px-3 py-1.5 text-[13px] font-semibold tabular-nums text-rock-600">
-                      {p.godzina}
+                      {p.time}
                     </span>
                     <div>
-                      <h3 className="text-[17px] font-semibold">{p.tytul}</h3>
-                      {p.opis && (
-                        <p className="mt-1.5 text-[15px] leading-6 text-rock-600">{p.opis}</p>
+                      <h3 className="text-[17px] font-semibold">{p.title}</h3>
+                      {p.description && (
+                        <p className="mt-1.5 text-[15px] leading-6 text-rock-600">
+                          {p.description}
+                        </p>
                       )}
                     </div>
                   </li>
@@ -143,16 +151,16 @@ export default async function StronaObozu({ params }: Props) {
             <div>
               <div className="text-[13px] uppercase tracking-[0.04em] text-rock-600">Cena</div>
               <div className="mt-1 text-[30px] font-semibold tabular-nums">
-                {formatCena(oboz.cena, oboz.cenaOd)}
-                {oboz.jednostkaCeny && (
+                {formatPriceLabel(camp.price, camp.priceFrom)}
+                {camp.priceUnit && (
                   <span className="ml-1 text-[15px] font-normal text-rock-600">
-                    {oboz.jednostkaCeny}
+                    {camp.priceUnit}
                   </span>
                 )}
               </div>
-              {(oboz.nocleg || oboz.wyzywienie) && (
+              {(camp.accommodation || camp.meals) && (
                 <div className="mt-1 text-[13px] text-rock-600">
-                  {[oboz.nocleg && 'nocleg', oboz.wyzywienie && 'wyżywienie']
+                  {[camp.accommodation && 'nocleg', camp.meals && 'wyżywienie']
                     .filter(Boolean)
                     .join(' i ')}{' '}
                   w cenie
@@ -160,24 +168,24 @@ export default async function StronaObozu({ params }: Props) {
               )}
             </div>
 
-            {terminy.length > 0 && (
+            {sessions.length > 0 && (
               <div>
                 <h2 className="mb-3 text-[15px] font-semibold">Turnusy</h2>
                 <ul className="flex flex-col gap-2">
-                  {terminy.map((t) => {
-                    const brak = t.status === 'brak-miejsc' || (t.wolneMiejsca ?? 1) <= 0
+                  {sessions.map((t) => {
+                    const soldOut = t.status === 'waitlist' || (t.spotsLeft ?? 1) <= 0
                     return (
                       <li
                         key={t.id}
                         className="flex items-center justify-between gap-3 rounded-lg border border-rock-100 px-3.5 py-2.5"
                       >
                         <span className="text-sm font-medium tabular-nums">
-                          {formatZakresDat(t.dataOd, t.dataDo)}
+                          {formatDateRange(t.startDate, t.endDate)}
                         </span>
                         <span
-                          className={`shrink-0 text-[13px] ${brak ? 'text-rock-400' : 'text-wolne-text'}`}
+                          className={`shrink-0 text-[13px] ${soldOut ? 'text-rock-400' : 'text-available-text'}`}
                         >
-                          {brak ? 'brak miejsc' : formatWolneMiejsca(t.wolneMiejsca)}
+                          {soldOut ? 'brak miejsc' : formatSpotsLeft(t.spotsLeft)}
                         </span>
                       </li>
                     )
@@ -187,18 +195,18 @@ export default async function StronaObozu({ params }: Props) {
             )}
 
             <div className="flex flex-col gap-2.5">
-              <Przycisk href={`/kontakt?oboz=${oboz.slug}`} className="w-full">
+              <Button href={`/kontakt?camp=${camp.slug}`} className="w-full">
                 Zapytaj o miejsce
-              </Przycisk>
+              </Button>
               {tel && (
-                <Przycisk href={tel} wariant="obrys" className="w-full">
-                  {ustawienia.telefon}
-                </Przycisk>
+                <Button href={tel} variant="outline" className="w-full">
+                  {siteConfig.phone}
+                </Button>
               )}
             </div>
           </div>
         </aside>
-      </Kontener>
+      </Container>
     </main>
   )
 }

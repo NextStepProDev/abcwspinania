@@ -3,12 +3,12 @@ import Image from 'next/image'
 import Link from 'next/link'
 
 import { getPosts, asImage } from '@/lib/content'
-import { formatKategoria, KATEGORIE_WPISOW, odmien } from '@/lib/format'
+import { formatCategory, POST_CATEGORIES, pluralPl } from '@/lib/format'
 import { pageMetadata } from '@/lib/seo'
-import { Okruszki } from '@/components/Okruszki'
-import { Filtry } from '@/components/Filtry'
-import { KafelWpisu, MetrykaWpisu } from '@/components/KafelWpisu'
-import { Przycisk, Odznaka, Kontener, MiejsceNaZdjecie } from '@/components/Ui'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { Filters } from '@/components/Filters'
+import { PostCard, PostMeta } from '@/components/PostCard'
+import { Button, Badge, Container, ImagePlaceholder } from '@/components/Ui'
 
 export function generateMetadata(): Metadata {
   return pageMetadata({
@@ -19,25 +19,26 @@ export function generateMetadata(): Metadata {
   })
 }
 
-const FILTRY = [{ wartosc: 'wszystkie', etykieta: 'Wszystkie' }, ...KATEGORIE_WPISOW]
+const FILTER_OPTIONS = [{ value: 'all', label: 'Wszystkie' }, ...POST_CATEGORIES]
 
-type Props = { searchParams: Promise<{ temat?: string }> }
+type Props = { searchParams: Promise<{ topic?: string }> }
 
-export default async function StronaAktualnosci({ searchParams }: Props) {
-  const { temat = 'wszystkie' } = await searchParams
-  const wszystkie = await getPosts()
+export default async function NewsPage({ searchParams }: Props) {
+  const { topic = 'all' } = await searchParams
+  const all = await getPosts()
 
-  const wpisy = temat === 'wszystkie' ? wszystkie : wszystkie.filter((w) => w.kategoria === temat)
+  const posts = topic === 'all' ? all : all.filter((w) => w.category === topic)
 
-  // Wyróżniony wpis tylko na widoku bez filtra — przy zawężonej liście
-  // wyciąganie jednego tekstu na górę myli, bo nie wynika z wyboru.
-  const wyrozniony = temat === 'wszystkie' ? wpisy.find((w) => w.wyrozniony) : undefined
-  const pozostale = wyrozniony ? wpisy.filter((w) => w.id !== wyrozniony.id) : wpisy
+  // The featured post only on the unfiltered view — on a narrowed list,
+  // pulling one text to the top is confusing, because it does not follow from
+  // the choice.
+  const featured = topic === 'all' ? posts.find((post) => post.featured) : undefined
+  const others = featured ? posts.filter((post) => post.id !== featured.id) : posts
 
   return (
     <main>
-      <Kontener className="pb-8 pt-8">
-        <Okruszki sciezka={[{ etykieta: 'Start', href: '/' }, { etykieta: 'Aktualności' }]} />
+      <Container className="pb-8 pt-8">
+        <Breadcrumbs trail={[{ label: 'Start', href: '/' }, { label: 'Aktualności' }]} />
         <h1 className="mt-5 max-w-[800px] text-balance text-[36px] leading-[1.05] lg:text-[52px]">
           Aktualności
         </h1>
@@ -45,69 +46,69 @@ export default async function StronaAktualnosci({ searchParams }: Props) {
           Co się dzieje w szkole i na Jurze: otwarcia zapisów, relacje z kursów, historia rejonu i
           rzeczy, które warto wiedzieć przed pierwszym wyjściem w skały.
         </p>
-      </Kontener>
+      </Container>
 
-      <Kontener>
-        <Filtry
-          etykieta="Temat:"
-          filtry={FILTRY}
-          aktywny={temat}
-          bazowyHref="/aktualnosci"
-          parametr="temat"
-          podsumowanie={`${wpisy.length} ${odmien(wpisy.length, 'wpis', 'wpisy', 'wpisów')}`}
+      <Container>
+        <Filters
+          label="Temat:"
+          options={FILTER_OPTIONS}
+          active={topic}
+          baseHref="/aktualnosci"
+          param="topic"
+          summary={`${posts.length} ${pluralPl(posts.length, 'wpis', 'wpisy', 'wpisów')}`}
         />
-      </Kontener>
+      </Container>
 
-      <Kontener className="py-10">
-        {wpisy.length === 0 ? (
+      <Container className="py-10">
+        {posts.length === 0 ? (
           <p className="text-rock-600">
-            {wszystkie.length === 0
+            {all.length === 0
               ? 'Wpisy pojawią się tutaj po dodaniu ich w panelu.'
               : 'W tym temacie nie ma jeszcze wpisów.'}
           </p>
         ) : (
           <div className="flex flex-col gap-10">
-            {wyrozniony && <WyroznionyWpis wpis={wyrozniony} />}
+            {featured && <FeaturedPost post={featured} />}
 
-            {pozostale.length > 0 && (
+            {others.length > 0 && (
               <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {pozostale.map((w) => (
-                  <li key={w.id} className="flex">
-                    <KafelWpisu wpis={w} />
+                {others.map((post) => (
+                  <li key={post.id} className="flex">
+                    <PostCard post={post} />
                   </li>
                 ))}
               </ul>
             )}
           </div>
         )}
-      </Kontener>
+      </Container>
     </main>
   )
 }
 
-function WyroznionyWpis({ wpis }: { wpis: Awaited<ReturnType<typeof getPosts>>[number] }) {
-  const cover = asImage(wpis.cover)
+function FeaturedPost({ post }: { post: Awaited<ReturnType<typeof getPosts>>[number] }) {
+  const cover = asImage(post.cover)
   const medium = cover?.sizes?.medium
-  const kategoria = formatKategoria(wpis.kategoria)
+  const category = formatCategory(post.category)
 
   return (
     <article className="grid overflow-hidden rounded-2xl bg-white shadow-[0_0_0_1px_rgba(42,38,32,0.06),0_4px_12px_rgba(42,38,32,0.08)] lg:grid-cols-2">
       <div className="flex flex-col gap-4 p-7 lg:p-10">
         <div className="flex flex-wrap gap-2">
-          <Odznaka ton="ciemna">Najnowsze</Odznaka>
-          {kategoria && <Odznaka>{kategoria}</Odznaka>}
+          <Badge tone="dark">Najnowsze</Badge>
+          {category && <Badge>{category}</Badge>}
         </div>
         <h2 className="text-[28px] leading-tight lg:text-[36px]">
-          <Link href={`/aktualnosci/${wpis.slug}`} className="text-rock-900 hover:text-rope">
-            {wpis.title}
+          <Link href={`/aktualnosci/${post.slug}`} className="text-rock-900 hover:text-rope">
+            {post.title}
           </Link>
         </h2>
-        {wpis.lead && <p className="text-[16px] leading-7 text-rock-600">{wpis.lead}</p>}
-        <MetrykaWpisu wpis={wpis} autor />
+        {post.lead && <p className="text-[16px] leading-7 text-rock-600">{post.lead}</p>}
+        <PostMeta post={post} withAuthor />
         <div className="mt-2">
-          <Przycisk href={`/aktualnosci/${wpis.slug}`} zeStrzalka>
+          <Button href={`/aktualnosci/${post.slug}`} withArrow>
             Czytaj dalej
-          </Przycisk>
+          </Button>
         </div>
       </div>
 
@@ -120,7 +121,7 @@ function WyroznionyWpis({ wpis }: { wpis: Awaited<ReturnType<typeof getPosts>>[n
           className="h-full min-h-[240px] w-full object-cover"
         />
       ) : (
-        <MiejsceNaZdjecie opis="Zdjęcie · archiwum szkoły" wysokosc="min-h-[240px] h-full" />
+        <ImagePlaceholder caption="Zdjęcie · archiwum szkoły" height="min-h-[240px] h-full" />
       )}
     </article>
   )

@@ -1,18 +1,18 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
-import { getCourses, getStronaEn, getUstawienia, telHref } from '@/lib/content'
-import { formatCena, formatLevel } from '@/lib/format'
+import { getCourses, getEnglishPage, getSiteConfig, telHref } from '@/lib/content'
+import { formatPriceLabel, formatLevel } from '@/lib/format'
 import { pageMetadata } from '@/lib/seo'
-import { Przycisk, Odznaka, Kontener } from '@/components/Ui'
-import { TloGorskie } from '@/components/TloGorskie'
+import { Button, Badge, Container } from '@/components/Ui'
+import { MountainBackdrop } from '@/components/MountainBackdrop'
 
 /**
- * Jedna podstrona po angielsku, a nie pełne tłumaczenie serwisu.
+ * One English page, not a full translation of the site.
  *
- * `hrefLang` i `lang` na sekcji, bo reszta serwisu jest po polsku — bez tego
- * czytnik ekranu przeczytałby ten tekst polską wymową, a wyszukiwarka uznała
- * stronę za polską z dziwną treścią.
+ * `hrefLang` and `lang` on the section, because the rest of the site is Polish —
+ * without them a screen reader would read this text with Polish pronunciation
+ * and a search engine would take the page for Polish with odd content.
  */
 export function generateMetadata(): Metadata {
   return {
@@ -26,87 +26,87 @@ export function generateMetadata(): Metadata {
   }
 }
 
-export default async function StronaEn() {
-  const [tresc, kursy, ustawienia] = await Promise.all([
-    getStronaEn(),
+export default async function EnglishPage() {
+  const [content, courses, siteConfig] = await Promise.all([
+    getEnglishPage(),
     getCourses(),
-    getUstawienia(),
+    getSiteConfig(),
   ])
-  const tel = telHref(ustawienia)
+  const tel = telHref(siteConfig)
 
-  // Bez ceny nie ma czego pokazać w tabeli — szkolenia wyceniane indywidualnie
-  // zostają poza nią, żeby nie tworzyć wiersza z samym myślnikiem.
-  const doTabeli = kursy.filter((k) => typeof k.price === 'number')
+  // With no price there is nothing to show in the table — individually quoted
+  // training stays out of it, so no row consists of a lone dash.
+  const forTable = courses.filter((k) => typeof k.price === 'number')
 
-  const adres = [
-    ustawienia.ulica,
-    [ustawienia.kodPocztowy, ustawienia.miejscowosc].filter(Boolean).join(' '),
+  const address = [
+    siteConfig.street,
+    [siteConfig.postalCode, siteConfig.city].filter(Boolean).join(' '),
     'Poland',
   ].filter(Boolean)
 
   return (
     <main lang="en">
       <section className="relative isolate overflow-hidden bg-rock-950">
-        <TloGorskie />
+        <MountainBackdrop />
         <div className="absolute inset-0 bg-rock-950/60" />
-        <Kontener className="relative flex min-h-[420px] flex-col justify-center gap-5 py-14 lg:min-h-[520px]">
-          {tresc?.badge && (
+        <Container className="relative flex min-h-[420px] flex-col justify-center gap-5 py-14 lg:min-h-[520px]">
+          {content?.badge && (
             <span className="self-start">
-              <Odznaka ton="ciemna" wersaliki>
-                {tresc.badge}
-              </Odznaka>
+              <Badge tone="dark" uppercase>
+                {content.badge}
+              </Badge>
             </span>
           )}
           <h1 className="max-w-[820px] text-balance text-[36px] leading-[1.02] text-white lg:text-[58px]">
-            {tresc?.tytul ?? 'Learn to climb on Polish Jura limestone'}
+            {content?.title ?? 'Learn to climb on Polish Jura limestone'}
           </h1>
-          {tresc?.lead && (
+          {content?.lead && (
             <p className="max-w-[620px] text-[17px] leading-7 text-rock-fg-strong lg:text-[19px]">
-              {tresc.lead}
+              {content.lead}
             </p>
           )}
           <div className="mt-2 flex flex-wrap gap-3.5">
             {tel && (
-              <Przycisk href={tel} duzy>
-                Call {ustawienia.telefon}
-              </Przycisk>
+              <Button href={tel} large>
+                Call {siteConfig.phone}
+              </Button>
             )}
-            {ustawienia.email && (
-              <Przycisk href={`mailto:${ustawienia.email}`} wariant="obrysJasny" duzy>
+            {siteConfig.email && (
+              <Button href={`mailto:${siteConfig.email}`} variant="outlineLight" large>
                 Send an email
-              </Przycisk>
+              </Button>
             )}
           </div>
-        </Kontener>
+        </Container>
       </section>
 
-      {(tresc?.oNas || tresc?.baza) && (
-        <Kontener className="grid gap-8 py-14 lg:grid-cols-2 lg:gap-14">
-          {tresc?.oNas && (
+      {(content?.about || content?.accommodation) && (
+        <Container className="grid gap-8 py-14 lg:grid-cols-2 lg:gap-14">
+          {content?.about && (
             <section>
               <h2 className="text-[28px] leading-tight lg:text-[34px]">Who we are</h2>
               <p className="mt-4 whitespace-pre-line text-[16px] leading-7 text-rock-600">
-                {tresc.oNas}
+                {content.about}
               </p>
             </section>
           )}
-          {tresc?.baza && (
+          {content?.accommodation && (
             <section>
               <h2 className="text-[28px] leading-tight lg:text-[34px]">Where you stay</h2>
               <p className="mt-4 whitespace-pre-line text-[16px] leading-7 text-rock-600">
-                {tresc.baza}
+                {content.accommodation}
               </p>
             </section>
           )}
-        </Kontener>
+        </Container>
       )}
 
-      {doTabeli.length > 0 && (
-        <Kontener className="pb-14">
+      {forTable.length > 0 && (
+        <Container className="pb-14">
           <h2 className="text-[28px] leading-tight lg:text-[34px]">Courses and prices</h2>
-          {tresc?.kursOpis && (
+          {content?.coursesNote && (
             <p className="mt-3 max-w-[680px] text-[16px] leading-7 text-rock-600">
-              {tresc.kursOpis}
+              {content.coursesNote}
             </p>
           )}
 
@@ -141,11 +141,11 @@ export default async function StronaEn() {
                 </tr>
               </thead>
               <tbody>
-                {doTabeli.map((k) => (
+                {forTable.map((k) => (
                   <tr key={k.id} className="border-b border-rock-100 last:border-0">
                     {/* Nazwa po angielsku, gdy jest; inaczej polska — lepiej
                         pokazać oryginał niż pustą komórkę. */}
-                    <td className="px-6 py-4 font-medium">{k.tytulEn || k.title}</td>
+                    <td className="px-6 py-4 font-medium">{k.titleEn || k.title}</td>
                     <td className="px-6 py-4 text-rock-600">{k.duration ?? '—'}</td>
                     <td className="px-6 py-4 text-rock-600">
                       {POZIOM_EN[k.level ?? ''] ?? formatLevel(k.level) ?? '—'}
@@ -153,66 +153,66 @@ export default async function StronaEn() {
                     {/* Ceny zaciągają się z tych samych kursów co po polsku,
                         więc nie mogą się z nimi rozjechać. */}
                     <td className="px-6 py-4 text-right font-semibold tabular-nums">
-                      {formatCena(k.price, k.cenaOd)}
+                      {formatPriceLabel(k.price, k.priceFrom)}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </Kontener>
+        </Container>
       )}
 
-      <Kontener className="pb-16 lg:pb-24">
+      <Container className="pb-16 lg:pb-24">
         <div className="grid gap-8 rounded-2xl bg-rock-900 p-8 lg:grid-cols-2 lg:gap-14 lg:p-14">
           <div>
             <h2 className="text-[26px] leading-tight text-white lg:text-[32px]">
               Getting here and booking
             </h2>
-            {tresc?.dojazd && (
+            {content?.directions && (
               <p className="mt-4 whitespace-pre-line text-[16px] leading-7 text-rock-fg">
-                {tresc.dojazd}
+                {content.directions}
               </p>
             )}
-            {tresc?.sezon && (
+            {content?.season && (
               <p className="mt-4 whitespace-pre-line text-[16px] leading-7 text-rock-fg">
-                {tresc.sezon}
+                {content.season}
               </p>
             )}
           </div>
 
           <dl className="flex flex-col gap-4 text-[15px]">
-            {ustawienia.telefon && tel && (
+            {siteConfig.phone && tel && (
               <div>
                 <dt className="text-[13px] uppercase tracking-[0.04em] text-rock-500">Phone</dt>
                 <dd className="mt-1">
                   <a href={tel} className="font-semibold text-white hover:text-rope-light">
-                    {ustawienia.telefonE164 || ustawienia.telefon}
+                    {siteConfig.phoneE164 || siteConfig.phone}
                   </a>
                 </dd>
               </div>
             )}
-            {ustawienia.email && (
+            {siteConfig.email && (
               <div>
                 <dt className="text-[13px] uppercase tracking-[0.04em] text-rock-500">Email</dt>
                 <dd className="mt-1">
                   <a
-                    href={`mailto:${ustawienia.email}`}
+                    href={`mailto:${siteConfig.email}`}
                     className="break-all text-rock-fg hover:text-rope-light"
                   >
-                    {ustawienia.email}
+                    {siteConfig.email}
                   </a>
                 </dd>
               </div>
             )}
-            {adres.length > 1 && (
+            {address.length > 1 && (
               <div>
                 <dt className="text-[13px] uppercase tracking-[0.04em] text-rock-500">Address</dt>
                 <dd className="mt-1">
                   <address className="not-italic leading-6 text-rock-fg">
-                    {adres.map((l) => (
-                      <span key={l} className="block">
-                        {l}
+                    {address.map((line) => (
+                      <span key={line} className="block">
+                        {line}
                       </span>
                     ))}
                   </address>
@@ -220,7 +220,7 @@ export default async function StronaEn() {
               </div>
             )}
             <div className="mt-2">
-              <Przycisk href="/kontakt">Send an enquiry</Przycisk>
+              <Button href="/kontakt">Send an enquiry</Button>
             </div>
           </dl>
         </div>
@@ -237,12 +237,12 @@ export default async function StronaEn() {
           </Link>
           .
         </p>
-      </Kontener>
+      </Container>
     </main>
   )
 }
 
-/** Poziomy po angielsku — te same wartości, co w `format.ts`, inne etykiety. */
+/** Levels in English — the same values as in `format.ts`, different labels. */
 const POZIOM_EN: Record<string, string> = {
   poczatkujacy: 'Beginner',
   sredniozaawansowany: 'Intermediate',
