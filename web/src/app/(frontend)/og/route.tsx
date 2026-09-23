@@ -1,5 +1,6 @@
 import { ImageResponse } from 'next/og'
 import { BRAND, BRAND_COLORS } from '@/lib/site'
+import { MARK_DIAMOND, MARK_FIGURE, MARK_HEAD, MARK_VIEW_BOX } from '@/lib/mark'
 import { OG_IMAGE_SIZE } from '@/lib/seo'
 
 // The card image shown when a link is shared (Facebook, Messenger, WhatsApp,
@@ -37,8 +38,8 @@ export function GET() {
           importing the component would drag its dependencies in. Change the
           mark, change both files. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
-        <svg width="72" height="72" viewBox="0 0 48 48" fill="none">
-          <path d="M24 3 45 24 24 45 3 24Z" fill="#c8552b" />
+        <svg width="72" height="72" viewBox={MARK_VIEW_BOX} fill="none">
+          <path d={MARK_DIAMOND} fill={BRAND_COLORS.accent} />
           <g
             stroke="#fff"
             strokeWidth="3.3"
@@ -46,11 +47,11 @@ export function GET() {
             strokeLinejoin="round"
             fill="none"
           >
-            <path d="M24 19.5V28" />
-            <path d="M24 21.5 17.5 14.5M24 21.5 30.5 14.5" />
-            <path d="M24 28l-5.5 3.5 1 6.5M24 28l4.5 5 .5 7" />
+            {MARK_FIGURE.map((d) => (
+              <path key={d} d={d} />
+            ))}
           </g>
-          <circle cx="24" cy="14.2" r="3.4" fill="#fff" />
+          <circle cx={MARK_HEAD.cx} cy={MARK_HEAD.cy} r="3.4" fill="#fff" />
         </svg>
         <div
           style={{ display: 'flex', fontSize: 76, color: BRAND_COLORS.surface, fontWeight: 600 }}

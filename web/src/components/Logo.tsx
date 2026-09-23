@@ -1,15 +1,19 @@
+import { MARK_DIAMOND, MARK_FIGURE, MARK_HEAD, MARK_VIEW_BOX } from '@/lib/mark'
+
 /**
  * The ABC Wspinania graphic mark.
  *
- * ⚠️ THIS IS A TRACING, NOT THE ORIGINAL. The old site carries the mark only
- * baked into the banner `images/modules/ABC_logo.png`; the diamond with the
- * figure occupies roughly 90×84 px there and is eaten by compression. Too
- * little for a 2× header, a favicon and an OG card, so the shape (a diamond
- * plus a climber with raised arms) was redrawn as a vector — recognisability
- * stays, sharpness holds at every scale.
+ * The shape itself lives in `lib/mark.ts`, because it is drawn in three places:
+ * here, in the favicon and on the social card. This file decides how it is
+ * PAINTED — the diamond in `currentColor`, strokes at 3.3 — not what it looks
+ * like.
  *
- * TO BE REPLACED once the client supplies the original as a vector (AI/EPS/SVG).
- * Only this file changes then — nothing else knows the shape of the mark.
+ * Swapping the tracing for the real mark is therefore an edit to `lib/mark.ts`,
+ * PROVIDED the new one is built the same way: a diamond, a stroked figure, a
+ * round head. If it is not — no diamond, or a wordmark beside the symbol — then
+ * all three painting sites need revisiting as well. What is shared is the
+ * geometry, not the composition, and saying otherwise is how the last comment
+ * here ended up untrue.
  *
  * The colour is inherited via `currentColor`, so the same component works on the
  * light header and the dark footer without a second variant.
@@ -19,23 +23,18 @@ export function Mark({ className, size = 26 }: { className?: string; size?: numb
     <svg
       width={size}
       height={size}
-      viewBox="0 0 48 48"
+      viewBox={MARK_VIEW_BOX}
       fill="none"
       className={className}
       aria-hidden="true"
     >
-      {/* The diamond — a rotated square, as in the original. */}
-      <path d="M24 3 45 24 24 45 3 24Z" fill="currentColor" />
-      {/* The figure: head, arms raised in a "V", one leg bent, the other
-          straight and reaching outside the diamond — as in the original. Drawn
-          as strokes rather than a filled outline: easier to correct once the
-          original arrives, and it holds up better at small sizes. */}
+      <path d={MARK_DIAMOND} fill="currentColor" />
       <g stroke="#fff" strokeWidth="3.3" strokeLinecap="round" strokeLinejoin="round" fill="none">
-        <path d="M24 19.5V28" />
-        <path d="M24 21.5 17.5 14.5M24 21.5 30.5 14.5" />
-        <path d="M24 28l-5.5 3.5 1 6.5M24 28l4.5 5 .5 7" />
+        {MARK_FIGURE.map((d) => (
+          <path key={d} d={d} />
+        ))}
       </g>
-      <circle cx="24" cy="14.2" r="3.4" fill="#fff" />
+      <circle cx={MARK_HEAD.cx} cy={MARK_HEAD.cy} r="3.4" fill="#fff" />
     </svg>
   )
 }
