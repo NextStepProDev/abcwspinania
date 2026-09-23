@@ -372,6 +372,17 @@ pipeline'u SCSS dla jednego pustego arkusza.
     `add_header` kasuje dziedziczenie z bloku `server`. Nagłówek wysłany z obu
     miejsc dotarłby do przeglądarki podwójnie. **Nie dodawaj CSP do nginx.**
 
+    Skutek uboczny do zapamiętania: Payload ładuje edytor kodu (`monaco`)
+    z `cdn.jsdelivr.net`, a nasze `script-src 'self'` tego zabrania. Dziś to
+    nieszkodliwe, bo żadna kolekcja nie ma pola typu `code` ani `json`, więc
+    edytor nigdy się nie uruchamia. Gdy ktoś takie pole doda, **edytor po
+    prostu się nie pojawi** — bez komunikatu w panelu, z błędem wyłącznie
+    w konsoli przeglądarki. Wtedy decyzja: albo wpuścić ten adres do CSP
+    (czyli cudzy kod do zalogowanego panelu), albo serwować edytor z własnej
+    domeny. To samo `monaco` odpowiada za zgłoszenie `moderate` w `npm audit`
+    (`dompurify`) — nie trafia do zbudowanej aplikacji, jest zależnością
+    Payloada i zniknie przy jego podbiciu. Nie ruszamy tego osobno.
+
 ---
 
 ## Budżet pamięci (Ampere A1, 2 OCPU / 12 GB)
