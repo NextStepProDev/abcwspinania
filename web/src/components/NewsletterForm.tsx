@@ -37,7 +37,11 @@ export function NewsletterForm() {
   }
 
   return (
-    <form action={action} noValidate className="flex w-full flex-col gap-3 lg:max-w-[420px]">
+    <form
+      action={action}
+      noValidate
+      className="flex w-full flex-col gap-3 lg:min-w-[460px] lg:max-w-[500px]"
+    >
       <div className="flex flex-col gap-2 sm:flex-row">
         <div className="grow">
           <label htmlFor={fieldId} className="sr-only">
@@ -55,12 +59,20 @@ export function NewsletterForm() {
             className="w-full rounded-lg border border-rock-line bg-rock-950 px-4 py-3 text-white placeholder:text-rock-500 focus-visible:border-rope focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rope"
           />
         </div>
+        {/* The label names the newsletter on its own: the heading next to the
+            form reads as a separate block, so a bare "Zapisz się" said nothing.
+            Both labels share one grid cell, so the button keeps the width of
+            the longer one and the field does not jump while sending;
+            `invisible` also hides the inactive label from screen readers. */}
         <button
           type="submit"
           disabled={pending}
-          className="shrink-0 rounded-lg bg-banner-fill px-6 py-3 font-semibold text-white transition-colors hover:bg-banner-fill-dark disabled:opacity-60"
+          className="grid shrink-0 justify-items-center whitespace-nowrap rounded-lg bg-banner-fill px-6 py-3 font-semibold text-white transition-colors hover:bg-banner-fill-dark disabled:opacity-60"
         >
-          {pending ? 'Zapisuję…' : 'Zapisz się'}
+          <span className={`col-start-1 row-start-1 ${pending ? 'invisible' : ''}`}>
+            Zapisz się na newsletter
+          </span>
+          <span className={`col-start-1 row-start-1 ${pending ? '' : 'invisible'}`}>Zapisuję…</span>
         </button>
       </div>
 
