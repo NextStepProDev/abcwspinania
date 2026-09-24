@@ -365,3 +365,29 @@ export const TESTIMONIAL_SUBJECTS = Object.entries(SUBJECT_LABELS).map(([value, 
 export function formatDate(date: string): string {
   return formatDateRange(date)
 }
+
+const MAP_EMBED_PREFIX = 'https://www.google.com/maps/embed?'
+
+/**
+ * The embed address out of whatever was pasted into the panel, or null.
+ *
+ * Google Maps ("Udostępnij → Umieść mapę") offers only "Kopiuj HTML", so the
+ * whole `<iframe …>` code is the usual paste — we take its `src`. Only Google's
+ * embed address can sit in a frame: a share link (maps.app.goo.gl,
+ * google.com/maps/place/…) refuses to be framed and the CSP blocks it anyway,
+ * so accepting one would leave an empty box on the page.
+ */
+export function mapEmbedUrlFrom(input: string | null | undefined): string | null {
+  const text = input?.trim() ?? ''
+  const url = text.startsWith('<') ? (/\bsrc="([^"]*)"/.exec(text)?.[1] ?? '') : text
+  return url.startsWith(MAP_EMBED_PREFIX) ? url : null
+}
+
+/** The contact page map: the panel override if valid, otherwise built from the address. */
+export function mapEmbedSrc(override: string | null | undefined, address: string): string | null {
+  const embed = mapEmbedUrlFrom(override)
+  if (embed) return embed
+  return address
+    ? `https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed`
+    : null
+}

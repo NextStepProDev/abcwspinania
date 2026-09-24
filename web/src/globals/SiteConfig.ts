@@ -1,5 +1,7 @@
 import type { GlobalConfig } from 'payload'
 
+import { mapEmbedUrlFrom } from '../lib/format'
+
 /**
  * Data identifying the school: contact details, address, licence, profiles.
  *
@@ -97,10 +99,17 @@ export const SiteConfig: GlobalConfig = {
           name: 'mapEmbedUrl',
           type: 'text',
           label: 'Adres osadzanej mapy',
+          validate: (value: string | null | undefined) =>
+            !value?.trim() ||
+            mapEmbedUrlFrom(value) !== null ||
+            'To jest link do udostępniania, a nie do osadzenia. W Mapach Google: ' +
+              'Udostępnij → Umieść mapę → Kopiuj HTML i wklej tutaj całość. ' +
+              'Albo zostaw pole puste — mapa powstanie z adresu.',
           admin: {
             description:
-              'Pełny adres z pola „src” kodu osadzenia mapy. Puste = zamiast mapy ' +
-              'pokazujemy sam adres.',
+              'Zwykle zostaw puste — mapa na stronie kontaktu powstaje sama z adresu ' +
+              'powyżej. Wypełnij tylko, gdy pinezka ma stać gdzie indziej: wklej ' +
+              'kod z Map Google (Udostępnij → Umieść mapę → Kopiuj HTML).',
           },
         },
       ],
