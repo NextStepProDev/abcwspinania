@@ -1173,6 +1173,10 @@ export interface HomePage {
   heroTitle: string;
   heroText?: string | null;
   /**
+   * Szerokie, poziome zdjęcie. Lewa strona jest przyciemniana pod tekst, więc to, co najciekawsze, powinno być po prawej. Puste pole zostawia dotychczasową ilustrację grani.
+   */
+  heroImage?: (number | null) | Media;
+  /**
    * Pasek pod nagłówkiem. Cztery kafle wyglądają najlepiej.
    */
   stats?:
@@ -1191,6 +1195,9 @@ export interface HomePage {
   campsBadge?: string | null;
   campsTitle?: string | null;
   campsText?: string | null;
+  /**
+   * Pionowe zdjęcie w proporcji 3:4 (np. 1200 × 1600). Inne proporcje zostaną przycięte do tego kształtu.
+   */
   campsImage?: (number | null) | Media;
   reasons?:
     | {
@@ -1306,6 +1313,7 @@ export interface HomePageSelect<T extends boolean = true> {
   heroSubtitle?: T;
   heroTitle?: T;
   heroText?: T;
+  heroImage?: T;
   stats?:
     | T
     | {
