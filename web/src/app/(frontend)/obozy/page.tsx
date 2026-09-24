@@ -3,7 +3,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 
 import { getCamps, getUpcomingSessions, asImage, asCamp } from '@/lib/content'
-import { formatPriceLabel, formatAgeRange, pluralPl } from '@/lib/format'
+import { formatPriceLabel, formatAgeRange, pluralPl, focalPosition } from '@/lib/format'
 import { pageMetadata } from '@/lib/seo'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { SessionTable } from '@/components/SessionTable'
@@ -137,6 +137,7 @@ function CampCard({ camp }: { camp: Awaited<ReturnType<typeof getCamps>>[number]
           width={medium?.width ?? cover.width ?? 750}
           height={medium?.height ?? cover.height ?? 500}
           className="h-[170px] w-full border-b border-rock-200 object-cover"
+          style={{ objectPosition: focalPosition(cover) }}
         />
       ) : (
         <ImagePlaceholder caption={`Zdjęcie · ${camp.title}`} height="h-[170px]" />

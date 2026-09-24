@@ -3,7 +3,7 @@ import Link from 'next/link'
 
 import type { Course } from '@/lib/content'
 import { asImage } from '@/lib/content'
-import { formatPriceLabel, formatLevel } from '@/lib/format'
+import { formatPriceLabel, formatLevel, focalPosition } from '@/lib/format'
 import { Badge, ImagePlaceholder } from './Ui'
 
 /**
@@ -27,6 +27,7 @@ export function CourseCard({ course }: { course: Course }) {
           width={medium?.width ?? cover.width ?? 750}
           height={medium?.height ?? cover.height ?? 500}
           className="h-[156px] w-full border-b border-rock-200 object-cover"
+          style={{ objectPosition: focalPosition(cover) }}
         />
       ) : (
         <ImagePlaceholder caption="Zdjęcie · skała" height="h-[156px]" />

@@ -19,6 +19,7 @@ import {
   formatCategory,
   mapEmbedSrc,
   mapEmbedUrlFrom,
+  focalPosition,
 } from '@/lib/format'
 import { jsonLd, organizationSchema } from '@/lib/schema'
 import type { SiteConfig } from '@/payload-types'
@@ -493,4 +494,27 @@ test('stray spaces around a pasted embed address do not reject it', () => {
 
 test('iframe code pointing anywhere but Google Maps is rejected', () => {
   assert.equal(mapEmbedUrlFrom('<iframe src="https://example.com/maps/embed?x"></iframe>'), null)
+})
+
+test('a focal point set in the panel becomes the crop position', () => {
+  assert.equal(focalPosition({ focalX: 30, focalY: 72.5 }), '30% 72.5%')
+})
+
+test('a photo without a focal point keeps the default centre crop', () => {
+  // undefined, not "50% 50%": React then drops the style property entirely.
+  assert.equal(focalPosition({ focalX: null, focalY: null }), undefined)
+  assert.equal(focalPosition({}), undefined)
+  assert.equal(focalPosition(null), undefined)
+})
+
+test('half a focal point is ignored rather than guessed', () => {
+  assert.equal(focalPosition({ focalX: 20, focalY: null }), undefined)
+})
+
+test('a focal point outside the photo is pulled back to its edge', () => {
+  assert.equal(focalPosition({ focalX: -5, focalY: 140 }), '0% 100%')
+})
+
+test('a focal point that is not a real number keeps the centre crop', () => {
+  assert.equal(focalPosition({ focalX: Number.NaN, focalY: 40 }), undefined)
 })

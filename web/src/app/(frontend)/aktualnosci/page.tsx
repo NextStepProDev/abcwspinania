@@ -3,7 +3,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 
 import { getPosts, asImage } from '@/lib/content'
-import { formatCategory, POST_CATEGORIES, pluralPl } from '@/lib/format'
+import { formatCategory, POST_CATEGORIES, pluralPl, focalPosition } from '@/lib/format'
 import { pageMetadata } from '@/lib/seo'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { Filters } from '@/components/Filters'
@@ -119,6 +119,7 @@ function FeaturedPost({ post }: { post: Awaited<ReturnType<typeof getPosts>>[num
           width={medium?.width ?? cover.width ?? 750}
           height={medium?.height ?? cover.height ?? 500}
           className="h-full min-h-[240px] w-full object-cover"
+          style={{ objectPosition: focalPosition(cover) }}
         />
       ) : (
         <ImagePlaceholder caption="Zdjęcie · archiwum szkoły" height="min-h-[240px] h-full" />

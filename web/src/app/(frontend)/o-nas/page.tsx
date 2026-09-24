@@ -3,7 +3,7 @@ import Image from 'next/image'
 import { RichText } from '@payloadcms/richtext-lexical/react'
 
 import { getAboutPage, getInstructors, getSiteConfig, asImage } from '@/lib/content'
-import { yearsSince } from '@/lib/format'
+import { yearsSince, focalPosition } from '@/lib/format'
 import { pageMetadata } from '@/lib/seo'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { Shield, Check, Certificate, Arrow } from '@/components/Icons'
@@ -131,6 +131,7 @@ export default async function AboutPage() {
             width={medium?.width ?? image.width ?? 750}
             height={medium?.height ?? image.height ?? 500}
             className="h-full max-h-[380px] w-full rounded-2xl object-cover"
+            style={{ objectPosition: focalPosition(image) }}
           />
         ) : (
           <ImagePlaceholder
@@ -183,6 +184,7 @@ export default async function AboutPage() {
                       width={mini?.width ?? portret.width ?? 750}
                       height={mini?.height ?? portret.height ?? 500}
                       className="h-[240px] w-full border-b border-rock-200 object-cover"
+                      style={{ objectPosition: focalPosition(portret) }}
                     />
                   ) : (
                     <ImagePlaceholder caption="Portret" height="h-[240px]" />

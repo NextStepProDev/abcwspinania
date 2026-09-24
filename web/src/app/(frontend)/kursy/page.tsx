@@ -3,7 +3,14 @@ import Image from 'next/image'
 import Link from 'next/link'
 
 import { getCourses, getUpcomingSessions, asImage } from '@/lib/content'
-import { formatPriceLabel, formatLevel, formatDateRangeShort, pluralPl, LEVELS } from '@/lib/format'
+import {
+  formatPriceLabel,
+  formatLevel,
+  formatDateRangeShort,
+  pluralPl,
+  LEVELS,
+  focalPosition,
+} from '@/lib/format'
 import { pageMetadata } from '@/lib/seo'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { Filters } from '@/components/Filters'
@@ -95,6 +102,7 @@ export default async function CoursesPage({ searchParams }: Props) {
                           width={medium?.width ?? cover.width ?? 750}
                           height={medium?.height ?? cover.height ?? 500}
                           className="absolute inset-0 h-full w-full object-cover"
+                          style={{ objectPosition: focalPosition(cover) }}
                         />
                       </div>
                     ) : (

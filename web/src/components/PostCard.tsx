@@ -3,7 +3,7 @@ import Link from 'next/link'
 
 import type { Post } from '@/lib/content'
 import { asImage } from '@/lib/content'
-import { readingTime, formatDate, formatCategory } from '@/lib/format'
+import { readingTime, formatDate, formatCategory, focalPosition } from '@/lib/format'
 import { Badge, ImagePlaceholder } from './Ui'
 
 /** Post byline: date and reading time. Repeats in four places. */
@@ -37,6 +37,7 @@ export function PostCard({ post }: { post: Post }) {
           width={medium?.width ?? cover.width ?? 750}
           height={medium?.height ?? cover.height ?? 500}
           className="h-[170px] w-full border-b border-rock-200 object-cover"
+          style={{ objectPosition: focalPosition(cover) }}
         />
       ) : (
         <ImagePlaceholder caption="Zdjęcie" height="h-[170px]" />
