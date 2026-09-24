@@ -4,6 +4,11 @@
    The values are tokens, not literals inside components — swapping the visual
    identity should mean editing this file, not walking through every view. */
 @theme {
+  /* The width at which the full header row fits in one line — see Header.tsx.
+     A theme breakpoint rather than `min-[1440px]:`, because arbitrary values
+     are not ordered after `xl:` and lost to it on the same property. */
+  --breakpoint-wide: 90rem;
+
   /* Jura limestone — from the page background to the dark footer.
 
      `rock-50` was lightened from #f7f5f1 on 24.09.2026 (+4 per channel), a
