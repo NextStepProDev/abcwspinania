@@ -49,6 +49,9 @@ export function Header({ phone, telHref }: { phone: string | null; telHref: stri
 
   return (
     <header className="sticky top-0 z-40 border-b border-rock-100 bg-rock-50">
+      {/* TRIAL — thin stripe in the old banner's blue (`--color-banner`), purely
+          decorative, no text on it. Remove if the client doesn't want it. */}
+      <div className="h-[3px] bg-banner" aria-hidden="true" />
       <div className="mx-auto flex h-[68px] max-w-[1440px] items-center gap-6 px-4 sm:px-6 lg:h-[76px] lg:gap-9 lg:px-20">
         <Link href="/" className="flex shrink-0 items-center gap-2.5 text-rock-900">
           <Logo />
@@ -116,7 +119,7 @@ export function Header({ phone, telHref }: { phone: string | null; telHref: stri
 
         <Link
           href="/kontakt"
-          className="hidden shrink-0 rounded-lg bg-rope px-5 py-2.5 text-[15px] font-semibold text-white hover:bg-rope-dark lg:block"
+          className="hidden shrink-0 rounded-lg bg-banner-fill px-5 py-2.5 text-[15px] font-semibold text-white hover:bg-banner-fill-dark lg:block"
         >
           Zapisz się
         </Link>

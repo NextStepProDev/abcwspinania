@@ -1,6 +1,7 @@
 import Link from 'next/link'
 
 import type { SiteConfig } from '@/payload-types'
+import { BRAND_COLORS } from '@/lib/site'
 import { Logo } from './Logo'
 import { NewsletterForm } from './NewsletterForm'
 import { OFFER_NAV, SCHOOL_NAV, type NavItem } from './navigation'
@@ -42,7 +43,19 @@ export function Footer({ config }: { config: SiteConfig }) {
         <div className="grid gap-10 border-b border-rock-line py-11 md:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr] lg:gap-12">
           <div className="flex flex-col gap-3.5">
             <div className="flex items-center gap-2.5 text-white">
-              <Logo markSize={24} textSize="text-[18px]" markColor="text-rope" />
+              {/* White lozenge, navy climber — exactly the arrangement on the
+                  real sign. Forced by contrast anyway: a navy lozenge measures
+                  1.18 against `rock-900` and disappears. The climber is the
+                  accent rather than the panel's own colour, because the point
+                  is to show the mark, not to cut a hole in it; 12.76 either
+                  way. It is the HEADER that departs from the original here,
+                  not this. */}
+              <Logo
+                markSize={24}
+                textSize="text-[18px]"
+                markColor="text-white"
+                figureColor={BRAND_COLORS.accent}
+              />
             </div>
             {config.shortDescription && (
               <p className="max-w-[320px] text-[15px] leading-6">{config.shortDescription}</p>

@@ -18,7 +18,27 @@ import { MARK_DIAMOND, MARK_FIGURE, MARK_HEAD, MARK_VIEW_BOX } from '@/lib/mark'
  * The colour is inherited via `currentColor`, so the same component works on the
  * light header and the dark footer without a second variant.
  */
-export function Mark({ className, size = 26 }: { className?: string; size?: number }) {
+export function Mark({
+  className,
+  size = 26,
+  figureColor = '#fff',
+}: {
+  className?: string
+  size?: number
+  /**
+   * Colour of the climber inside the lozenge.
+   *
+   * The mark exists in two arrangements. On a light ground the lozenge is navy
+   * and the figure white; on a dark one the lozenge is light and the figure
+   * takes the panel's colour, because navy on `rock-900` measures 1.18 contrast
+   * and disappears. Both come out at 12.76.
+   *
+   * Worth knowing which is which: the REAL sign is the second one — a white
+   * lozenge with a navy climber. The light-ground version used in the header is
+   * the departure from it, not the other way round.
+   */
+  figureColor?: string
+}) {
   return (
     <svg
       width={size}
@@ -29,12 +49,18 @@ export function Mark({ className, size = 26 }: { className?: string; size?: numb
       aria-hidden="true"
     >
       <path d={MARK_DIAMOND} fill="currentColor" />
-      <g stroke="#fff" strokeWidth="3.3" strokeLinecap="round" strokeLinejoin="round" fill="none">
+      <g
+        stroke={figureColor}
+        strokeWidth="3.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      >
         {MARK_FIGURE.map((d) => (
           <path key={d} d={d} />
         ))}
       </g>
-      <circle cx={MARK_HEAD.cx} cy={MARK_HEAD.cy} r="3.4" fill="#fff" />
+      <circle cx={MARK_HEAD.cx} cy={MARK_HEAD.cy} r="3.4" fill={figureColor} />
     </svg>
   )
 }
@@ -44,14 +70,17 @@ export function Logo({
   markSize = 26,
   textSize = 'text-[19px]',
   markColor = 'text-rope',
+  figureColor,
 }: {
   markSize?: number
   textSize?: string
   markColor?: string
+  /** Passed through to `Mark` — see there. Needed on dark panels. */
+  figureColor?: string
 }) {
   return (
     <>
-      <Mark size={markSize} className={markColor} />
+      <Mark size={markSize} className={markColor} figureColor={figureColor} />
       <span className={`font-display font-extrabold tracking-[-0.025em] ${textSize}`}>
         ABC Wspinania
       </span>

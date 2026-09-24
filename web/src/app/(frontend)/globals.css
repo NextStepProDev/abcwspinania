@@ -6,17 +6,19 @@
 @theme {
   /* Jura limestone — from the page background to the dark footer.
 
-     `rock-50` was lightened from #f7f5f1 on 24.09.2026, a call made in
-     development — NOT something Krzysiek asked for, so it is open to being
-     changed back. Each channel went up by the same 4 points rather than being
-     pulled towards white: that keeps the 6-point spread between red and blue
-     that makes this a warm limestone rather than a cold grey. Pulling it
-     halfway to white would have lightened it AND washed the warmth out.
+     `rock-50` was lightened from #f7f5f1 on 24.09.2026 (+4 per channel), a
+     call made in development. Lightened again the same day, in response to
+     feedback once the page grew banner-blue buttons: the warm limestone read
+     muddy next to that blue. This second move HALVES the remaining distance
+     to white on each channel (4/6/10 → 2/3/5) rather than going fully
+     neutral, so it stays a whisper warmer than plain white — that halving,
+     not a flat #ffffff, is open to being revisited if it still doesn't sit
+     right next to the blue.
 
      ⚠️ Two of these values are also needed in TypeScript, which cannot read a
      custom property: see `BRAND_COLORS` in `lib/site.ts`. Change one, change
      both. */
-  --color-rock-50: #fbf9f5;
+  --color-rock-50: #fdfcfa;
   --color-rock-100: #ece7df;
   /* Sits between 50 and 100, and exists because those two tones do two
      different jobs. `rock-100` is a BORDER in 31 places and a FILL in 9; at
@@ -36,11 +38,68 @@
   --color-rock-900: #2a2620;
   --color-rock-950: #1a1713;
 
-  /* Rope — the accent colour. */
-  --color-rope: #c8552b;
-  --color-rope-dark: #a03f1e;
-  --color-rope-soft: #f5e8e2;
-  --color-rope-light: #f0a184;
+  /* The accent, taken from the school's own mark.
+     
+     Sampled from the sign in `design/logo/ABCWSPINANIA.jpg`: the lozenge is
+     #1b2c71, 1883 pixels of it, with a white figure. The mockup had proposed a
+     warm orange (#c8552b) that appears nowhere in the school's identity;
+     replaced on 24.09.2026 at the client's request so the site matches the mark
+     it displays.
+     
+     The swap also fixed an accessibility failure rather than creating one: the
+     orange as text measured 4.17 against the page background, short of the
+     4.5 that normal text requires. This navy measures 12.14.
+     
+     The old site also used a brighter blue in its banner, where the lozenge
+     was drawn in the banner's own colour and defined by a white outline.
+     That blue is `--color-banner` below — measured there, it is the wrong
+     tool for an accent (it fails as text) and is deliberately not used as one.
+     
+     The name `rope` stays. It names the ROLE — the one accent — not the hue,
+     and renaming it would touch fifty-odd class names for no gain. */
+  --color-rope: #1b2c71;
+  --color-rope-dark: #121d49;
+  --color-rope-soft: #e8eaf1;
+  --color-rope-light: #828bb1;
+
+  /* A single step lighter than `rope`, same hue — for the closing CTA panel
+     ONLY, which felt too heavy at the full navy once the page around it had
+     buttons in `banner-fill`. Not a rename of `rope` itself: nav links,
+     borders and body text stay at the darker value, because those were never
+     the complaint.
+
+     Headroom is not the constraint here — white text on this measures 11.26
+     and `rope-soft` measures 9.37, both far past the 4.5/3.0 minimums, same
+     as they were on `rope`. This is a taste call, not an accessibility one;
+     go lighter still if it still reads heavy. */
+  --color-rope-panel: #1f3384;
+
+  /* The brighter blue from the OLD site's banner (`ABC_logo.png`) — #0092dc,
+     the single most common colour in that file (27 600 of its 64 800 pixels).
+     Confirmed with the client on 24.09.2026: it belongs in the palette
+     alongside `rope`, not instead of it.
+
+     It measures 3.25 against the page background and 3.42 as white text on
+     it — both clear 3.0 (the non-text / large-text minimum) and both clear
+     of 4.5 (the normal-text minimum). That is not a rounding margin to treat
+     as "close enough": at the sizes this site uses for body copy and button
+     labels, 3.25–3.42 FAILS.
+
+     So this exact value is for large graphical elements ONLY — fills,
+     borders, decorative bands, backgrounds behind an icon — never as text,
+     and never under text smaller than 24px regular / 19px bold. For text or
+     a button label, use `rope`, or `banner-fill` below if it must be this
+     hue. */
+  --color-banner: #0092dc;
+
+  /* The same hue, darkened until it clears text contrast (4.69 for white on
+     it, against the 4.5 minimum) — the client asked for the buttons
+     themselves in this blue, not just `rope` with a hint of it. `-dark` is
+     one step darker again, for hover, the same relationship `rope` has to
+     `rope-dark`. Below 4.5 here is not a rounding call to round up from;
+     redo the check in a contrast tool before nudging this lighter. */
+  --color-banner-fill: #007ab8;
+  --color-banner-fill-dark: #006699;
 
   /* Session availability: green means "spots left". Separate tokens, because
      this is a status message, not an accent variant — they must not be folded

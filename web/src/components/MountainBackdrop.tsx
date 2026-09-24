@@ -49,22 +49,27 @@ export function MountainBackdrop({ variant = 'full' }: { variant?: 'full' | 'sho
 
       {/* The climbing route with its bolts — the only accent of colour. It
           disappears in the short variant (subpages), because at 320 px tall it
-          runs outside the frame. */}
+          runs outside the frame.
+
+          Drawn in `rope-light`, NOT the accent itself. This sits on `rock-950`,
+          where the navy accent measures 1.40 contrast and would be invisible;
+          the light shade measures 5.34. The orange it replaced managed 4.07 —
+          so this reads better than what was here before, not worse. */}
       {variant === 'full' && (
         <>
           <path
             d="M1086 628l14-92-16-88 18-80-14-76 16-64"
-            stroke="#c8552b"
+            stroke="var(--color-rope-light)"
             strokeWidth="3"
             strokeDasharray="2 13"
             strokeLinecap="round"
             fill="none"
           />
-          <circle cx="1100" cy="536" r="6" fill="#c8552b" />
-          <circle cx="1084" cy="448" r="6" fill="#c8552b" />
-          <circle cx="1102" cy="368" r="6" fill="#c8552b" />
-          <circle cx="1088" cy="292" r="6" fill="#c8552b" />
-          <circle cx="1104" cy="228" r="7" fill="#c8552b" />
+          <circle cx="1100" cy="536" r="6" fill="var(--color-rope-light)" />
+          <circle cx="1084" cy="448" r="6" fill="var(--color-rope-light)" />
+          <circle cx="1102" cy="368" r="6" fill="var(--color-rope-light)" />
+          <circle cx="1088" cy="292" r="6" fill="var(--color-rope-light)" />
+          <circle cx="1104" cy="228" r="7" fill="var(--color-rope-light)" />
         </>
       )}
     </svg>

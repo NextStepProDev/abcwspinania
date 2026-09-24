@@ -21,6 +21,66 @@ export function generateMetadata(): Metadata {
 
 const REASON_ICONS = [Shield, Check, Certificate]
 
+interface ArchivePhoto {
+  src: string
+  width: number
+  height: number
+  alt: string
+  /** Spans two columns — for the one panoramic frame in the set. */
+  wide?: boolean
+}
+
+/**
+ * Photographs from Krzysztof Wróbel's family archive, showing the Jura decades
+ * ago. They sit in the repository rather than the media library on purpose:
+ * they are a fixed part of this page's story, not content the client swaps, and
+ * a fresh deploy should show them without anyone uploading anything first.
+ *
+ * Supplied as screen captures of scans, so the resolution is whatever the
+ * screen held. Re-encoded to 1200px JPEG at quality 70, chosen by measuring
+ * rather than by eye: for the largest of them quality 70 gives 196 KB against
+ * 232 KB at quality 80 — about a fifth more for nothing visible at the size
+ * these are shown.
+ *
+ * The alt text says what is VISIBLE and nothing more. Where each was taken is
+ * not recorded anywhere, and naming a crag we cannot verify would be an
+ * invention presented as the school's own history — which is exactly what the
+ * first draft of the heading above did before review caught it.
+ */
+const ARCHIVE_PHOTOS: ArchivePhoto[] = [
+  {
+    src: '/images/archive/jura-arch.jpg',
+    width: 1200,
+    height: 600,
+    wide: true,
+    alt: 'Skalna brama w wapiennym ostańcu, przed nią pastwisko z krowami, w kadrze sosny',
+  },
+  {
+    src: '/images/archive/jura-ostance.jpg',
+    width: 1200,
+    height: 798,
+    alt: 'Grupa wapiennych ostańców na trawiastym wzgórzu, w tle pola i las',
+  },
+  {
+    src: '/images/archive/jura-pinnacles.jpg',
+    width: 1200,
+    height: 763,
+    alt: 'Rząd skalnych turni na łagodnym stoku, oświetlonych niskim słońcem',
+  },
+  {
+    src: '/images/archive/jura-hikers.jpg',
+    width: 1200,
+    height: 846,
+    alt: 'Trzy osoby z plecakami idące pod skały, ubrane po turystycznemu',
+  },
+  {
+    src: '/images/archive/jura-postcard.jpg',
+    width: 1200,
+    height: 741,
+    alt: 'Zbliżenie na masyw skalny z otworem okiennym, odbitka w sepii',
+  },
+]
+
 export default async function AboutPage() {
   const [content, instructors, siteConfig] = await Promise.all([
     getAboutPage(),
@@ -169,6 +229,38 @@ export default async function AboutPage() {
           </div>
         </Container>
       )}
+
+      <Container className="pb-12 lg:pb-16">
+        <h2 className="text-[32px] leading-[1.05] lg:text-[44px]">Jura sprzed lat</h2>
+        <p className="mt-4 max-w-[680px] text-[17px] leading-7 text-rock-600">
+          Zdjęcia z rodzinnego archiwum Krzysztofa Wróbla — Jura sprzed kilkudziesięciu lat.
+        </p>
+
+        <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {ARCHIVE_PHOTOS.map((photo) => (
+            <li key={photo.src} className={photo.wide ? 'sm:col-span-2' : undefined}>
+              {/* Every one lazy, Next's default. On the gallery the first tile
+                  is the LCP candidate and gets `eager`; this strip sits near
+                  the bottom of a long page, so eager-loading anything here
+                  fetches a photo most visitors never scroll to. */}
+              <figure className="overflow-hidden rounded-xl border border-rock-200">
+                <Image
+                  src={photo.src}
+                  alt={photo.alt}
+                  width={photo.width}
+                  height={photo.height}
+                  sizes={
+                    photo.wide
+                      ? '(min-width: 1024px) 62vw, (min-width: 640px) 94vw, 94vw'
+                      : '(min-width: 1024px) 31vw, (min-width: 640px) 47vw, 94vw'
+                  }
+                  className="h-full w-full object-cover"
+                />
+              </figure>
+            </li>
+          ))}
+        </ul>
+      </Container>
 
       <Container className="pb-16 lg:pb-24">
         <ul className="grid gap-5 md:grid-cols-2">

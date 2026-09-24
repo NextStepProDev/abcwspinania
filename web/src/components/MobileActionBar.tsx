@@ -34,7 +34,7 @@ export function MobileActionBar({
       )}
       <Link
         href="/kontakt"
-        className="flex h-11 grow items-center justify-center rounded-lg bg-rope px-5 font-semibold text-white"
+        className="flex h-11 grow items-center justify-center rounded-lg bg-banner-fill px-5 font-semibold text-white"
       >
         Zapisz się na kurs
       </Link>
