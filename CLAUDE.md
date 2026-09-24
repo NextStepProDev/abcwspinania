@@ -397,8 +397,9 @@ pipeline'u SCSS dla jednego pustego arkusza.
     Czytnik ekranu czyta taki śmieć na głos, podczas gdy pusty `alt` każe mu
     zdjęcie ozdobne pominąć — i o to właśnie chodzi w specyfikacji.
     **Każde miejsce renderujące obrazek musi pisać `alt={media.alt ?? ''}`**,
-    żeby brak opisu dawał `alt=""`, a nie brakujący atrybut. Dziś robi tak
-    komplet dziewięciu miejsc.
+    żeby brak opisu dawał `alt=""`, a nie brakujący atrybut. Robi tak każde
+    obecne miejsce — sprawdzisz grepem po `alt ?? ''`. (Stała liczba, która
+    tu wcześniej stała, zdezaktualizowała się przy pierwszym nowym obrazku.)
 
 21. **Galeria trzyma stan w ADRESIE, nie w przeglądarce.** Powiększone zdjęcie
     to `/galeria?zdjecie=<id>`, renderowane na serwerze — ta sama zasada, którą

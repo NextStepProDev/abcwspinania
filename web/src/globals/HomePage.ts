@@ -53,6 +53,18 @@ export const HomePage: GlobalConfig = {
           maxLength: 400,
           label: 'Zdanie pod nagłówkiem',
         },
+        {
+          name: 'heroImage',
+          type: 'upload',
+          relationTo: 'media',
+          label: 'Zdjęcie w tle',
+          admin: {
+            description:
+              'Szerokie, poziome zdjęcie. Lewa strona jest przyciemniana pod tekst, ' +
+              'więc to, co najciekawsze, powinno być po prawej. Puste pole zostawia ' +
+              'dotychczasową ilustrację grani.',
+          },
+        },
       ],
     },
     {
@@ -95,6 +107,11 @@ export const HomePage: GlobalConfig = {
           type: 'upload',
           relationTo: 'media',
           label: 'Zdjęcie',
+          admin: {
+            description:
+              'Pionowe zdjęcie w proporcji 3:4 (np. 1200 × 1600). Inne proporcje ' +
+              'zostaną przycięte do tego kształtu.',
+          },
         },
       ],
     },

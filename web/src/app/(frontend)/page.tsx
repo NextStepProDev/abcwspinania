@@ -19,6 +19,7 @@ import { SessionTable } from '@/components/SessionTable'
 import { PostCard } from '@/components/PostCard'
 import { Quote } from '@/components/Quote'
 import { MountainBackdrop } from '@/components/MountainBackdrop'
+import { MountainRidges } from '@/components/MountainRidges'
 import { Button, Badge, SectionHeading, Container, ImagePlaceholder } from '@/components/Ui'
 
 // Exported as generateMetadata, NOT as `export const metadata` — that form
@@ -49,13 +50,41 @@ export default async function Home() {
   const homepageTestimonials = (marked.length > 0 ? marked : testimonials).slice(0, 2)
   const tel = telHref(siteConfig)
   const years = yearsSince(siteConfig.foundedYear)
+  const heroImage = asImage(content?.heroImage)
 
   return (
     <main>
       {/* --- Hero header --- */}
       <section className="relative isolate overflow-hidden bg-rock-950">
-        <MountainBackdrop />
-        <div className="absolute inset-0 bg-rock-950/60" />
+        {heroImage?.url ? (
+          // The ORIGINAL, not the 750px `medium` variant — this is the single
+          // largest image on the site, and Next's optimizer already resizes it
+          // per device (rule 24's reasoning: one resize cost, paid once, here).
+          <Image
+            src={heroImage.url}
+            alt={heroImage.alt ?? ''}
+            fill
+            loading="eager"
+            sizes="100vw"
+            className="object-cover"
+          />
+        ) : (
+          <MountainBackdrop />
+        )}
+        {heroImage?.url ? (
+          // A flat tint can't win here: dark enough to keep the text legible
+          // over the photo's brightest leaves, and the photo itself goes dull;
+          // light enough to stay vivid, and letters disappear into pale
+          // foliage. A left-to-right gradient instead: dark where the text
+          // actually sits, near-clear over the open sky and rock on the right
+          // where nothing is written.
+          <div className="absolute inset-0 bg-linear-to-r from-rock-950/80 via-rock-950/55 via-45% to-rock-950/10" />
+        ) : (
+          // Illustration keeps its original flat /60, unchanged; its own
+          // rope-accent colour was tuned for contrast against ITS background,
+          // not against a gradient, so leave that pairing exactly as it was.
+          <div className="absolute inset-0 bg-rock-950/60" />
+        )}
         <Container className="relative flex min-h-[520px] flex-col justify-center gap-6 py-16 lg:min-h-[640px] lg:py-0">
           {(content?.heroBadge || content?.heroSubtitle) && (
             <div className="flex flex-wrap items-center gap-3">
@@ -154,8 +183,15 @@ export default async function Home() {
       {content?.campsTitle && (
         <section className="pb-16 lg:pb-24">
           <Container>
-            <div className="grid overflow-hidden rounded-2xl bg-rock-900 lg:grid-cols-2">
-              <div className="flex flex-col justify-center gap-5 p-8 lg:p-16">
+            {/* Photo column capped at 520px: at 3:4 that is ~690px tall, so
+                the whole section fits on a laptop screen without scrolling. */}
+            <div className="grid overflow-hidden rounded-2xl bg-rock-900 lg:grid-cols-[minmax(0,1fr)_520px]">
+              <div className="relative isolate flex flex-col justify-center gap-5 p-8 lg:p-16">
+                {/* A quiet mountain skyline along the bottom of the panel,
+                    behind the text. */}
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-1/2">
+                  <MountainRidges />
+                </div>
                 {content.campsBadge && (
                   <span className="self-start">
                     <Badge tone="onDark" uppercase>
@@ -176,19 +212,25 @@ export default async function Home() {
 
               {(() => {
                 const image = asImage(content.campsImage)
-                const medium = image?.sizes?.medium
                 return image?.url ? (
                   <Image
-                    src={medium?.url ?? image.url}
+                    // The original, not the 750px `medium` variant: this
+                    // column is 520px wide, so retina screens need more
+                    // pixels than `medium` has.
+                    src={image.url}
                     alt={image.alt ?? ''}
-                    width={medium?.width ?? image.width ?? 750}
-                    height={medium?.height ?? image.height ?? 500}
-                    className="h-full min-h-[240px] w-full object-cover lg:min-h-[380px]"
+                    width={image.width ?? 1200}
+                    height={image.height ?? 1600}
+                    sizes="(min-width: 1024px) 520px, 100vw"
+                    // The photo fills its column at a fixed 3:4. object-cover
+                    // crops whatever doesn't match that ratio, so upload
+                    // campsImage already framed at 3:4 — then nothing is cut.
+                    className="aspect-[3/4] h-full w-full object-cover"
                   />
                 ) : (
                   <ImagePlaceholder
                     caption="Zdjęcie · obóz w Rzędkowicach"
-                    height="min-h-[240px] lg:min-h-[380px] h-full"
+                    height="aspect-[3/4]"
                     dark
                   />
                 )
