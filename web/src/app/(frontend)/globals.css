@@ -141,6 +141,58 @@ h3 {
   letter-spacing: -0.03em;
 }
 
+/* Press feedback: everything clickable sinks a little under the finger and
+   springs back on release. One rule here rather than `active:scale-*` on each
+   component, so a new button gets it without anyone remembering to add it.
+
+   Uses the standalone `scale` property, not `transform`, so it composes with
+   Tailwind's `rotate-*` / `translate-*` utilities instead of replacing them.
+   Inline text links inside a paragraph are unaffected on purpose — `scale`
+   does not apply to inline boxes, and a sentence that twitches when you tap
+   a word in it would be a bug, not feedback.
+
+   ⚠️ Scaling from the centre only reads as a press when the element's box IS
+   what you see — a button, a bordered card. A full-width row with its text at
+   the left edge (the mobile menu) instead slides that text sideways by 2% of
+   the ROW's width, 25px on a wide screen. Such rows carry `origin-left`, so
+   the text shrinks in place. `summary` is left out entirely: the FAQ row has
+   its `+` at the far right, which would jump inwards whichever origin is
+   chosen — and the rotating `+` is already the feedback there.
+
+   With reduced motion on, the global rule below cuts the duration to nothing,
+   so the press becomes an instant 4% step with no spring. Kept on purpose:
+   it is a confirmation under the finger, not movement across the screen.
+
+   ⚠️ This rule is UNLAYERED, so it beats every Tailwind utility regardless of
+   specificity — including `transition-colors` and `transition-opacity`. That
+   is why the property list below repeats theirs: drop one and that hover fade
+   silently becomes a jump. Adding `duration-*` or `ease-*` to a clickable will
+   likewise have no effect; change it here. */
+:is(a, button, [role='button'], input[type='submit'], input[type='button']):not(
+  :disabled,
+  [aria-disabled='true']
+) {
+  -webkit-tap-highlight-color: transparent;
+  transition-property:
+    color, background-color, border-color, outline-color, text-decoration-color, fill, stroke,
+    opacity, box-shadow, scale;
+  /* The release: a touch slower, with a slight overshoot, which is what makes
+     it read as a spring rather than a resize. */
+  transition-duration: 150ms, 150ms, 150ms, 150ms, 150ms, 150ms, 150ms, 150ms, 150ms, 280ms;
+  transition-timing-function:
+    ease, ease, ease, ease, ease, ease, ease, ease, ease, cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+:is(a, button, [role='button'], input[type='submit'], input[type='button']):not(
+    :disabled,
+    [aria-disabled='true']
+  ):active {
+  scale: 0.96;
+  /* The press itself: fast and without overshoot, so it lands the moment the
+     finger does. */
+  transition-duration: 150ms, 150ms, 150ms, 150ms, 150ms, 150ms, 150ms, 150ms, 150ms, 70ms;
+  transition-timing-function: ease, ease, ease, ease, ease, ease, ease, ease, ease, ease-out;
+}
+
 /* Respect the system setting — without it section entry animations can make
    motion-sensitive people feel sick. */
 @media (prefers-reduced-motion: reduce) {

@@ -180,8 +180,8 @@ export function Header({ phone, telHref }: { phone: string | null; telHref: stri
                     aria-current={active ? 'page' : undefined}
                     className={
                       active
-                        ? 'block border-l-2 border-rope py-2.5 pl-3 font-semibold text-rock-900'
-                        : 'block border-l-2 border-transparent py-2.5 pl-3 text-rock-600'
+                        ? 'block origin-left border-l-2 border-rope py-2.5 pl-3 font-semibold text-rock-900'
+                        : 'block origin-left border-l-2 border-transparent py-2.5 pl-3 text-rock-600'
                     }
                   >
                     {item.label}
@@ -194,7 +194,7 @@ export function Header({ phone, telHref }: { phone: string | null; telHref: stri
                 href={otherLanguage.href}
                 hrefLang={otherLanguage.code}
                 lang={otherLanguage.code}
-                className="block py-2 pl-3 text-rock-600"
+                className="block origin-left py-2 pl-3 text-rock-600"
               >
                 {otherLanguage.label}
               </Link>
