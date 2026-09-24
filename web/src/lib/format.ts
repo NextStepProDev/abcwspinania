@@ -391,3 +391,26 @@ export function mapEmbedSrc(override: string | null | undefined, address: string
     ? `https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed`
     : null
 }
+
+/**
+ * Where a cropped photo is anchored — the focal point set in the panel.
+ *
+ * Every `object-cover` photo on the site gets cut to a shape of its own (a
+ * wide strip on a phone, almost a square on a desktop course card, 3:4 on the
+ * homepage). A fixed crop saved into the file would be wrong in at least one of
+ * them, so the panel's focal point is the only framing tool: the crop moves to
+ * keep it in view, whatever the shape.
+ *
+ * `undefined` when the point is missing — React then leaves `object-position`
+ * out and the browser falls back to the centre, the behaviour from before.
+ */
+export function focalPosition(
+  media: { focalX?: number | null; focalY?: number | null } | null | undefined,
+): string | undefined {
+  const x = media?.focalX
+  const y = media?.focalY
+  if (typeof x !== 'number' || typeof y !== 'number') return undefined
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return undefined
+  const clamp = (value: number) => Math.min(100, Math.max(0, value))
+  return `${clamp(x)}% ${clamp(y)}%`
+}

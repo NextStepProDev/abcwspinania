@@ -11,7 +11,7 @@ import {
   telHref,
   asImage,
 } from '@/lib/content'
-import { yearsSince } from '@/lib/format'
+import { yearsSince, focalPosition } from '@/lib/format'
 import { pageMetadata } from '@/lib/seo'
 import { SELECTABLE_ICONS, type IconName } from '@/components/Icons'
 import { CourseCard } from '@/components/CourseCard'
@@ -67,6 +67,7 @@ export default async function Home() {
             loading="eager"
             sizes="100vw"
             className="object-cover"
+            style={{ objectPosition: focalPosition(heroImage) }}
           />
         ) : (
           <MountainBackdrop />
@@ -224,8 +225,10 @@ export default async function Home() {
                     sizes="(min-width: 1024px) 520px, 100vw"
                     // The photo fills its column at a fixed 3:4. object-cover
                     // crops whatever doesn't match that ratio, so upload
-                    // campsImage already framed at 3:4 — then nothing is cut.
+                    // campsImage already framed at 3:4 — then nothing is cut —
+                    // or set its focal point to choose what the crop keeps.
                     className="aspect-[3/4] h-full w-full object-cover"
+                    style={{ objectPosition: focalPosition(image) }}
                   />
                 ) : (
                   <ImagePlaceholder
