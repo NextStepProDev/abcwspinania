@@ -82,15 +82,21 @@ export default async function CoursesPage({ searchParams }: Props) {
 
               return (
                 <li key={course.id}>
-                  <article className="grid overflow-hidden rounded-xl bg-white shadow-[0_0_0_1px_rgba(42,38,32,0.06),0_4px_12px_rgba(42,38,32,0.08)] lg:grid-cols-[260px_1fr_260px]">
+                  <article className="grid overflow-hidden rounded-xl bg-white shadow-[0_0_0_1px_rgba(42,38,32,0.06),0_4px_12px_rgba(42,38,32,0.08)] lg:min-h-[250px] lg:grid-cols-[280px_1fr_260px]">
                     {cover?.url ? (
-                      <Image
-                        src={medium?.url ?? cover.url}
-                        alt={cover.alt ?? ''}
-                        width={medium?.width ?? cover.width ?? 750}
-                        height={medium?.height ?? cover.height ?? 500}
-                        className="h-48 w-full object-cover lg:h-full"
-                      />
+                      // Absolutely positioned, so the photo takes no part in
+                      // sizing the row: the text and the card's min-height set
+                      // it, and a portrait cover gets cropped instead of
+                      // stretching the card.
+                      <div className="relative h-48 lg:h-auto">
+                        <Image
+                          src={medium?.url ?? cover.url}
+                          alt={cover.alt ?? ''}
+                          width={medium?.width ?? cover.width ?? 750}
+                          height={medium?.height ?? cover.height ?? 500}
+                          className="absolute inset-0 h-full w-full object-cover"
+                        />
+                      </div>
                     ) : (
                       <ImagePlaceholder caption="Zdjęcie · skała" height="h-48 lg:h-full" />
                     )}
