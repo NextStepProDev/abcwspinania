@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 
 import { getCourse, getSiteConfig, telHref } from '@/lib/content'
+import { mapEmbedSrc } from '@/lib/format'
 import { pageMetadata } from '@/lib/seo'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { Phone, Envelope, Pin, Clock } from '@/components/Icons'
@@ -34,6 +35,11 @@ export default async function Kontakt({ searchParams }: Props) {
   ]
     .filter(Boolean)
     .join(', ')
+
+  // The map is built from the address itself, so it needs no key and no
+  // extra step in the panel. `mapEmbedUrl` only overrides it for a more
+  // precise pin; `frame-src` in next.config.ts lets nothing but Google Maps in.
+  const mapSrc = mapEmbedSrc(siteConfig.mapEmbedUrl, address)
 
   return (
     <main>
@@ -101,24 +107,14 @@ export default async function Kontakt({ searchParams }: Props) {
             )}
           </div>
 
-          {siteConfig.mapEmbedUrl ? (
+          {mapSrc && (
             <iframe
-              src={siteConfig.mapEmbedUrl}
-              title={`Mapa — ${siteConfig.city ?? 'baza szkoły'}`}
+              src={mapSrc}
+              title={`Mapa — ${address || 'baza szkoły'}`}
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
               className="h-[260px] w-full rounded-2xl border border-rock-200"
             />
-          ) : (
-            // The map is not embedded "just in case": an external frame needs
-            // a looser CSP and sets cookies, so it only appears once the client
-            // supplies a concrete embed address.
-            <div className="flex h-[180px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-rock-300 bg-white px-6 text-center">
-              <Pin size={22} className="text-rock-400" />
-              <p className="text-sm text-rock-600">
-                Mapa pojawi się po podaniu adresu osadzenia w panelu.
-              </p>
-            </div>
           )}
 
           {siteConfig.directions && (

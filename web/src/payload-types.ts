@@ -1133,7 +1133,7 @@ export interface SiteConfig {
    */
   directions?: string | null;
   /**
-   * Pełny adres z pola „src” kodu osadzenia mapy. Puste = zamiast mapy pokazujemy sam adres.
+   * Zwykle zostaw puste — mapa na stronie kontaktu powstaje sama z adresu powyżej. Wypełnij tylko, gdy pinezka ma stać gdzie indziej: wklej kod z Map Google (Udostępnij → Umieść mapę → Kopiuj HTML).
    */
   mapEmbedUrl?: string | null;
   /**

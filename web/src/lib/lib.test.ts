@@ -17,6 +17,8 @@ import {
   anchorId,
   tableOfContents,
   formatCategory,
+  mapEmbedSrc,
+  mapEmbedUrlFrom,
 } from '@/lib/format'
 import { jsonLd, organizationSchema } from '@/lib/schema'
 import type { SiteConfig } from '@/payload-types'
@@ -447,4 +449,48 @@ test('an overlay with a single control traps Tab in both directions', () => {
   // nowhere to go but back to it.
   assert.equal(focusTrapTarget(false, 'only'), 'first')
   assert.equal(focusTrapTarget(true, 'only'), 'first')
+})
+
+test('the contact map is built from the address when the panel field is empty', () => {
+  assert.equal(
+    mapEmbedSrc(null, 'Jurajska 47, 42-421 Rzędkowice'),
+    'https://www.google.com/maps?q=Jurajska%2047%2C%2042-421%20Rz%C4%99dkowice&output=embed',
+  )
+})
+
+test('a share link in the panel is ignored instead of leaving an empty frame', () => {
+  assert.equal(mapEmbedUrlFrom('https://maps.app.goo.gl/bhFe76gETGJB5cnV6'), null)
+  assert.match(
+    mapEmbedSrc('https://maps.app.goo.gl/bhFe76gETGJB5cnV6', 'Rzędkowice')!,
+    /output=embed$/,
+  )
+})
+
+test('a real embed address from the panel wins over the address', () => {
+  const embed = 'https://www.google.com/maps/embed?pb=!1m18'
+  assert.equal(mapEmbedSrc(embed, 'Rzędkowice'), embed)
+})
+
+test('no address and no embed means no map', () => {
+  assert.equal(mapEmbedSrc('', ''), null)
+})
+
+test('the whole iframe code pasted from Google Maps is accepted', () => {
+  // "Umieść mapę" in Google Maps offers only "Kopiuj HTML", not the bare address.
+  const html =
+    '<iframe src="https://www.google.com/maps/embed?pb=!1m18!2s" width="600" ' +
+    'height="450" style="border:0;" allowfullscreen="" loading="lazy"></iframe>'
+  assert.equal(mapEmbedUrlFrom(html), 'https://www.google.com/maps/embed?pb=!1m18!2s')
+  assert.equal(mapEmbedSrc(html, 'Rzędkowice'), 'https://www.google.com/maps/embed?pb=!1m18!2s')
+})
+
+test('stray spaces around a pasted embed address do not reject it', () => {
+  assert.equal(
+    mapEmbedUrlFrom('  https://www.google.com/maps/embed?pb=!1m18\n'),
+    'https://www.google.com/maps/embed?pb=!1m18',
+  )
+})
+
+test('iframe code pointing anywhere but Google Maps is rejected', () => {
+  assert.equal(mapEmbedUrlFrom('<iframe src="https://example.com/maps/embed?x"></iframe>'), null)
 })

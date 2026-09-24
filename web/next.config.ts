@@ -65,6 +65,9 @@ const CSP = [
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
   "connect-src 'self'",
+  // The contact page map: the two Google Maps embed paths (`/maps?…&output=embed`
+  // built from the address, `/maps/embed?pb=…` pasted in the panel), not all of google.com.
+  'frame-src https://www.google.com/maps/embed https://www.google.com/maps',
   "frame-ancestors 'self'",
   "base-uri 'self'",
   "form-action 'self'",
