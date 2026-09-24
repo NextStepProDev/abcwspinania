@@ -13,6 +13,7 @@ import type {
   SiteConfig,
   HomePage,
   AboutPage,
+  CampsPage,
   EnglishPage,
 } from '@/payload-types'
 
@@ -384,6 +385,14 @@ export function getAboutPage(): Promise<AboutPage | null> {
   return withPayloadSafe(
     'about-page',
     (payload) => payload.findGlobal({ slug: 'about-page', depth: 1 }),
+    null,
+  )
+}
+
+export function getCampsPage(): Promise<CampsPage | null> {
+  return withPayloadSafe(
+    'camps-page',
+    (payload) => payload.findGlobal({ slug: 'camps-page', depth: 0 }),
     null,
   )
 }

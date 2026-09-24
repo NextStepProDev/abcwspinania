@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 
-import { getCamps, getUpcomingSessions, asImage, asCamp } from '@/lib/content'
+import { getCamps, getCampsPage, getUpcomingSessions, asImage, asCamp } from '@/lib/content'
 import { formatPriceLabel, formatAgeRange, pluralPl, focalPosition } from '@/lib/format'
 import { pageMetadata } from '@/lib/seo'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
@@ -21,7 +21,11 @@ export function generateMetadata(): Metadata {
 }
 
 export default async function CampsPage() {
-  const [all, sessions] = await Promise.all([getCamps(), getUpcomingSessions()])
+  const [all, sessions, content] = await Promise.all([
+    getCamps(),
+    getUpcomingSessions(),
+    getCampsPage(),
+  ])
 
   const camps = all.filter((o) => o.kind === 'camp')
   const others = all.filter((o) => o.kind !== 'camp')
@@ -46,10 +50,11 @@ export default async function CampsPage() {
           <h1 className="max-w-[860px] text-balance text-[34px] leading-[1.03] text-white lg:text-[52px]">
             Obozy i wyjazdy
           </h1>
-          <p className="max-w-[660px] text-[17px] leading-7 text-rock-fg-strong">
-            Obozy wspinaczkowo-przygodowe dla dzieci i młodzieży, wycieczki po Jurze, wejścia
-            jaskiniowe i cotygodniowe zajęcia. Nocleg i wyżywienie we własnej bazie.
-          </p>
+          {content?.intro && (
+            <p className="max-w-[660px] whitespace-pre-line text-[17px] leading-7 text-rock-fg-strong">
+              {content.intro}
+            </p>
+          )}
         </Container>
       </section>
 

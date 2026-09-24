@@ -82,7 +82,12 @@ export const SiteConfig: GlobalConfig = {
       type: 'collapsible',
       label: 'Adres',
       fields: [
-        { name: 'legalName', type: 'text', label: 'Nazwa (pełna)' },
+        {
+          name: 'legalName',
+          type: 'text',
+          label: 'Nazwa (pełna)',
+          admin: { description: 'Widoczna w stopce: nad opisem szkoły i przy prawach autorskich.' },
+        },
         { name: 'street', type: 'text', label: 'Ulica i numer' },
         { name: 'postalCode', type: 'text', label: 'Kod pocztowy' },
         { name: 'city', type: 'text', label: 'Miejscowość' },
@@ -141,9 +146,9 @@ export const SiteConfig: GlobalConfig = {
         {
           name: 'shortDescription',
           type: 'textarea',
-          maxLength: 300,
+          maxLength: 500,
           label: 'Krótki opis szkoły',
-          admin: { description: 'Jedno–dwa zdania. Widoczne w stopce.' },
+          admin: { description: 'Kilka zdań. Widoczne w stopce, pod pełną nazwą.' },
         },
       ],
     },

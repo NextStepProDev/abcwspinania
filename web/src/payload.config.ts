@@ -22,6 +22,7 @@ import { SiteConfig } from './globals/SiteConfig'
 import { HomePage } from './globals/HomePage'
 import { AboutPage } from './globals/AboutPage'
 import { EnglishPage } from './globals/EnglishPage'
+import { CampsPage } from './globals/CampsPage'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -86,7 +87,7 @@ export default buildConfig({
   // Globals are content that occurs exactly once (contact details, page copy).
   // A collection holding a single entry would force someone to keep track of
   // which entry is "the real one" — a global makes that mistake impossible.
-  globals: [SiteConfig, HomePage, AboutPage, EnglishPage],
+  globals: [SiteConfig, HomePage, AboutPage, CampsPage, EnglishPage],
   editor: lexicalEditor(),
   secret: requireSecret(),
   typescript: {

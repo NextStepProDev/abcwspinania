@@ -1,7 +1,7 @@
 import Link from 'next/link'
 
 import type { SiteConfig } from '@/payload-types'
-import { BRAND_COLORS } from '@/lib/site'
+import { BRAND, BRAND_COLORS } from '@/lib/site'
 import { Logo } from './Logo'
 import { NewsletterForm } from './NewsletterForm'
 import { OFFER_NAV, SCHOOL_NAV, type NavItem } from './navigation'
@@ -57,8 +57,15 @@ export function Footer({ config }: { config: SiteConfig }) {
                 figureColor={BRAND_COLORS.accent}
               />
             </div>
+            {/* The full name only when it says more than the logo above it —
+                the no-database fallback is the bare brand, which would repeat. */}
+            {config.legalName && config.legalName !== BRAND && (
+              <p className="text-[15px] font-semibold text-white">{config.legalName}</p>
+            )}
             {config.shortDescription && (
-              <p className="max-w-[320px] text-[15px] leading-6">{config.shortDescription}</p>
+              <p className="max-w-[400px] whitespace-pre-line text-[15px] leading-6">
+                {config.shortDescription}
+              </p>
             )}
           </div>
 

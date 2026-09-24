@@ -3,6 +3,7 @@ import * as migration_20260923_155756_media_alt_optional from './20260923_155756
 import * as migration_20260923_174523_media_gallery_flag from './20260923_174523_media_gallery_flag';
 import * as migration_20260923_213302_gallery_photos_collection from './20260923_213302_gallery_photos_collection';
 import * as migration_20260924_133009_home_page_hero_image from './20260924_133009_home_page_hero_image';
+import * as migration_20260924_223953_camps_page_intro from './20260924_223953_camps_page_intro';
 
 export const migrations = [
   {
@@ -28,6 +29,11 @@ export const migrations = [
   {
     up: migration_20260924_133009_home_page_hero_image.up,
     down: migration_20260924_133009_home_page_hero_image.down,
-    name: '20260924_133009_home_page_hero_image'
+    name: '20260924_133009_home_page_hero_image',
+  },
+  {
+    up: migration_20260924_223953_camps_page_intro.up,
+    down: migration_20260924_223953_camps_page_intro.down,
+    name: '20260924_223953_camps_page_intro'
   },
 ];
