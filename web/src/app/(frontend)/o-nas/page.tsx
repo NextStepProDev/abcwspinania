@@ -26,9 +26,21 @@ interface ArchivePhoto {
   width: number
   height: number
   alt: string
-  /** Spans two columns — for the one panoramic frame in the set. */
+  /** Takes a whole row below `lg`, at 2:1 — for the one panoramic frame in the set. */
   wide?: boolean
 }
+
+/*
+ * Frames are cut to a fixed ratio instead of following each photo's own shape.
+ * The scans range from 2:1 to 1.42:1, and with natural heights no two tiles in
+ * a row ended at the same line — the grid read as broken rather than as a set.
+ *
+ * On wide screens five photos don't fill a three-column grid, so it is six
+ * columns: the first two share a lead row at half width each, the other three
+ * split the row below. Below that the panorama has a row to itself, so it
+ * keeps its full width and its own 2:1 ratio.
+ */
+const ARCHIVE_LEAD = 2
 
 /**
  * Photographs from Krzysztof Wróbel's family archive, showing the Jura decades
@@ -236,29 +248,39 @@ export default async function AboutPage() {
           Zdjęcia z rodzinnego archiwum Krzysztofa Wróbla — Jura sprzed kilkudziesięciu lat.
         </p>
 
-        <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {ARCHIVE_PHOTOS.map((photo) => (
-            <li key={photo.src} className={photo.wide ? 'sm:col-span-2' : undefined}>
-              {/* Every one lazy, Next's default. On the gallery the first tile
-                  is the LCP candidate and gets `eager`; this strip sits near
-                  the bottom of a long page, so eager-loading anything here
-                  fetches a photo most visitors never scroll to. */}
-              <figure className="overflow-hidden rounded-xl border border-rock-200">
-                <Image
-                  src={photo.src}
-                  alt={photo.alt}
-                  width={photo.width}
-                  height={photo.height}
-                  sizes={
-                    photo.wide
-                      ? '(min-width: 1024px) 62vw, (min-width: 640px) 94vw, 94vw'
-                      : '(min-width: 1024px) 31vw, (min-width: 640px) 47vw, 94vw'
-                  }
-                  className="h-full w-full object-cover"
-                />
-              </figure>
-            </li>
-          ))}
+        <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+          {ARCHIVE_PHOTOS.map((photo, i) => {
+            const lead = i < ARCHIVE_LEAD
+            return (
+              <li
+                key={photo.src}
+                className={[photo.wide && 'sm:col-span-2', lead ? 'lg:col-span-3' : 'lg:col-span-2']
+                  .filter(Boolean)
+                  .join(' ')}
+              >
+                {/* Every one lazy, Next's default. On the gallery the first tile
+                    is the LCP candidate and gets `eager`; this strip sits near
+                    the bottom of a long page, so eager-loading anything here
+                    fetches a photo most visitors never scroll to. */}
+                <figure
+                  className={`overflow-hidden rounded-xl border border-rock-200 ${
+                    photo.wide ? 'aspect-[2/1] lg:aspect-[3/2]' : 'aspect-[3/2]'
+                  }`}
+                >
+                  <Image
+                    src={photo.src}
+                    alt={photo.alt}
+                    width={photo.width}
+                    height={photo.height}
+                    sizes={`(min-width: 1024px) ${lead ? 47 : 31}vw, (min-width: 640px) ${
+                      photo.wide ? 94 : 47
+                    }vw, 94vw`}
+                    className="h-full w-full object-cover"
+                  />
+                </figure>
+              </li>
+            )
+          })}
         </ul>
       </Container>
 
