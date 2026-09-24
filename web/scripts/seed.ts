@@ -117,7 +117,7 @@ const SITE_CONFIG = {
 const HOME_PAGE = {
   heroBadge: 'Licencja PZA',
   heroSubtitle: 'Rzędkowice, Jura Krakowsko-Częstochowska',
-  heroTitle: 'Naucz się wspinać na jurajskim wapieniu',
+  heroTitle: 'Twoja droga wspinaczkowa zaczyna się tutaj',
   heroText:
     'Kursy prowadzone według programu Polskiego Związku Alpinizmu, przez instruktora ' +
     'z licencją weryfikowaną co sezon. Czterech uczestników na instruktora, sześć dni, ' +
