@@ -103,7 +103,7 @@ export default async function Home() {
               the page has a heading even before anyone fills in the panel — an
               empty h1 is worse than a conservative one. */}
           <h1 className="max-w-[830px] text-balance text-[40px] leading-[0.98] text-white sm:text-[56px] lg:text-[72px] lg:tracking-[-0.035em]">
-            {content?.heroTitle ?? 'Naucz się wspinać na jurajskim wapieniu'}
+            {content?.heroTitle ?? 'Twoja droga wspinaczkowa zaczyna się tutaj'}
           </h1>
 
           {content?.heroText && (
