@@ -21,7 +21,7 @@ export function generateMetadata(): Metadata {
   return pageMetadata({
     title: 'Kursy wspinaczki',
     description:
-      'Kursy wspinaczki skalnej według programu PZA: pełny kurs skałkowy, drogi ubezpieczone, asekuracja tradycyjna, ścianka i szkolenia indywidualne.',
+      'Kursy wspinaczki skalnej według programu PZA: pełny kurs skałkowy, drogi ubezpieczone, asekuracja naturalna (trad), ścianka i szkolenia indywidualne.',
     // Canonical WITHOUT the filter parameter — filtered views hold the same
     // content in a different order and have no reason to compete in the index.
     path: '/kursy',

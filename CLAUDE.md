@@ -53,6 +53,7 @@ subdomeny `api.*`.
 | `SiteConfig` | `site-config` | kontakt, adres, licencja, profile |
 | `HomePage` | `home-page` | teksty strony startowej |
 | `AboutPage` | `about-page` | teksty podstrony „O nas" |
+| `CampsPage` | `camps-page` | wstęp podstrony „Obozy i wyjazdy" |
 | `EnglishPage` | `english-page` | jedyna podstrona po angielsku |
 
 `Messages` i `Newsletter` przyjmują zapis od **każdego** (to formularze
@@ -630,5 +631,5 @@ docker run --rm -v "$PWD/..:/repo" -w /repo rhysd/actionlint:latest -color
   w panelu, bez commita i deployu. Dopóki telefon jest pusty, strona **nie
   renderuje** linku `tel:` zamiast renderować zepsuty.
 - Model treści: sześć kolekcji treściowych (`Courses`, `Camps`, `Sessions`,
-  `Posts`, `Testimonials`, `Instructors`) i cztery globale. Etykiety w panelu
+  `Posts`, `Testimonials`, `Instructors`) i pięć globali. Etykiety w panelu
   są po polsku — to je widzi Krzysiek.

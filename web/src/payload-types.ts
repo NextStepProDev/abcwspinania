@@ -109,12 +109,14 @@ export interface Config {
     'site-config': SiteConfig;
     'home-page': HomePage;
     'about-page': AboutPage;
+    'camps-page': CampsPage;
     'english-page': EnglishPage;
   };
   globalsSelect: {
     'site-config': SiteConfigSelect<false> | SiteConfigSelect<true>;
     'home-page': HomePageSelect<false> | HomePageSelect<true>;
     'about-page': AboutPageSelect<false> | AboutPageSelect<true>;
+    'camps-page': CampsPageSelect<false> | CampsPageSelect<true>;
     'english-page': EnglishPageSelect<false> | EnglishPageSelect<true>;
   };
   locale: null;
@@ -1124,6 +1126,9 @@ export interface SiteConfig {
    * Np. że nie zawsze da się odebrać, bo trwają zajęcia w skałach.
    */
   contactNote?: string | null;
+  /**
+   * Widoczna w stopce: nad opisem szkoły i przy prawach autorskich.
+   */
   legalName?: string | null;
   street?: string | null;
   postalCode?: string | null;
@@ -1146,7 +1151,7 @@ export interface SiteConfig {
    */
   foundedYear?: number | null;
   /**
-   * Jedno–dwa zdania. Widoczne w stopce.
+   * Kilka zdań. Widoczne w stopce, pod pełną nazwą.
    */
   shortDescription?: string | null;
   facebook?: string | null;
@@ -1253,6 +1258,21 @@ export interface AboutPage {
     | null;
   aboutJura?: string | null;
   image?: (number | null) | Media;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Obozy, terminy i plan dnia zaciągają się z osobnych list.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camps-page".
+ */
+export interface CampsPage {
+  id: number;
+  /**
+   * Tekst pod nagłówkiem, na ciemnym tle.
+   */
+  intro?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1366,6 +1386,16 @@ export interface AboutPageSelect<T extends boolean = true> {
       };
   aboutJura?: T;
   image?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camps-page_select".
+ */
+export interface CampsPageSelect<T extends boolean = true> {
+  intro?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

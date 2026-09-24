@@ -110,8 +110,11 @@ const SITE_CONFIG = {
   stateQualifications: 'IS 182/K/2002',
   foundedYear: 2001,
   shortDescription:
-    'Szkoła wspinaczki z licencją Polskiego Związku Alpinizmu. Szkolimy na Jurze ' +
-    'Krakowsko-Częstochowskiej, z własnej bazy w Rzędkowicach.',
+    'Szkoła wspinaczki z licencją Polskiego Związku Alpinizmu i uprawnieniami państwowymi. ' +
+    'Szkolę cały rok w kraju i za granicą. Jako jeden z nielicznych instruktorów w Polsce ' +
+    'posiadam własną bazę szkoleniową w Rzędkowicach na Jurze. W latach 2025 i 2026 byłem ' +
+    'najwyżej i najlepiej ocenianym przez kursantów instruktorem wspinaczki w Polsce ' +
+    '(według serwisu kursy.wspinanie.pl).',
 }
 
 const HOME_PAGE = {
@@ -133,7 +136,8 @@ const HOME_PAGE = {
   coursesTitle: 'Kursy',
   coursesText:
     'Od pierwszego dotknięcia skały po samodzielne zakładanie asekuracji. ' +
-    'Każdy kurs kończy się sprawdzeniem umiejętności i zaświadczeniem według programu PZA.',
+    'Na każdym etapie umiejętności, które nabywasz, są weryfikowane. ' +
+    'Na koniec otrzymujesz zaświadczenie o ukończeniu kursu.',
   campsBadge: 'Obozy',
   campsTitle: 'Tydzień w skałach — dla dzieci i młodzieży',
   campsText:
@@ -184,8 +188,9 @@ const COURSES = [
     title: 'Kurs wspinaczki skalnej PZA',
     titleEn: 'Rock climbing course (PZA syllabus)',
     summary:
-      'Pełny kurs skałkowy według programu Związku. Sześć dni, pięć w skale — od pierwszego ' +
-      'węzła po samodzielne prowadzenie drogi z dolną asekuracją.',
+      'Pełny kurs skałkowy według programu Związku. Sześć dni: od pierwszego węzła ' +
+      'po samodzielne prowadzenie z asekuracją naturalną i zjazdy. Kurs, po którym już ' +
+      'wiesz, jak to działa.',
     price: 2400,
     priceFrom: true,
     duration: '6 dni',
@@ -318,10 +323,11 @@ const COURSES = [
   },
   {
     slug: 'kurs-asekuracji-tradycyjnej',
-    title: 'Kurs asekuracji tradycyjnej',
+    title: 'Kurs asekuracji naturalnej (TRAD)',
     summary:
-      'Zakładanie własnych punktów: kostki, kostki mechaniczne, punkty naturalne, budowa ' +
-      'i likwidacja stanowisk. Kontynuacja kursu na drogach ubezpieczonych.',
+      'Wspinałeś się tylko na drogach ubezpieczonych, ale chcesz się przygotować do kursu ' +
+      'taternickiego? Ten kurs nauczy cię asekuracji zakładanej samodzielnie — kostki i camy ' +
+      'nie będą już wiedzą tajemną!',
     price: 1800,
     duration: '4 dni',
     level: 'intermediate' as const,
@@ -678,14 +684,23 @@ const ABOUT_PAGE = {
   ],
 }
 
+/** The "Obozy i wyjazdy" page — the intro under its heading. */
+const CAMPS_PAGE = {
+  intro:
+    'Obozy wspinaczkowo-przygodowe dla dzieci i młodzieży, zielone szkoły i wycieczki ' +
+    'na Jurze. Mamy wpis do rejestru organizatorów turystyki. Wspinanie, amonity, jaskinie, ' +
+    'mosty linowe i skoki odwagi. Wycieczka z nami to niekończąca się przygoda.',
+}
+
 /** The English page — copy transcribed from the old site's "In English" section. */
 const ENGLISH_PAGE = {
-  badge: 'Licensed by the Polish Mountaineering Association',
+  badge:
+    'Rock climbing courses · Syllabus certified by the Polish Mountaineering ' +
+    'Association (PZA), a member of the UIAA',
   title: 'Learn to climb on Polish Jura limestone',
   lead:
-    'Rock climbing courses in English, led by instructors licensed by the Polish ' +
-    'Mountaineering Association. Four climbers per instructor, six days on real ' +
-    'limestone, certificate on completion.',
+    "We'll teach you how to climb safely — but above all, we'll show you how much fun " +
+    'it can be. Courses in English, four climbers per instructor, certificate on completion.',
   about:
     'ABC Wspinania is a climbing school based in Rzędkowice, in the Kraków-Częstochowa ' +
     'Upland — the oldest climbing region in Poland, with roughly 3,500 routes within ' +
@@ -1110,6 +1125,9 @@ payload.logger.info(`Saved ${SESSIONS.length} sessions.`)
 
 await payload.updateGlobal({ slug: 'about-page', data: ABOUT_PAGE })
 payload.logger.info('About page content saved.')
+
+await payload.updateGlobal({ slug: 'camps-page', data: CAMPS_PAGE })
+payload.logger.info('"Obozy i wyjazdy" page saved.')
 
 await payload.updateGlobal({ slug: 'english-page', data: ENGLISH_PAGE })
 payload.logger.info('English page content saved.')
