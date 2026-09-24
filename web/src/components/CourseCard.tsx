@@ -19,7 +19,7 @@ export function CourseCard({ course }: { course: Course }) {
   const level = formatLevel(course.level)
 
   return (
-    <article className="flex flex-col overflow-hidden rounded-xl bg-white shadow-[0_0_0_1px_rgba(42,38,32,0.06),0_4px_12px_rgba(42,38,32,0.08)]">
+    <article className="flex flex-col overflow-hidden rounded-xl border-t-[3px] border-t-banner bg-white shadow-[0_0_0_1px_rgba(42,38,32,0.06),0_4px_12px_rgba(42,38,32,0.08)]">
       {cover?.url ? (
         <Image
           src={medium?.url ?? cover.url}

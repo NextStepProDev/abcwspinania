@@ -13,8 +13,11 @@ import { Arrow } from './Icons'
 
 type Variant = 'primary' | 'outline' | 'light' | 'outlineLight'
 
+// `banner-fill`, not `rope` — the client asked for buttons in the brighter
+// blue. It is the darkened, text-safe variant documented in globals.css
+// (4.69 for white on it), not the raw `--color-banner` (3.42, fails).
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-rope text-white hover:bg-rope-dark',
+  primary: 'bg-banner-fill text-white hover:bg-banner-fill-dark',
   outline: 'border border-rock-300 text-rock-900 hover:border-rock-600',
   light: 'bg-white text-rope-dark hover:bg-rock-50',
   outlineLight: 'border-[1.5px] border-white/60 text-white hover:border-white',

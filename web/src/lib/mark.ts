@@ -36,8 +36,27 @@
 /** Every copy of the mark is drawn on this grid. */
 export const MARK_VIEW_BOX = '0 0 48 48'
 
-/** The diamond — a rotated square, as in the original. */
-export const MARK_DIAMOND = 'M24 3 45 24 24 45 3 24Z'
+/**
+ * The middle of that grid. Named because anything scaling the figure has to
+ * scale it ABOUT this point, and writing `24` at the call site would be a
+ * literal that silently stops matching if the grid above ever changes.
+ */
+export const MARK_CENTRE = 24
+
+/**
+ * The diamond. Its corners are ROUNDED, as on the original: the school's mark
+ * is a road-sign lozenge, not a sharp rotated square. The first tracing had
+ * sharp corners because the only reference was a 90×84 px crop where the
+ * rounding was lost to compression. A larger banner supplied on 24.09.2026
+ * (`ABCWSPINANIA.jpg`, the mark photographed on a signpost) showed it clearly.
+ *
+ * Quadratic curves rather than a stroke with round joins: this shape is FILLED,
+ * and a fill does not round its own corners. The control points come from
+ * offsetting 4 units along each edge from every corner — rendered at 2.5, 4.0
+ * and 5.5 and compared against the banner before settling here.
+ */
+export const MARK_DIAMOND =
+  'M21.17 6.43Q24 3.6 26.83 6.43L41.57 21.17Q44.4 24 41.57 26.83L26.83 41.57Q24 44.4 21.17 41.57L6.43 26.83Q3.6 24 6.43 21.17Z'
 
 /**
  * The climber: torso, arms raised in a "V", one leg bent and one straight,

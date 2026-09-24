@@ -276,7 +276,7 @@ export default async function Home() {
       {content?.ctaTitle && (
         <section className="pb-16 lg:pb-24">
           <Container>
-            <div className="flex flex-col items-start justify-between gap-8 rounded-2xl bg-rope px-8 py-12 lg:flex-row lg:items-center lg:px-16 lg:py-14">
+            <div className="flex flex-col items-start justify-between gap-8 rounded-2xl bg-rope-panel px-8 py-12 lg:flex-row lg:items-center lg:px-16 lg:py-14">
               <div className="max-w-[640px]">
                 <h2 className="text-[26px] leading-[1.08] text-white lg:text-[38px]">
                   {content.ctaTitle}

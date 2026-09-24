@@ -112,6 +112,10 @@ const nextConfig: NextConfig = {
     localPatterns: [
       { pathname: '/api/media/file/**' },
       { pathname: '/api/gallery-photos/file/**' },
+      // Zdjęcia z repozytorium (public/images) — archiwum rodzinne na /o-nas.
+      // Te nie przechodzą przez Payloada, ale przez optymalizator Next-a już
+      // tak, więc i one potrzebują wpisu.
+      { pathname: '/images/**' },
     ],
     minimumCacheTTL: 60 * 60 * 24 * 30,
   },
