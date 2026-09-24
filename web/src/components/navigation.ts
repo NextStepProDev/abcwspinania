@@ -27,6 +27,16 @@ export const MAIN_NAV: NavItem[] = [
   { href: '/kontakt', label: 'Kontakt' },
 ]
 
+/**
+ * The language switch. There is one English page, not a translated site, so
+ * "switching to Polish" from `/en` means going to the Polish homepage.
+ */
+const POLISH = { code: 'pl', short: 'PL', label: 'Po polsku', href: '/' } as const
+const ENGLISH = { code: 'en', short: 'EN', label: 'In English', href: '/en' } as const
+
+/** Named rather than indexed, so reordering the switch cannot swap the languages. */
+export const LANGUAGES = [POLISH, ENGLISH] as const
+
 export const OFFER_NAV: NavItem[] = [
   { href: '/kursy', label: 'Kursy' },
   { href: '/obozy', label: 'Obozy i wyjazdy' },
@@ -39,8 +49,16 @@ export const SCHOOL_NAV: NavItem[] = [
   { href: '/galeria', label: 'Galeria' },
   { href: '/aktualnosci', label: 'Aktualności' },
   { href: '/kontakt', label: 'Kontakt' },
-  { href: '/en', label: 'In English' },
+  { href: ENGLISH.href, label: ENGLISH.label },
 ]
+
+/**
+ * Which language the page at `pathname` is in. Matched by `isActive` rules, so
+ * `/english-camp` would stay Polish.
+ */
+export function languageOf(pathname: string): (typeof LANGUAGES)[number]['code'] {
+  return isActive(ENGLISH.href, pathname) ? ENGLISH.code : POLISH.code
+}
 
 /**
  * Whether a menu entry matches the current path.
