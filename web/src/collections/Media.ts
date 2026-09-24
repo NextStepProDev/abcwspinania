@@ -66,6 +66,12 @@ export const Media: CollectionConfig = {
       },
     ],
     mimeTypes: ['image/*'],
+    // No crop tool: saving a crop REPLACES the stored file, so the cut-off
+    // part is gone for every other place the photo appears in a different
+    // shape. Framing is done with the focal point instead (left on — it still
+    // opens from the same "edit image" button), which the site reads through
+    // `focalPosition()` and which works for every shape at once.
+    crop: false,
   },
   fields: [
     {

@@ -455,6 +455,26 @@ pipeline'u SCSS dla jednego pustego arkusza.
     nic wspólnego, a cała różnica siedziała w cudzysłowach. Jest tam z tego
     samego powodu co migracje i `payload-types.ts`.
 
+26. **Każde przycinane zdjęcie z panelu dostaje
+    `style={{ objectPosition: focalPosition(media) }}`.** Ustalone 24.09.2026.
+    Klient kadruje zdjęcia punktem centralnym w panelu, a strona przycina je
+    wokół niego (`object-cover` + `object-position`). Obrazek bez tej linii
+    przycina się od środka **po cichu** — punkt ustawiony w panelu nic na nim
+    nie zmienia i nie ma po tym śladu nigdzie poza samym wyglądem. Sprawdzisz
+    grepem: każde `object-cover` przy zdjęciu z Payloada ma obok
+    `focalPosition(`. Nie dotyczy zdjęć z `public/` (nie mają punktu) ani
+    miejsc bez przycinania — okładka w samym artykule
+    (`aktualnosci/[slug]`) ma `object-cover`, ale bez stałej wysokości niczego
+    nie ucina.
+
+    Narzędzie „przytnij" jest w Mediach **wyłączone** (`crop: false` w
+    `Media.ts`): zapisane przycięcie podmienia plik, więc wycięty fragment
+    znika też tam, gdzie to samo zdjęcie ma inny kształt. Punkt centralny
+    działa dla wszystkich kształtów naraz. Nie włączaj go z powrotem bez tej
+    rozmowy z klientem. W `GalleryPhotos` zostaje włączone celowo — galeria
+    pokazuje zdjęcie w całości, w jednym kształcie, więc przycięcie jest tam
+    zwykłą obróbką zdjęcia, a nie utratą kadru gdzie indziej.
+
 ---
 
 ## Budżet pamięci (Ampere A1, 2 OCPU / 12 GB)
