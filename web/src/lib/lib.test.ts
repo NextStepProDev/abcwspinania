@@ -25,6 +25,7 @@ import { jsonLd, organizationSchema } from '@/lib/schema'
 import type { SiteConfig } from '@/payload-types'
 import { validateContact, validateNewsletter, isValid, looksLikeBot } from '@/lib/validation'
 import type { ContactFormData } from '@/lib/validation'
+import { languageOf } from '@/components/navigation'
 import { galleryNeighbours, parseGalleryId, focusTrapTarget } from '@/lib/gallery'
 import {
   CONSENT_TEXT,
@@ -517,4 +518,13 @@ test('a focal point outside the photo is pulled back to its edge', () => {
 
 test('a focal point that is not a real number keeps the centre crop', () => {
   assert.equal(focalPosition({ focalX: Number.NaN, focalY: 40 }), undefined)
+})
+
+test('languageOf: the English page and nothing else is English', () => {
+  assert.equal(languageOf('/en'), 'en')
+  assert.equal(languageOf('/'), 'pl')
+  assert.equal(languageOf('/kursy'), 'pl')
+  assert.equal(languageOf('/kursy/en'), 'pl')
+  // A Polish path that merely starts with the same letters.
+  assert.equal(languageOf('/english-camp'), 'pl')
 })

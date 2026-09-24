@@ -6,7 +6,7 @@ import { useEffect, useId, useState } from 'react'
 
 import { Logo } from './Logo'
 import { Phone, Menu, Close } from './Icons'
-import { MAIN_NAV, isActive } from './navigation'
+import { LANGUAGES, MAIN_NAV, isActive, languageOf } from './navigation'
 
 /**
  * The site header.
@@ -22,6 +22,8 @@ export function Header({ phone, telHref }: { phone: string | null; telHref: stri
   const pathname = usePathname()
   const [previousPathname, setPreviousPathname] = useState(pathname)
   const menuId = useId()
+  const currentLanguage = languageOf(pathname)
+  const otherLanguage = LANGUAGES.find((language) => language.code !== currentLanguage)!
 
   // Changing page must close the menu — otherwise the panel stays open over the
   // new page after a link is clicked.
@@ -93,17 +95,37 @@ export function Header({ phone, telHref }: { phone: string | null; telHref: stri
           {/* `rock-100`, not the lighter `rock-75` the decorative fills moved
               to: this chip is the ACTIVE STATE of the language switch, not
               decoration. Two things mark it — this fill and the darker text
-              (PL inherits `rock-900`, EN is `rock-600`) — and the fill is the
-              one you notice first. Lightening it would leave the pair leaning
-              on a difference between two greys. */}
-          <span className="rounded bg-rock-100 px-2.5 py-1.5 text-[13px] font-semibold">PL</span>
-          <Link
-            href="/en"
-            hrefLang="en"
-            className="px-2.5 py-1.5 text-[13px] font-semibold text-rock-600 hover:text-rock-900"
-          >
-            EN
-          </Link>
+              (the active chip inherits `rock-900`, the link is `rock-600`) —
+              and the fill is the one you notice first. Lightening it would
+              leave the pair leaning on a difference between two greys. */}
+          {/* The chip follows the page: on `/en` EN is the active one and PL
+              links back to the Polish homepage. A fixed "PL active, EN link"
+              pair left `/en` with a switch pointing at itself and no way back.
+              `aria-current="true"`, not `"page"`: on `/kursy` the PL chip marks
+              the current language, not the current page. No `aria-label`: the
+              spoken name must contain the visible "PL"/"EN" (WCAG 2.5.3), or a
+              voice-control user saying "click PL" hits nothing. */}
+          {LANGUAGES.map((language) =>
+            language.code === currentLanguage ? (
+              <span
+                key={language.code}
+                aria-current="true"
+                className="rounded bg-rock-100 px-2.5 py-1.5 text-[13px] font-semibold"
+              >
+                {language.short}
+              </span>
+            ) : (
+              <Link
+                key={language.code}
+                href={language.href}
+                hrefLang={language.code}
+                lang={language.code}
+                className="px-2.5 py-1.5 text-[13px] font-semibold text-rock-600 hover:text-rock-900"
+              >
+                {language.short}
+              </Link>
+            ),
+          )}
         </div>
 
         {/* The number in the header: with a caption on a large screen, just the
@@ -168,8 +190,13 @@ export function Header({ phone, telHref }: { phone: string | null; telHref: stri
               )
             })}
             <li className="mt-2 border-t border-rock-100 pt-3">
-              <Link href="/en" hrefLang="en" className="block py-2 pl-3 text-rock-600">
-                In English
+              <Link
+                href={otherLanguage.href}
+                hrefLang={otherLanguage.code}
+                lang={otherLanguage.code}
+                className="block py-2 pl-3 text-rock-600"
+              >
+                {otherLanguage.label}
               </Link>
             </li>
           </ul>
