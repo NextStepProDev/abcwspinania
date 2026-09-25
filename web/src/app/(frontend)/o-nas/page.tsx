@@ -3,7 +3,7 @@ import Image from 'next/image'
 import { RichText } from '@payloadcms/richtext-lexical/react'
 
 import { getAboutPage, getInstructors, getSiteConfig, asImage } from '@/lib/content'
-import { yearsSince, focalPosition } from '@/lib/format'
+import { yearsSince, focalPosition, croppedSource } from '@/lib/format'
 import { pageMetadata } from '@/lib/seo'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { Shield, Check, Certificate, Arrow } from '@/components/Icons'
@@ -101,7 +101,7 @@ export default async function AboutPage() {
   ])
   const years = yearsSince(siteConfig.foundedYear)
   const image = asImage(content?.image)
-  const medium = image?.sizes?.medium
+  const imageSource = image && croppedSource(image)
 
   return (
     <main>
@@ -124,12 +124,16 @@ export default async function AboutPage() {
           )}
         </div>
 
-        {image?.url ? (
+        {image?.url && imageSource ? (
           <Image
-            src={medium?.url ?? image.url}
+            // The 420px column needs ~840px on retina, so landscape photos come
+            // from the original; croppedSource() keeps portrait ones on `medium`,
+            // since the frame crops them. Portraits below stay on `medium` — rule 24.
+            src={imageSource.url}
             alt={image.alt ?? ''}
-            width={medium?.width ?? image.width ?? 750}
-            height={medium?.height ?? image.height ?? 500}
+            width={imageSource.width}
+            height={imageSource.height}
+            sizes="(min-width: 1024px) 420px, 100vw"
             className="h-full max-h-[380px] w-full rounded-2xl object-cover"
             style={{ objectPosition: focalPosition(image) }}
           />

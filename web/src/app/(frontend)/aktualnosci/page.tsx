@@ -3,7 +3,13 @@ import Image from 'next/image'
 import Link from 'next/link'
 
 import { getPosts, asImage } from '@/lib/content'
-import { formatCategory, POST_CATEGORIES, pluralPl, focalPosition } from '@/lib/format'
+import {
+  formatCategory,
+  POST_CATEGORIES,
+  pluralPl,
+  focalPosition,
+  croppedSource,
+} from '@/lib/format'
 import { pageMetadata } from '@/lib/seo'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { Filters } from '@/components/Filters'
@@ -88,7 +94,7 @@ export default async function NewsPage({ searchParams }: Props) {
 
 function FeaturedPost({ post }: { post: Awaited<ReturnType<typeof getPosts>>[number] }) {
   const cover = asImage(post.cover)
-  const medium = cover?.sizes?.medium
+  const coverSource = cover && croppedSource(cover)
   const category = formatCategory(post.category)
 
   return (
@@ -112,12 +118,16 @@ function FeaturedPost({ post }: { post: Awaited<ReturnType<typeof getPosts>>[num
         </div>
       </div>
 
-      {cover?.url ? (
+      {cover?.url && coverSource ? (
         <Image
-          src={medium?.url ?? cover.url}
+          // Half the container on desktop, well past 750px on a retina screen,
+          // so landscape covers come from the original. A portrait one would be
+          // cropped to a strip here — croppedSource() caps it at `medium`.
+          src={coverSource.url}
           alt={cover.alt ?? ''}
-          width={medium?.width ?? cover.width ?? 750}
-          height={medium?.height ?? cover.height ?? 500}
+          width={coverSource.width}
+          height={coverSource.height}
+          sizes="(min-width: 1024px) 50vw, 100vw"
           className="h-full min-h-[240px] w-full object-cover"
           style={{ objectPosition: focalPosition(cover) }}
         />

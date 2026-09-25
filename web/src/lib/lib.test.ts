@@ -20,6 +20,8 @@ import {
   mapEmbedSrc,
   mapEmbedUrlFrom,
   focalPosition,
+  croppedSource,
+  originalSource,
 } from '@/lib/format'
 import { jsonLd, organizationSchema } from '@/lib/schema'
 import type { SiteConfig } from '@/payload-types'
@@ -518,6 +520,91 @@ test('a focal point outside the photo is pulled back to its edge', () => {
 
 test('a focal point that is not a real number keeps the centre crop', () => {
   assert.equal(focalPosition({ focalX: Number.NaN, focalY: 40 }), undefined)
+})
+
+const landscape = {
+  url: '/api/media/file/wide.jpg',
+  width: 4000,
+  height: 1800,
+  sizes: { medium: { url: '/api/media/file/wide-750x338.jpg', width: 750, height: 338 } },
+}
+const portrait = {
+  url: '/api/media/file/tall.jpg',
+  width: 3000,
+  height: 4000,
+  sizes: { medium: { url: '/api/media/file/tall-750x1000.jpg', width: 750, height: 1000 } },
+}
+
+test('a landscape photo in a cropped frame is served from the original', () => {
+  assert.deepEqual(croppedSource(landscape), {
+    url: '/api/media/file/wide.jpg',
+    width: 4000,
+    height: 1800,
+  })
+})
+
+test('a portrait photo in a cropped frame is capped at the medium variant', () => {
+  assert.deepEqual(croppedSource(portrait), {
+    url: '/api/media/file/tall-750x1000.jpg',
+    width: 750,
+    height: 1000,
+  })
+})
+
+test('a portrait photo without a medium variant falls back to the original', () => {
+  assert.deepEqual(croppedSource({ ...portrait, sizes: {} }), {
+    url: '/api/media/file/tall.jpg',
+    width: 3000,
+    height: 4000,
+  })
+})
+
+test('a photo of unknown shape takes the capped variant, not the original', () => {
+  assert.equal(
+    croppedSource({ ...landscape, width: null, height: null }).url,
+    '/api/media/file/wide-750x338.jpg',
+  )
+})
+
+// Measured 26.09.2026: a phone photo held upright is stored 4000x1800 with an
+// EXIF rotation tag. Payload records those RAW numbers for the original, while
+// sharp rotates before making `medium` (750x1667) — so only `medium` tells the
+// truth about the shape.
+const rotated = {
+  url: '/api/media/file/upright.jpg',
+  width: 4000,
+  height: 1800,
+  sizes: { medium: { url: '/api/media/file/upright-750x1667.jpg', width: 750, height: 1667 } },
+}
+
+test('a photo stored sideways with a rotation tag is treated as the portrait it shows', () => {
+  assert.equal(croppedSource(rotated).url, '/api/media/file/upright-750x1667.jpg')
+})
+
+test('originalSource gives a rotated photo its upright dimensions', () => {
+  assert.deepEqual(originalSource(rotated), {
+    url: '/api/media/file/upright.jpg',
+    width: 1800,
+    height: 4000,
+  })
+})
+
+test('originalSource leaves a photo without rotation as stored', () => {
+  assert.deepEqual(originalSource(landscape), {
+    url: '/api/media/file/wide.jpg',
+    width: 4000,
+    height: 1800,
+  })
+})
+
+test('a square photo counts as landscape', () => {
+  const square = {
+    url: '/api/media/file/square.jpg',
+    width: 2000,
+    height: 2000,
+    sizes: { medium: { url: '/api/media/file/square-750x750.jpg', width: 750, height: 750 } },
+  }
+  assert.equal(croppedSource(square).url, '/api/media/file/square.jpg')
 })
 
 test('languageOf: the English page and nothing else is English', () => {

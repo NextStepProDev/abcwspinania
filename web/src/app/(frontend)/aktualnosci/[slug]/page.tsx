@@ -3,7 +3,13 @@ import Image from 'next/image'
 import { notFound } from 'next/navigation'
 
 import { getPost, getPosts, asImage } from '@/lib/content'
-import { readingTime, formatDate, formatCategory, tableOfContents } from '@/lib/format'
+import {
+  readingTime,
+  formatDate,
+  formatCategory,
+  tableOfContents,
+  originalSource,
+} from '@/lib/format'
 import { pageMetadata } from '@/lib/seo'
 import { jsonLd } from '@/lib/schema'
 import { SITE_URL, BRAND } from '@/lib/site'
@@ -46,7 +52,7 @@ export default async function PostPage({ params }: Props) {
   const category = formatCategory(post.category)
   const toc = tableOfContents(post.content)
   const cover = asImage(post.cover)
-  const medium = cover?.sizes?.medium
+  const coverSource = cover && originalSource(cover)
 
   // "Read next": same category first, then anything — so the section is not
   // empty while there are few posts.
@@ -127,12 +133,17 @@ export default async function PostPage({ params }: Props) {
         )}
 
         <article className="max-w-[720px]">
-          {cover?.url && (
+          {cover?.url && coverSource && (
             <Image
-              src={medium?.url ?? cover.url}
+              // The original, not `medium`: the cover spans the 720px column, so
+              // retina screens need about twice what the 750px variant has. Not
+              // croppedSource(): nothing here is cropped, the cover keeps its own
+              // shape, so every pixel downloaded is a pixel shown.
+              src={coverSource.url}
               alt={cover.alt ?? ''}
-              width={medium?.width ?? cover.width ?? 750}
-              height={medium?.height ?? cover.height ?? 500}
+              width={coverSource.width}
+              height={coverSource.height}
+              sizes="(min-width: 768px) 720px, 100vw"
               className="mb-8 w-full rounded-xl object-cover"
               priority
             />
