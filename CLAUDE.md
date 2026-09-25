@@ -449,6 +449,25 @@ pipeline'u SCSS dla jednego pustego arkusza.
     75. `priority` jest przestarzałe; pierwszy rząd kafelków dostaje
     `loading="eager"`.
 
+    **Oryginał + `sizes` tylko przy zdjęciach pokazanych DUŻO** (okładka
+    artykułu, wyróżniony wpis, zdjęcie na „O nas”, hero, obozy na stronie
+    głównej). Karty kursów, obozów, wpisów, portrety i kafelki galerii zostają
+    na `medium` (750 px) — celowo. Zmierzone 26.09.2026: przejście ich na
+    oryginał dawało na iPhonie (3×) **dwa razy cięższe strony** (galeria
+    4,4 → 9,1 MB, `/kursy` 1,4 → 2,9 MB). Dwa powody: srcset wybiera plik po
+    SZEROKOŚCI, więc pionowe zdjęcie w karcie o stałej wysokości przychodzi
+    w całości, choć widać z niego pasek; a ekran 3× prosi o trzykrotność
+    szerokości kafelka, której przy tej wielkości nikt nie odróżni od 2×.
+    `medium` działa tu jak sufit i to jest jego zadanie.
+
+    Duże zdjęcia **przycinane** do ramki biorą plik przez `croppedSource()`,
+    a nieprzycinane przez `originalSource()` (`src/lib/format.ts`).
+    ⚠️ **Payload zapisuje wymiary oryginału BEZ obrotu z EXIF.** Zdjęcie
+    z telefonu trzymanego pionowo ma w bazie 4000 × 1800, a na ekranie jest
+    pionowe; `medium` (robiony przez sharpa po obrocie) ma już 750 × 1667.
+    Kształt zdjęcia oceniaj więc po `medium`, nigdy po `width`/`height`
+    oryginału — obie funkcje to robią.
+
 25. **`(payload)/admin/importMap.js` jest GENEROWANY — nie formatuj go.**
     Przepisuje go i `payload run`, i sam serwer deweloperski przy przeliczaniu
     konfiguracji, zawsze bez formatowania. Zanim trafił do `.prettierignore`,

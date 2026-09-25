@@ -414,3 +414,51 @@ export function focalPosition(
   const clamp = (value: number) => Math.min(100, Math.max(0, value))
   return `${clamp(x)}% ${clamp(y)}%`
 }
+
+type Variant = { url?: string | null; width?: number | null; height?: number | null }
+type Uploaded = Variant & { sizes?: { medium?: Variant | null } | null }
+
+const isPortrait = (v: Variant) =>
+  typeof v.width === 'number' && typeof v.height === 'number' && v.height > v.width
+
+/**
+ * The original file, with the dimensions it is actually SHOWN at.
+ *
+ * Measured 26.09.2026: a phone photo held upright is stored 4000x1800 with an
+ * EXIF rotation tag, and Payload records those raw numbers for the original.
+ * sharp rotates before making `medium` (750x1667), so `medium` is the one that
+ * knows the real shape. When the two disagree, the original's numbers are
+ * swapped — otherwise `next/image` reserves a landscape box for a portrait
+ * photo and the page jumps when it loads.
+ */
+export function originalSource(media: Uploaded): { url: string; width: number; height: number } {
+  const width = media.width ?? 1200
+  const height = media.height ?? 800
+  const medium = media.sizes?.medium
+  const rotated = medium?.url && isPortrait(medium) !== isPortrait({ width, height })
+  return rotated
+    ? { url: media.url ?? '', width: height, height: width }
+    : { url: media.url ?? '', width, height }
+}
+
+/**
+ * Which file a large, CROPPED photo is resized from.
+ *
+ * The optimiser resizes by WIDTH only. A portrait photo in a landscape frame
+ * therefore arrives whole, cropped-away top and bottom included: measured
+ * 26.09.2026, an upright 4000px phone photo came to 1.8 MB at 1920px wide,
+ * against 415 KB from `medium`. So:
+ *  • landscape (or square) → the original, sharp on retina;
+ *  • portrait → `medium`, which caps what a cropped-away height can cost;
+ *  • shape unknown → `medium` as well, because the cap is the safe side.
+ *
+ * Only for photos shown LARGE. Cards stay on `medium` whatever the shape —
+ * see rule 24 in CLAUDE.md.
+ */
+export function croppedSource(media: Uploaded): { url: string; width: number; height: number } {
+  const medium = media.sizes?.medium
+  if (!medium?.url) return originalSource(media)
+  const known = typeof media.width === 'number' && typeof media.height === 'number'
+  if (known && !isPortrait(originalSource(media))) return originalSource(media)
+  return { url: medium.url, width: medium.width ?? 750, height: medium.height ?? 500 }
+}
