@@ -7,10 +7,13 @@
 # JEDNA APLIKACJA. Payload działa wewnątrz Next.js, więc strona, panel i API to
 # ten sam proces — nie ma osobnego kontenera CMS-a ani subdomeny api.*.
 #
-# BUDŻET PAMIĘCI parametryzowany przez .env. Wartości domyślne zakładają CAŁĄ
+# BUDŻET PAMIĘCI I STROJENIE parametryzowane przez .env — razem, jednym
+# profilem, żeby nie dało się zmienić limitu kontenera bez przeliczenia tego,
+# co w nim faktycznie działa. Wartości domyślne poniżej zakładają CAŁĄ
 # darmową maszynę Ampere (2 OCPU / 12 GB):
 #     postgres 1g + app 2g + nginx 128m ≈ 3,2 GB
-# Dzielisz limit Ampere na dwie instancje? Odkomentuj profil w .env.example.
+# Dzielisz limit Ampere na dwie instancje (1 OCPU / 6 GB)? Odkomentuj profil
+# "pół maszyny" w .env.example — limity I strojenie Postgresa/Node'a razem.
 
 services:
   postgres:
@@ -30,13 +33,17 @@ services:
     # Docker otworzyłby go na wszystkich interfejsach, OMIJAJĄC zaporę hosta.
     ports:
       - "127.0.0.1:5432:5432"
+    # Strojenie idzie razem z mem_limit, żeby nigdy nie rozjechały się przy
+    # zmianie profilu (patrz CLAUDE.md: "zmieniasz POSTGRES_MEM_LIMIT — obniż
+    # też shared_buffers i effective_cache_size"). Wartości domyślne poniżej
+    # to profil "cała maszyna"; profil "pół maszyny" nadpisuje je w .env.
     command: >
       postgres
-      -c shared_buffers=256MB
-      -c effective_cache_size=768MB
-      -c work_mem=8MB
+      -c shared_buffers=${POSTGRES_SHARED_BUFFERS:-256MB}
+      -c effective_cache_size=${POSTGRES_EFFECTIVE_CACHE_SIZE:-768MB}
+      -c work_mem=${POSTGRES_WORK_MEM:-8MB}
       -c maintenance_work_mem=128MB
-      -c max_connections=40
+      -c max_connections=${POSTGRES_MAX_CONNECTIONS:-40}
       -c random_page_cost=1.1
     volumes:
       # ⚠️ PUNKT MONTOWANIA TO /var/lib/postgresql, NIE /var/lib/postgresql/data.
@@ -62,7 +69,9 @@ services:
       DATABASE_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       # Podpisuje tokeny sesji panelu. MUSI być inny niż lokalnie.
       PAYLOAD_SECRET: ${PAYLOAD_SECRET}
-      NODE_OPTIONS: "--max-old-space-size=1536"
+      # Musi się zgadzać z APP_MEM_LIMIT z tego samego powodu co strojenie
+      # Postgresa wyżej — sam limit kontenera Node'owi nic nie mówi.
+      NODE_OPTIONS: "--max-old-space-size=${NODE_MAX_OLD_SPACE_SIZE:-1536}"
     volumes:
       # Pliki wgrane przez panel. Punkt montowania zgodny z UPLOAD_DIR
       # ustawionym w web/Dockerfile.
