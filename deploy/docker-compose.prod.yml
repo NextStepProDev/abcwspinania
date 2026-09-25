@@ -42,7 +42,7 @@ services:
       -c shared_buffers=${POSTGRES_SHARED_BUFFERS:-256MB}
       -c effective_cache_size=${POSTGRES_EFFECTIVE_CACHE_SIZE:-768MB}
       -c work_mem=${POSTGRES_WORK_MEM:-8MB}
-      -c maintenance_work_mem=128MB
+      -c maintenance_work_mem=${POSTGRES_MAINTENANCE_WORK_MEM:-128MB}
       -c max_connections=${POSTGRES_MAX_CONNECTIONS:-40}
       -c random_page_cost=1.1
     volumes:
