@@ -102,7 +102,7 @@ to początek powrotu do stanu sprzed tej zmiany.
 Projekt startował na Strapim i został przepięty 19.09.2026, zanim cokolwiek
 trafiło na produkcję. Powody, zmierzone:
 
-- Ten system to w ~80% **aplikacja** (rezerwacje, konta, TFG, wykresy), a nie
+- Ten system to w ~80% **aplikacja** (rezerwacje, konta, wykresy), a nie
   strona z treścią. Strapi jest optymalizowany pod tę drugą rolę.
 - Strapi trzymał nas na **React 18** i jednym zgłoszeniu `high` (`nodemailer`),
   niedomykalnym bez jego majora. Payload chodzi na naszym React 19.
@@ -630,14 +630,7 @@ docker run --rm -v "$PWD/..:/repo" -w /repo rhysd/actionlint:latest -color
    Powiadomienie o nowej wiadomości dojdzie jako hook `afterChange` na kolekcji
    `Messages`, bez zmiany tego, co już działa. Zgoda marketingowa do newslettera
    idzie tym samym wzorcem co `src/lib/consent.ts`: treść + wersja, nie samo „tak".
-3. **Moduł TFG** — wykaz umów do **14-tego** przez API (OpenAPI/Swagger).
-   Wymaga konta technicznego z certyfikatem **powiązanym z zadeklarowanym
-   publicznym adresem IP**, więc kolejność jest wymuszona: *najpierw instancja
-   Oracle z trwałym adresem, dopiero potem wniosek o konto.*
-   **Deklaracja do 21-tego automatyzacji nie podlega** — wyłącznie portal.
-   Obowiązek liczy się od **daty podpisania umowy**, nie od daty wyjazdu; wykazu
-   nie składa się za miesiąc bez umów, ale deklarację zerową i tak trzeba złożyć.
-4. **Panel operacyjny** — kalendarz obozów, wykresy, eksport TFG. W Payloadzie
+3. **Panel operacyjny** — kalendarz obozów, wykresy. W Payloadzie
    to **własne widoki w tym samym panelu** (udokumentowana funkcja), a nie
    osobny obszar w Next.js, jak musiałoby być przy Strapim.
 
