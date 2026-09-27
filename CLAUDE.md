@@ -552,6 +552,14 @@ bezpiecznik przy szczytach sharpa. Skrypt jest idempotentny.
    `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_PATH`, `GHCR_OWNER`,
    `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `PAYLOAD_SECRET`.
 
+   ⚠️ **`SITE_URL` ustawia się PRZED scaleniem, które ma ją zawierać.** Zmiana
+   zmiennej niczego nie przebudowuje — działa dopiero przy następnym obrazie.
+   Zmierzone 28.09.2026: PR scalony rano, zmienna ustawiona wieczorem, obraz
+   0.5.4 wyszedł z `localhost:3000` w mapie strony i adresach kanonicznych,
+   a CI był zielony. Sprawdzenie obrazu przed wdrożeniem:
+   `grep -rl "https://<domena>" /app/.next | wc -l` w kontenerze — zero
+   znaczy, że adres nie wszedł.
+
 **Czego NIE ma już na tej liście:** wyklikiwania uprawnień publicznych w panelu.
 Są w kodzie i jadą z deployem.
 
