@@ -525,27 +525,65 @@ bezpiecznik przy szczytach sharpa. Skrypt jest idempotentny.
 ## Lista pierwszego uruchomienia na serwerze
 
 1. `deploy/.env` z `.env.example`, sekrety wygenerowane
-   (`openssl rand -base64 32`, każdy osobno).
-2. Certyfikaty Let's Encrypt w `deploy/certs` — certbot na **dwie** nazwy:
-   domena główna i `www`. (Subdomena `api.` już nie jest potrzebna.)
+   (`openssl rand -hex 32`, każdy osobno). **Hex, nie base64:** hasło do bazy
+   trafia do `DATABASE_URI` (`postgresql://user:HASŁO@...`), a base64 potrafi
+   wylosować `/`, który ten adres rozcina — aplikacja nie łączy się z bazą,
+   a komunikat nie mówi nic o haśle.
+2. Certyfikaty w `deploy/certs`. Domena za Cloudflare dostaje **Origin
+   Certificate** (15 lat, bez odnawiania) — patrz „Domena tymczasowa
+   i Cloudflare" niżej. Domena docelowa do dnia przełączenia działa na
+   certyfikacie tymczasowym (self-signed w `fullchain.pem`/`privkey.pem`):
+   nginx bez niego nie wstaje, a prawdziwego nie da się wystawić, zanim DNS
+   wskaże serwer.
 3. Rekordy DNS A dla `@` i `www` na publiczny adres instancji.
-4. **Jednorazowe przejęcie wolumenu uploadów na uid 1000** — jest rootowy,
-   a aplikacja chodzi jako `node`:
-   ```bash
-   docker run --rm -v abcwspinania_uploads_prod:/u alpine chown -R 1000:1000 /u
-   ```
+4. ~~Przejęcie wolumenu uploadów na uid 1000~~ — **niepotrzebne**. Sprawdzone
+   26.09.2026 na produkcji: Docker przy pierwszym montowaniu pustego nazwanego
+   wolumenu kopiuje właściciela z obrazu, więc `/app/uploads` od razu należy
+   do `node` i zapis działa. Punkt został, żeby nikt go nie „przywracał".
 5. Workflow **Migrate** — założenie schematu na czystej bazie.
 6. Konto administratora: wejść na `https://abcwspinania.info/admin`, ekran
    „utwórz pierwszego użytkownika".
    ⚠️ Zrobić to **od razu po pierwszym deployu**. Dopóki nie ma żadnego konta,
    ekran rejestracji pierwszego administratora jest dostępny dla każdego, kto
    zna adres.
-7. Zmienna repozytorium `SITE_URL` (odblokowuje smoke test) oraz sekrety:
+7. Zmienne repozytorium `SITE_URL` (domena **docelowa** — wpiekana w obraz)
+   i opcjonalnie `SMOKE_URL` (adres, pod którym smoke test ma sprawdzać
+   stronę, gdy docelowa jeszcze nie wskazuje serwera), oraz sekrety:
    `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_PATH`, `GHCR_OWNER`,
    `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `PAYLOAD_SECRET`.
 
 **Czego NIE ma już na tej liście:** wyklikiwania uprawnień publicznych w panelu.
 Są w kodzie i jadą z deployem.
+
+---
+
+## Domena tymczasowa i Cloudflare
+
+Ustalone 26.09.2026. Do czasu przełączenia `abcwspinania.info` (pod którą wciąż
+działa stara strona klienta) nowa strona stoi pod **`szkolawspinaczkowa.pl`**,
+za Cloudflare. Domena była wcześniej nieużywana — nie ma historii w Google ani
+poczty, więc przejęcie jej niczego nie odcina.
+
+- **Google nie może jej zaindeksować.** Blok nginx dla tej domeny wysyła
+  `X-Robots-Tag: noindex, nofollow`. Nagłówek, a nie `Disallow` w robots.txt —
+  zakaz czytania ukryłby przed Google sam `noindex`.
+- **`SITE_URL` wskazuje od razu domenę DOCELOWĄ**, nie tymczasową. Mapa strony,
+  adresy kanoniczne i dane strukturalne mówią Google o `abcwspinania.info`
+  od pierwszego dnia, więc przy przełączeniu nie ma czego przestawiać ani
+  przebudowywać. Smoke test sprawdza w tym czasie `SMOKE_URL`.
+- **Bloki nginx dla domeny docelowej nie wiedzą o tymczasowej.** W dniu
+  przełączenia usuwa się fragment oznaczony w `nginx.conf` (albo zamienia na
+  301 do domeny docelowej) i kasuje zmienną `SMOKE_URL` — bez dotykania
+  reszty.
+- **Certyfikat Origin z Cloudflare musi leżeć w `certs/` PRZED wdrożeniem
+  configu**, który go wskazuje. Brak pliku: `nginx -t` pada w deployu, a przy
+  najbliższym restarcie kontenera nginx nie wstaje — razem z domeną docelową.
+  Tryb SSL w Cloudflare: **Full (strict)**.
+- **Lista adresów Cloudflare (`set_real_ip_from`) jest wpisana ręcznie.** Bez
+  niej limit logowania liczy wszystkich odwiedzających jako jeden adres
+  Cloudflare i pięć cudzych pomyłek blokuje panel każdemu. Cloudflare rzadko
+  zmienia pulę, ale adres spoza listy psuje to po cichu — przy przełączaniu
+  domeny docelowej porównać z <https://www.cloudflare.com/ips>.
 
 ---
 

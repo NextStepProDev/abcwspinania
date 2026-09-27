@@ -134,9 +134,15 @@ jobs:
             exit 1
 
       - name: Smoke test public endpoints
-        # Wymaga zmiennej repozytorium SITE_URL (ustawianej po
-        # potwierdzeniu domeny); do tego czasu krok jest pomijany.
-        if: vars.SITE_URL != ''
+        # Sprawdza SMOKE_URL, a gdy jej nie ma — SITE_URL. Dwie zmienne, bo
+        # dopóki strona stoi na domenie tymczasowej, SITE_URL wskazuje już
+        # domenę DOCELOWĄ (wbudowaną w obraz: mapa strony, adresy kanoniczne),
+        # a pod nią wciąż działa stara strona klienta — test na niej padałby
+        # przy każdym wdrożeniu. Po przełączeniu domeny SMOKE_URL się kasuje.
+        # Bez obu zmiennych krok jest pomijany.
+        if: vars.SMOKE_URL != '' || vars.SITE_URL != ''
+        env:
+          BASE_URL: ${{ vars.SMOKE_URL || vars.SITE_URL }}
         run: |
           # Wartość to lista akceptowalnych kodów HTTP rozdzielona spacjami.
           # /api/courses ma zwracać 200 nawet przy pustej kolekcji — publiczny
@@ -144,11 +150,11 @@ jobs:
           # więc w odróżnieniu od poprzedniego CMS-a nie ma tu stanu „403 do
           # czasu wyklikania uprawnień".
           declare -A CHECKS=(
-            ["${{ vars.SITE_URL }}/"]=200
-            ["${{ vars.SITE_URL }}/robots.txt"]=200
-            ["${{ vars.SITE_URL }}/sitemap.xml"]=200
-            ["${{ vars.SITE_URL }}/api/courses"]=200
-            ["${{ vars.SITE_URL }}/admin"]="200 302"
+            ["${BASE_URL}/"]=200
+            ["${BASE_URL}/robots.txt"]=200
+            ["${BASE_URL}/sitemap.xml"]=200
+            ["${BASE_URL}/api/courses"]=200
+            ["${BASE_URL}/admin"]="200 302"
           )
           FAILED=0
           for url in "${!CHECKS[@]}"; do

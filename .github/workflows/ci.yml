@@ -123,8 +123,9 @@ jobs:
         with:
           context: web
           platforms: linux/arm64
-          # SITE_URL to zmienna repozytorium, ustawiana raz po potwierdzeniu
-          # domeny; wpieka adres bazowy dla sitemap, robots i canonicali.
+          # SITE_URL to zmienna repozytorium z domeną DOCELOWĄ — także wtedy,
+          # gdy strona chwilowo stoi pod inną (patrz „Domena tymczasowa"
+          # w CLAUDE.md); wpieka adres bazowy dla sitemap, robots i canonicali.
           build-args: |
             NEXT_PUBLIC_SITE_URL=${{ vars.SITE_URL || 'http://localhost:3000' }}
           push: true
