@@ -26,6 +26,17 @@ updates:
       # te same cztery bramki przed scaleniem.
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
+      # Next 17 czeka na Payloada: `@payloadcms/next` deklaruje peer
+      # `next >=16.3.3 <17.0.0`, więc major Next wywala `npm ci` na ERESOLVE.
+      # Odblokować, gdy Payload poszerzy ten zakres.
+      - dependency-name: next
+        update-types: ["version-update:semver-major"]
+      - dependency-name: eslint-config-next
+        update-types: ["version-update:semver-major"]
+      # graphql 17 tak samo: `payload` i `@payloadcms/next` mają peer
+      # `graphql ^16.8.1`. Ten major idzie razem z majorem Payloada, nie osobno.
+      - dependency-name: graphql
+        update-types: ["version-update:semver-major"]
     groups:
       # WSZYSTKIE pakiety Payloada MUSZĄ iść w jednej wersji — `@payloadcms/next`
       # deklaruje peer `payload` co do numeru, więc rozjazd wywala `npm ci`.
@@ -50,14 +61,25 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    groups:
+      github-actions:
+        patterns:
+          - "*"
 
   # --- Obraz bazowy w Dockerfile ---
-  # UWAGA: podbicie node:<wersja>-alpine wymaga RĘCZNEJ zmiany `node-version:`
-  # w .github/workflows/ci.yml. Dependabot tamtej liczby nie widzi.
+  # Łatki Node przychodzą same: `node:26-alpine` to tag pływający, który przy
+  # każdym buildzie wskazuje najnowsze 26.x — Dependabot nie ma tu czego podbijać.
+  # Jedyny PR, jaki by otworzył, to skok na kolejny major, a nieparzyste majory
+  # Node (27, 29) NIGDY nie dostają LTS i umierają po ok. siedmiu miesiącach.
+  # Do tego podbiłby wyłącznie Dockerfile, a `node-version:` w ci.yml zostałby
+  # na starej liczbie. Zmiana linii Node to decyzja: Dockerfile i ci.yml razem.
   - package-ecosystem: docker
     directory: /web
     schedule:
       interval: monthly
+    ignore:
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
 
   # --- Obrazy w plikach compose (postgres, nginx) ---
   # To ŚWIADOMIE osobne wpisy: ekosystem `docker` powyżej czyta wyłącznie

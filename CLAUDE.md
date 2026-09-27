@@ -248,11 +248,25 @@ a Payload zapytałby wtedy o zgodę na utratę danych. Drugą linią obrony jest
   deklaruje peer `payload` **co do numeru**, więc rozjazd wywala `npm ci`.
   Dlatego są przypięte dokładnie (`3.90.1`, bez `^`) i podbijane jednym PR-em
   przez grupę `payload` w Dependabocie. Nigdy osobno.
+- **Next zostaje na 16, `graphql` na 16.** Oba majory blokuje Payload:
+  `@payloadcms/next` ma peer `next <17.0.0`, a `payload` peer `graphql ^16.8.1`.
+  Major którejkolwiek wywala `npm ci`, więc w Dependabocie są zablokowane
+  i odblokowuje się je razem z podbiciem Payloada.
 - **Node 26** (`node:26-alpine`). **Ta sama liczba musi stać w `node-version:`
-  w `ci.yml`.** Dependabot podbija ją wyłącznie w Dockerfile (ekosystem `docker`
-  czyta tylko Dockerfile'e) — w anovastudio po bumpie 24 → 26 CI został na 24
-  i przez jakiś czas testował kod na innym silniku niż produkcja.
-  **Przy następnym majorze zmienić oba miejsca naraz.**
+  w `ci.yml`.** Dependabot podbijałby ją wyłącznie w Dockerfile (ekosystem
+  `docker` czyta tylko Dockerfile'e) — w anovastudio po bumpie 24 → 26 CI został
+  na 24 i przez jakiś czas testował kod na innym silniku niż produkcja. Dlatego
+  major Node jest w Dependabocie **zablokowany**: łatki przychodzą same (tag
+  pływający), a nieparzyste majory nigdy nie dostają LTS. **Przejście na 28 to
+  ręczna zmiana obu miejsc naraz.**
+- **Łatki bezpieczeństwa idą poza harmonogramem** — to nie zasługa
+  `dependabot.yml` (ten działa raz w miesiącu), tylko ustawień repozytorium:
+  *Dependabot alerts* i *Dependabot security updates*. Włączone 28.09.2026;
+  do tego dnia były wyłączone i podatność czekała do następnego miesiąca.
+  Dwie granice: obejmują pakiety npm i akcje GitHub, **nie obrazy Dockera**
+  (te łata tag pływający i przebudowa obrazu), a **reguły `ignore` działają
+  także na nie** — łatka dostępna tylko w zablokowanym majorze nie przyjdzie
+  jako PR, zostanie sam alert w zakładce Security.
 - **PostgreSQL 18** (`postgres:18-alpine`). 19 istnieje tylko jako beta.
 
 ---
