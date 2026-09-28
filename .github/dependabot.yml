@@ -51,10 +51,23 @@ updates:
         patterns:
           - "next"
           - "eslint-config-next"
+      # Zbiorcza grupa nie łapie pakietów z dwóch powyższych. 28.09.2026, bez
+      # `exclude-patterns`, Dependabot rozdzielił Payloada: `payload` 3.90.2
+      # w grupie `payload` (#24), `@payloadcms/*` 3.90.2 w tej (#26) — oba
+      # czerwone na ERESOLVE, bo każdy z osobna łamie peer „co do numeru".
+      # Wykluczenie usuwa jedyne miejsce, do którego mogły uciec; czy to
+      # wystarcza, pokaże dopiero następne wydanie Payloada. Gdyby grupa
+      # `payload` znów przyszła niepełna (albo nie przyszła wcale), podbić
+      # ręcznie: wszystkie numery w package.json naraz, potem `npm install`.
       minor-and-patch:
         update-types:
           - minor
           - patch
+        exclude-patterns:
+          - "payload"
+          - "@payloadcms/*"
+          - "next"
+          - "eslint-config-next"
 
   # --- Akcje GitHub w workflowach CI/CD ---
   - package-ecosystem: github-actions
