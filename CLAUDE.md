@@ -267,6 +267,24 @@ a Payload zapytałby wtedy o zgodę na utratę danych. Drugą linią obrony jest
   (te łata tag pływający i przebudowa obrazu), a **reguły `ignore` działają
   także na nie** — łatka dostępna tylko w zablokowanym majorze nie przyjdzie
   jako PR, zostanie sam alert w zakładce Security.
+- **Dwa alerty zamknięte jako „nie dotyczy" (29.09.2026) — sprawdzić przy
+  każdym podbiciu Payloada.** Oba średniej wagi, oba w zależnościach, które
+  Payload przypina sam, więc Dependabot nie mógł ich załatać i każda jego
+  próba kończyła się czerwonym zadaniem.
+  - **`undici` 7.29.0** (poprawka w 7.29.1) — `payload` przypina go **co do
+    numeru**. Dziura dotyczy klienta WebSocket (`permessage-deflate`),
+    a Payload używa `undici` wyłącznie w `uploads/safeFetch` — `Agent` i `fetch`
+    przy wgrywaniu pliku z adresu. WebSocketu nigdzie.
+  - **`esbuild` 0.18** (poprawka w 0.25) — przychodzi przez `drizzle-kit` →
+    `@esbuild-kit`, czyli narzędzie do generowania migracji na maszynie
+    programisty. Nie ma go w obrazie, a dziura dotyczy serwera deweloperskiego
+    esbuilda, którego nie uruchamiamy.
+
+  Świadomie **nie** wymuszamy nowszych wersji przez `overrides`: to ingerencja
+  w to, co Payload przypiął, do odkręcenia przy jego podbiciu — za dziurę,
+  której tu nie da się wywołać. **Przy podbiciu Payloada:** `npm ls undici
+  esbuild` w `web/`; jeśli wersje przeszły poprawki, nic do roboty, a jeśli
+  nie — sprawdzić, czy Payload nie zaczął używać WebSocketu z `undici`.
 - **PostgreSQL 18** (`postgres:18-alpine`). 19 istnieje tylko jako beta.
 
 ---
