@@ -16,7 +16,12 @@ export function generateStaticParams() {
   return APP_ICON_SIZES.map((size) => ({ size: String(size) }))
 }
 
-export async function GET(_request: Request, { params }: RouteContext<'/app-icon/[size]'>) {
+// The params type is written out rather than taken from Next's generated
+// `RouteContext`: that global exists only after `next build` or `next dev`
+// has written `.next/types`, and CI type-checks BEFORE building — it failed
+// there with "Cannot find name 'RouteContext'" while passing locally, where
+// an old `.next` was lying around.
+export async function GET(_request: Request, { params }: { params: Promise<{ size: string }> }) {
   const { size } = await params
   return signIcon(Number(size), 0.1)
 }
