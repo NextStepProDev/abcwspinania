@@ -527,6 +527,15 @@ pipeline'u SCSS dla jednego pustego arkusza.
     pokazuje zdjęcie w całości, w jednym kształcie, więc przycięcie jest tam
     zwykłą obróbką zdjęcia, a nie utratą kadru gdzie indziej.
 
+    **W `GalleryPhotos` odwrotnie: punkt centralny jest WYŁĄCZONY**
+    (`focalPoint: false`, od 30.09.2026). Galeria niczego nie przycina
+    (kolumny zachowują kształt zdjęcia, powiększenie ma `object-contain`),
+    więc ustawiony punkt nie zmieniał na stronie nic i tylko mylił klienta.
+    Przycięcie w galerii **kasuje oryginał z dysku** (Payload usuwa stary plik
+    razem z wariantem `medium`) — stąd ostrzeżenie w opisie kolekcji w panelu.
+    Wyłączenie nie wymagało migracji: Payload zostawia kolumny
+    `focal_x`/`focal_y`, dopóki kolekcja ma `imageSizes`.
+
 ---
 
 ## Budżet pamięci (Ampere A1, 2 OCPU / 12 GB)

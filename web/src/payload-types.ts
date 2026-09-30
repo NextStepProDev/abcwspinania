@@ -548,7 +548,7 @@ export interface Instructor {
   createdAt: string;
 }
 /**
- * Zdjęcia pokazywane na podstronie „Galeria”. Najnowsze są u góry.
+ * Zdjęcia pokazywane na podstronie „Galeria”. Najnowsze są u góry. Uwaga: zapisane przycięcie zastępuje oryginał na serwerze — żeby go odzyskać, trzeba wgrać zdjęcie ponownie.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "gallery-photos".

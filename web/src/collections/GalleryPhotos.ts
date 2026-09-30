@@ -32,7 +32,10 @@ export const GalleryPhotos: CollectionConfig = {
   },
   admin: {
     group: 'Treść',
-    description: 'Zdjęcia pokazywane na podstronie „Galeria”. Najnowsze są u góry.',
+    description:
+      'Zdjęcia pokazywane na podstronie „Galeria”. Najnowsze są u góry. ' +
+      'Uwaga: zapisane przycięcie zastępuje oryginał na serwerze — żeby go ' +
+      'odzyskać, trzeba wgrać zdjęcie ponownie.',
     defaultColumns: ['filename', 'alt', 'createdAt'],
   },
   // Newest first, matching the order the gallery page renders them in, so the
@@ -66,6 +69,13 @@ export const GalleryPhotos: CollectionConfig = {
       },
     ],
     mimeTypes: ['image/*'],
+    // No focal point: the gallery never crops (columns keep each photo's own
+    // shape, the lightbox uses object-contain), so the point set in the panel
+    // changed nothing on the site and only misled the client. The crop tool
+    // stays — here a crop is ordinary photo editing, see rule 26 in CLAUDE.md.
+    // Schema is unaffected: Payload keeps focalX/focalY whenever imageSizes is
+    // set, so this needs no migration.
+    focalPoint: false,
   },
   fields: [
     {
