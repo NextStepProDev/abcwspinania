@@ -274,17 +274,31 @@ a Payload zapytałby wtedy o zgodę na utratę danych. Drugą linią obrony jest
   - **`undici` 7.29.0** (poprawka w 7.29.1) — `payload` przypina go **co do
     numeru**. Dziura dotyczy klienta WebSocket (`permessage-deflate`),
     a Payload używa `undici` wyłącznie w `uploads/safeFetch` — `Agent` i `fetch`
-    przy wgrywaniu pliku z adresu. WebSocketu nigdzie.
+    przy wgrywaniu pliku z adresu. WebSocketu nigdzie. **Od 30.09.2026
+    wymuszony na 7.29.1** — patrz niżej.
   - **`esbuild` 0.18** (poprawka w 0.25) — przychodzi przez `drizzle-kit` →
     `@esbuild-kit`, czyli narzędzie do generowania migracji na maszynie
     programisty. Nie ma go w obrazie, a dziura dotyczy serwera deweloperskiego
     esbuilda, którego nie uruchamiamy.
 
-  Świadomie **nie** wymuszamy nowszych wersji przez `overrides`: to ingerencja
-  w to, co Payload przypiął, do odkręcenia przy jego podbiciu — za dziurę,
-  której tu nie da się wywołać. **Przy podbiciu Payloada:** `npm ls undici
-  esbuild` w `web/`; jeśli wersje przeszły poprawki, nic do roboty, a jeśli
-  nie — sprawdzić, czy Payload nie zaczął używać WebSocketu z `undici`.
+  Nowszych wersji **nie** wymuszamy przez `overrides`, dopóki alert nie
+  blokuje CI: to ingerencja w to, co Payload przypiął, do odkręcenia przy
+  jego podbiciu — za dziurę, której tu nie da się wywołać.
+
+  **Wyjątek: `undici` jest wymuszony na 7.29.1** (`overrides.payload.undici`
+  w `web/package.json`, od 30.09.2026). 29.09 wieczorem opublikowano dwa
+  alerty **high** w 7.29.0 — WebSocket (`GHSA-rfgv-xxqx-mfg5`) i `BalancedPool`
+  (`GHSA-w293-vg96-wgc3`). Żaden nas nie dotyczy (Payload woła tylko `Agent`
+  i `fetch`), ale bramka `npm audit --audit-level=high` w CI **nie odróżnia
+  dziury osiągalnej od nieosiągalnej** i zatrzymała każdy PR, łącznie z #30.
+  Czekanie na Payload (3.90.2, najnowszy, wciąż przypina 7.29.0) znaczyło
+  brak wdrożeń na czas nieokreślony. Poprawka to sama łatka (ostatnia cyfra).
+
+  **Przy podbiciu Payloada:** `npm view payload@<nowa> dependencies.undici`.
+  Jeśli ≥ 7.29.1 — **usunąć blok `overrides`** z `web/package.json` (inaczej
+  zostanie po cichu i kiedyś cofnie Payload do starszego `undici`) i ten
+  akapit. Potem `npm ls undici esbuild` w `web/`; jeśli `esbuild` wciąż
+  sprzed poprawki — sprawdzić, czy nie wszedł do obrazu.
 - **PostgreSQL 18** (`postgres:18-alpine`). 19 istnieje tylko jako beta.
 
 ---

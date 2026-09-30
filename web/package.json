@@ -42,5 +42,10 @@
   },
   "engines": {
     "node": ">=20.9.0"
+  },
+  "overrides": {
+    "payload": {
+      "undici": "7.29.1"
+    }
   }
 }
