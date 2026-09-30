@@ -11,7 +11,7 @@ import {
   telHref,
   asImage,
 } from '@/lib/content'
-import { yearsSince, focalPosition } from '@/lib/format'
+import { yearsSince, focalPosition, splitFirstSentence } from '@/lib/format'
 import { pageMetadata } from '@/lib/seo'
 import { SELECTABLE_ICONS, type IconName } from '@/components/Icons'
 import { CourseCard } from '@/components/CourseCard'
@@ -20,6 +20,8 @@ import { PostCard } from '@/components/PostCard'
 import { Quote } from '@/components/Quote'
 import { MountainBackdrop } from '@/components/MountainBackdrop'
 import { MountainRidges } from '@/components/MountainRidges'
+import { SignWatermark } from '@/components/Logo'
+import { HeroSignAtEdge, HeroSignPlain, HeroSignScene, heroSceneFits } from '@/components/HeroSign'
 import { Button, Badge, SectionHeading, Container, ImagePlaceholder } from '@/components/Ui'
 
 // Exported as generateMetadata, NOT as `export const metadata` — that form
@@ -51,6 +53,8 @@ export default async function Home() {
   const tel = telHref(siteConfig)
   const years = yearsSince(siteConfig.foundedYear)
   const heroImage = asImage(content?.heroImage)
+  const sceneFits = !!heroImage?.url && heroSceneFits(heroImage)
+  const heroText = content?.heroText ? splitFirstSentence(content.heroText) : null
 
   return (
     <main>
@@ -72,6 +76,9 @@ export default async function Home() {
         ) : (
           <MountainBackdrop />
         )}
+        {/* The logo behind the rock — before the tint, so it sits IN the
+            photo and darkens with it. Only where the rock is in frame. */}
+        {sceneFits && <HeroSignScene className="hidden xl:block" />}
         {heroImage?.url ? (
           // A flat tint can't win here: dark enough to keep the text legible
           // over the photo's brightest leaves, and the photo itself goes dull;
@@ -86,7 +93,20 @@ export default async function Home() {
           // not against a gradient, so leave that pairing exactly as it was.
           <div className="absolute inset-0 bg-rock-950/60" />
         )}
-        <Container className="relative flex min-h-[520px] flex-col justify-center gap-6 py-16 lg:min-h-[640px] lg:py-0">
+        {/* Bottom padding below `xl` makes room for the logo standing near the
+            section's bottom edge (`HeroSignAtEdge`), so it never runs under
+            the buttons.
+
+            On a phone the section is meant to fit one screen with the header
+            and the bottom action bar — measured 30.09.2026 at 390 px it was
+            797 px tall; after these changes, 557. The room it has is an
+            estimate, not a measurement: Safari on a typical iPhone shows
+            about 660–750 px depending on its toolbar, minus 72 px of header
+            and 65 px of action bar, so roughly 520–610 px. Hence, below `sm`
+            only: tighter spacing, a smaller heading, the first sentence of
+            the text, and no call button (the phone number is in the header
+            and in the bottom bar already). */}
+        <Container className="relative flex flex-col justify-center gap-4 pt-8 pb-[186px] sm:min-h-[520px] sm:gap-6 sm:pt-16 sm:pb-[216px] lg:min-h-[640px] xl:py-0">
           {(content?.heroBadge || content?.heroSubtitle) && (
             <div className="flex flex-wrap items-center gap-3">
               {content.heroBadge && (
@@ -103,26 +123,51 @@ export default async function Home() {
           {/* Exactly one <h1> per page (rule 11). The fallback text is here so
               the page has a heading even before anyone fills in the panel — an
               empty h1 is worse than a conservative one. */}
-          <h1 className="max-w-[830px] text-balance text-[40px] leading-[0.98] text-white sm:text-[56px] lg:text-[72px] lg:tracking-[-0.035em]">
+          <h1 className="max-w-[830px] text-balance text-[36px] leading-[0.98] text-white sm:text-[56px] lg:text-[72px] lg:tracking-[-0.035em]">
             {content?.heroTitle ?? 'Twoja droga wspinaczkowa zaczyna się tutaj'}
           </h1>
 
-          {content?.heroText && (
-            <p className="max-w-[620px] text-[17px] leading-7 text-rock-fg-strong lg:text-[19px] lg:leading-[30px]">
-              {content.heroText}
+          {heroText && (
+            // The rest is in the HTML at every width, only hidden on a phone,
+            // so search engines always get the whole text (rule 9). A screen
+            // reader on a phone reads what is shown — `hidden` hides it too.
+            <p className="max-w-[620px] text-[16px] leading-6 text-rock-fg-strong sm:text-[17px] sm:leading-7 lg:text-[19px] lg:leading-[30px]">
+              {heroText.head}
+              {heroText.rest && <span className="hidden sm:inline">{heroText.rest}</span>}
             </p>
           )}
 
-          <div className="mt-2 flex flex-wrap items-center gap-3.5">
+          <div className="flex flex-wrap items-center gap-3.5 sm:mt-2">
             <Button href="/kursy" large withArrow>
               Zobacz kursy
             </Button>
             {tel && (
-              <Button href={tel} variant="outlineLight" large>
-                Zadzwoń: {siteConfig.phone}
-              </Button>
+              // `contents` from `sm` up: the wrapper vanishes from the layout,
+              // so the button sits in the flex row exactly as before.
+              <span className="hidden sm:contents">
+                <Button href={tel} variant="outlineLight" large>
+                  Zadzwoń: {siteConfig.phone}
+                </Button>
+              </span>
             )}
           </div>
+        </Container>
+
+        {/* From `xl` up, where the photo shows the rock, the logo and the PZA
+            badge stand behind it (the scene above). Over any other photo the
+            rock mask would not fit, so they stand in the open right side
+            instead. */}
+        {!sceneFits && (
+          <Container className="pointer-events-none absolute inset-0 hidden items-center justify-end xl:flex">
+            <HeroSignPlain />
+          </Container>
+        )}
+
+        {/* Below `xl` the rock is out of frame: the logo and the badge stand
+            near the bottom edge of the section instead. Decorative everywhere — the
+            header already names the school. */}
+        <Container className="pointer-events-none absolute inset-x-0 bottom-5 flex justify-end xl:hidden">
+          <HeroSignAtEdge />
         </Container>
       </section>
 
@@ -275,8 +320,9 @@ export default async function Home() {
 
       {/* --- Why a licensed instructor --- */}
       {content?.reasons && content.reasons.length > 0 && (
-        <section className="pb-16 lg:pb-24">
-          <Container>
+        <section className="relative overflow-hidden pb-16 lg:pb-24">
+          <SignWatermark className="-top-24 -right-32" />
+          <Container className="relative">
             <h2 className="mb-9 max-w-[700px] text-[32px] leading-[1.05] lg:text-[44px]">
               Dlaczego instruktor z licencją
             </h2>

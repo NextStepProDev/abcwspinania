@@ -1,74 +1,62 @@
 /**
- * The geometry of the ABC Wspinania mark — the ONE place its shape is written.
+ * The geometry of the ABC Wspinania logo — the ONE place its shape is written.
  *
- * ⚠️ THIS IS A TRACING, NOT THE ORIGINAL. The old site carries the mark only
- * baked into the banner `images/modules/ABC_logo.png`, where the diamond with
- * the figure occupies roughly 90×84 px and is eaten by compression — too little
- * for a 2× header, a favicon and a social card, so the shape was redrawn as a
- * vector. To be replaced once the client supplies the original (AI/EPS/SVG) —
- * `ZAKRES.md`, item 4.
+ * Taken from the ORIGINAL vector, `design/logo/logo-abc-wspinania.pdf`
+ * (CorelDRAW 9, supplied 30.09.2026), by `design/logo/extract.py`. Nothing here
+ * is traced or redrawn by hand; to change the shape, change the script and run
+ * it again rather than editing the numbers.
  *
- * Keep that banner path in this comment. It is the only record anywhere in the
- * repository of where the source image lives, and it is what a replacement gets
- * compared against.
+ * Two things are exported, because the logo is used in two forms:
  *
- * It lives here because the mark is drawn in three places, through two
- * different renderers: the header and footer go through React in the browser,
- * while the favicon and the social card are turned into images on the server by
- * Satori, which supports only a subset of what React does. A shared component
- * is not impossible — it would need a prop for every difference below — but it
- * would tie three genuinely different renderings to one shape of API. Sharing
- * the data instead costs nothing and cannot drift.
+ *  • `MARK_PATH` — the sign alone: the rounded lozenge with the climber. This is
+ *    what fits a 32 px browser tab and a 76 px header, where the full logo's
+ *    wordmark would come out a few pixels tall.
+ *  • `FULL_LOGO` — the complete logo as drawn: blue panel, sign, and the plate
+ *    reading ABCWSPINANIA.INFO. Used where there is room for it.
  *
- * Before this file, the path data was copied into all three, and `Logo.tsx`
- * carried a comment promising that replacing the mark "only changes this file".
- * That was untrue: the favicon and the social card would have kept the tracing,
- * and nobody would have noticed until a link was shared somewhere.
+ * ⚠️ The sign is NOT a crop of the full logo. In the original the lozenge's
+ * bottom corner is hidden behind the plate and the climber's leg runs down
+ * into it, so the vector contains no complete lozenge. The script completes it
+ * by mirroring the top corner about the line through the side corners, and
+ * extends the leg straight down so that it cuts through the new bottom tip —
+ * the climber stands on the edge of the sign, as it stands on the plate in the
+ * original. Compare the two before assuming the sign "looks off".
  *
- * What is NOT here, deliberately: stroke width, radius and fill. Those
- * legitimately differ per context — the favicon draws the figure thicker (3.6
- * against 3.3) because thin strokes disappear at 32 px, and it omits the
- * diamond entirely, since its own background is the accent colour. Sharing the
- * geometry is the point; sharing the rendering would force three different
- * needs through one set of values.
+ * The climber is a HOLE in `MARK_PATH`, not a second shape painted on top. The
+ * sign is drawn in one colour and whatever lies behind it shows through the
+ * figure: a blue lozenge with a light climber on the header, a white lozenge
+ * with a dark climber on a dark panel — which is the real sign's arrangement —
+ * and a white lozenge with a blue climber on the favicon's blue ground. One
+ * path covers all three with no colour props.
+ *
+ * It lives here because the logo is drawn through two renderers: React in the
+ * browser (header, footer) and Satori on the server (favicon, app icons,
+ * social card), which supports only a subset of what React does. Sharing the
+ * data rather than a component costs nothing and cannot drift.
  */
 
-/** Every copy of the mark is drawn on this grid. */
-export const MARK_VIEW_BOX = '0 0 48 48'
+/** The grid `MARK_PATH` is drawn on. The lozenge touches all four edges. */
+export const MARK_VIEW_BOX = '0 0 100 100'
+
+/** The sign: lozenge minus climber. Paint it in one colour — see above. */
+export const MARK_PATH =
+  'M1.69 45.9L45.9 1.69C48.15 -0.56 51.85 -0.56 54.1 1.69L98.31 45.9C100.56 48.15 100.56 51.85 98.31 54.1L54.57 97.85L54.57 90.04C54.88 85.76 54.94 81.36 54.02 77.03C52.78 71.18 52.1 71.09 47.63 63.36C48.26 57.23 48.89 51.18 49.52 45.13C55.32 42.18 59.21 41.26 64.36 37.45C66.19 36.1 67.2 31.05 67.99 25C68.77 18.95 65.37 19.14 64.36 21.55C63.09 23.54 62.07 30.31 60.96 32.78C58.06 34.38 54.6 36.34 51.41 37.33C51.3 36.12 51.38 35.89 52.14 34.87C53.51 33.85 54.39 32.23 54.39 30.4C54.38 27.34 51.88 24.84 48.82 24.84C45.75 24.84 43.26 27.34 43.26 30.4C43.27 31.92 43.88 33.3 44.87 34.3C45.57 35.28 45.36 36.98 44.81 37.96C43.93 37.64 42.95 37.64 42.34 37.08C40.88 35.73 39.95 33.89 38.75 32.38C38.1 28.04 38.04 25.16 38.54 20.7C38.86 17.79 35.18 16.67 33.91 18.77C32.88 21.55 32.52 24.82 32.5 29.82C32.71 31.86 33.39 35.23 34.72 36.91C37.59 40.89 39.01 42.58 41.8 46.48C41.49 49.59 41.25 52.61 41.02 55.64C34.96 50.14 35.2 49.52 31.62 48.47C30.55 48.16 29.43 48.9 28.51 49.59C27.4 52.53 27.4 52.53 26.55 67.35C26.61 69.15 30.24 70.73 31.33 67.27C32.04 64.08 32.67 60.98 33.3 57.87C35.45 58.98 35.45 58.98 43.26 67.83C44.78 70.45 46.46 73.24 47.29 76.04C48.94 81.62 49.27 85.18 49.9 89.97C49.9 89.99 49.91 90.01 49.91 90.04L49.91 100C48.45 99.98 47 99.41 45.9 98.31L1.69 54.1C-0.56 51.85 -0.56 48.15 1.69 45.9Z'
+
+/** The grid of the full logo, in the original's own units (PDF points). */
+export const FULL_LOGO_VIEW_BOX = '0 0 406.21 461.94'
 
 /**
- * The middle of that grid. Named because anything scaling the figure has to
- * scale it ABOUT this point, and writing `24` at the call site would be a
- * literal that silently stops matching if the grid above ever changes.
+ * The full logo, as four shapes painted back to front: `panel` and `wordmark`
+ * in the accent, `sign` and `plate` in white. The climber and the plate's
+ * border are the panel showing through — in the original they are gaps in the
+ * white shapes, not blue ones of their own.
  */
-export const MARK_CENTRE = 24
-
-/**
- * The diamond. Its corners are ROUNDED, as on the original: the school's mark
- * is a road-sign lozenge, not a sharp rotated square. The first tracing had
- * sharp corners because the only reference was a 90×84 px crop where the
- * rounding was lost to compression. A larger banner supplied on 24.09.2026
- * (`ABCWSPINANIA.jpg`, the mark photographed on a signpost) showed it clearly.
- *
- * Quadratic curves rather than a stroke with round joins: this shape is FILLED,
- * and a fill does not round its own corners. The control points come from
- * offsetting 4 units along each edge from every corner — rendered at 2.5, 4.0
- * and 5.5 and compared against the banner before settling here.
- */
-export const MARK_DIAMOND =
-  'M21.17 6.43Q24 3.6 26.83 6.43L41.57 21.17Q44.4 24 41.57 26.83L26.83 41.57Q24 44.4 21.17 41.57L6.43 26.83Q3.6 24 6.43 21.17Z'
-
-/**
- * The climber: torso, arms raised in a "V", one leg bent and one straight,
- * reaching outside the diamond. Strokes rather than a filled outline — easier
- * to correct when the original arrives, and it holds up at small sizes.
- */
-/** ⚠️ Keep these distinct — each is used as its own React key where drawn. */
-export const MARK_FIGURE = [
-  'M24 19.5V28',
-  'M24 21.5 17.5 14.5M24 21.5 30.5 14.5',
-  'M24 28l-5.5 3.5 1 6.5M24 28l4.5 5 .5 7',
-] as const
-
-/** The head. Its radius is a per-context choice, so it is not fixed here. */
-export const MARK_HEAD = { cx: 24, cy: 14.2 } as const
+export const FULL_LOGO = {
+  panel:
+    'M406.21 0L406.21 461.94L108.17 461.94L108.17 382.08L15.92 382.08C11.96 382.08 6.52 380.27 3.97 377.35C1.52 374.56 0 370.75 0 366.59L0 301.57C0 297.41 1.52 293.6 3.97 290.81C6.52 287.89 11.96 286.08 15.92 286.08L108.17 286.08L108.17 249.43L37.93 180.29C29.59 172.09 29.59 158.65 37.93 150.45L108.17 81.31L108.17 0Z',
+  sign: 'M226.21 286.61L202.71 286.61C203.67 273.73 203.83 260.49 201.07 247.47C197.33 229.88 195.3 229.6 181.86 206.36C183.74 187.9 185.63 169.69 187.52 151.48C204.99 142.61 216.68 139.85 232.17 128.39C237.68 124.32 240.74 109.13 243.1 90.93C245.45 72.73 235.23 73.29 232.19 80.54C228.37 86.53 225.29 106.9 221.94 114.33C213.22 119.13 202.81 125.03 193.22 128.01C192.88 124.4 193.12 123.7 195.43 120.62C199.53 117.56 202.18 112.67 202.18 107.18C202.16 97.96 194.63 90.44 185.42 90.44C176.2 90.44 168.7 97.96 168.71 107.18C168.72 111.74 170.57 115.89 173.54 118.91C175.65 121.84 175.03 126.97 173.36 129.91C170.73 128.95 167.78 128.96 165.94 127.27C161.52 123.22 158.74 117.69 155.14 113.13C153.19 100.08 152.99 91.4 154.49 77.99C155.47 69.24 144.39 65.86 140.57 72.17C137.47 80.56 136.39 90.39 136.34 105.42C136.94 111.56 139 121.71 143 126.76C151.64 138.74 155.9 143.81 164.3 155.55C163.36 164.9 162.65 174 161.95 183.11C143.73 166.57 144.46 164.68 133.66 161.54C130.46 160.61 127.08 162.85 124.33 164.9C120.99 173.76 120.99 173.76 118.42 218.34C118.6 223.77 129.52 228.5 132.79 218.1C134.93 208.51 136.83 199.17 138.73 189.82C145.2 193.18 145.2 193.18 168.71 219.78C173.27 227.69 178.32 236.08 180.82 244.48C185.79 261.28 186.79 271.98 188.68 286.4C188.69 286.47 188.7 286.54 188.71 286.61L151.74 286.61L43.63 178.49C36.84 171.7 36.84 160.59 43.63 153.79L176.63 20.8C183.42 14.01 194.53 14.01 201.33 20.8L334.32 153.79C341.12 160.59 341.12 171.7 334.32 178.49Z',
+  plate:
+    'M14.92 294.85L363.03 294.85C364.9 294.85 366.63 295.74 367.91 297.18C369.3 298.74 370.16 300.93 370.16 303.37L370.16 365.66C370.16 368.09 369.3 370.28 367.91 371.84C366.63 373.28 364.9 374.17 363.03 374.17L14.92 374.17C13.05 374.17 11.32 373.28 10.04 371.84C8.66 370.28 7.79 368.09 7.79 365.66L7.79 303.37C7.79 300.93 8.66 298.74 10.04 297.18C11.32 295.74 13.05 294.85 14.92 294.85Z',
+  wordmark:
+    'M340.3 338.88C344.94 338.88 348.13 338.99 349.87 339.22C352.37 339.56 353.91 340.75 354.48 342.8C354.87 344.2 355.06 346.58 355.06 349.92C355.06 353.28 354.87 355.66 354.48 357.07C353.91 359.11 352.37 360.3 349.87 360.64C348.13 360.87 344.96 360.99 340.37 360.99C335.69 360.99 332.48 360.87 330.74 360.64C328.23 360.3 326.69 359.11 326.12 357.07C325.74 355.66 325.54 353.24 325.54 349.8C325.54 346.52 325.74 344.19 326.12 342.8C326.69 340.75 328.23 339.56 330.74 339.22C332.47 338.99 335.66 338.88 340.3 338.88ZM49.44 330.15L49.44 308.67L64.87 308.67C68.15 308.69 70.11 308.71 70.72 308.76C72.13 308.84 73.16 309.09 73.82 309.51C74.46 309.91 74.92 310.47 75.2 311.21C75.48 311.96 75.62 312.97 75.62 314.26C75.62 315.8 75.4 316.94 74.98 317.66C74.55 318.39 73.8 318.9 72.72 319.22C73.67 319.38 74.38 319.63 74.84 319.94C75.89 320.64 76.42 322.12 76.42 324.38C76.42 326.13 76.14 327.42 75.6 328.26C75.23 328.83 74.74 329.25 74.1 329.51C73.47 329.78 72.59 329.96 71.44 330.04C70.7 330.09 68.52 330.13 64.92 330.15ZM106.04 308.67L112.72 308.67L118.47 324.75L119.69 324.75L124.55 308.67L132.45 308.67L137.34 324.75L138.57 324.75L144.36 308.67L151.3 308.67L142.94 330.15L132.84 330.15L128.53 314.4L124.26 330.15L114.13 330.15ZM283.14 308.67L294.62 308.67L305.87 324.69L306.54 324.69L306.39 308.67L313.04 308.67L313.04 330.15L301.67 330.15L290.37 314.14L289.66 314.14L289.8 330.15L283.14 330.15ZM268.54 339.19L280.01 339.19L291.26 355.21L291.94 355.21L291.79 339.19L298.44 339.19L298.44 360.67L287.07 360.67L275.77 344.66L275.06 344.66L275.2 360.67L268.54 360.67ZM217.99 308.67L229.46 308.67L240.71 324.69L241.39 324.69L241.23 308.67L247.89 308.67L247.89 330.15L236.51 330.15L225.21 314.14L224.51 314.14L224.65 330.15L217.99 330.15ZM180.17 330.15L180.17 308.67L194.88 308.67C197.79 308.67 199.67 308.73 200.51 308.85C202.64 309.13 204.08 309.81 204.83 310.9C205.58 311.99 205.96 313.92 205.96 316.71C205.96 319.37 205.65 321.23 205.03 322.3C204.61 323.02 204.02 323.57 203.27 323.95C202.51 324.33 201.48 324.59 200.17 324.74C199.23 324.84 197.49 324.89 194.94 324.89L186.71 324.89L186.71 330.15ZM151.61 323.04L157.95 323.04C157.94 324.1 158.15 324.78 158.59 325.09C158.91 325.29 159.32 325.4 159.81 325.44C160.31 325.48 161.89 325.51 164.53 325.53C167.29 325.52 168.96 325.5 169.51 325.47C170.07 325.45 170.51 325.37 170.83 325.23C171.32 325.03 171.56 324.49 171.56 323.61C171.56 322.97 171.39 322.54 171.05 322.33C170.7 322.11 170.01 321.99 168.96 321.97C168.15 321.97 166.45 321.91 163.84 321.78C161.16 321.66 159.42 321.58 158.61 321.56C157.04 321.51 155.83 321.36 154.99 321.11C154.14 320.87 153.48 320.46 153.01 319.91C152.2 318.99 151.8 317.44 151.8 315.28C151.8 312.86 152.26 311.15 153.19 310.15C153.89 309.37 154.97 308.88 156.43 308.66C157.89 308.45 160.85 308.34 165.32 308.34C168.48 308.34 170.69 308.43 171.97 308.61C173.94 308.89 175.3 309.43 176.03 310.25C176.77 311.08 177.13 312.47 177.13 314.42C177.13 314.6 177.13 314.93 177.12 315.43L170.77 315.43C170.75 314.82 170.7 314.42 170.62 314.2C170.55 313.98 170.39 313.8 170.16 313.66C169.88 313.49 169.38 313.39 168.67 313.34C167.95 313.29 166.45 313.27 164.14 313.27C161.36 313.27 159.66 313.35 159.06 313.52C158.45 313.7 158.14 314.18 158.14 314.96C158.14 315.72 158.45 316.18 159.06 316.35C159.56 316.49 161.87 316.62 166 316.75C169.46 316.85 171.78 316.97 172.96 317.11C174.13 317.26 175.05 317.53 175.75 317.92C176.53 318.4 177.09 319.05 177.41 319.87C177.74 320.69 177.9 321.88 177.9 323.42C177.9 325.44 177.63 326.95 177.08 327.93C176.68 328.66 176.11 329.2 175.38 329.56C174.65 329.91 173.62 330.15 172.3 330.28C170.88 330.4 168.25 330.47 164.39 330.47C161.16 330.47 158.77 330.38 157.23 330.22C155.69 330.05 154.53 329.75 153.75 329.32C152.95 328.86 152.39 328.25 152.08 327.49C151.77 326.74 151.61 325.59 151.61 324.05ZM274.75 330.15L272.9 326.52L258.7 326.52L256.86 330.15L249.38 330.15L260.77 308.67L270.94 308.67L282.17 330.15ZM349.24 330.15L347.4 326.52L333.2 326.52L331.36 330.15L323.88 330.15L335.27 308.67L345.44 308.67L356.67 330.15ZM41.04 330.15L39.19 326.52L24.99 326.52L23.15 330.15L15.67 330.15L27.06 308.67L37.23 308.67L48.46 330.15ZM99.11 321.86L105.65 321.86C105.69 322.91 105.71 323.58 105.71 323.89C105.71 325.55 105.47 326.84 104.97 327.78C104.43 328.83 103.37 329.54 101.78 329.92C100.2 330.3 97.46 330.48 93.56 330.48C89.48 330.48 86.56 330.4 84.83 330.25C83.09 330.09 81.78 329.79 80.9 329.34C80.12 328.93 79.53 328.37 79.14 327.68C78.75 326.99 78.5 326.04 78.38 324.84C78.29 323.86 78.24 322.1 78.24 319.55C78.24 317.06 78.29 315.26 78.38 314.16C78.48 313.06 78.66 312.21 78.94 311.6C79.53 310.24 80.75 309.35 82.57 308.95C84.4 308.55 88.08 308.34 93.61 308.34C96.38 308.34 98.4 308.41 99.65 308.53C100.92 308.66 101.92 308.89 102.66 309.24C103.64 309.7 104.32 310.39 104.72 311.3C105.12 312.2 105.32 313.54 105.32 315.3C105.32 315.39 105.31 315.75 105.3 316.37L98.76 316.37C98.73 315.66 98.68 315.18 98.63 314.94C98.57 314.7 98.45 314.5 98.27 314.34C98.02 314.12 97.39 313.95 96.37 313.86C95.35 313.76 93.81 313.71 91.74 313.71C89.7 313.71 88.28 313.75 87.5 313.84C86.71 313.93 86.15 314.1 85.83 314.37C85.44 314.68 85.17 315.21 85.01 315.96C84.86 316.7 84.79 317.89 84.79 319.52C84.79 321.14 84.86 322.29 84.99 322.96C85.13 323.62 85.39 324.1 85.78 324.39C86.15 324.68 86.73 324.87 87.53 324.96C88.34 325.05 89.76 325.1 91.79 325.1C94.29 325.1 95.97 325.06 96.8 324.98C97.63 324.89 98.2 324.71 98.49 324.43C98.88 324.06 99.08 323.2 99.11 321.86ZM301.44 339.19L324.15 339.19L324.15 344.24L307.99 344.24L307.99 348.3L323.36 348.3L323.36 353.24L307.99 353.24L307.99 360.67L301.44 360.67ZM340.32 344.46C336.85 344.46 334.76 344.55 334.06 344.73C333.25 344.94 332.72 345.41 332.47 346.14C332.21 346.87 332.09 348.32 332.09 350.49C332.09 351.8 332.16 352.75 332.29 353.34C332.56 354.43 333.35 355.06 334.67 355.21C335.65 355.34 337.54 355.4 340.35 355.4C342.98 355.4 344.73 355.35 345.6 355.26C346.47 355.17 347.12 354.96 347.54 354.63C347.92 354.34 348.18 353.9 348.31 353.34C348.44 352.76 348.51 351.82 348.51 350.52C348.51 348.98 348.46 347.85 348.36 347.12C348.25 346.4 348.06 345.85 347.79 345.49C347.44 345.03 346.87 344.74 346.08 344.63C345.28 344.52 343.36 344.46 340.32 344.46ZM208.11 308.67L214.98 308.67L214.98 330.15L208.11 330.15ZM316.04 308.67L322.92 308.67L322.92 330.15L316.04 330.15ZM258.66 339.19L265.54 339.19L265.54 360.67L258.66 360.67ZM186.71 319.53L194.89 319.53C196.39 319.52 197.29 319.5 197.63 319.46C197.95 319.43 198.25 319.35 198.51 319.21C198.85 319.04 199.08 318.77 199.21 318.41C199.33 318.04 199.39 317.48 199.39 316.71C199.39 315.95 199.31 315.39 199.16 315.03C199 314.67 198.72 314.42 198.32 314.26C198.03 314.15 196.89 314.07 194.89 314.04L186.71 314.04ZM55.66 324.99L64.92 324.99C66.84 324.98 67.98 324.96 68.33 324.94C68.68 324.92 68.98 324.87 69.23 324.77C69.79 324.55 70.07 324 70.07 323.13C70.07 322.23 69.75 321.7 69.1 321.54C68.87 321.48 67.48 321.45 64.92 321.44L55.66 321.44ZM55.66 317.14L64.89 317.14C66.91 317.14 68.11 317.06 68.5 316.9C69.02 316.7 69.27 316.19 69.27 315.36C69.27 314.51 68.96 314 68.35 313.84C68.1 313.77 66.95 313.73 64.89 313.72L55.66 313.72ZM270.61 321.81L266.47 313.68L265.16 313.68L261.02 321.81ZM36.9 321.81L32.76 313.68L31.46 313.68L27.32 321.81ZM345.11 321.81L340.97 313.68L339.66 313.68L335.52 321.81ZM248.45 354.96L255.33 354.96L255.33 360.67L248.45 360.67Z',
+} as const

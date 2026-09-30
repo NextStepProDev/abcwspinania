@@ -3,9 +3,10 @@ import Image from 'next/image'
 import { RichText } from '@payloadcms/richtext-lexical/react'
 
 import { getAboutPage, getInstructors, getSiteConfig, asImage } from '@/lib/content'
-import { yearsSince, focalPosition, croppedSource } from '@/lib/format'
+import { yearsSince, focalPosition, croppedSource, pluralPl } from '@/lib/format'
 import { pageMetadata } from '@/lib/seo'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { FullLogo, SignWatermark } from '@/components/Logo'
 import { Shield, Check, Certificate, Arrow } from '@/components/Icons'
 import { Container, ImagePlaceholder } from '@/components/Ui'
 import Link from 'next/link'
@@ -116,12 +117,19 @@ export default async function AboutPage() {
               {content.intro}
             </p>
           )}
-          {years && (
-            <p className="mt-4 text-[15px] text-rock-600">
-              Szkolimy od {siteConfig.foundedYear} roku, czyli {years} years.
-              {siteConfig.pzaLicence && ` Licencja instruktorska PZA nr ${siteConfig.pzaLicence}.`}
-            </p>
-          )}
+          {/* The logo as a seal next to the school's age and licence: the
+              place on this page where the name carries the most weight. */}
+          <div className="mt-6 flex items-center gap-5">
+            <FullLogo className="h-[96px] w-auto shrink-0" />
+            {years && (
+              <p className="text-[15px] text-rock-600">
+                Szkolimy od {siteConfig.foundedYear} roku, czyli {years}{' '}
+                {pluralPl(years, 'rok', 'lata', 'lat')}.
+                {siteConfig.pzaLicence &&
+                  ` Licencja instruktorska PZA nr ${siteConfig.pzaLicence}.`}
+              </p>
+            )}
+          </div>
         </div>
 
         {image?.url && imageSource ? (
@@ -146,23 +154,26 @@ export default async function AboutPage() {
       </Container>
 
       {content?.licenceReasons && content.licenceReasons.length > 0 && (
-        <Container className="py-12 lg:py-16">
-          <h2 className="mb-8 max-w-[700px] text-[32px] leading-[1.05] lg:text-[44px]">
-            Dlaczego licencja PZA ma znaczenie
-          </h2>
-          <ul className="grid gap-8 lg:grid-cols-3">
-            {content.licenceReasons.map((p, i) => {
-              const Icon = REASON_ICONS[i % REASON_ICONS.length]
-              return (
-                <li key={p.id ?? i} className="flex flex-col gap-3">
-                  <Icon size={28} className="text-rope" />
-                  <h3 className="text-xl font-semibold tracking-[-0.01em]">{p.title}</h3>
-                  <p className="text-[15px] leading-6 text-rock-600">{p.description}</p>
-                </li>
-              )
-            })}
-          </ul>
-        </Container>
+        <section className="relative overflow-hidden">
+          <SignWatermark className="-top-16 -left-40" />
+          <Container className="relative py-12 lg:py-16">
+            <h2 className="mb-8 max-w-[700px] text-[32px] leading-[1.05] lg:text-[44px]">
+              Dlaczego licencja PZA ma znaczenie
+            </h2>
+            <ul className="grid gap-8 lg:grid-cols-3">
+              {content.licenceReasons.map((p, i) => {
+                const Icon = REASON_ICONS[i % REASON_ICONS.length]
+                return (
+                  <li key={p.id ?? i} className="flex flex-col gap-3">
+                    <Icon size={28} className="text-rope" />
+                    <h3 className="text-xl font-semibold tracking-[-0.01em]">{p.title}</h3>
+                    <p className="text-[15px] leading-6 text-rock-600">{p.description}</p>
+                  </li>
+                )
+              })}
+            </ul>
+          </Container>
+        </section>
       )}
 
       {instructors.length > 0 && (

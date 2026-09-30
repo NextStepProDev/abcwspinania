@@ -1,0 +1,14 @@
+# Binary files must reach the repository byte for byte.
+#
+# Git guesses "text or binary" from the contents, and an old PDF can be almost
+# pure ASCII: design/logo/logo-abc-wspinania.pdf (CorelDRAW 9) was taken for
+# text, and with core.autocrlf=input git would have stripped its 439 CR bytes
+# on commit — breaking the PDF, whose cross-reference table counts byte
+# offsets. Measured 30.09.2026: `git hash-object` of the file differed from
+# `git hash-object --no-filters` until this file existed.
+*.pdf  binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.webp binary
+*.ico  binary

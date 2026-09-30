@@ -347,6 +347,13 @@ dokładnie tych dwóch, więc oba leżą w korzeniu `app/`.
 Skutek uboczny: skoro `manifest.ts` jest poza grupą, Next nie dokleja go sam do
 `<head>` podstron — layout wskazuje go jawnie przez `metadata.manifest`.
 
+W korzeniu `app/` leży też **`favicon.ico/route.tsx`** — tym razem z wyboru,
+nie z przymusu (grupa tras nie zmienia adresu, więc w `(frontend)` działałby
+tak samo). Leży tu, bo służy całej aplikacji: panelowi (`admin.meta.icons`
+w `payload.config.ts`) i wbudowanej 404 Next-a, która nie ma naszego `<head>`,
+nie tylko stronie. Do 30.09.2026 zwracał 404, a panel miał w karcie logo
+Payloada.
+
 Jeśli kiedyś zniknie `/robots.txt` albo `/manifest.webmanifest`, to jest
 pierwsze miejsce do sprawdzenia: `cat .next/app-path-routes-manifest.json`
 pokazuje, co Next faktycznie wystawił.
@@ -549,6 +556,24 @@ pipeline'u SCSS dla jednego pustego arkusza.
     razem z wariantem `medium`) — stąd ostrzeżenie w opisie kolekcji w panelu.
     Wyłączenie nie wymagało migracji: Payload zostawia kolumny
     `focal_x`/`focal_y`, dopóki kolekcja ma `imageSizes`.
+
+27. **Logo „za skałą” na stronie głównej działa TYLKO z jednym zdjęciem.**
+    Od 30.09.2026 pełne logo stoi w hero za skałą: maska nieba
+    (`public/images/hero/`) jest zrobiona z pikseli zdjęcia
+    `20240828_134954(1).jpg`, a lista pasujących plików i współrzędne logo
+    siedzą w `components/HeroSign.tsx`. **Gdy klient podmieni zdjęcie w panelu albo
+    przestawi na nim punkt centralny, strona sama wraca do zwykłego logo**
+    (`heroSceneFits`) — nic się nie psuje, ale efekt znika bez śladu w logach.
+    Nowe zdjęcie = nowa maska (`design/hero/make_mask.py`) i nowe
+    współrzędne. Uwaga: oryginał ma w EXIF obrót o 180° — skrypt czytający
+    surowe piksele musi go najpierw zastosować.
+
+    Od 30.09.2026 jest też **wersja po retuszu** (`20240828_134954-retusz.jpg`,
+    bez ciemnej plamy w prawym dolnym rogu). Maska pasuje do obu, kod
+    rozpoznaje oba pliki. **Retusz nie jedzie z deployem** — zdjęcie siedzi
+    w panelu, więc na każdym serwerze trzeba je raz wgrać i wybrać w „Stronie
+    głównej”. Instrukcja i powód, dla którego nowy plik, a nie nadpisanie
+    starego: `design/hero/README.md`.
 
 ---
 

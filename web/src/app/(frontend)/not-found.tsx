@@ -1,8 +1,11 @@
 import Link from 'next/link'
 
+import { Mark } from '@/components/Logo'
+
 export default function NotFound() {
   return (
     <main className="mx-auto flex min-h-[60vh] max-w-2xl flex-col items-start justify-center gap-4 px-4 py-16 sm:px-6">
+      <Mark size={72} className="mb-2 text-rope" />
       <p className="text-sm font-medium uppercase tracking-wider text-rope">404</p>
       <h1 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
         Nie ma takiej strony

@@ -1,89 +1,85 @@
-import { MARK_DIAMOND, MARK_FIGURE, MARK_HEAD, MARK_VIEW_BOX } from '@/lib/mark'
+import { FULL_LOGO, FULL_LOGO_VIEW_BOX, MARK_PATH, MARK_VIEW_BOX } from '@/lib/mark'
 
 /**
- * The ABC Wspinania graphic mark.
+ * The ABC Wspinania sign — the lozenge with the climber.
  *
- * The shape itself lives in `lib/mark.ts`, because it is drawn in three places:
- * here, in the favicon and on the social card. This file decides how it is
- * PAINTED — the diamond in `currentColor`, strokes at 3.3 — not what it looks
- * like.
- *
- * Swapping the tracing for the real mark is therefore an edit to `lib/mark.ts`,
- * PROVIDED the new one is built the same way: a diamond, a stroked figure, a
- * round head. If it is not — no diamond, or a wordmark beside the symbol — then
- * all three painting sites need revisiting as well. What is shared is the
- * geometry, not the composition, and saying otherwise is how the last comment
- * here ended up untrue.
- *
- * The colour is inherited via `currentColor`, so the same component works on the
- * light header and the dark footer without a second variant.
+ * The shape lives in `lib/mark.ts`, shared with the favicon, the app icons and
+ * the social card. This file decides only how it is painted: in `currentColor`,
+ * with the climber left as a hole, so the ground shows through it. On the light
+ * header that gives a blue sign with a light climber; on a dark panel pass
+ * `text-white` and it becomes the real sign — white lozenge, dark climber —
+ * without a second variant.
  */
-export function Mark({
-  className,
-  size = 26,
-  figureColor = '#fff',
-}: {
-  className?: string
-  size?: number
-  /**
-   * Colour of the climber inside the lozenge.
-   *
-   * The mark exists in two arrangements. On a light ground the lozenge is navy
-   * and the figure white; on a dark one the lozenge is light and the figure
-   * takes the panel's colour, because navy on `rock-900` measures 1.18 contrast
-   * and disappears. Both come out at 12.76.
-   *
-   * Worth knowing which is which: the REAL sign is the second one — a white
-   * lozenge with a navy climber. The light-ground version used in the header is
-   * the departure from it, not the other way round.
-   */
-  figureColor?: string
-}) {
+export function Mark({ className, size = 34 }: { className?: string; size?: number }) {
   return (
     <svg
       width={size}
       height={size}
       viewBox={MARK_VIEW_BOX}
-      fill="none"
       className={className}
       aria-hidden="true"
     >
-      <path d={MARK_DIAMOND} fill="currentColor" />
-      <g
-        stroke={figureColor}
-        strokeWidth="3.3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      >
-        {MARK_FIGURE.map((d) => (
-          <path key={d} d={d} />
-        ))}
-      </g>
-      <circle cx={MARK_HEAD.cx} cy={MARK_HEAD.cy} r="3.4" fill={figureColor} />
+      <path d={MARK_PATH} fill="currentColor" />
     </svg>
   )
 }
 
-/** The mark together with the name — what stands in the header and the footer. */
+/** The sign together with the name — what stands in the header. */
 export function Logo({
-  markSize = 26,
+  markSize = 34,
   textSize = 'text-[19px]',
   markColor = 'text-rope',
-  figureColor,
 }: {
   markSize?: number
   textSize?: string
   markColor?: string
-  /** Passed through to `Mark` — see there. Needed on dark panels. */
-  figureColor?: string
 }) {
   return (
     <>
-      <Mark size={markSize} className={markColor} figureColor={figureColor} />
+      <Mark size={markSize} className={markColor} />
       <span className={`font-display font-extrabold tracking-[-0.025em] ${textSize}`}>
         ABC Wspinania
       </span>
     </>
+  )
+}
+
+/**
+ * The complete logo exactly as the school uses it — panel, sign and the
+ * ABCWSPINANIA.INFO plate — in its own colours, whatever the ground.
+ *
+ * Only where it is large enough to read: the wordmark is about a tenth of the
+ * logo's height, so at the header's size it would be a few pixels tall. That
+ * is why the header uses `Logo` instead.
+ *
+ * The panel and wordmark follow the `rope` token rather than a literal, so the
+ * logo cannot drift from the accent the rest of the page is drawn in.
+ */
+export function FullLogo({ className, title }: { className?: string; title?: string }) {
+  // With a title it is announced as an image of the name; without one it is
+  // decoration and hidden, for places where the name is already said nearby.
+  const a11y = title ? { role: 'img', 'aria-label': title } : { 'aria-hidden': true }
+  return (
+    <svg viewBox={FULL_LOGO_VIEW_BOX} className={className} {...a11y}>
+      <path d={FULL_LOGO.panel} className="fill-rope" />
+      <path d={FULL_LOGO.sign} className="fill-white" />
+      <path d={FULL_LOGO.plate} className="fill-white" />
+      <path d={FULL_LOGO.wordmark} className="fill-rope" />
+    </svg>
+  )
+}
+
+/**
+ * The sign as a faint watermark behind a section — large, pale, cut off by the
+ * section's edge. The section must be `relative overflow-hidden` and its
+ * content must come AFTER this in the markup and be `relative`, so it paints
+ * on top. Pure decoration: hidden from assistive technology.
+ */
+export function SignWatermark({ className = '' }: { className?: string }) {
+  return (
+    <Mark
+      size={520}
+      className={`pointer-events-none absolute text-rope opacity-[0.06] ${className}`}
+    />
   )
 }

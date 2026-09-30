@@ -52,9 +52,8 @@ export function MountainBackdrop({ variant = 'full' }: { variant?: 'full' | 'sho
           runs outside the frame.
 
           Drawn in `rope-light`, NOT the accent itself. This sits on `rock-950`,
-          where the navy accent measures 1.40 contrast and would be invisible;
-          the light shade measures 5.34. The orange it replaced managed 4.07 —
-          so this reads better than what was here before, not worse. */}
+          where the accent measures 1.99 contrast and would be invisible; the
+          light shade measures 7.06 (figures for the logo blue, 30.09.2026). */}
       {variant === 'full' && (
         <>
           <path

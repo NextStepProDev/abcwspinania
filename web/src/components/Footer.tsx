@@ -1,8 +1,9 @@
+import Image from 'next/image'
 import Link from 'next/link'
 
 import type { SiteConfig } from '@/payload-types'
-import { BRAND, BRAND_COLORS } from '@/lib/site'
-import { Logo } from './Logo'
+import { BRAND } from '@/lib/site'
+import { FullLogo } from './Logo'
 import { NewsletterForm } from './NewsletterForm'
 import { OFFER_NAV, SCHOOL_NAV, type NavItem } from './navigation'
 
@@ -40,39 +41,49 @@ export function Footer({ config }: { config: SiteConfig }) {
           <NewsletterForm />
         </div>
 
-        <div className="grid gap-10 border-b border-rock-line py-11 md:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr] lg:gap-12">
-          <div className="flex flex-col gap-3.5">
-            <div className="flex items-center gap-2.5 text-white">
-              {/* White lozenge, navy climber — exactly the arrangement on the
-                  real sign. Forced by contrast anyway: a navy lozenge measures
-                  1.18 against `rock-900` and disappears. The climber is the
-                  accent rather than the panel's own colour, because the point
-                  is to show the mark, not to cut a hole in it; 12.76 either
-                  way. It is the HEADER that departs from the original here,
-                  not this. */}
-              <Logo
-                markSize={24}
-                textSize="text-[18px]"
-                markColor="text-white"
-                figureColor={BRAND_COLORS.accent}
+        {/* Two columns from the smallest screen, so "Oferta" and "Szkoła" sit side
+            by side on a phone instead of in one long list — their longest entry
+            ("Opinie kursantów", ~125 px) fits the ~167 px column at 390 px.
+            The brand row and the contact block span both columns. */}
+        <div className="grid grid-cols-2 gap-x-6 gap-y-10 border-b border-rock-line py-11 lg:grid-cols-3 lg:gap-12">
+          {/* The logo BESIDE the text, on a row of its own, rather than on top
+              of it in the first of four columns. Stacked, the long description
+              turned that column into a narrow tower with empty space under the
+              short link columns; side by side at full width it runs to about
+              four lines. */}
+          <div className="col-span-2 flex flex-col gap-6 sm:flex-row sm:items-start lg:col-span-3">
+            {/* The school's logo and the PZA instructor badge side by side, at
+                one height — the two marks a visitor should connect. The logo
+                needs no variant for the dark ground: its blue panel and white
+                plate both stand clear of `rock-900` as they are. */}
+            <div className="flex shrink-0 items-center gap-4 self-start">
+              <FullLogo title={BRAND} className="h-[120px] w-auto" />
+              <Image
+                src="/images/pza/instruktor-pza.png"
+                alt="Odznaka Instruktor PZA"
+                width={120}
+                height={120}
+                className="size-[120px]"
               />
             </div>
-            {/* The full name only when it says more than the logo above it —
-                the no-database fallback is the bare brand, which would repeat. */}
-            {config.legalName && config.legalName !== BRAND && (
-              <p className="text-[15px] font-semibold text-white">{config.legalName}</p>
-            )}
-            {config.shortDescription && (
-              <p className="max-w-[400px] whitespace-pre-line text-[15px] leading-6">
-                {config.shortDescription}
-              </p>
-            )}
+            <div className="flex flex-col gap-3.5">
+              {/* The full name only when it says more than the logo beside it —
+                  the no-database fallback is the bare brand, which would repeat. */}
+              {config.legalName && config.legalName !== BRAND && (
+                <p className="text-[15px] font-semibold text-white">{config.legalName}</p>
+              )}
+              {config.shortDescription && (
+                <p className="max-w-[760px] whitespace-pre-line text-[15px] leading-6">
+                  {config.shortDescription}
+                </p>
+              )}
+            </div>
           </div>
 
           <LinkColumn title="Oferta" items={OFFER_NAV} />
           <LinkColumn title="Szkoła" items={SCHOOL_NAV} />
 
-          <div>
+          <div className="col-span-2 md:col-span-1">
             <h2 className="mb-3.5 text-[13px] font-semibold uppercase tracking-[0.06em] text-rock-500">
               Kontakt
             </h2>

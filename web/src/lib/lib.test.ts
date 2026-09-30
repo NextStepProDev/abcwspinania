@@ -22,6 +22,7 @@ import {
   focalPosition,
   croppedSource,
   originalSource,
+  splitFirstSentence,
 } from '@/lib/format'
 import { jsonLd, organizationSchema } from '@/lib/schema'
 import type { SiteConfig } from '@/payload-types'
@@ -614,4 +615,30 @@ test('languageOf: the English page and nothing else is English', () => {
   assert.equal(languageOf('/kursy/en'), 'pl')
   // A Polish path that merely starts with the same letters.
   assert.equal(languageOf('/english-camp'), 'pl')
+})
+
+test('the first sentence is split off, with the rest kept whole', () => {
+  assert.deepEqual(splitFirstSentence('Kursy według programu PZA. Cztery osoby na instruktora.'), {
+    head: 'Kursy według programu PZA.',
+    rest: ' Cztery osoby na instruktora.',
+  })
+})
+
+test('an abbreviation inside the sentence does not end it', () => {
+  // "np." is followed by a lowercase word — not a sentence boundary.
+  assert.deepEqual(splitFirstSentence('Sprzęt, np. uprząż, dajemy. Ceny w cenniku.'), {
+    head: 'Sprzęt, np. uprząż, dajemy.',
+    rest: ' Ceny w cenniku.',
+  })
+})
+
+test('a sentence may begin with a Polish capital', () => {
+  assert.equal(splitFirstSentence('Baza stoi blisko! Ściana jest obok.').head, 'Baza stoi blisko!')
+})
+
+test('text with no sentence break is all head', () => {
+  assert.deepEqual(splitFirstSentence('Zbiórka o 10.30 pod skałą'), {
+    head: 'Zbiórka o 10.30 pod skałą',
+    rest: '',
+  })
 })

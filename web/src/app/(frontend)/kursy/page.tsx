@@ -52,13 +52,30 @@ export default async function CoursesPage({ searchParams }: Props) {
     <main>
       <Container className="pb-8 pt-8">
         <Breadcrumbs trail={[{ label: 'Start', href: '/' }, { label: 'Kursy' }]} />
-        <h1 className="mt-5 max-w-[800px] text-balance text-[36px] leading-[1.05] lg:text-[52px]">
-          Kursy wspinaczki
-        </h1>
-        <p className="mt-4 max-w-[680px] text-[17px] leading-7 text-rock-600">
-          Od pierwszego dotknięcia skały po samodzielne zakładanie asekuracji. Wszystkie prowadzone
-          według programu Polskiego Związku Alpinizmu, w grupach do czterech osób na instruktora.
-        </p>
+        {/* The PZA logo stands beside the sentence it backs up — "według
+            programu Polskiego Związku Alpinizmu" — level with the paragraph's
+            last line from `lg`, under it on narrower screens. The association's
+            permission is still to be confirmed (`ZAKRES.md`, item 10). */}
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-12">
+          <div>
+            <h1 className="mt-5 max-w-[800px] text-balance text-[36px] leading-[1.05] lg:text-[52px]">
+              Kursy wspinaczki
+            </h1>
+            <p className="mt-4 max-w-[680px] text-[17px] leading-7 text-rock-600">
+              Od pierwszego dotknięcia skały po samodzielne zakładanie asekuracji. Wszystkie
+              prowadzone według programu Polskiego Związku Alpinizmu, w grupach do czterech osób na
+              instruktora.
+            </p>
+          </div>
+          <Image
+            src="/images/pza/pza-logo.png"
+            alt="Polski Związek Alpinizmu"
+            width={1108}
+            height={632}
+            sizes="(min-width: 1024px) 298px, 175px"
+            className="h-[100px] w-auto shrink-0 self-start lg:h-[170px] lg:self-end"
+          />
+        </div>
       </Container>
 
       <Container>
