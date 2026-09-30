@@ -62,6 +62,9 @@ export default buildConfig({
     meta: {
       titleSuffix: '— ABC Wspinania',
       description: 'Panel zarządzania treścią szkoły wspinaczkowej ABC Wspinania',
+      // The school's sign in the browser tab instead of Payload's logo — the
+      // same icon as the site, served by `app/favicon.ico/route.tsx`.
+      icons: [{ rel: 'icon', type: 'image/png', url: '/favicon.ico' }],
     },
   },
   // The panel is in Polish — the client works in it, not a developer.

@@ -42,6 +42,23 @@ export default async function CampsPage() {
       <section className="relative isolate overflow-hidden bg-rock-950">
         <MountainBackdrop variant="short" />
         <div className="absolute inset-0 bg-rock-950/65" />
+        {/* The round "ABC Wspinania" sticker (mountains, "kursy wspinaczkowe,
+            obozy, wspinaczka rekreacyjna"), barely there on the dark ground —
+            texture, not a second logo. Grayscale by choice, so its teal does
+            not tint the warm near-black. From `xl` it sits in the empty right
+            half, clear of the text (below `xl` the text still reaches it —
+            at 1024 px they would overlap by about 140 px); narrower, it
+            slides off the right edge and fades further, to keep the text
+            easy to read. */}
+        <Container className="pointer-events-none absolute inset-0 flex items-center justify-end">
+          <Image
+            src="/images/decor/abc-kolo.png"
+            alt=""
+            width={340}
+            height={340}
+            className="-mr-28 size-[260px] opacity-[0.15] xl:mr-0 xl:size-[340px] xl:opacity-[0.26]"
+          />
+        </Container>
         <Container className="relative flex flex-col gap-4 py-12 lg:py-16">
           <Breadcrumbs
             variant="onDark"

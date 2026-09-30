@@ -462,3 +462,22 @@ export function croppedSource(media: Uploaded): { url: string; width: number; he
   if (known && !isPortrait(originalSource(media))) return originalSource(media)
   return { url: medium.url, width: medium.width ?? 750, height: medium.height ?? 500 }
 }
+
+/**
+ * Splits text into its first sentence and the rest, for places that show only
+ * the first on a phone (the home page hero) and the whole on wider screens.
+ * `head + rest` is always the original text, so rendering both — the rest
+ * hidden on small screens — puts the full text in the HTML exactly once.
+ *
+ * A sentence ends at `.`, `!`, `?` or `…` followed by whitespace and a CAPITAL
+ * letter, Polish ones included. The capital is what keeps an abbreviation
+ * mid-sentence ("np. uprząż") from ending it; a sentence that happens to follow
+ * an abbreviation with a capital ("ok. Kraków") would still be cut there, which
+ * on a phone costs half a sentence, not the page.
+ */
+export function splitFirstSentence(text: string): { head: string; rest: string } {
+  const end = /[.!?…](?=\s+[A-ZĄĆĘŁŃÓŚŹŻ])/.exec(text)
+  if (!end) return { head: text, rest: '' }
+  const cut = end.index + 1
+  return { head: text.slice(0, cut), rest: text.slice(cut) }
+}

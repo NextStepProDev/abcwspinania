@@ -25,7 +25,7 @@ export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:30
 /**
  * Palette values that TypeScript-generated assets need.
  *
- * The web manifest, the social card and the favicon are built in TypeScript and
+ * The web manifest, the social card and the app icons are built in TypeScript and
  * cannot read a CSS custom property, so these have to be written out somewhere.
  * Here rather than once per file: lightening the page background on 24.09.2026
  * found stale copies of the old value in the card's text colour and in the
@@ -43,10 +43,10 @@ export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:30
  *  • the social card's subtitle uses `#c4b8a6`, which IS a token (`rock-300`)
  *    but is needed in exactly one place, so it did not earn an entry here;
  *  • that card's gradient writes `accent` and `ink` again in DECIMAL form,
- *    where a search for the hex will not find them: `rgba(27,44,113,…)` and
+ *    where a search for the hex will not find them: `rgba(0,72,146,…)` and
  *    `rgba(42,38,32,0)`. A gradient needs the channels separately, so they
  *    stay — but they are the copies most likely to go stale, and a grep for
- *    `#1b2c71` walks straight past them.
+ *    `#004892` walks straight past them.
  *
  * No counting the entries in this comment. It said "the two palette values"
  * while there were three, because `accent` was added below and the heading was
@@ -57,6 +57,6 @@ export const BRAND_COLORS = {
   surface: '#fdfcfa',
   /** `rock-900` — the dark panels themselves. */
   ink: '#2a2620',
-  /** `rope` — the accent, and the fill of the logo's lozenge. */
-  accent: '#1b2c71',
+  /** `rope` — the accent: the logo's own blue, and the ground of the app icons. */
+  accent: '#004892',
 } as const

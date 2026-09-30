@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next'
 
+import { APP_ICON_SIZES } from '@/lib/sign-icon'
 import { BRAND, BRAND_COLORS } from '@/lib/site'
 
 /**
@@ -23,5 +24,16 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: BRAND_COLORS.surface,
     theme_color: BRAND_COLORS.ink,
     lang: 'pl',
+    // Each size twice, once per purpose: Chrome warns against the combined
+    // `purpose: 'any maskable'`, and the drawing already fits both — see the
+    // icon route.
+    icons: APP_ICON_SIZES.flatMap((size) =>
+      (['any', 'maskable'] as const).map((purpose) => ({
+        src: `/app-icon/${size}`,
+        sizes: `${size}x${size}`,
+        type: 'image/png',
+        purpose,
+      })),
+    ),
   }
 }

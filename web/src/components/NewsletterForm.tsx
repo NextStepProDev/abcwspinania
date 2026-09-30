@@ -67,7 +67,7 @@ export function NewsletterForm() {
         <button
           type="submit"
           disabled={pending}
-          className="grid shrink-0 justify-items-center whitespace-nowrap rounded-lg bg-banner-fill px-6 py-3 font-semibold text-white transition-colors hover:bg-banner-fill-dark disabled:opacity-60"
+          className="grid shrink-0 justify-items-center whitespace-nowrap rounded-lg bg-rope px-6 py-3 font-semibold text-white transition-colors hover:bg-rope-dark disabled:opacity-60"
         >
           <span className={`col-start-1 row-start-1 ${pending ? 'invisible' : ''}`}>
             Zapisz się na newsletter
