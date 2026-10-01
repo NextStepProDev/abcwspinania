@@ -1,35 +1,14 @@
 import type { Metadata } from 'next'
-import { Inter, Bricolage_Grotesque } from 'next/font/google'
 
-import { getSiteConfig, telHref } from '@/lib/content'
+import { getSiteConfig } from '@/lib/content'
 import { BRAND, SITE_URL } from '@/lib/site'
 import { jsonLd, organizationSchema } from '@/lib/schema'
 import { ogImage } from '@/lib/seo'
-import { Header } from '@/components/Header'
-import { Footer } from '@/components/Footer'
-import { MobileActionBar } from '@/components/MobileActionBar'
+import { SiteShell } from '@/components/SiteShell'
 import './globals.css'
 
-// The `latin-ext` subset is MANDATORY in BOTH typefaces. Without it Polish
-// diacritics (ą, ę, ś, ż, ź, ć, ń, ó, ł) fall back to a substitute face and the
-// text breaks apart mid-word — visible only on the finished page, not in
-// devtools. With the display face it hurts twice as much, because it runs at
-// 72 px.
-const inter = Inter({
-  subsets: ['latin', 'latin-ext'],
-  display: 'swap',
-  variable: '--font-inter',
-})
-
-// The display typeface from the mockup. Narrowed to the weights we actually
-// use — Bricolage is variable, so without this we would pull the full axis
-// range.
-const bricolage = Bricolage_Grotesque({
-  subsets: ['latin', 'latin-ext'],
-  display: 'swap',
-  weight: ['600', '800'],
-  variable: '--font-bricolage',
-})
+// The typefaces live in `lib/fonts.ts`, shared with `app/global-not-found.tsx`
+// (rule 10: `latin-ext` in both).
 
 /**
  * How often, in seconds, the public site refreshes its content from the
@@ -82,41 +61,21 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   // One fetch for the whole tree — the header, footer, action bar and
   // structured data receive it through props instead of each fetching its own.
   const siteConfig = await getSiteConfig()
-  const tel = telHref(siteConfig)
 
   return (
-    <html lang="pl" className={`${inter.variable} ${bricolage.variable}`}>
-      {/* `pb-[68px]` makes room for the pinned mobile bar so it does not cover
-          the end of the footer. From `lg` up there is no bar, so the padding
-          disappears. */}
-      <body className="flex min-h-dvh flex-col pb-[68px] font-sans antialiased lg:pb-0">
-        {/* Skip link — the first thing under Tab. Without it someone navigating
-            by keyboard walks through the entire menu on every page before
-            reaching the content. */}
-        <a
-          href="#content"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-rock-900 focus:px-4 focus:py-2 focus:text-rock-50"
-        >
-          Przejdź do treści
-        </a>
-
-        <Header phone={siteConfig.phone ?? null} telHref={tel} />
-
-        <div id="content" className="flex-1">
-          {children}
-        </div>
-
-        <Footer config={siteConfig} />
-        <MobileActionBar phone={siteConfig.phone ?? null} telHref={tel} />
-
-        {/* Structured data in the layout, so it is on EVERY page. For a
-            business operating locally this is the cheapest thing that can be
-            done for visibility in search and in maps. */}
+    <SiteShell
+      siteConfig={siteConfig}
+      after={
+        // Structured data in the layout, so it is on EVERY page. For a
+        // business operating locally this is the cheapest thing that can be
+        // done for visibility in search and in maps.
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: jsonLd(organizationSchema(siteConfig)) }}
         />
-      </body>
-    </html>
+      }
+    >
+      {children}
+    </SiteShell>
   )
 }

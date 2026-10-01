@@ -76,6 +76,13 @@ const CSP = [
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  experimental: {
+    // `app/global-not-found.tsx` — the site's 404 for addresses no route
+    // matches. Needed because the app has two root layouts and none common
+    // to both. Experimental in Next 16: re-check the flag on every upgrade.
+    // `withPayload` spreads `experimental`, so the flag survives it.
+    globalNotFound: true,
+  },
   // Nie ogłaszaj, na czym stoi serwis.
   poweredByHeader: false,
   async headers() {
