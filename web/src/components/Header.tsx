@@ -68,38 +68,33 @@ export function Header({ phone, telHref }: { phone: string | null; telHref: stri
             from `wide` up it is the full design. `whitespace-nowrap` keeps a
             label whole — if the row ever overflows again, move the breakpoint,
             do not let it wrap. */}
-        {/* Every entry is a block as tall as the header, padded by half the
-            gap on each side, so the whole menu row is one clickable strip.
-            The list's negative margin takes the outer half-gaps back, so the
-            labels keep their horizontal positions to the pixel (measured).
-            Measured 01.10.2026: as inline text the links were clickable only
-            on the 19 px of their glyphs, inside a 76 px header, and not at all
-            in the 16–22 px between them — the pointer flickered on and off
-            depending on where it touched a label. The underline sits on an
-            inner span, so it stays under the text instead of dropping to the
-            bottom of the header. */}
-        <nav aria-label="Główna" className="hidden grow self-stretch xl:block">
-          <ul className="-mx-2 flex h-full items-stretch whitespace-nowrap wide:-mx-[11px]">
+        {/* Each link is exactly the box of its label: clickable over the whole
+            word, gaps between letters included, and nowhere else. Set
+            01.10.2026, after a version where every entry stretched to the
+            full header height with the gaps folded into its padding — the
+            pointer turned into a hand over empty space around and between
+            the labels, which read as broken. The active underline is drawn by
+            `after:`, outside the layout, so it adds no height: as a border it
+            made the active entry 4 px taller and, centred, 2 px higher than
+            its neighbours. It sits on an inner span, measured from the
+            bottom of the glyphs: on the link it would measure from the
+            bottom of the 22.5 px line box and drop 2.5 px lower (measured).
+            2 px thick, 2 px below the text. */}
+        <nav aria-label="Główna" className="hidden grow xl:block">
+          <ul className="flex items-center gap-4 whitespace-nowrap wide:gap-[22px]">
             {MAIN_NAV.map((item) => {
               const active = isActive(item.href, pathname)
               return (
-                <li key={item.href} className="flex">
+                <li key={item.href}>
                   <Link
                     href={item.href}
                     aria-current={active ? 'page' : undefined}
-                    className={`flex items-center px-2 text-[15px] wide:px-[11px] ${
+                    className={`block text-[15px] ${
                       active
                         ? 'font-semibold text-rock-900'
                         : 'font-medium text-rock-600 hover:text-rock-900'
                     }`}
                   >
-                    {/* The active underline is drawn by `after:`, outside the
-                        layout, so it adds no height and every label is
-                        centred on one line. As a border it made the active
-                        entry 4 px taller and, centred, 2 px higher than its
-                        neighbours. (Inactive labels moved 1 px with the new
-                        centring — rounding, not design.) Same line as before:
-                        2 px thick, 2 px below the text. */}
                     <span
                       className={
                         active
