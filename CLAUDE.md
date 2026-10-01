@@ -326,9 +326,30 @@ na wszystkich interfejsach, **z pominięciem zapory hosta**.
 web/src/app/
 ├── robots.ts            ← ⚠️ MUSI być tutaj, nie w grupie
 ├── manifest.ts          ← ⚠️ tak samo
+├── global-not-found.tsx ← 404 dla adresów, których nie zna żadna trasa
+├── favicon.ico/         ← ikona dla każdego adresu, też panelu
 ├── (frontend)/          ← strona, layout, sitemap, icon, og, error, not-found
 └── (payload)/           ← panel i API, boilerplate Payloada
 ```
+
+### 404: dwa wejścia, jedna treść
+
+Od 01.10.2026. Przy dwóch layoutach głównych Next nie ma gdzie wyrenderować
+wspólnej 404, więc adres, którego nie zna żadna trasa (`/cokolwiek`), dawał
+jego gołą, czarną stronę po angielsku, bez nagłówka i stopki.
+`(frontend)/not-found.tsx` łapie wyłącznie `notFound()` wołane przez stronę
+(np. nieistniejący kurs).
+
+Rozwiązanie to `app/global-not-found.tsx` — plik Next-a dokładnie na ten
+przypadek. **Jest eksperymentalny**: działa dzięki
+`experimental.globalNotFound` w `next.config.ts`. Przy każdym podbiciu Next-a
+sprawdzić, czy flaga i plik nie zmieniły nazwy, i wejść na zmyślony adres.
+
+Plik renderuje się POZA layoutem, więc niesie własny dokument: `SiteShell`
+(`<html>`, nagłówek, stopka, pasek — ten sam komponent, którego używa layout
+`(frontend)`), fonty z `lib/fonts.ts` i własny import `globals.css`. Powtarza
+też `revalidate = 300`, bo layoutu nie dziedziczy. Obie 404 pokazują
+`NotFoundContent` — zmiana wyglądu to jeden plik.
 
 **Nie ma `app/layout.tsx`.** Obie grupy mają własny layout z `<html>` i `<body>`,
 bo panel nie może dziedziczyć stylów strony. Next pozwala na wiele layoutów
