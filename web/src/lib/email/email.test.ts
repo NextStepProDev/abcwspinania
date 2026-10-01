@@ -1,0 +1,205 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+
+import { pickLanguage } from '@/lib/email/language'
+import { escapeHtml, renderEmail } from '@/lib/email/layout'
+import { newMessageNotification } from '@/lib/email/templates'
+import { toBrevoAddresses, toBrevoBody } from '@/lib/email/brevo'
+
+// --- language ---------------------------------------------------------------
+
+test('a Polish browser gets Polish, in any regional form', () => {
+  assert.equal(pickLanguage('pl'), 'pl')
+  assert.equal(pickLanguage('pl-PL,pl;q=0.9,en;q=0.8'), 'pl')
+  assert.equal(pickLanguage('PL-pl'), 'pl')
+})
+
+test('any other first choice gets English', () => {
+  assert.equal(pickLanguage('de-DE,de;q=0.9'), 'en')
+  assert.equal(pickLanguage('en-GB,en;q=0.9'), 'en')
+  assert.equal(pickLanguage('uk'), 'en')
+})
+
+test('Polish far down the list does not outrank the first choice', () => {
+  assert.equal(pickLanguage('de-DE,de;q=0.9,en;q=0.8,pl;q=0.3'), 'en')
+})
+
+test('weights decide, not the order of the header', () => {
+  assert.equal(pickLanguage('en;q=0.5,pl;q=0.9'), 'pl')
+  assert.equal(pickLanguage('pl;q=0.2,fr'), 'en')
+})
+
+test('a missing or unreadable header means Polish', () => {
+  assert.equal(pickLanguage(null), 'pl')
+  assert.equal(pickLanguage(''), 'pl')
+  assert.equal(pickLanguage('*'), 'pl')
+  assert.equal(pickLanguage('en;q=0'), 'pl')
+  assert.equal(pickLanguage(';;,,'), 'pl')
+})
+
+test('a "pl" prefix that is not Polish does not count as Polish', () => {
+  // `plt` is Plateau Malagasy — a real tag, and not Polish.
+  assert.equal(pickLanguage('plt'), 'en')
+})
+
+// --- layout -----------------------------------------------------------------
+
+test('everything a visitor typed is escaped in the HTML', () => {
+  const { html } = renderEmail({
+    lang: 'pl',
+    heading: '<b>x</b>',
+    paragraphs: ['"quoted" & <script>alert(1)</script>'],
+    details: [['Imię', `<img src=x onerror=alert(1)>`]],
+  })
+  assert.ok(!html.includes('<script>'))
+  assert.ok(!html.includes('<img'))
+  assert.ok(html.includes('&lt;script&gt;'))
+  assert.ok(html.includes('&lt;b&gt;x&lt;/b&gt;'))
+})
+
+test('an action link cannot break out of its attribute', () => {
+  const { html } = renderEmail({
+    lang: 'pl',
+    heading: 'x',
+    paragraphs: [],
+    action: { label: 'Go', href: 'https://a.pl/"onmouseover="x' },
+  })
+  assert.ok(html.includes('href="https://a.pl/&quot;onmouseover=&quot;x"'))
+})
+
+test('line breaks typed into a form survive into the HTML', () => {
+  const { html } = renderEmail({ lang: 'pl', heading: 'x', paragraphs: ['a\nb'] })
+  assert.ok(html.includes('a<br>b'))
+})
+
+test('the text part carries the same content as the HTML', () => {
+  const { text } = renderEmail({
+    lang: 'en',
+    heading: 'Hello',
+    paragraphs: ['First.'],
+    details: [['Date', '12 May']],
+    action: { label: 'Open', href: 'https://x.pl' },
+  })
+  assert.match(text, /Hello/)
+  assert.match(text, /First\./)
+  assert.match(text, /Date: 12 May/)
+  assert.match(text, /Open: https:\/\/x\.pl/)
+  assert.match(text, /climbing school/)
+})
+
+test('the footer follows the language', () => {
+  assert.match(renderEmail({ lang: 'pl', heading: 'x', paragraphs: [] }).html, /szkoła/)
+  assert.match(renderEmail({ lang: 'en', heading: 'x', paragraphs: [] }).html, /climbing school/)
+  assert.match(renderEmail({ lang: 'en', heading: 'x', paragraphs: [] }).html, /<html lang="en">/)
+})
+
+test('escapeHtml covers both quote characters', () => {
+  assert.equal(escapeHtml(`'"`), '&#39;&quot;')
+})
+
+// --- templates --------------------------------------------------------------
+
+const message = {
+  name: 'Anna',
+  email: 'anna@example.com',
+  message: 'Czy są jeszcze miejsca?',
+  adminUrl: 'https://abcwspinania.info/admin/collections/messages/7',
+}
+
+test('the message notification names the topic in the subject', () => {
+  const email = newMessageNotification({ ...message, topic: 'camp' })
+  assert.equal(email.subject, 'Nowa wiadomość: Anna — Obóz lub wyjazd')
+})
+
+test('an unknown or empty topic leaves the subject bare', () => {
+  assert.equal(newMessageNotification(message).subject, 'Nowa wiadomość: Anna')
+  assert.equal(
+    newMessageNotification({ ...message, topic: 'nope' }).subject,
+    'Nowa wiadomość: Anna',
+  )
+})
+
+test('the school is told when to answer in English — and only then', () => {
+  assert.match(newMessageNotification({ ...message, language: 'en' }).text, /po angielsku/)
+  assert.doesNotMatch(newMessageNotification({ ...message, language: 'pl' }).text, /po angielsku/)
+})
+
+test('optional fields appear only when filled in', () => {
+  const bare = newMessageNotification(message).text
+  assert.doesNotMatch(bare, /Telefon/)
+  const full = newMessageNotification({ ...message, phone: '600 100 200', courseTitle: 'Kurs PZA' })
+  assert.match(full.text, /Telefon: 600 100 200/)
+  assert.match(full.text, /Kurs: Kurs PZA/)
+  assert.match(full.text, /admin\/collections\/messages\/7/)
+})
+
+// --- Brevo ------------------------------------------------------------------
+
+test('every address form Payload may pass reaches Brevo as an object', () => {
+  assert.deepEqual(toBrevoAddresses('a@x.pl'), [{ email: 'a@x.pl' }])
+  assert.deepEqual(toBrevoAddresses('Anna Nowak <a@x.pl>'), [
+    { email: 'a@x.pl', name: 'Anna Nowak' },
+  ])
+  assert.deepEqual(toBrevoAddresses('"Nowak, Anna" <a@x.pl>'), [
+    { email: 'a@x.pl', name: 'Nowak, Anna' },
+  ])
+  assert.deepEqual(toBrevoAddresses({ address: 'a@x.pl', name: 'A' }), [
+    { email: 'a@x.pl', name: 'A' },
+  ])
+  assert.deepEqual(toBrevoAddresses(['a@x.pl', { address: 'b@x.pl' }]), [
+    { email: 'a@x.pl' },
+    { email: 'b@x.pl' },
+  ])
+  assert.deepEqual(toBrevoAddresses('a@x.pl, b@x.pl'), [{ email: 'a@x.pl' }, { email: 'b@x.pl' }])
+  assert.deepEqual(toBrevoAddresses(undefined), [])
+})
+
+const sender = { email: 'zapisy@szkolawspinaczkowa.pl', name: 'ABC Wspinania' }
+
+test('the configured sender address always wins', () => {
+  const body = toBrevoBody(
+    { to: 'a@x.pl', from: 'Payload <info@payloadcms.com>', subject: 's' },
+    sender,
+  )
+  assert.equal(body.sender.email, sender.email)
+  assert.equal(body.sender.name, 'Payload')
+})
+
+test('the body carries reply-to, html and text', () => {
+  const body = toBrevoBody(
+    {
+      to: 'a@x.pl',
+      replyTo: { address: 'r@x.pl', name: 'R' },
+      subject: 's',
+      html: '<p>h</p>',
+      text: 't',
+    },
+    sender,
+  )
+  assert.deepEqual(body.replyTo, { email: 'r@x.pl', name: 'R' })
+  assert.equal(body.htmlContent, '<p>h</p>')
+  assert.equal(body.textContent, 't')
+  assert.equal(body.cc, undefined)
+})
+
+test('an email without a recipient is refused before it reaches Brevo', () => {
+  assert.throws(() => toBrevoBody({ subject: 's' }, sender), /recipient/)
+})
+
+test('a line break typed into the name cannot reach the subject line', () => {
+  const email = newMessageNotification({ ...message, name: 'Anna\r\nBcc: x@evil.pl' })
+  assert.doesNotMatch(email.subject, /[\r\n]/)
+  assert.equal(email.subject, 'Nowa wiadomość: Anna Bcc: x@evil.pl')
+})
+
+test('every recipient is sent without consent to open and click tracking', () => {
+  const body = toBrevoBody(
+    { to: ['a@x.pl', 'b@x.pl'], cc: 'c@x.pl', bcc: 'd@x.pl', subject: 's' },
+    sender,
+  )
+  for (const recipient of [...body.to, ...(body.cc ?? []), ...(body.bcc ?? [])]) {
+    assert.equal(recipient.contactPixelTrackingConsent, false, recipient.email)
+  }
+  // Reply-to and sender are not recipients — the field means nothing there.
+  assert.equal(body.sender.contactPixelTrackingConsent, undefined)
+})

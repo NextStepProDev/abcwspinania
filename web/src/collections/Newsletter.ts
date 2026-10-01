@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
+import { LANGUAGE_OPTIONS_FOR_PAYLOAD } from '../lib/email/language'
+
 /**
  * Newsletter subscriptions.
  *
@@ -59,6 +61,17 @@ export const Newsletter: CollectionConfig = {
       ],
       admin: {
         description: 'Wypisanych NIE kasujemy — trzeba móc wykazać, że i kiedy ktoś zgodę wycofał.',
+      },
+    },
+    {
+      name: 'language',
+      type: 'select',
+      defaultValue: 'pl',
+      label: 'Język wiadomości',
+      options: LANGUAGE_OPTIONS_FOR_PAYLOAD,
+      admin: {
+        description:
+          'Ustawiany z przeglądarki przy zapisie. Osoby z angielskim dostaną angielską wersję wysyłki, jeśli ją dopiszesz.',
       },
     },
     {

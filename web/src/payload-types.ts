@@ -605,6 +605,10 @@ export interface Message {
    * Wypełnione automatycznie, gdy ktoś pisze z podstrony kursu.
    */
   course?: (number | null) | Course;
+  /**
+   * Z ustawień przeglądarki osoby piszącej — w tym języku warto odpisać.
+   */
+  language?: ('pl' | 'en') | null;
   status?: ('new' | 'in-progress' | 'resolved') | null;
   /**
    * Dokładne brzmienie klauzuli zaakceptowanej przez osobę wysyłającą. Zapisujemy TREŚĆ, a nie samo „tak" — inaczej po zmianie klauzuli nie da się wykazać, na co ktoś faktycznie wyraził zgodę.
@@ -630,6 +634,10 @@ export interface Newsletter {
    * Wypisanych NIE kasujemy — trzeba móc wykazać, że i kiedy ktoś zgodę wycofał.
    */
   status: 'subscribed' | 'unsubscribed';
+  /**
+   * Ustawiany z przeglądarki przy zapisie. Osoby z angielskim dostaną angielską wersję wysyłki, jeśli ją dopiszesz.
+   */
+  language?: ('pl' | 'en') | null;
   /**
    * Dokładne brzmienie klauzuli zaakceptowanej przy zapisie.
    */
@@ -1019,6 +1027,7 @@ export interface MessagesSelect<T extends boolean = true> {
   topic?: T;
   preferredDate?: T;
   course?: T;
+  language?: T;
   status?: T;
   consentText?: T;
   consentDate?: T;
@@ -1032,6 +1041,7 @@ export interface MessagesSelect<T extends boolean = true> {
 export interface NewsletterSelect<T extends boolean = true> {
   email?: T;
   status?: T;
+  language?: T;
   consentText?: T;
   consentDate?: T;
   updatedAt?: T;

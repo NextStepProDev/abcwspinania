@@ -69,6 +69,12 @@ services:
       DATABASE_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       # Podpisuje tokeny sesji panelu. MUSI być inny niż lokalnie.
       PAYLOAD_SECRET: ${PAYLOAD_SECRET}
+      # Maile przez Brevo. Puste = maile tylko w logu kontenera (Payload
+      # ostrzega o tym przy starcie). Opis zmiennych: deploy/.env.example.
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-ABC Wspinania}
+      ADMIN_NOTIFY_EMAIL: ${ADMIN_NOTIFY_EMAIL:-}
       # Musi się zgadzać z APP_MEM_LIMIT z tego samego powodu co strojenie
       # Postgresa wyżej — sam limit kontenera Node'owi nic nie mówi.
       NODE_OPTIONS: "--max-old-space-size=${NODE_MAX_OLD_SPACE_SIZE:-1536}"

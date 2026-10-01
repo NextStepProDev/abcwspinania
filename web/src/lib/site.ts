@@ -25,8 +25,9 @@ export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:30
 /**
  * Palette values that TypeScript-generated assets need.
  *
- * The web manifest, the social card and the app icons are built in TypeScript and
- * cannot read a CSS custom property, so these have to be written out somewhere.
+ * The web manifest, the social card, the app icons and the emails
+ * (`lib/email/layout.ts`) are built in TypeScript and cannot read a CSS custom
+ * property, so these have to be written out somewhere.
  * Here rather than once per file: lightening the page background on 24.09.2026
  * found stale copies of the old value in the card's text colour and in the
  * manifest's splash-screen background, which would have flashed the old shade on
@@ -59,4 +60,8 @@ export const BRAND_COLORS = {
   ink: '#2a2620',
   /** `rope` — the accent: the logo's own blue, and the ground of the app icons. */
   accent: '#004892',
+  /** `rock-600` — secondary text in emails (labels, footer). */
+  muted: '#6b6152',
+  /** `rock-200` — hairlines in emails. */
+  line: '#e0d9cd',
 } as const

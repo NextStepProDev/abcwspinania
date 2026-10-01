@@ -36,11 +36,11 @@ Numeracja jak w wiadomości do Krzyśka.
 | 1 | Strona z panelem, przeniesienie treści | 13 tras, panel po polsku, treść ze starej strony | **gotowe** |
 | 1b | Przekierowania 301 ze **starych adresów Joomli** | każdy adres starej strony kieruje na odpowiednik; sprawdzone w Search Console | **częściowo** — od 05.10.2026 (czeka na wdrożenie) wszystkie znalezione stare adresy przekierowane i sprawdzone testem; zostaje sprawdzenie w Search Console po przełączeniu domeny |
 | 2 | System zarządzania obozami | formularz zapisu + obsługa zgłoszeń w panelu (rozbicie niżej) | **do zrobienia** |
-| 3 | Powiadomienia mailowe | mail wychodzi przy nowym zgłoszeniu i zapisie na obóz | **do zrobienia** |
+| 3 | Powiadomienia mailowe | mail wychodzi przy nowym zgłoszeniu i zapisie na obóz | **częściowo** — od 01.10.2026 mail do szkoły przy wiadomości z formularza (Brevo, PL/EN); zapis na obóz dojdzie z pozycją 2 |
 | 4 | Newsletter | zapis działa, zgoda wersjonowana | **gotowe** |
 | 4b | Zapis na kurs „w 10 sekund" | skrócona ścieżka zapisu z podstrony kursu | **do zrobienia** |
 | 5 | RODO i polityka prywatności | rozbicie niżej | **częściowo** |
-| 6 | Bez banera ciasteczek, bez przekazywania danych | brak trackerów, brak ciasteczek innych niż sesyjne | **gotowe** |
+| 6 | Bez banera ciasteczek, bez przekazywania danych | brak trackerów, brak ciasteczek innych niż sesyjne | **gotowe — z zastrzeżeniem o mailach (niżej)** |
 | 7 | Backupy szyfrowane dwupoziomowo | skrypt na serwerze + wysyłka na Drive + **odtworzenie przetestowane** | **gotowe** (06.10.2026) — co noc: serwer 7 dni + zaszyfrowany Google Drive 40 dni (od 09.10.2026; wcześniej 90), archiwum zdjęć tylko gdy się zmieniły (alarm healthchecks.io gotowy w skrypcie, adres do podpięcia); odtworzenie z kopii pobranej z Drive przećwiczone, zgodne z produkcją (`deploy/RESTORE.md`) |
 | 8 | Testy automatyczne | jednostkowe **i integracyjne** | **częściowo** |
 | 9 | Testy wydajnościowe i na wycieki pamięci | raport z liczbami | **do zrobienia** |
@@ -52,6 +52,18 @@ Numeracja jak w wiadomości do Krzyśka.
 | 15 | Szkolenie i instrukcja | przejście przez panel + instrukcja na piśmie | **do zrobienia** |
 | 16 | Poprawki do końca grudnia w cenie | zobowiązanie terminowe, patrz wyżej | **w toku** |
 | 17 | **Galeria zdjęć** (poza pierwotną wyceną) | podstrona `/galeria`, własna zakładka „Galeria" w panelu, powiększanie na pełny ekran | **gotowe, czeka na zdjęcia** |
+
+### ⚠️ Zastrzeżenie do pozycji 6 — maile przez Brevo
+
+Od 01.10.2026 maile wychodzą przez **Brevo** (firma z UE, podmiot
+przetwarzający: adres odbiorcy i treść maila). Brevo **nie pozwala samemu wyłączyć**
+śledzenia w mailach transakcyjnych — wstawia piksel otwarcia i przepisuje
+linki. Śledzenie jest **zanonimizowane** (liczone tylko łącznie, bez
+przypisania do osoby), ale technicznie istnieje. Strona sama w sobie nadal
+nie ma trackerów ani ciasteczek innych niż sesyjne.
+
+Do zrobienia: **powiedzieć o tym Krzyśkowi** (to dopisek do obietnicy „bez
+przekazywania danych”) i ująć Brevo w polityce prywatności (pozycja 5).
 
 ### Rozbicie pozycji 2 — system obozów
 

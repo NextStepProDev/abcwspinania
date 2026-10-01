@@ -23,6 +23,7 @@ import { HomePage } from './globals/HomePage'
 import { AboutPage } from './globals/AboutPage'
 import { EnglishPage } from './globals/EnglishPage'
 import { CampsPage } from './globals/CampsPage'
+import { brevoAdapter } from './lib/email/brevo'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -51,6 +52,28 @@ function requireSecret(): string {
     'Brak PAYLOAD_SECRET. Wygeneruj: openssl rand -base64 32 — i ustaw w .env (lokalnie) ' +
       'albo w deploy/.env (produkcja).',
   )
+}
+
+/**
+ * Outgoing email through Brevo — or nowhere, deliberately, when no key is set.
+ *
+ * Without `BREVO_API_KEY` Payload falls back to printing emails to the console
+ * and says so at startup. That is what we want locally and in CI (no one gets
+ * mailed from a laptop by accident), and on a server it is the loud signal that
+ * the key is missing.
+ *
+ * The sender must be an address on a domain authenticated in Brevo (SPF and
+ * DKIM) — anything else is refused by Brevo or lands in spam. Switching from
+ * the test domain to the school's is a change of these variables, not of code.
+ */
+function emailAdapter() {
+  const apiKey = process.env.BREVO_API_KEY
+  const email = process.env.EMAIL_FROM
+  if (!apiKey || !email) return undefined
+  return brevoAdapter({
+    apiKey,
+    sender: { email, name: process.env.EMAIL_FROM_NAME || 'ABC Wspinania' },
+  })
 }
 
 export default buildConfig({
@@ -92,6 +115,7 @@ export default buildConfig({
   // which entry is "the real one" — a global makes that mistake impossible.
   globals: [SiteConfig, HomePage, AboutPage, CampsPage, EnglishPage],
   editor: lexicalEditor(),
+  email: emailAdapter(),
   secret: requireSecret(),
   typescript: {
     // Types generated from the config and shared with the site. CI makes sure

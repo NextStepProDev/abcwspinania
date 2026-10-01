@@ -1,6 +1,9 @@
 import type { CollectionConfig } from 'payload'
 
 import { TOPICS_FOR_PAYLOAD } from '../lib/topics'
+import { LANGUAGE_OPTIONS_FOR_PAYLOAD } from '../lib/email/language'
+import { newMessageNotification } from '../lib/email/templates'
+import { SITE_URL } from '../lib/site'
 
 /**
  * Messages from the contact form.
@@ -9,11 +12,10 @@ import { TOPICS_FOR_PAYLOAD } from '../lib/topics'
  * copied out by hand, a form is filled in on the spot. Some enquiries only ever
  * happen when they cost nobody an extra step.
  *
- * Messages land IN THE DATABASE, not in an inbox. That is deliberate: there is
- * no email adapter yet (Brevo is a separate stage), while persisting to the
- * database works from day one and nothing is lost on the way. The email
- * notification will arrive as an `afterChange` hook without changing any of
- * this.
+ * Messages land IN THE DATABASE first and the school is notified by email
+ * second (the `afterChange` hook below). The order matters: a failed email —
+ * Brevo down, daily limit reached — is logged and the message still waits in
+ * the panel. The other way round, an email outage would lose enquiries.
  */
 export const Messages: CollectionConfig = {
   slug: 'messages',
@@ -37,6 +39,46 @@ export const Messages: CollectionConfig = {
     delete: ({ req }) => Boolean(req.user),
   },
   defaultSort: '-createdAt',
+  hooks: {
+    afterChange: [
+      async ({ doc, operation, req }) => {
+        if (operation !== 'create') return doc
+        const to = process.env.ADMIN_NOTIFY_EMAIL
+        if (!to) {
+          req.payload.logger.warn(
+            'ADMIN_NOTIFY_EMAIL is not set — no notification for a new message',
+          )
+          return doc
+        }
+        try {
+          let courseTitle: string | null = null
+          if (doc.course) {
+            const id = typeof doc.course === 'object' ? doc.course.id : doc.course
+            const course = await req.payload.findByID({ collection: 'courses', id, depth: 0, req })
+            courseTitle = course?.title ?? null
+          }
+          const email = newMessageNotification({
+            ...doc,
+            courseTitle,
+            adminUrl: `${SITE_URL}/admin/collections/messages/${doc.id}`,
+          })
+          await req.payload.sendEmail({
+            to,
+            // Replying to the notification answers the person who wrote.
+            replyTo: { name: doc.name, address: doc.email },
+            subject: email.subject,
+            html: email.html,
+            text: email.text,
+          })
+        } catch (error) {
+          // The message is already saved — a failed notification must not
+          // turn the visitor's successful submission into an error.
+          req.payload.logger.error({ err: error }, 'Failed to send the new-message notification')
+        }
+        return doc
+      },
+    ],
+  },
   fields: [
     {
       name: 'name',
@@ -87,6 +129,17 @@ export const Messages: CollectionConfig = {
       label: 'Dotyczy kursu',
       admin: {
         description: 'Wypełnione automatycznie, gdy ktoś pisze z podstrony kursu.',
+      },
+    },
+    {
+      name: 'language',
+      type: 'select',
+      defaultValue: 'pl',
+      label: 'Język odpowiedzi',
+      options: LANGUAGE_OPTIONS_FOR_PAYLOAD,
+      admin: {
+        readOnly: true,
+        description: 'Z ustawień przeglądarki osoby piszącej — w tym języku warto odpisać.',
       },
     },
     {

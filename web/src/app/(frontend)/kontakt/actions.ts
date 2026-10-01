@@ -1,8 +1,10 @@
 'use server'
 
+import { headers } from 'next/headers'
 import { getPayload } from 'payload'
 import config from '@payload-config'
 
+import { pickLanguage } from '@/lib/email/language'
 import { consentForStorage, newsletterConsentForStorage } from '@/lib/consent'
 import { validateContact, validateNewsletter, isValid, looksLikeBot } from '@/lib/validation'
 import type { ValidationErrors, NewsletterErrors } from '@/lib/validation'
@@ -90,6 +92,7 @@ export async function sendMessage(
         preferredDate: data.preferredDate.trim() || undefined,
         course,
         status: 'new',
+        language: pickLanguage((await headers()).get('accept-language')),
         consentText: consentForStorage(),
         consentDate: new Date().toISOString(),
       },
@@ -173,6 +176,7 @@ export async function subscribeToNewsletter(
           id: docs[0].id,
           data: {
             status: 'subscribed',
+            language: pickLanguage((await headers()).get('accept-language')),
             consentText: newsletterConsentForStorage(),
             consentDate: new Date().toISOString(),
           },
@@ -187,6 +191,7 @@ export async function subscribeToNewsletter(
       data: {
         email,
         status: 'subscribed',
+        language: pickLanguage((await headers()).get('accept-language')),
         consentText: newsletterConsentForStorage(),
         consentDate: new Date().toISOString(),
       },

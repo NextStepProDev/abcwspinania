@@ -621,6 +621,65 @@ pipeline'u SCSS dla jednego pustego arkusza.
 
 ---
 
+## Maile (Brevo)
+
+Od 01.10.2026 aplikacja wysyła maile przez **Brevo, przez jego HTTP API**
+(`src/lib/email/brevo.ts`), a nie przez SMTP.
+
+- **Własny łącznik, nie `@payloadcms/email-nodemailer`.** Zmierzone 01.10.2026:
+  oficjalny adapter ciągnie `nodemailer` 9.1.1 z dwoma zgłoszeniami **high**,
+  a bramka `npm audit --audit-level=high` zatrzymałaby każdy PR. Poprawka jest
+  w nodemailer 10, którego adapter nie przyjmuje. Wrócić do oficjalnego, gdy
+  przejdzie na nodemailer ≥ 10.0.6 — wtedy zmiana dostawcy to konfiguracja.
+- **Bez `BREVO_API_KEY` maile idą do konsoli** (Payload ostrzega przy starcie).
+  Celowo: lokalnie i w CI nikt nie dostanie maila przez przypadek.
+- **Nadawca musi być na domenie uwierzytelnionej w Brevo** (SPF + DKIM +
+  DMARC). Dziś `zapisy@szkolawspinaczkowa.pl` — rekordy w Cloudflare,
+  sprawdzone 01.10.2026: SPF, DKIM i DMARC `PASS` w Gmailu. Adres nadawcy
+  wygrywa zawsze, nawet gdy kod poda inny `from` — obcy adres nie przejdzie
+  SPF/DKIM i trafi do spamu albo zostanie odrzucony.
+  **Przy przełączeniu na `abcwspinania.info`**: uwierzytelnić tę domenę
+  w Brevo i zmienić `EMAIL_FROM` w `deploy/.env` — bez nowego obrazu.
+- **Domena nadawcy nie ma skrzynki** (brak rekordu MX). Odpowiedź na mail
+  „od” `zapisy@` nie dojdzie nigdzie — dlatego każdy mail, na który ktoś może
+  odpisać, MUSI mieć `replyTo` (powiadomienie o wiadomości: osoba pisząca).
+- **⚠️ Śledzenia w Brevo nie da się wyłączyć — jest zanonimizowane.** Brevo
+  wstawia piksel otwarcia i przepisuje każdy link przez swój serwer; w API
+  nie ma przełącznika (pełne wyłączenie według forum Brevo: tylko na prośbę
+  albo w planie Enterprise). Decyzja z 01.10.2026: zostajemy przy
+  anonimizacji — `contactPixelTrackingConsent: false` przy każdym odbiorcy
+  (w kodzie) **i** „Anonymous email tracking: Yes” na ekranie „Tracking”
+  w ustawieniach Brevo. Ustawienie w panelu jest per konto — **nowe konto
+  Brevo trzeba przestawić ręcznie**; kod chroni i bez tego. Musi to znaleźć
+  się w polityce prywatności i w obietnicy z `ZAKRES.md` pkt 6.
+- **Mail po zapisie, nie zamiast zapisu.** Hook `afterChange` wysyła po
+  zapisaniu do bazy; błąd wysyłki jest logowany i nie psuje formularza.
+  Brevo niedostępny = wiadomość czeka w panelu, nie ginie.
+- **Dwa języki maili do odwiedzających (PL/EN).** Język bierzemy z nagłówka
+  `Accept-Language` przy wysłaniu formularza (`pickLanguage()`) i **zapisujemy
+  przy zgłoszeniu** (`language`), żeby późniejsze maile szły tym samym
+  językiem bez zgadywania. Maile do szkoły są po polsku, z dopiskiem
+  „odpowiedz po angielsku”, gdy trzeba.
+- **Szablony to czyste funkcje** (`src/lib/email/templates.ts`, wygląd
+  w `layout.ts`) — bez Payloada, testowane gołym `node --test`. Każda wartość
+  od odwiedzającego przechodzi przez `escapeHtml` w `layout.ts`; szablon nie
+  składa HTML-a sam. Kolory z `BRAND_COLORS` (`site.ts`).
+- **`serverURL` w `payload.config.ts` jest CELOWO nieustawiony**, mimo
+  ostrzeżenia Payloada „Request origin "" is not in the CORS/CSRF allowlist”.
+  Payload dopisuje `serverURL` do listy CSRF (`payload/dist/config/sanitize.js`),
+  a od tej chwili odrzuca ciasteczko logowania z żądania, którego `Origin`
+  jest spoza listy (`auth/extractJWT.js`) — czyli każdy zapis w panelu
+  otwartym pod inną domeną. `SITE_URL` to domena DOCELOWA,
+  a panel działa dziś pod tymczasową — ustawienie go wylogowałoby panel na
+  `szkolawspinaczkowa.pl`. Bez niego link w mailu resetu hasła bierze domenę
+  z żądania: sprawdzone 01.10.2026, z przeglądarki przychodzi pełny
+  `http://…/admin/reset/…`. Ostrzeżenie i link bez domeny (`/admin/reset/…`)
+  pojawiają się tylko przy wywołaniu z `payload run`, gdzie żądania nie ma.
+- **Limit darmowego planu: 300 maili dziennie.** Przy newsletterze do decyzji
+  Krzyśka płatny plan.
+
+---
+
 ## Budżet pamięci (Ampere A1, 2 OCPU / 12 GB)
 
 Limity **parametryzowane** przez `deploy/.env`. Domyślnie, przy całej maszynie:
@@ -683,6 +742,9 @@ bezpiecznik przy szczytach sharpa. Skrypt jest idempotentny.
    a CI był zielony. Sprawdzenie obrazu przed wdrożeniem:
    `grep -rl "https://<domena>" /app/.next | wc -l` w kontenerze — zero
    znaczy, że adres nie wszedł.
+8. Maile: w `deploy/.env` `BREVO_API_KEY`, `EMAIL_FROM` (adres na domenie
+   uwierzytelnionej w Brevo), `ADMIN_NOTIFY_EMAIL`. W Brevo: „Anonymous email
+   tracking: Yes”. Bez klucza strona działa, ale maile lądują w logu kontenera.
 
 **Czego NIE ma już na tej liście:** wyklikiwania uprawnień publicznych w panelu.
 Są w kodzie i jadą z deployem.
@@ -886,16 +948,12 @@ docker run --rm -v "$PWD/..:/repo" -w /repo rhysd/actionlint:latest -color
    kolekcji (`auth: true`), więc konta uczestników będą **drugą kolekcją z tym
    samym mechanizmem** — nie osobnym światem, jak wtyczka users-permissions
    w Strapim obok kont administratorów.
-2. **Powiadomienia mailowe i newsletter** (Brevo). Adaptera e-mail jeszcze nie
-   ma — Payload ostrzega o tym przy starcie i pisze maile do konsoli.
-   Co z tego wynika DZIŚ:
-   - formularz kontaktowy działa (wiadomości lądują w bazie i w panelu),
-     ale **nikt nie dostaje powiadomienia** — Krzysiek musi zaglądać do panelu;
-   - **odzyskiwanie hasła do panelu nie zadziała**, bo mail z linkiem nie wyjdzie.
-     Do czasu wpięcia Brevo hasło resetuje się ręcznie, przez bazę.
-   Powiadomienie o nowej wiadomości dojdzie jako hook `afterChange` na kolekcji
-   `Messages`, bez zmiany tego, co już działa. Zgoda marketingowa do newslettera
-   idzie tym samym wzorcem co `src/lib/consent.ts`: treść + wersja, nie samo „tak".
+2. **Zapisy, konta uczestników, wysyłki** — plan etapów z 01.10.2026
+   (maile, uprawnienia, konta, zapis na kurs, panel, obozy, wysyłki, RODO).
+   Maile działają od etapu 0 (patrz „Maile (Brevo)”); formularz kontaktowy
+   powiadamia Krzyśka, a reset hasła do panelu wychodzi mailem.
+   Zgoda marketingowa do newslettera idzie tym samym wzorcem co
+   `src/lib/consent.ts`: treść + wersja, nie samo „tak".
 3. **Panel operacyjny** — kalendarz obozów, wykresy. W Payloadzie
    to **własne widoki w tym samym panelu** (udokumentowana funkcja), a nie
    osobny obszar w Next.js, jak musiałoby być przy Strapim.
