@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
+import { anyone, isAdmin } from '../lib/access'
+
 /**
  * Scheduled runs of courses and camps — one source for the schedule page, the
  * course cards and the "upcoming dates" section on the homepage.
@@ -27,7 +29,10 @@ export const Sessions: CollectionConfig = {
     description: 'Kalendarz kursów i obozów. Najbliższe terminy są u góry.',
   },
   access: {
-    read: () => true,
+    read: anyone,
+    create: isAdmin,
+    update: isAdmin,
+    delete: isAdmin,
   },
   defaultSort: 'startDate',
   fields: [

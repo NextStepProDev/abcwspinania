@@ -8,6 +8,10 @@
  * aplikacja — bez lustrzanych kopii ścieżek i bez nowej zależności w package.json.
  *
  * Rejestrowany przez `npm test` (patrz package.json).
+ *
+ * Relative imports without an extension (`../lib/topics`) from a `.ts` file
+ * get `.ts` too: collections are written that way, and the access test loads
+ * every collection to check its rules.
  */
 import { register } from 'node:module'
 import { pathToFileURL } from 'node:url'
@@ -22,6 +26,9 @@ register(
        const path = SRC + specifier.slice(2);
        const withExt = /\\.[a-z]+$/.test(path) ? path : path + ".ts";
        return nextResolve(withExt, context);
+     }
+     if (/^\\.\\.?\\//.test(specifier) && !/\\.[a-z]+$/.test(specifier) && context.parentURL?.endsWith(".ts")) {
+       return nextResolve(specifier + ".ts", context);
      }
      return nextResolve(specifier, context);
    }`,

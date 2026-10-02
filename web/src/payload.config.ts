@@ -7,22 +7,9 @@ import { pl } from '@payloadcms/translations/languages/pl'
 import { buildConfig } from 'payload'
 import sharp from 'sharp'
 
+import { collections } from './collections'
 import { Users } from './collections/Users'
-import { Media } from './collections/Media'
-import { GalleryPhotos } from './collections/GalleryPhotos'
-import { Courses } from './collections/Courses'
-import { Camps } from './collections/Camps'
-import { Sessions } from './collections/Sessions'
-import { Posts } from './collections/Posts'
-import { Testimonials } from './collections/Testimonials'
-import { Instructors } from './collections/Instructors'
-import { Messages } from './collections/Messages'
-import { Newsletter } from './collections/Newsletter'
-import { SiteConfig } from './globals/SiteConfig'
-import { HomePage } from './globals/HomePage'
-import { AboutPage } from './globals/AboutPage'
-import { EnglishPage } from './globals/EnglishPage'
-import { CampsPage } from './globals/CampsPage'
+import { globals } from './globals'
 import { brevoAdapter } from './lib/email/brevo'
 
 const filename = fileURLToPath(import.meta.url)
@@ -97,23 +84,11 @@ export default buildConfig({
     supportedLanguages: { pl },
     fallbackLanguage: 'pl',
   },
-  collections: [
-    Courses,
-    Camps,
-    Sessions,
-    Posts,
-    Testimonials,
-    Instructors,
-    Media,
-    GalleryPhotos,
-    Messages,
-    Newsletter,
-    Users,
-  ],
+  collections,
   // Globals are content that occurs exactly once (contact details, page copy).
   // A collection holding a single entry would force someone to keep track of
   // which entry is "the real one" — a global makes that mistake impossible.
-  globals: [SiteConfig, HomePage, AboutPage, CampsPage, EnglishPage],
+  globals,
   editor: lexicalEditor(),
   email: emailAdapter(),
   secret: requireSecret(),

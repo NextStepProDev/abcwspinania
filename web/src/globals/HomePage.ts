@@ -1,5 +1,7 @@
 import type { GlobalConfig } from 'payload'
 
+import { anyone, isAdmin } from '../lib/access'
+
 /**
  * Copy for the homepage.
  *
@@ -19,7 +21,8 @@ export const HomePage: GlobalConfig = {
     description: 'Teksty na stronie startowej. Kursy, terminy i wpisy zaciągają się same.',
   },
   access: {
-    read: () => true,
+    read: anyone,
+    update: isAdmin,
   },
   fields: [
     {

@@ -36,11 +36,11 @@ subdomeny `api.*`.
 
 | Kolekcja | Slug | Publiczny odczyt | Po co |
 |---|---|---|---|
-| `Courses` | `courses` | tak | oferta kursów, z podstroną każdego |
-| `Camps` | `camps` | tak | obozy, wyjazdy i zajęcia cykliczne |
+| `Courses` | `courses` | opublikowane | oferta kursów, z podstroną każdego |
+| `Camps` | `camps` | opublikowane | obozy, wyjazdy i zajęcia cykliczne |
 | `Sessions` | `sessions` | tak | terminy kursów i obozów |
-| `Posts` | `posts` | tak | aktualności |
-| `Testimonials` | `testimonials` | tak | opinie kursantów |
+| `Posts` | `posts` | opublikowane | aktualności |
+| `Testimonials` | `testimonials` | opublikowane | opinie kursantów |
 | `Instructors` | `instructors` | tak | kadra |
 | `Media` | `media` | tak | okładki, portrety, zdjęcia w treści; `alt` nieobowiązkowy |
 | `GalleryPhotos` | `gallery-photos` | tak | zdjęcia na `/galeria` — osobna zakładka, nie znacznik w Mediach |
@@ -57,8 +57,10 @@ subdomeny `api.*`.
 | `EnglishPage` | `english-page` | jedyna podstrona po angielsku |
 
 `Messages` i `Newsletter` przyjmują zapis od **każdego** (to formularze
-publiczne), ale odczyt, zmiana i kasowanie wymagają zalogowania. Publiczny
-odczyt byłby wyciekiem danych osobowych, nie udogodnieniem.
+publiczne), ale odczyt, zmiana i kasowanie wymagają **konta szkoły** — nie
+„dowolnego zalogowania” (zasada 28). Publiczny odczyt byłby wyciekiem danych
+osobowych, nie udogodnieniem. Wszystko, czego nie ma w kolumnie „publiczny
+odczyt”, w tym tworzenie i zmiana treści, jest wyłącznie dla konta szkoły.
 
 ⚠️ **Slug globala nie może kończyć się na „s".** Payload wyprowadza nazwę
 generowanego typu ze sluga i obcina końcowe „s": `site-settings` dałoby typ
@@ -426,7 +428,8 @@ pipeline'u SCSS dla jednego pustego arkusza.
 4. **Funkcje formatujące trzymamy w `src/lib/format.ts`, osobno od `content.ts`.**
    `content.ts` ciągnie cały silnik Payloada, więc testy odpalane gołym
    `node --test` nie mogłyby go zaimportować.
-5. **Uprawnienia publiczne deklarujemy w kodzie** (`access: { read: () => true }`).
+5. **Uprawnienia deklarujemy w kodzie** (`src/lib/access.ts`, komplet operacji
+   w każdej kolekcji — zasada 28).
    W poprzednim CMS-ie siedziały w bazie i trzeba je było wyklikać osobno
    w każdym środowisku — to była stała pozycja na liście pierwszego uruchomienia
    i stałe źródło „u mnie działa".
@@ -618,6 +621,23 @@ pipeline'u SCSS dla jednego pustego arkusza.
     w panelu, więc na każdym serwerze trzeba je raz wgrać i wybrać w „Stronie
     głównej”. Instrukcja i powód, dla którego nowy plik, a nie nadpisanie
     starego: `design/hero/README.md`.
+
+28. **⚠️ Uprawnienia: każda kolekcja deklaruje WSZYSTKIE operacje, nigdy
+    `Boolean(req.user)`.** Ustalone 01.10.2026, przed kontami uczestników.
+    Payload dla operacji, której kolekcja nie zadeklaruje, przyjmuje „każdy
+    zalogowany” (`payload/dist/auth/defaultAccess.js`; to samo dla
+    niezadeklarowanego `readVersions`). Dopóki konta były tylko szkoły, nic to
+    nie znaczyło. Z drugą kolekcją `auth: true` zalogowany kursant mógłby przez
+    REST API zmieniać i kasować kursy, wpisy i zdjęcia oraz czytać wiadomości
+    z formularza. Reguły siedzą w `src/lib/access.ts` (`isAdmin` = konto
+    z kolekcji `users`, nie „ktokolwiek zalogowany”), a `src/lib/access.test.ts`
+    przechodzi przez **wszystkie** kolekcje i globale z `collections/index.ts`
+    i `globals/index.ts` — nowa kolekcja bez kompletu reguł nie przejdzie CI.
+    **Nową kolekcję dopisz do `collections/index.ts`**, nie wprost do
+    `payload.config.ts` — inaczej test jej nie zobaczy.
+
+    Reguły dotyczą **tylko API**. Strona czyta przez Local API, które reguły
+    pomija, więc o tym, co widać na stronie, decyduje `lib/content.ts`.
 
 ---
 

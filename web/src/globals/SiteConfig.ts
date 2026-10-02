@@ -1,5 +1,6 @@
 import type { GlobalConfig } from 'payload'
 
+import { anyone, isAdmin } from '../lib/access'
 import { mapEmbedUrlFrom } from '../lib/format'
 
 /**
@@ -28,7 +29,8 @@ export const SiteConfig: GlobalConfig = {
   access: {
     // Public read — this data is on every page. Declared in code, not clicked
     // through the panel separately in each environment (rule 5).
-    read: () => true,
+    read: anyone,
+    update: isAdmin,
   },
   fields: [
     {

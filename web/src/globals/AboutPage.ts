@@ -1,5 +1,7 @@
 import type { GlobalConfig } from 'payload'
 
+import { anyone, isAdmin } from '../lib/access'
+
 /** Copy for the "O nas" page. */
 export const AboutPage: GlobalConfig = {
   slug: 'about-page',
@@ -8,7 +10,7 @@ export const AboutPage: GlobalConfig = {
     group: 'Treść stron',
     description: 'Instruktorzy zaciągają się z osobnej listy.',
   },
-  access: { read: () => true },
+  access: { read: anyone, update: isAdmin },
   fields: [
     { name: 'title', type: 'text', label: 'Nagłówek' },
     { name: 'intro', type: 'textarea', maxLength: 900, label: 'Wstęp' },

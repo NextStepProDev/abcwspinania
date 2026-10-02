@@ -1,5 +1,7 @@
 import type { GlobalConfig } from 'payload'
 
+import { anyone, isAdmin } from '../lib/access'
+
 /**
  * Copy for the "Obozy i wyjazdy" page.
  *
@@ -15,7 +17,7 @@ export const CampsPage: GlobalConfig = {
     group: 'Treść stron',
     description: 'Obozy, terminy i plan dnia zaciągają się z osobnych list.',
   },
-  access: { read: () => true },
+  access: { read: anyone, update: isAdmin },
   fields: [
     {
       name: 'intro',

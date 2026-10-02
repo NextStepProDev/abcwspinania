@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
+import { anyone, isAdmin } from '../lib/access'
 import { LANGUAGE_OPTIONS_FOR_PAYLOAD } from '../lib/email/language'
 
 /**
@@ -29,12 +30,12 @@ export const Newsletter: CollectionConfig = {
     description: 'Adresy zapisane przez formularz w stopce. Wysyłki jeszcze nie ma.',
   },
   access: {
-    // Anyone may subscribe — this is a public form. Only authenticated users
-    // may read or delete: a list of addresses is personal data.
-    create: () => true,
-    read: ({ req }) => Boolean(req.user),
-    update: ({ req }) => Boolean(req.user),
-    delete: ({ req }) => Boolean(req.user),
+    // Anyone may subscribe — this is a public form. Only the school may read
+    // or delete: a list of addresses is personal data.
+    create: anyone,
+    read: isAdmin,
+    update: isAdmin,
+    delete: isAdmin,
   },
   defaultSort: '-createdAt',
   fields: [

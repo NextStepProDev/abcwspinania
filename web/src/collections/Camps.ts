@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
+import { isAdmin, publishedOrAdmin } from '../lib/access'
+
 /**
  * Camps, trips and recurring classes.
  *
@@ -26,7 +28,11 @@ export const Camps: CollectionConfig = {
     group: 'Treść',
   },
   access: {
-    read: () => true,
+    read: publishedOrAdmin,
+    readVersions: isAdmin,
+    create: isAdmin,
+    update: isAdmin,
+    delete: isAdmin,
   },
   versions: {
     drafts: true,

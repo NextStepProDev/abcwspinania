@@ -1,5 +1,7 @@
 import type { GlobalConfig } from 'payload'
 
+import { anyone, isAdmin } from '../lib/access'
+
 /**
  * The English page — ONE page, not a full translation of the site.
  *
@@ -17,7 +19,7 @@ export const EnglishPage: GlobalConfig = {
     group: 'Treść stron',
     description: 'Tabela kursów składa się sama z cen podanych przy kursach.',
   },
-  access: { read: () => true },
+  access: { read: anyone, update: isAdmin },
   fields: [
     { name: 'badge', type: 'text', label: 'Odznaka nad nagłówkiem' },
     { name: 'title', type: 'text', label: 'Nagłówek' },
