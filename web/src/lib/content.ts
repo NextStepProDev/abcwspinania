@@ -118,6 +118,19 @@ export function getHomePage(): Promise<HomePage | null> {
 }
 
 /**
+ * Only what the school has PUBLISHED. Courses, camps and posts have drafts,
+ * and the Local API used here skips access rules — without this filter the
+ * site showed every draft the moment it was saved, so "Save draft" in the
+ * panel meant "publish" (found 02.10.2026: all 7 courses, 5 camps and 4 posts
+ * were drafts, published by nothing but the missing filter).
+ *
+ * Safe for edits: saving a draft of a PUBLISHED entry does not touch its
+ * main record (`payload/dist/collections/operations/utilities/update.js`),
+ * so the site keeps showing the last published version until the next publish.
+ */
+const PUBLISHED = { _status: { equals: 'published' } } as const
+
+/**
  * The list of courses to display on the site.
  *
  * `limit` is stated explicitly — Payload returns 10 entries by default, so
@@ -130,6 +143,7 @@ export function getCourses(): Promise<Course[]> {
     async (payload) => {
       const { docs } = await payload.find({
         collection: 'courses',
+        where: PUBLISHED,
         limit: 100,
         sort: 'order',
         depth: 1, // pulls in the related `cover` rather than a bare id
@@ -146,7 +160,7 @@ export function getCourse(slug: string): Promise<Course | null> {
     async (payload) => {
       const { docs } = await payload.find({
         collection: 'courses',
-        where: { slug: { equals: slug } },
+        where: { and: [PUBLISHED, { slug: { equals: slug } }] },
         limit: 1,
         depth: 1,
       })
@@ -169,6 +183,7 @@ export function getCamps(): Promise<Camp[]> {
     async (payload) => {
       const { docs } = await payload.find({
         collection: 'camps',
+        where: PUBLISHED,
         limit: 100,
         sort: 'order',
         depth: 1,
@@ -185,7 +200,7 @@ export function getCamp(slug: string): Promise<Camp | null> {
     async (payload) => {
       const { docs } = await payload.find({
         collection: 'camps',
-        where: { slug: { equals: slug } },
+        where: { and: [PUBLISHED, { slug: { equals: slug } }] },
         limit: 1,
         depth: 1,
       })
@@ -229,6 +244,14 @@ export function getUpcomingSessions(limit = 100): Promise<Session[]> {
           and: [
             { status: { in: ['open', 'waitlist'] } },
             { startDate: { greater_than_equal: startOfToday() } },
+            // A session of an unpublished course or camp would list a name
+            // that leads to a 404.
+            {
+              or: [
+                { 'course._status': { equals: 'published' } },
+                { 'camp._status': { equals: 'published' } },
+              ],
+            },
           ],
         },
         // Explicit limit — Payload returns 10 by default, so without it the
@@ -316,7 +339,9 @@ export function getPosts(limit = 50): Promise<Post[]> {
     async (payload) => {
       const { docs } = await payload.find({
         collection: 'posts',
-        where: { publishedAt: { less_than_equal: new Date().toISOString() } },
+        where: {
+          and: [PUBLISHED, { publishedAt: { less_than_equal: new Date().toISOString() } }],
+        },
         limit,
         sort: '-publishedAt',
         depth: 1,
@@ -333,7 +358,15 @@ export function getPost(slug: string): Promise<Post | null> {
     async (payload) => {
       const { docs } = await payload.find({
         collection: 'posts',
-        where: { slug: { equals: slug } },
+        // The date too: a post scheduled for later must not open from its
+        // address either, not only stay off the list.
+        where: {
+          and: [
+            PUBLISHED,
+            { slug: { equals: slug } },
+            { publishedAt: { less_than_equal: new Date().toISOString() } },
+          ],
+        },
         limit: 1,
         depth: 1,
       })

@@ -639,6 +639,19 @@ pipeline'u SCSS dla jednego pustego arkusza.
     Reguły dotyczą **tylko API**. Strona czyta przez Local API, które reguły
     pomija, więc o tym, co widać na stronie, decyduje `lib/content.ts`.
 
+29. **Strona pokazuje tylko OPUBLIKOWANE kursy, obozy i wpisy** — filtr
+    `PUBLISHED` w `lib/content.ts`, przy każdym zapytaniu o te kolekcje.
+    Ustalone 02.10.2026: wszystkie wpisy z seeda były szkicami (domyślny
+    status Payloada), a strona nie sprawdzała statusu, więc „Zapisz szkic”
+    w panelu publikował od razu. Local API pomija reguły dostępu, więc
+    zasada 28 tego nie załatwia — **każde nowe zapytanie o kolekcję ze
+    szkicami musi mieć ten filtr samo**. Terminy pomijają te, których kurs
+    lub obóz nie jest opublikowany. Zapis szkicu opublikowanego wpisu nie
+    rusza wersji na stronie (Payload zapisuje go tylko do historii wersji).
+    Istniejącą treść opublikowała migracja danych
+    `20261002_090000_publish_existing_content` (pisana ręcznie — **nie kasować
+    jej przy sklejaniu migracji schematu**), a seed publikuje od razu.
+
 ---
 
 ## Maile (Brevo)

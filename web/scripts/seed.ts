@@ -1033,6 +1033,11 @@ payload.logger.info('Site config saved.')
 await payload.updateGlobal({ slug: 'home-page', data: HOME_PAGE })
 payload.logger.info('Homepage content saved.')
 
+// Courses, camps and posts are saved as PUBLISHED. Payload's default status is
+// `draft`, and the site shows published entries only (lib/content.ts) — a
+// seed without this would fill the panel and leave the site empty.
+const PUBLISHED = { _status: 'published' } as const
+
 for (const course of COURSES) {
   const { docs } = await payload.find({
     collection: 'courses',
@@ -1043,10 +1048,14 @@ for (const course of COURSES) {
   })
 
   if (docs[0]) {
-    await payload.update({ collection: 'courses', id: docs[0].id, data: course })
+    await payload.update({
+      collection: 'courses',
+      id: docs[0].id,
+      data: { ...course, ...PUBLISHED },
+    })
     payload.logger.info(`Updated course: ${course.title}`)
   } else {
-    await payload.create({ collection: 'courses', data: course })
+    await payload.create({ collection: 'courses', data: { ...course, ...PUBLISHED } })
     payload.logger.info(`Added course: ${course.title}`)
   }
 }
@@ -1060,8 +1069,8 @@ for (const camp of CAMPS) {
     limit: 1,
   })
   const saved = docs[0]
-    ? await payload.update({ collection: 'camps', id: docs[0].id, data: camp })
-    : await payload.create({ collection: 'camps', data: camp })
+    ? await payload.update({ collection: 'camps', id: docs[0].id, data: { ...camp, ...PUBLISHED } })
+    : await payload.create({ collection: 'camps', data: { ...camp, ...PUBLISHED } })
   campIds.set(camp.slug, saved.id)
   payload.logger.info(`${docs[0] ? 'Updated' : 'Added'} camp: ${camp.title}`)
 }
@@ -1162,7 +1171,7 @@ payload.logger.info(`Saved ${TESTIMONIALS.length} testimonials.`)
 
 // --- Posts ---
 for (const w of POSTS) {
-  const data = { ...w, publishedAt: new Date(w.publishedAt).toISOString() }
+  const data = { ...w, ...PUBLISHED, publishedAt: new Date(w.publishedAt).toISOString() }
   const { docs } = await payload.find({
     collection: 'posts',
     where: { slug: { equals: w.slug } },
