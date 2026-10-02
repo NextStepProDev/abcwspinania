@@ -11,6 +11,7 @@ import { Testimonials } from './Testimonials'
 import { Instructors } from './Instructors'
 import { Messages } from './Messages'
 import { Newsletter } from './Newsletter'
+import { Customers } from './Customers'
 
 /**
  * Every collection, in the order the panel lists them.
@@ -30,5 +31,6 @@ export const collections: CollectionConfig[] = [
   GalleryPhotos,
   Messages,
   Newsletter,
+  Customers,
   Users,
 ]

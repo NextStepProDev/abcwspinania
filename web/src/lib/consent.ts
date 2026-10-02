@@ -42,3 +42,25 @@ export const NEWSLETTER_CONSENT_TEXT =
 export function newsletterConsentForStorage(): string {
   return `[${NEWSLETTER_CONSENT_VERSION}] ${NEWSLETTER_CONSENT_TEXT}`
 }
+
+/**
+ * Accepted when creating a participant account.
+ *
+ * Its own text and version, apart from the contact and newsletter clauses:
+ * an account is a different processing purpose (keeping a profile and the
+ * sign-ups made from it) and must not be stretched into marketing — the
+ * newsletter keeps its own consent. Same rule: change the text, change the
+ * version.
+ */
+export const ACCOUNT_CONSENT_VERSION = '2026-10-02'
+
+export const ACCOUNT_CONSENT_TEXT =
+  'Zakładam konto w serwisie ABC Wspinania i wyrażam zgodę na przetwarzanie ' +
+  'moich danych (imię, nazwisko, adres e-mail, numer telefonu) w celu ' +
+  'prowadzenia konta i obsługi zapisów, których przez nie dokonam. ' +
+  'Administratorem danych jest ABC Wspinania. W każdej chwili mogę poprosić ' +
+  'o usunięcie konta.'
+
+export function accountConsentForStorage(): string {
+  return `[${ACCOUNT_CONSENT_VERSION}] ${ACCOUNT_CONSENT_TEXT}`
+}

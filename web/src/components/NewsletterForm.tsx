@@ -54,6 +54,7 @@ export function NewsletterForm() {
             required
             autoComplete="email"
             placeholder="twoj@email.pl"
+            defaultValue={state.values?.email}
             aria-describedby={state.errors?.email ? `${fieldId}-error` : undefined}
             aria-invalid={state.errors?.email ? true : undefined}
             className="w-full rounded-lg border border-rock-line bg-rock-950 px-4 py-3 text-white placeholder:text-rock-500 focus-visible:border-rope focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rope"
@@ -95,6 +96,7 @@ export function NewsletterForm() {
           name="newsletter-consent"
           type="checkbox"
           required
+          defaultChecked={state.values?.consent === 'on'}
           aria-describedby={state.errors?.consent ? `${fieldId}-consent-error` : undefined}
           aria-invalid={state.errors?.consent ? true : undefined}
           className="mt-0.5 size-4 shrink-0"

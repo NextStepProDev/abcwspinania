@@ -28,12 +28,31 @@ export const ADMIN_COLLECTION = 'users'
 // The narrow shape these rules read. Payload passes far more; declaring only
 // this keeps the functions callable from a test with a hand-made request.
 interface AccessArgs {
-  req: { user?: { collection?: string } | null }
+  req: { user?: { collection?: string; id?: number | string } | null }
 }
 
 /** A school account — not merely someone logged in. */
 export function isAdmin({ req }: AccessArgs): boolean {
   return req.user?.collection === ADMIN_COLLECTION
+}
+
+/**
+ * An auth collection whose members may read their OWN entry: the school sees
+ * all of them, a participant only the one with their id, anyone else nothing.
+ * Payload's `/api/<slug>/me` reads through this rule (`overrideAccess: false`
+ * in `auth/operations/me.js`), so without the self clause a participant could
+ * not even see who they are logged in as.
+ *
+ * Checks the collection, not just the id: ids are per table, and a school
+ * account with id 7 is not participant 7.
+ */
+export function adminOrSelf(slug: string) {
+  return (args: AccessArgs) => {
+    if (isAdmin(args)) return true
+    const user = args.req.user
+    if (user?.collection === slug && user.id !== undefined) return { id: { equals: user.id } }
+    return false
+  }
 }
 
 /** Public content and public forms. */

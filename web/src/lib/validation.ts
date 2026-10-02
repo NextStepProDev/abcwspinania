@@ -1,3 +1,4 @@
+import { pluralPl } from '@/lib/format'
 import { TOPIC_VALUES } from '@/lib/topics'
 
 /**
@@ -82,7 +83,7 @@ export function validateContact(data: ContactFormData): ValidationErrors {
   return errors
 }
 
-export function isValid(errors: ValidationErrors): boolean {
+export function isValid(errors: object): boolean {
   return Object.keys(errors).length === 0
 }
 
@@ -120,4 +121,166 @@ export function validateNewsletter(data: NewsletterData): NewsletterErrors {
   if (!data.consent) errors.consent = 'Bez zgody nie możemy nic wysyłać.'
 
   return errors
+}
+
+// --- Participant accounts ----------------------------------------------------
+
+/**
+ * Password rules: length, nothing else. Composition rules ("a digit and a
+ * capital") make people write `Haslo123!` on a sticky note; a long password
+ * of plain words is both stronger and memorable (NIST SP 800-63B, 5.1.1.2).
+ * The upper bound only stops a megabyte "password" from being hashed.
+ */
+export const PASSWORD_MIN = 10
+const PASSWORD_MAX = 128
+
+/**
+ * Single-field rules, exported for the forms: the browser shows the same
+ * messages live (`components/AccountForm.tsx`) that the server returns on
+ * submit. One function, two callers — a second copy in the form would sooner
+ * or later accept what the server rejects.
+ */
+
+/**
+ * At least two LETTERS, and nothing but letters, spaces, hyphens,
+ * apostrophes and dots. Two, not three (decided 02.10.2026): real surnames
+ * (Li, Wu, Ng) and first names (Al, Ed, Bo) have two, and a rule that turns
+ * a person away at the form is worse than the typo it catches.
+ */
+export function checkName(raw: string, empty = 'To pole jest wymagane.'): string | undefined {
+  const name = raw.trim()
+  if (!name) return empty
+  if (name.length > LIMITS.name) return `Najwyżej ${LIMITS.name} znaków.`
+  if (!/^[\p{L}\s.'’-]+$/u.test(name)) return 'Tylko litery — bez cyfr i znaków specjalnych.'
+  if ((name.match(/\p{L}/gu) ?? []).length < 2) return 'Co najmniej 2 litery.'
+  return undefined
+}
+
+export function checkEmail(raw: string): string | undefined {
+  const email = raw.trim()
+  if (!email) return 'Podaj adres e-mail.'
+  if (email.length > LIMITS.email) return 'Adres e-mail jest za długi.'
+  if (!EMAIL_PATTERN.test(email)) return 'Ten adres e-mail wygląda na niepełny.'
+  return undefined
+}
+
+/**
+ * The live counter under a new password. Below the minimum it counts towards
+ * it ("3 / 10 znaków" — the noun goes with the 10); from the minimum up it
+ * confirms with the real count, in proper Polish: 22 znaki, 25 znaków.
+ */
+export function passwordLengthLabel(length: number, min: number): string {
+  if (length < min) return `${length} / ${min} znaków`
+  return `Długość w porządku (${length} ${pluralPl(length, 'znak', 'znaki', 'znaków')}).`
+}
+
+export function checkNewPassword(password: string): string | undefined {
+  // Not trimmed: a space is a legitimate character of a password.
+  if (!password) return 'Wpisz hasło.'
+  if (password.length < PASSWORD_MIN) return `Hasło musi mieć co najmniej ${PASSWORD_MIN} znaków.`
+  if (password.length > PASSWORD_MAX) return `Hasło może mieć najwyżej ${PASSWORD_MAX} znaków.`
+  return undefined
+}
+
+/**
+ * A phone number in the international form — the same rule as Next Step
+ * Pro's registration (`^\+[0-9]{1,4}[0-9]{9}$`, its `AuthDtos.java` and
+ * `utils/validation.ts`), so both schools' data look alike: a plus, the
+ * country code, nine digits.
+ *
+ * What it checks is the shape — a plus and 10 to 13 digits — not that the
+ * number exists: `{1,4}` + `{9}` cannot tell "+48 and 8 digits" from "+4 and
+ * 9 digits". Good enough to catch a missing country code or a typo'd length.
+ *
+ * One difference, deliberate: spaces, dashes and brackets are dropped BEFORE
+ * checking. People type `+48 600 100 200` from habit, and rejecting the
+ * exact number we asked for, only because of its spacing, loses a sign-up
+ * over nothing. What is stored is the normalised form.
+ */
+const PHONE_PATTERN = /^\+[0-9]{1,4}[0-9]{9}$/
+
+export function normalizePhone(raw: string): string {
+  return raw.replace(/[\s\-()]/g, '')
+}
+
+export function checkPhone(raw: string): string | undefined {
+  const phone = normalizePhone(raw)
+  if (!phone) return 'Podaj numer telefonu.'
+  if (!PHONE_PATTERN.test(phone)) return 'Wpisz numer z kierunkowym kraju, np. +48 600 100 200.'
+  return undefined
+}
+
+export interface RegistrationData {
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  password: string
+  consent: boolean
+}
+
+export type RegistrationErrors = Partial<Record<keyof RegistrationData, string>>
+
+export function validateRegistration(data: RegistrationData): RegistrationErrors {
+  const errors: RegistrationErrors = {}
+
+  const firstName = checkName(data.firstName, 'Podaj imię.')
+  if (firstName) errors.firstName = firstName
+
+  const lastName = checkName(data.lastName, 'Podaj nazwisko.')
+  if (lastName) errors.lastName = lastName
+
+  const email = checkEmail(data.email)
+  if (email) errors.email = email
+
+  const phone = checkPhone(data.phone)
+  if (phone) errors.phone = phone
+
+  const password = checkNewPassword(data.password)
+  if (password) errors.password = password
+
+  if (!data.consent) errors.consent = 'Bez tej zgody nie możemy prowadzić konta.'
+
+  return errors
+}
+
+export interface LoginData {
+  email: string
+  password: string
+}
+
+export type LoginErrors = Partial<Record<keyof LoginData, string>>
+
+/**
+ * Only presence is checked. Length rules here would tell someone probing the
+ * form which passwords cannot exist — and an old account must still be able
+ * to log in if the rules ever tighten.
+ */
+export function validateLogin(data: LoginData): LoginErrors {
+  const errors: LoginErrors = {}
+  const email = checkEmail(data.email)
+  if (email) errors.email = email
+  if (!data.password) errors.password = 'Wpisz hasło.'
+  return errors
+}
+
+export function validateEmailOnly(email: string): { email?: string } {
+  const error = checkEmail(email)
+  return error ? { email: error } : {}
+}
+
+export function validateNewPassword(password: string): { password?: string } {
+  const error = checkNewPassword(password)
+  return error ? { password: error } : {}
+}
+
+/**
+ * Where to go after logging in. Only a path on THIS site: `?next=` comes from
+ * the address bar, and accepting `//evil.example` or `https://…` would turn
+ * the login page into an open redirect for phishing.
+ */
+export function safeNextPath(raw: unknown, fallback = '/konto'): string {
+  if (typeof raw !== 'string') return fallback
+  if (!raw.startsWith('/') || raw.startsWith('//') || raw.startsWith('/\\')) return fallback
+  return raw
 }

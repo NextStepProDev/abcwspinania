@@ -80,6 +80,7 @@ export function ContactForm({
           wymagane
           autoComplete="name"
           placeholder="Anna Kowalska"
+          defaultValue={state.values?.name}
           blad={state.errors?.name}
         />
         <Field
@@ -90,6 +91,7 @@ export function ContactForm({
           autoComplete="tel"
           placeholder="600 000 000"
           podpowiedz="Nieobowiązkowy — ułatwia szybki kontakt."
+          defaultValue={state.values?.phone}
           blad={state.errors?.phone}
         />
       </div>
@@ -102,6 +104,7 @@ export function ContactForm({
         wymagane
         autoComplete="email"
         placeholder="anna@example.com"
+        defaultValue={state.values?.email}
         blad={state.errors?.email}
       />
 
@@ -113,7 +116,7 @@ export function ContactForm({
           id={fieldId('topic')}
           name="topic"
           // Preselected when the visitor arrived from a course or camp page.
-          defaultValue={topic ?? ''}
+          defaultValue={state.values?.topic ?? topic ?? ''}
           aria-describedby={state.errors?.topic ? fieldId('temat-blad') : undefined}
           aria-invalid={state.errors?.topic ? true : undefined}
           className={pole}
@@ -138,6 +141,7 @@ export function ContactForm({
         label="Preferowany termin"
         podpowiedz="Nieobowiązkowe — np. „pierwsza połowa czerwca”."
         placeholder="np. pierwsza połowa czerwca"
+        defaultValue={state.values?.preferredDate}
         blad={state.errors?.preferredDate}
       />
 
@@ -151,6 +155,7 @@ export function ContactForm({
           rows={5}
           required
           placeholder="Napisz, ile masz doświadczenia i czego oczekujesz od kursu."
+          defaultValue={state.values?.message}
           aria-describedby={state.errors?.message ? fieldId('tresc-blad') : undefined}
           aria-invalid={state.errors?.message ? true : undefined}
           className={pole}
@@ -184,6 +189,7 @@ export function ContactForm({
             name="consent"
             type="checkbox"
             required
+            defaultChecked={state.values?.consent === 'on'}
             aria-describedby={state.errors?.consent ? fieldId('zgoda-blad') : undefined}
             aria-invalid={state.errors?.consent ? true : undefined}
             className="mt-1 size-4 shrink-0"
@@ -222,6 +228,7 @@ function Field({
   podpowiedz,
   placeholder,
   blad,
+  defaultValue,
 }: {
   /** Unique across the document — see the `useId()` comment above. */
   id: string
@@ -233,6 +240,8 @@ function Field({
   podpowiedz?: string
   placeholder?: string
   blad?: string
+  /** What the visitor typed before a failed send — see `values` in actions.ts. */
+  defaultValue?: string
 }) {
   const idBledu = `${id}-blad`
   const idPodpowiedzi = `${id}-podpowiedz`
@@ -250,6 +259,7 @@ function Field({
         required={wymagane}
         autoComplete={autoComplete}
         placeholder={placeholder}
+        defaultValue={defaultValue}
         aria-describedby={opisy || undefined}
         aria-invalid={blad ? true : undefined}
         className={pole}

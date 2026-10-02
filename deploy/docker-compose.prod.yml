@@ -75,6 +75,9 @@ services:
       EMAIL_FROM: ${EMAIL_FROM:-}
       EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-ABC Wspinania}
       ADMIN_NOTIFY_EMAIL: ${ADMIN_NOTIFY_EMAIL:-}
+      # Adres, pod którym strona FAKTYCZNIE działa — z niego idą linki
+      # w mailach (potwierdzenie konta, nowe hasło). Opis: deploy/.env.example.
+      PUBLIC_URL: ${PUBLIC_URL:-}
       # Musi się zgadzać z APP_MEM_LIMIT z tego samego powodu co strojenie
       # Postgresa wyżej — sam limit kontenera Node'owi nic nie mówi.
       NODE_OPTIONS: "--max-old-space-size=${NODE_MAX_OLD_SPACE_SIZE:-1536}"

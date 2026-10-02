@@ -103,7 +103,7 @@ const message = {
   name: 'Anna',
   email: 'anna@example.com',
   message: 'Czy są jeszcze miejsca?',
-  adminUrl: 'https://abcwspinania.info/admin/collections/messages/7',
+  adminUrl: 'https://example.pl/admin/collections/messages/7',
 }
 
 test('the message notification names the topic in the subject', () => {
@@ -202,4 +202,110 @@ test('every recipient is sent without consent to open and click tracking', () =>
   }
   // Reply-to and sender are not recipients — the field means nothing there.
   assert.equal(body.sender.contactPixelTrackingConsent, undefined)
+})
+
+// --- participant accounts ---------------------------------------------------
+
+import { verifyAccountEmail, resetPasswordEmail } from '@/lib/email/templates'
+import { publicUrl, tokenLink } from '@/lib/email/links'
+
+const account = { firstName: 'Ola', url: 'https://x.pl/konto/potwierdz?token=abc', validHours: 2 }
+
+test('account emails exist in both languages and say different things', () => {
+  for (const make of [verifyAccountEmail, resetPasswordEmail]) {
+    const pl = make('pl', account)
+    const en = make('en', account)
+    assert.notEqual(pl.subject, en.subject)
+    assert.match(pl.html, /<html lang="pl">/)
+    assert.match(en.html, /<html lang="en">/)
+    assert.match(pl.text, /Cześć Ola!/)
+    assert.match(en.text, /Hi Ola!/)
+  }
+})
+
+test('the link in an account email is the one given, and its lifetime is stated', () => {
+  const email = resetPasswordEmail('pl', account)
+  assert.ok(email.html.includes('href="https://x.pl/konto/potwierdz?token=abc"'))
+  assert.match(email.text, /2 godz\./)
+  assert.match(resetPasswordEmail('en', account).text, /2 hours/)
+})
+
+test('the confirmation email states how long its link works', () => {
+  assert.match(verifyAccountEmail('pl', { ...account, validHours: 48 }).text, /48 godz\./)
+  assert.match(verifyAccountEmail('en', { ...account, validHours: 48 }).text, /48 hours/)
+})
+
+test('no name, no comma-less greeting gap', () => {
+  assert.match(verifyAccountEmail('pl', { ...account, firstName: null }).text, /^Cześć!$/m)
+  assert.match(verifyAccountEmail('en', { ...account, firstName: '' }).text, /^Hi!$/m)
+})
+
+test('Polish account emails do not assume the reader is a man', () => {
+  for (const make of [verifyAccountEmail, resetPasswordEmail]) {
+    // Masculine second-person past ("zakładałeś", "prosiłeś"); `\p{L}` because
+    // `\b` treats Polish letters as non-word characters and matched "Jeśli".
+    assert.doesNotMatch(make('pl', account).text, /łeś(?!\p{L})/u)
+  }
+})
+
+test('email links use PUBLIC_URL, not the build-time site address', () => {
+  const before = process.env.PUBLIC_URL
+  process.env.PUBLIC_URL = 'https://szkolawspinaczkowa.pl/'
+  try {
+    assert.equal(publicUrl(), 'https://szkolawspinaczkowa.pl')
+    assert.equal(
+      tokenLink('/konto/ustaw-haslo', 'a/b+c'),
+      'https://szkolawspinaczkowa.pl/konto/ustaw-haslo?token=a%2Fb%2Bc',
+    )
+  } finally {
+    if (before === undefined) delete process.env.PUBLIC_URL
+    else process.env.PUBLIC_URL = before
+  }
+})
+
+// --- registration on an address that already has an account ------------------
+
+import { accountExistsEmail } from '@/lib/email/templates'
+
+const exists = {
+  firstName: 'Ola',
+  loginUrl: 'https://x.pl/logowanie',
+  resetUrl: 'https://x.pl/konto/ustaw-haslo?token=abc',
+  validHours: 2,
+}
+
+test('the "you already have an account" email says so, in both languages', () => {
+  const pl = accountExistsEmail('pl', exists)
+  const en = accountExistsEmail('en', exists)
+  assert.match(pl.subject, /Masz już konto/)
+  assert.match(en.subject, /already have an account/)
+  assert.match(pl.text, /Cześć Ola!/)
+  assert.match(en.text, /Hi Ola!/)
+})
+
+test('it leads to logging in first and offers a new password second', () => {
+  const email = accountExistsEmail('pl', exists)
+  // The button is the login; the reset is a secondary link.
+  assert.ok(email.html.includes('href="https://x.pl/logowanie"'))
+  assert.ok(email.html.includes('href="https://x.pl/konto/ustaw-haslo?token=abc"'))
+  assert.ok(email.html.indexOf('/logowanie') < email.html.indexOf('/konto/ustaw-haslo'))
+  assert.match(email.text, /https:\/\/x\.pl\/logowanie/)
+  assert.match(email.text, /https:\/\/x\.pl\/konto\/ustaw-haslo\?token=abc/)
+  assert.match(email.text, /2 godz\./)
+})
+
+test('it reassures that nothing changed if it was not them', () => {
+  assert.match(accountExistsEmail('pl', exists).text, /nic się nie zmieniło/)
+  assert.match(accountExistsEmail('en', exists).text, /nothing has changed/)
+  assert.doesNotMatch(accountExistsEmail('pl', exists).text, /łeś(?!\p{L})/u)
+})
+
+test('a secondary link cannot break out of its attribute either', () => {
+  const { html } = renderEmail({
+    lang: 'pl',
+    heading: 'x',
+    paragraphs: [],
+    secondaryAction: { label: 'Reset', href: 'https://a.pl/"onclick="x' },
+  })
+  assert.ok(html.includes('href="https://a.pl/&quot;onclick=&quot;x"'))
 })

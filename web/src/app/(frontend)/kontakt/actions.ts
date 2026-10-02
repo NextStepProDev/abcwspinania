@@ -7,7 +7,7 @@ import config from '@payload-config'
 import { pickLanguage } from '@/lib/email/language'
 import { consentForStorage, newsletterConsentForStorage } from '@/lib/consent'
 import { validateContact, validateNewsletter, isValid, looksLikeBot } from '@/lib/validation'
-import type { ValidationErrors, NewsletterErrors } from '@/lib/validation'
+import type { ContactFormData, ValidationErrors, NewsletterErrors } from '@/lib/validation'
 import type { Message } from '@/payload-types'
 
 type Topic = Message['topic']
@@ -32,6 +32,26 @@ export interface ContactFormState {
   status: 'idle' | 'sent' | 'error'
   errors?: ValidationErrors
   message?: string
+  /**
+   * What the visitor typed, sent back with an error. React 19 resets a form
+   * after every action, failed ones included, so without this one wrong field
+   * wiped the whole message (found 02.10.2026 on the registration form,
+   * which shares the pattern).
+   */
+  values?: Record<string, string>
+}
+
+/** The form's fields as typed, for sending back with an error. */
+function valuesOf(data: ContactFormData): Record<string, string> {
+  return {
+    name: data.name,
+    email: data.email,
+    phone: data.phone,
+    message: data.message,
+    topic: data.topic,
+    preferredDate: data.preferredDate,
+    consent: data.consent ? 'on' : '',
+  }
 }
 
 export async function sendMessage(
@@ -65,7 +85,7 @@ export async function sendMessage(
   // without the form.
   const errors = validateContact(data)
   if (!isValid(errors)) {
-    return { status: 'error', errors, message: 'Popraw zaznaczone pola.' }
+    return { status: 'error', errors, values: valuesOf(data), message: 'Popraw zaznaczone pola.' }
   }
 
   try {
@@ -109,6 +129,7 @@ export async function sendMessage(
     console.error('Failed to store a message from the contact form:', error)
     return {
       status: 'error',
+      values: valuesOf(data),
       message: 'Nie udało się wysłać wiadomości. Spróbuj ponownie za chwilę albo zadzwoń.',
     }
   }
@@ -120,6 +141,8 @@ export interface NewsletterState {
   status: 'idle' | 'subscribed' | 'error'
   errors?: NewsletterErrors
   message?: string
+  /** The typed address, kept after an error — see `ContactFormState.values`. */
+  values?: { email: string; consent: string }
 }
 
 /**
@@ -144,7 +167,11 @@ export async function subscribeToNewsletter(
 
   const errors = validateNewsletter(data)
   if (!isValid(errors)) {
-    return { status: 'error', errors }
+    return {
+      status: 'error',
+      errors,
+      values: { email: data.email, consent: data.consent ? 'on' : '' },
+    }
   }
 
   const email = data.email.trim().toLowerCase()
@@ -205,6 +232,7 @@ export async function subscribeToNewsletter(
     console.error('Failed to store a newsletter subscription:', error)
     return {
       status: 'error',
+      values: { email: data.email, consent: data.consent ? 'on' : '' },
       message: 'Nie udało się zapisać. Spróbuj ponownie za chwilę.',
     }
   }

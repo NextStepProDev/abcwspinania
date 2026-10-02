@@ -65,6 +65,14 @@ export const People = (p: Props) => (
   </Svg>
 )
 
+/** A single person — the account link in the header. */
+export const Person = (p: Props) => (
+  <Svg {...p} strokeWidth={1.7}>
+    <circle cx="12" cy="8" r="3.6" />
+    <path d="M4.5 20.5c0-3.8 3.4-6.3 7.5-6.3s7.5 2.5 7.5 6.3" />
+  </Svg>
+)
+
 export const Mountains = (p: Props) => (
   <Svg {...p} strokeWidth={1.7}>
     <path d="M2 20L9 7l4 6.5 2.5-3.5L22 20H2z" />

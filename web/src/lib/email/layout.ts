@@ -31,6 +31,8 @@ export interface EmailContent {
   /** Label–value rows, e.g. the data someone typed into a form. */
   details?: [label: string, value: string][]
   action?: { label: string; href: string }
+  /** A plain link under the button — the second, less likely choice. */
+  secondaryAction?: { label: string; href: string }
   /** Small print under the content, e.g. why this person got the email. */
   note?: string
 }
@@ -69,7 +71,16 @@ export function renderEmail(content: EmailContent): RenderedEmail {
   return { html: renderHtml(content), text: renderText(content) }
 }
 
-function renderHtml({ lang, preheader, heading, paragraphs, details, action, note }: EmailContent) {
+function renderHtml({
+  lang,
+  preheader,
+  heading,
+  paragraphs,
+  details,
+  action,
+  secondaryAction,
+  note,
+}: EmailContent) {
   const rows = (details ?? [])
     .map(
       ([label, value]) =>
@@ -96,6 +107,11 @@ ${
     ? `<p style="margin:20px 0"><a href="${escapeHtml(action.href)}" style="display:inline-block;background:${ACCENT};color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:6px">${escapeHtml(action.label)}</a></p>`
     : ''
 }
+${
+  secondaryAction
+    ? `<p style="margin:0 0 14px"><a href="${escapeHtml(secondaryAction.href)}" style="color:${ACCENT}">${escapeHtml(secondaryAction.label)}</a></p>`
+    : ''
+}
 ${note ? `<p style="margin:18px 0 0;font-size:13px;color:${MUTED}">${multiline(note)}</p>` : ''}
 </td></tr>
 <tr><td style="padding:16px 28px;border-top:1px solid ${LINE};font-size:12px;color:${MUTED}">${escapeHtml(FOOTER[lang])}</td></tr>
@@ -106,12 +122,21 @@ ${note ? `<p style="margin:18px 0 0;font-size:13px;color:${MUTED}">${multiline(n
 </html>`
 }
 
-function renderText({ lang, heading, paragraphs, details, action, note }: EmailContent): string {
+function renderText({
+  lang,
+  heading,
+  paragraphs,
+  details,
+  action,
+  secondaryAction,
+  note,
+}: EmailContent): string {
   const parts = [heading, '', ...paragraphs.flatMap((p) => [p, ''])]
   if (details?.length) {
     parts.push(...details.map(([label, value]) => `${label}: ${value}`), '')
   }
   if (action) parts.push(`${action.label}: ${action.href}`, '')
+  if (secondaryAction) parts.push(`${secondaryAction.label}: ${secondaryAction.href}`, '')
   if (note) parts.push(note, '')
   parts.push('—', FOOTER[lang])
   return parts.join('\n')

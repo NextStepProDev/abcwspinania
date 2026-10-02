@@ -46,6 +46,7 @@ subdomeny `api.*`.
 | `GalleryPhotos` | `gallery-photos` | tak | zdjęcia na `/galeria` — osobna zakładka, nie znacznik w Mediach |
 | `Messages` | `messages` | **nie** | zgłoszenia z formularza — dane osobowe |
 | `Newsletter` | `newsletter` | **nie** | zapisy na newsletter — dane osobowe |
+| `Customers` | `customers` | **tylko własne konto** | konta uczestników (logowanie na stronie) |
 | `Users` | `users` | **nie** | konta do panelu |
 
 | Global | Slug | Po co |
@@ -654,6 +655,116 @@ pipeline'u SCSS dla jednego pustego arkusza.
 
 ---
 
+## Konta uczestników
+
+Od 02.10.2026 (etap 1b). Druga kolekcja z logowaniem, `customers`, obok
+`users` (panel). Osobna tabela, nie rola: pomyłka w sprawdzaniu roli nie
+zrobi z kursanta administratora. Koszt: zasada 28.
+
+- **Zapis tylko przez akcje serwerowe** (`app/(frontend)/konto/actions.ts`).
+  REST `create`/`update`/`delete` zamknięte dla wszystkich poza szkołą; akcje
+  używają `overrideAccess: true` PO własnej walidacji, zapisie zgody i — przy
+  zmianie danych — sprawdzeniu, że to konto zalogowanej osoby (id z sesji,
+  nigdy z formularza). Odczyt: tylko własne konto (`adminOrSelf`), bo
+  `/api/customers/me` czyta przez regułę dostępu.
+- **Formularze nie zdradzają, czy adres ma konto.** Rejestracja na zajęty
+  adres pokazuje to samo „sprawdź skrzynkę”, a właściciel dowiaduje się
+  MAILEM: konto potwierdzone dostaje „Masz już konto” (przycisk logowania +
+  link do nowego hasła), niepotwierdzone — nowy link potwierdzający. Do
+  02.10.2026 szedł zwykły mail resetu hasła i wyglądał jak błąd. „Nie
+  pamiętam hasła” odpowiada tak samo dla każdego adresu.
+  Logowanie ma **jeden komunikat** dla złego hasła i zablokowanego konta:
+  Payload sprawdza blokadę PRZED hasłem, więc osobne „konto zablokowane”
+  potwierdzałoby istnienie konta po pięciu celowo złych próbach. REST
+  (`/api/customers/login`) zwraca oba błędy osobno — tam chroni tylko limit
+  nginx. Przyjęte ryzyko: pięć złych prób blokuje cudze konto na 15 minut.
+- **Logowanie wymaga potwierdzonego adresu** (`auth.verify`). Token
+  potwierdzający Payloada NIE wygasa sam, więc wygasanie jest NASZE: link
+  działa 48 h (`VERIFY_LINK_HOURS`), sprawdzane na `/konto/potwierdz` wobec
+  pola `verificationSentAt` (ustawianego przy każdej wysyłce). Endpoint
+  `/api/customers/verify/:token` pominąłby tę kontrolę — **zamknięty w nginx**
+  (lokalnie działa). Link do nowego hasła działa 2 h (`RESET_LINK_HOURS`).
+- **„Wyślij link ponownie”** — w trzech miejscach: po poprawnym haśle na
+  niepotwierdzonym koncie (Payload mówi o tym dopiero PO sprawdzeniu hasła),
+  na stronie wygasłego linku i na `/konto/wyslij-link` (link „Nie dotarł
+  mail z potwierdzeniem?” pod logowaniem i w potwierdzeniu rejestracji —
+  sam przycisk po haśle okazał się niewidoczny). Odpowiedź jest zawsze taka
+  sama, z kontem czy bez. Każda wysyłka nadaje NOWY token, więc działa tylko najnowszy link.
+  Token zapisujemy przez `payload.db.updateOne`, bo pole
+  `_verificationToken` w Payloadzie odrzuca każdą aktualizację.
+  Przyjęte świadomie: wysyłka działa na sam adres, bez hasła. Link
+  idzie wyłącznie do skrzynki właściciela adresu, więc jedyny skutek to
+  unieważnienie jego starszego linku; zasypywanie mailami tnie limit nginx.
+- **Maile o koncie wysyłamy SAMI** (`lib/accountEmails.ts`), Payload daje
+  tylko token (`disableVerificationEmail`, `disableEmail`). Jego wysyłka idzie
+  bez wersji tekstowej, a pierwszy prawdziwy mail potwierdzający trafił do
+  spamu (02.10.2026). Hooki maili w kolekcji zostają dla REST-owych ścieżek
+  Payloada, których strona nie używa.
+- **Niepotwierdzone konto jest usuwane po 7 dniach** (ustalone 02.10.2026,
+  `UNVERIFIED_ACCOUNT_DAYS` w `lib/expiry.ts`), liczonych od OSTATNIEGO
+  wysłanego linku, nie od założenia — kto prosi o nowy link szóstego dnia,
+  nie straci konta, zanim link wygaśnie. Sprzątanie startuje z
+  `src/instrumentation.ts` (raz przy starcie serwera Next): minutę po
+  starcie, potem co 24 h. **Nie przez kolejkę zadań Payloada**: jej cron
+  rusza dopiero po pierwszym `getPayload({ cron: true })` (np. logowanie do
+  panelu), więc po restarcie czekałby na ruch, a dokłada tabelę, migrację
+  i endpointy. Przy kilku instancjach aplikacji każda sprzątałaby osobno —
+  nieszkodliwie, ale do zmiany, gdyby kiedyś było ich więcej. Ustawienie hasła z maila
+  **oznacza adres jako potwierdzony** — Payload sam tego nie robi
+  (`auth/operations/resetPassword.js`), a bez tego konto założone przy
+  zapisie (etap 2) nigdy by się nie zalogowało.
+- **Linki w mailach z `PUBLIC_URL`**, nie z nagłówka Host (podrobiony Host
+  = obca domena w linku z kodem do zmiany hasła) ani z `SITE_URL` (domena
+  docelowa, do przełączenia prowadzi na starą stronę). Zmienna jest czytana
+  przy uruchomieniu — przełączenie domeny to zmiana w `deploy/.env`.
+- **`/api/customers/first-register` zablokowany w nginx** (404). Payload
+  wystawia go dla każdej kolekcji z logowaniem i dopóki tabela jest pusta,
+  zakłada przez niego konto z pominięciem reguł, od razu potwierdzone.
+  Lokalnie (bez nginx) endpoint działa — nie testuj na nim niczego.
+- **Limity w nginx:** endpointy kursantów przyjmujące sekret — strefa
+  `login`; WYSŁANIA formularzy na `/logowanie`, `/rejestracja`, `/konto/…` —
+  strefa `account_forms` (10/min; GET nie jest liczony). Bez tego rejestracja
+  i reset hasła byłyby darmową wysyłką maili na dowolny adres z naszej domeny.
+- **Panel i strona dzielą ciasteczko** `payload-token` (jeden
+  `cookiePrefix`). Zalogowanie się jako kursant w tej samej przeglądarce
+  wylogowuje z panelu i odwrotnie. Dla strony konto panelu to „nie kursant”
+  (`getCurrentCustomer()` w `lib/auth.ts`). Do testów — dwie przeglądarki
+  albo okno prywatne.
+- **Nagłówek pyta `/api/customers/me` z przeglądarki** (`useAccount.ts`),
+  przy każdej zmianie strony. Odczyt ciasteczka w layoucie zrobiłby każdą
+  stronę dynamiczną i zabił cache (`revalidate = 300`). Bez JS: zawsze
+  „Zaloguj się” — a `/logowanie` przekierowuje zalogowanych dalej.
+- **Wylogowanie przez `/api/customers/logout`**, nie przez skasowanie
+  ciasteczka: endpoint unieważnia też sesję (`auth.useSessions`).
+- **Strony kont mają `noindex`** i nie ma ich w mapie strony.
+- **Telefon obowiązkowy, w formacie Next Step Pro**: `+` kierunkowy i 9 cyfr
+  (`^\+[0-9]{1,4}[0-9]{9}$`, ten sam wzór co tam). Spacje, myślniki
+  i nawiasy usuwamy PRZED sprawdzeniem (`normalizePhone`) i tak zapisujemy.
+  Wzór pilnuje kształtu (10–13 cyfr), nie istnienia numeru.
+- **Formularze odsyłają wpisane wartości przy błędzie** (`values` w stanie
+  akcji, `defaultValue` w polach). React 19 czyści formularz po KAŻDEJ akcji,
+  także nieudanej — bez tego jeden błąd kasował całą rejestrację, a „popraw
+  zaznaczone pola” wskazywało puste pola (zgłoszone 02.10.2026). Dotyczy też
+  formularza kontaktowego i newslettera. Hasła nigdy nie wracają.
+- **Walidacja na żywo w formularzach kont** (`components/AccountFields.tsx`),
+  ustalone 02.10.2026: pole czerwienieje dopiero po WYJŚCIU z niego z błędem,
+  potem zmienia się przy każdej literze, aż przejdzie (zielony znaczek);
+  hasło ma licznik od pierwszej litery. Reguły to te same funkcje, które
+  sprawdza serwer (`checkName`, `checkEmail`, `checkPhone`,
+  `checkNewPassword` w `lib/validation.ts`) — przeglądarka tylko mówi
+  wcześniej, decyduje serwer. Kolor błędu to token `error` (#b42318,
+  6,5:1 na białym), nie `rope` — niebieska ramka czyta się jak „aktywne
+  pole”. Imię i nazwisko: co najmniej 2 litery, bo istnieją nazwiska Li, Wu.
+- **Hasło: minimum 10 znaków, bez reguł składu** (NIST 800-63B). Podpowiedź
+  pod polem zachęca do hasła, którego nie ma się nigdzie indziej — nie do
+  „kilku zwykłych słów” (to czytało się jak zachęta do słabego hasła). Logowanie
+  sprawdza tylko obecność pól — reguły długości przy logowaniu zdradzałyby,
+  jakich haseł nie ma.
+- **Dzieci (do zapisów na obozy) dojdą w etapie 4**, nie teraz — żeby nie
+  projektować pól pod wymagania, których Krzysiek jeszcze nie podał.
+
+---
+
 ## Maile (Brevo)
 
 Od 01.10.2026 aplikacja wysyła maile przez **Brevo, przez jego HTTP API**
@@ -776,8 +887,10 @@ bezpiecznik przy szczytach sharpa. Skrypt jest idempotentny.
    `grep -rl "https://<domena>" /app/.next | wc -l` w kontenerze — zero
    znaczy, że adres nie wszedł.
 8. Maile: w `deploy/.env` `BREVO_API_KEY`, `EMAIL_FROM` (adres na domenie
-   uwierzytelnionej w Brevo), `ADMIN_NOTIFY_EMAIL`. W Brevo: „Anonymous email
-   tracking: Yes”. Bez klucza strona działa, ale maile lądują w logu kontenera.
+   uwierzytelnionej w Brevo), `ADMIN_NOTIFY_EMAIL` i `PUBLIC_URL` (adres,
+   pod którym strona działa TERAZ — linki w mailach do kursantów). W Brevo:
+   „Anonymous email tracking: Yes”. Bez klucza strona działa, ale maile
+   lądują w logu kontenera.
 
 **Czego NIE ma już na tej liście:** wyklikiwania uprawnień publicznych w panelu.
 Są w kodzie i jadą z deployem.
@@ -896,8 +1009,8 @@ poczty, więc przejęcie jej niczego nie odcina.
   przebudowywać. Smoke test sprawdza w tym czasie `SMOKE_URL`.
 - **Bloki nginx dla domeny docelowej nie wiedzą o tymczasowej.** W dniu
   przełączenia usuwa się fragment oznaczony w `nginx.conf` (albo zamienia na
-  301 do domeny docelowej) i kasuje zmienną `SMOKE_URL` — bez dotykania
-  reszty.
+  301 do domeny docelowej), kasuje zmienną `SMOKE_URL` i zmienia `PUBLIC_URL`
+  w `deploy/.env` na domenę docelową — bez dotykania reszty.
 - **Certyfikat Origin z Cloudflare musi leżeć w `certs/` PRZED wdrożeniem
   configu**, który go wskazuje. Brak pliku: `nginx -t` pada w deployu, a przy
   najbliższym restarcie kontenera nginx nie wstaje — razem z domeną docelową.

@@ -6,12 +6,18 @@ import type { CollectionConfig, GlobalConfig } from 'payload'
 import { collections } from '@/collections/index'
 import { globals } from '@/globals/index'
 import { Users } from '@/collections/Users'
-import { ADMIN_COLLECTION, isAdmin, publishedFlagOrAdmin, publishedOrAdmin } from '@/lib/access'
+import {
+  ADMIN_COLLECTION,
+  adminOrSelf,
+  isAdmin,
+  publishedFlagOrAdmin,
+  publishedOrAdmin,
+} from '@/lib/access'
 
 // Hand-made requests. A participant account is any `auth` collection other
 // than the panel's — `customers` is the one planned for the booking stage.
 const anonymous = { req: { user: null } }
-const participant = { req: { user: { collection: 'customers' } } }
+const participant = { req: { user: { collection: 'customers', id: 7 } } }
 const admin = { req: { user: { collection: ADMIN_COLLECTION } } }
 
 type Rule = (args: unknown) => unknown
@@ -22,6 +28,9 @@ const PUBLIC_FORMS = new Set(['messages', 'newsletter'])
 
 /** Collections whose entries are personal data — nobody but the school reads them. */
 const PRIVATE = new Set(['messages', 'newsletter', 'users'])
+
+/** Participant accounts: the school reads all, a participant only their own. */
+const SELF_READABLE = new Set(['customers'])
 
 // --- the rules themselves -----------------------------------------------------
 
@@ -34,6 +43,15 @@ test('only a panel account counts as the school', () => {
 
 test('the admin collection named in access rules is the panel one', () => {
   assert.equal(Users.slug, ADMIN_COLLECTION)
+})
+
+test('a participant reads their own account and nobody else does', () => {
+  const ownAccount = adminOrSelf('customers')
+  assert.equal(ownAccount(admin), true)
+  assert.deepEqual(ownAccount(participant), { id: { equals: 7 } })
+  assert.equal(ownAccount(anonymous), false)
+  // A school account is not "self" in another collection — it is the school.
+  assert.equal(adminOrSelf('customers')({ req: { user: { collection: 'other', id: 7 } } }), false)
 })
 
 test('drafts are visible to the school and only published entries to others', () => {
@@ -101,6 +119,20 @@ test('personal data is readable by the school only', () => {
   for (const c of collections.filter((c) => PRIVATE.has(c.slug))) {
     assert.ok(!rule(c.access?.read)(participant), `participant may read ${name(c)}`)
     assert.ok(!rule(c.access?.read)(anonymous), `anyone may read ${name(c)}`)
+  }
+})
+
+test('participant accounts are readable only by the school and their owner', () => {
+  const accounts = collections.filter((c) => SELF_READABLE.has(c.slug))
+  assert.equal(accounts.length, SELF_READABLE.size, 'a self-readable collection is missing')
+  for (const c of accounts) {
+    assert.equal(rule(c.access?.read)(anonymous), false, `anyone may read ${name(c)}`)
+    assert.deepEqual(rule(c.access?.read)(participant), { id: { equals: 7 } })
+    // Writes go through the site's own server actions, never straight to REST.
+    for (const op of ['create', 'update', 'delete'] as const) {
+      assert.ok(!rule(c.access?.[op])(anonymous), `anyone may ${op} ${name(c)}`)
+    }
+    assert.equal(rule(c.access?.admin)(participant), false, `participant may enter the panel`)
   }
 })
 
