@@ -8,6 +8,7 @@ import { globals } from '@/globals/index'
 import { Users } from '@/collections/Users'
 import {
   ADMIN_COLLECTION,
+  adminOrOwner,
   adminOrSelf,
   isAdmin,
   publishedFlagOrAdmin,
@@ -52,6 +53,26 @@ test('a participant reads their own account and nobody else does', () => {
   assert.equal(ownAccount(anonymous), false)
   // A school account is not "self" in another collection — it is the school.
   assert.equal(adminOrSelf('customers')({ req: { user: { collection: 'other', id: 7 } } }), false)
+})
+
+test('a participant reads only the entries they own', () => {
+  const ownBookings = adminOrOwner('customer')
+  assert.equal(ownBookings(admin), true)
+  assert.deepEqual(ownBookings(participant), { customer: { equals: 7 } })
+  assert.equal(ownBookings(anonymous), false)
+  // Only a participant account owns entries — not some other auth collection.
+  assert.equal(ownBookings({ req: { user: { collection: 'other', id: 7 } } }), false)
+})
+
+test('bookings: participants read their own, change nothing, and visitors see none', () => {
+  const bookings = collections.find((c) => c.slug === 'bookings')
+  assert.ok(bookings, 'the bookings collection is registered')
+  assert.equal(rule(bookings.access?.read)(anonymous), false)
+  assert.deepEqual(rule(bookings.access?.read)(participant), { customer: { equals: 7 } })
+  for (const op of ['create', 'update', 'delete'] as const) {
+    assert.ok(!rule(bookings.access?.[op])(participant), `participant may ${op} bookings`)
+    assert.ok(!rule(bookings.access?.[op])(anonymous), `anyone may ${op} bookings`)
+  }
 })
 
 test('drafts are visible to the school and only published entries to others', () => {

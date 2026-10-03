@@ -71,6 +71,7 @@ export interface Config {
     courses: Course;
     camps: Camp;
     sessions: Session;
+    bookings: Booking;
     posts: Post;
     testimonials: Testimonial;
     instructors: Instructor;
@@ -85,11 +86,16 @@ export interface Config {
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
-  collectionsJoins: {};
+  collectionsJoins: {
+    sessions: {
+      bookings: 'bookings';
+    };
+  };
   collectionsSelect: {
     courses: CoursesSelect<false> | CoursesSelect<true>;
     camps: CampsSelect<false> | CampsSelect<true>;
     sessions: SessionsSelect<false> | SessionsSelect<true>;
+    bookings: BookingsSelect<false> | BookingsSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
     testimonials: TestimonialsSelect<false> | TestimonialsSelect<true>;
     instructors: InstructorsSelect<false> | InstructorsSelect<true>;
@@ -456,7 +462,7 @@ export interface Session {
   price?: number | null;
   capacity?: number | null;
   /**
-   * Zmniejsz po każdym zapisie. Puste = strona napisze „zapytaj o miejsca”.
+   * Liczone samo z zapisów, gdy podana jest liczba miejsc. Ręcznie tylko bez niej; puste = „zapytaj o miejsca”.
    */
   spotsLeft?: number | null;
   /**
@@ -467,8 +473,104 @@ export interface Session {
    * Np. „wariant weekendowy” albo „grupa w tygodniu”.
    */
   note?: string | null;
+  /**
+   * Wszystkie zapisy na ten termin — także rezerwowe i rezygnacje.
+   */
+  bookings?: {
+    docs?: (number | Booking)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * Zapisy na kursy. Zmiana statusu na „potwierdzony”, „opłacony” albo „rezygnacja” wysyła kursantowi maila. Zapis telefoniczny dodaj tu ręcznie — wtedy liczy się do wolnych miejsc.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bookings".
+ */
+export interface Booking {
+  id: number;
+  /**
+   * Składany automatycznie z imienia, nazwiska i terminu.
+   */
+  label?: string | null;
+  session: number | Session;
+  /**
+   * „Lista rezerwowa” i „rezygnacja” nie zajmują miejsca. Zmiana na „potwierdzony”, „opłacony” lub „rezygnacja” wysyła kursantowi maila.
+   */
+  status: 'new' | 'confirmed' | 'deposit' | 'paid' | 'waitlist' | 'cancelled';
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  notes?: string | null;
+  /**
+   * Widoczne tylko w panelu — kursant ich nie widzi.
+   */
+  adminNotes?: string | null;
+  /**
+   * Puste przy zapisie bez konta. Zapis trafia na konto, gdy osoba potwierdzi ten sam adres.
+   */
+  customer?: (number | null) | Customer;
+  language: 'pl' | 'en';
+  /**
+   * Przy zapisie przez stronę. Puste przy zapisie dodanym ręcznie w panelu.
+   */
+  consentText?: string | null;
+  consentDate?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Konta osób zapisujących się na kursy i obozy. Zakładają je same na stronie — tu tylko podgląd i pomoc.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customers".
+ */
+export interface Customer {
+  id: number;
+  firstName: string;
+  lastName: string;
+  /**
+   * Z kierunkowym kraju, np. +48600100200 (ta sama zasada co w Next Step Pro).
+   */
+  phone: string;
+  /**
+   * W tym języku idą maile do tej osoby. Zmienia go sama w „Moim koncie”.
+   */
+  language: 'pl' | 'en';
+  /**
+   * Ostatnia wysyłka linku do potwierdzenia adresu. Link działa 48 godz.
+   */
+  verificationSentAt?: string | null;
+  /**
+   * Dokładne brzmienie klauzuli zaakceptowanej przy zakładaniu konta.
+   */
+  consentText: string;
+  consentDate: string;
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  resetPasswordRequestedAt?: string | null;
+  _verified?: boolean | null;
+  _verificationToken?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
+  collection: 'customers';
 }
 /**
  * Teksty na stronie. Najnowsze u góry.
@@ -668,55 +770,6 @@ export interface Newsletter {
   createdAt: string;
 }
 /**
- * Konta osób zapisujących się na kursy i obozy. Zakładają je same na stronie — tu tylko podgląd i pomoc.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "customers".
- */
-export interface Customer {
-  id: number;
-  firstName: string;
-  lastName: string;
-  /**
-   * Z kierunkowym kraju, np. +48600100200 (ta sama zasada co w Next Step Pro).
-   */
-  phone: string;
-  /**
-   * W tym języku idą maile do tej osoby. Zmienia go sama w „Moim koncie”.
-   */
-  language: 'pl' | 'en';
-  /**
-   * Ostatnia wysyłka linku do potwierdzenia adresu. Link działa 48 godz.
-   */
-  verificationSentAt?: string | null;
-  /**
-   * Dokładne brzmienie klauzuli zaakceptowanej przy zakładaniu konta.
-   */
-  consentText: string;
-  consentDate: string;
-  updatedAt: string;
-  createdAt: string;
-  email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  resetPasswordRequestedAt?: string | null;
-  _verified?: boolean | null;
-  _verificationToken?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  sessions?:
-    | {
-        id: string;
-        createdAt?: string | null;
-        expiresAt: string;
-      }[]
-    | null;
-  password?: string | null;
-  collection: 'customers';
-}
-/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
@@ -778,6 +831,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'sessions';
         value: number | Session;
+      } | null)
+    | ({
+        relationTo: 'bookings';
+        value: number | Booking;
       } | null)
     | ({
         relationTo: 'posts';
@@ -985,6 +1042,28 @@ export interface SessionsSelect<T extends boolean = true> {
   spotsLeft?: T;
   status?: T;
   note?: T;
+  bookings?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bookings_select".
+ */
+export interface BookingsSelect<T extends boolean = true> {
+  label?: T;
+  session?: T;
+  status?: T;
+  firstName?: T;
+  lastName?: T;
+  email?: T;
+  phone?: T;
+  notes?: T;
+  adminNotes?: T;
+  customer?: T;
+  language?: T;
+  consentText?: T;
+  consentDate?: T;
   updatedAt?: T;
   createdAt?: T;
 }

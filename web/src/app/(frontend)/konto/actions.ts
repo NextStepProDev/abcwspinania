@@ -8,6 +8,7 @@ import config from '@payload-config'
 import { VERIFY_LINK_HOURS } from '@/collections/Customers'
 import { sendAccountExistsEmail, sendPasswordLink, sendVerificationLink } from '@/lib/accountEmails'
 import { getCurrentCustomer, setLoginCookie } from '@/lib/auth'
+import { claimBookings } from '@/lib/bookingEffects'
 import { accountConsentForStorage } from '@/lib/consent'
 import { pickLanguage } from '@/lib/email/language'
 import {
@@ -168,12 +169,15 @@ export async function logIn(
   let target: string
   try {
     const payload = await getPayload({ config })
-    const { token, exp } = await payload.login({
+    const { token, exp, user } = await payload.login({
       collection: 'customers',
       data: { email: data.email.trim().toLowerCase(), password: data.password },
     })
     if (!token) throw new Error('Payload returned no token')
     await setLoginCookie(token, exp)
+    // A correct password proves the address: bookings made with it without
+    // logging in now join the account. A failure here must not fail the login.
+    if (user) await claimBookings(payload, user).catch((e) => console.error('claim failed:', e))
     target = safeNextPath(formData.get('next'))
   } catch (error) {
     if (error instanceof UnverifiedEmail) {
@@ -311,12 +315,14 @@ export async function setNewPassword(
     // `ResetPasswordResult` types the user loosely, hence the narrowing.
     const userId = result.user?.id
     if (typeof userId === 'number' || typeof userId === 'string') {
-      await payload.update({
+      const customer = await payload.update({
         collection: 'customers',
         id: userId,
         data: { _verified: true },
         overrideAccess: true,
       })
+      // The address is proven — see `claimBookings`.
+      await claimBookings(payload, customer).catch((e) => console.error('claim failed:', e))
     }
     if (result.token) await setLoginCookie(result.token, undefined)
   } catch (error) {

@@ -55,6 +55,27 @@ export function adminOrSelf(slug: string) {
   }
 }
 
+/**
+ * The participant account collection — the only one that OWNS entries
+ * elsewhere (bookings). Spelled out for the same reason as ADMIN_COLLECTION.
+ */
+export const PARTICIPANT_COLLECTION = 'customers'
+
+/**
+ * Entries owned by a participant through a relationship field (a booking's
+ * `customer`): the school sees all, a participant only theirs, anyone else
+ * nothing. "Moje konto" and any REST read go through this.
+ */
+export function adminOrOwner(ownerField: string) {
+  return (args: AccessArgs) => {
+    if (isAdmin(args)) return true
+    const user = args.req.user
+    if (user?.collection === PARTICIPANT_COLLECTION && user.id !== undefined)
+      return { [ownerField]: { equals: user.id } }
+    return false
+  }
+}
+
 /** Public content and public forms. */
 export function anyone(): boolean {
   return true

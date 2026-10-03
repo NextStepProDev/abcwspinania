@@ -1,4 +1,6 @@
-import type { CollectionConfig } from 'payload'
+import { APIError, type CollectionConfig } from 'payload'
+
+import { recountSession } from '../lib/bookingEffects'
 
 import { anyone, isAdmin } from '../lib/access'
 
@@ -12,9 +14,11 @@ import { anyone, isAdmin } from '../lib/access'
  * separate optional fields read better both in the panel and in the code — at
  * the cost of one validation rule making sure exactly one is filled in.
  *
- * Spots left are NOT computed — the client types them in. Online booking is a
- * separate, later stage; until then a counter derived from anything in the
- * database would be fiction, because sign-ups arrive by phone and email.
+ * Spots left are COUNTED from bookings when the session has a capacity
+ * (decided 02.10.2026, `lib/bookingEffects.ts`): capacity minus the active
+ * bookings, and `open` ↔ `waitlist` switches by itself. A phone booking
+ * counts once the school adds it under "Zapisy". Without a capacity nothing
+ * is counted and the site says "ask about places".
  */
 export const Sessions: CollectionConfig = {
   slug: 'sessions',
@@ -35,6 +39,44 @@ export const Sessions: CollectionConfig = {
     delete: isAdmin,
   },
   defaultSort: 'startDate',
+  hooks: {
+    beforeDelete: [
+      // A session with bookings is never deleted: the bookings' `session` is
+      // required, so Postgres refuses anyway (measured 03.10.2026) — but with
+      // "Failed query: delete from sessions", which tells the school nothing.
+      // This says why and what to do instead; the history stays.
+      async ({ id, req }) => {
+        const { totalDocs } = await req.payload.count({
+          collection: 'bookings',
+          where: { session: { equals: id } },
+          req,
+          overrideAccess: true,
+        })
+        if (totalDocs > 0) {
+          throw new APIError(
+            `Ten termin ma zapisy (${totalDocs}). Zamiast usuwać, ustaw status „odwołany” albo „zakończony” — zniknie ze strony, a zapisy zostaną w historii.`,
+            400,
+            null,
+            true,
+          )
+        }
+      },
+    ],
+    afterChange: [
+      // A new capacity changes the spots left. Skipped for the recount's own
+      // write (`context.recountingSpots`), which would otherwise call itself.
+      async ({ doc, previousDoc, operation, req, context }) => {
+        if (context.recountingSpots) return doc
+        if (operation === 'update' && previousDoc?.capacity === doc.capacity) return doc
+        try {
+          await recountSession(req.payload, doc.id, req)
+        } catch (error) {
+          req.payload.logger.error({ err: error }, 'Failed to recount session spots')
+        }
+        return doc
+      },
+    ],
+  },
   fields: [
     {
       name: 'label',
@@ -159,7 +201,8 @@ export const Sessions: CollectionConfig = {
           label: 'Wolne miejsca',
           admin: {
             width: '50%',
-            description: 'Zmniejsz po każdym zapisie. Puste = strona napisze „zapytaj o miejsca”.',
+            description:
+              'Liczone samo z zapisów, gdy podana jest liczba miejsc. Ręcznie tylko bez niej; puste = „zapytaj o miejsca”.',
           },
         },
       ],
@@ -185,6 +228,17 @@ export const Sessions: CollectionConfig = {
       type: 'text',
       label: 'Dopisek',
       admin: { description: 'Np. „wariant weekendowy” albo „grupa w tygodniu”.' },
+    },
+    {
+      name: 'bookings',
+      type: 'join',
+      collection: 'bookings',
+      on: 'session',
+      label: 'Zapisani',
+      admin: {
+        defaultColumns: ['label', 'status', 'phone'],
+        description: 'Wszystkie zapisy na ten termin — także rezerwowe i rezygnacje.',
+      },
     },
   ],
 }

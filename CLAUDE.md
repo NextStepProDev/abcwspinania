@@ -47,6 +47,7 @@ subdomeny `api.*`.
 | `Messages` | `messages` | **nie** | zgłoszenia z formularza — dane osobowe |
 | `Newsletter` | `newsletter` | **nie** | zapisy na newsletter — dane osobowe |
 | `Customers` | `customers` | **tylko własne konto** | konta uczestników (logowanie na stronie) |
+| `Bookings` | `bookings` | **tylko własne zapisy** | zapisy na kursy — dane osobowe |
 | `Users` | `users` | **nie** | konta do panelu |
 
 | Global | Slug | Po co |
@@ -762,6 +763,64 @@ zrobi z kursanta administratora. Koszt: zasada 28.
   jakich haseł nie ma.
 - **Dzieci (do zapisów na obozy) dojdą w etapie 4**, nie teraz — żeby nie
   projektować pól pod wymagania, których Krzysiek jeszcze nie podał.
+
+---
+
+## Zapisy na kursy
+
+Od 03.10.2026 (etap 2, ZAKRES 4b). Formularz `/kursy/[slug]/zapis`,
+kolekcja `Bookings`, logika w `lib/bookings.ts` (czyste funkcje)
+i `lib/bookingEffects.ts` (skutki uboczne).
+
+- **Jedna osoba = jeden zapis.** Para zapisuje się dwa razy — Krzysiek ma
+  nazwisko każdego uczestnika (lista, ubezpieczenie).
+- **Wolne miejsca LICZONE, gdy termin ma liczbę miejsc**: pojemność minus
+  zapisy aktywne (`ACTIVE_STATUSES` — bez „lista rezerwowa” i „rezygnacja”).
+  Każda zmiana zapisu i zmiana pojemności przelicza termin, a status
+  `open` ↔ `waitlist` przełącza się sam. **Bez liczby miejsc** nic się nie
+  liczy, decyduje status ustawiony ręcznie. Zapis telefoniczny liczy się,
+  gdy Krzysiek doda go ręcznie w „Zapisach” (bez maili — umówiony osobiście).
+- **Dane kontaktowe w zapisie to KOPIA** z chwili zapisu, także przy koncie.
+  Adres e-mail zapisuje się małymi literami (hook w `Bookings.ts`), bo
+  przypisanie do konta i kontrola duplikatów porównują dokładnie.
+- **Zapis bez konta trafia na konto dopiero po DOWODZIE adresu**
+  (`claimBookings`: logowanie, potwierdzenie adresu, hasło z maila) — nigdy
+  z formularza. „Załóż mi konto” przy zapisie tworzy konto od razu
+  (zapis do niego przypięty) i wysyła link do ustawienia hasła; konto bez
+  ustawionego hasła znika po 7 dniach jak każde niepotwierdzone.
+- **⚠️ Zapis idzie w TRANSAKCJI z blokadą na termin** (`lib/bookingService.ts`,
+  `pg_advisory_xact_lock`). Zmierzone 03.10.2026 bez blokady: pięć osób
+  naraz na jedno miejsce — wszystkie dostały miejsce; podwójne kliknięcie —
+  dwa zapisy. Z blokadą: jedna osoba dostaje miejsce, cztery listę
+  rezerwową; pięć kliknięć — jeden zapis. Druga blokada (na adres) chroni
+  zakładanie konta, gdy ta sama osoba zapisuje się na dwa terminy naraz.
+  **Nie przenoś liczenia miejsc ani zapisu poza tę transakcję.**
+- **Drugi zapis tej samej osoby na ten sam termin** odpowiada „przyjęte”
+  bez nowego wpisu — inna odpowiedź mówiłaby, kto się zapisał. Z tego
+  samego powodu przy „załóż mi konto” komunikat jest jeden, czy konto było
+  nowe, czy czekało na potwierdzenie (wtedy idzie nowy link potwierdzający).
+- **Terminu z zapisami nie da się usunąć** (hook `beforeDelete` w
+  `Sessions.ts`): Postgres i tak odmawia (pole `session` jest wymagane),
+  ale komunikatem „Failed query”; teraz panel mówi, żeby ustawić status
+  „odwołany” / „zakończony”.
+- **Zwolnione miejsce przy liście rezerwowej → mail do Krzyśka** z kolejką
+  (rezygnacja, usunięty zapis, większa pojemność). Nikt nie jest
+  przesuwany automatycznie — Krzysiek może chcieć najpierw zadzwonić.
+- **Sesja wygasła w trakcie wypełniania** (formularz bez pól kontaktowych):
+  akcja odpowiada „zaloguj się ponownie” zamiast żądać niewidocznych pól.
+- **Czego zapis NIE robi (świadomie, na później):** odwołanie albo zmiana
+  dat terminu nie powiadamia zapisanych (to wysyłki, etap 5); podpis
+  zapisu w panelu nie odświeża się po zmianie dat terminu.
+- **Maile**: po zapisie do kursanta (przyjęte / lista rezerwowa, bez kwot —
+  zasady zaliczek są do ustalenia) i do Krzyśka; przy zmianie statusu
+  w panelu na potwierdzony / opłacony / rezygnacja — do kursanta
+  (`statusEmailFor`). Każdy mail osobno po zapisie, błąd nie cofa zapisu.
+- **⚠️ Pole `bookings` (join) w `Sessions` niesie dane osobowe.** Strona czyta
+  terminy przez Local API z pominięciem reguł, więc KAŻDE zapytanie o
+  terminy w kodzie strony ma `joins: false` (`lib/content.ts`, „Moje
+  konto”, `bookingEffects`). Sprawdzone 03.10.2026: REST terminu nie pokazuje
+  zapisów anonimowi ani innemu kursantowi, kod stron ich nie zawiera.
+- Limit nginx `account_forms` obejmuje też POST na `/kursy/*/zapis`.
 
 ---
 

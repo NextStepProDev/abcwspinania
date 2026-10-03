@@ -64,3 +64,18 @@ export const ACCOUNT_CONSENT_TEXT =
 export function accountConsentForStorage(): string {
   return `[${ACCOUNT_CONSENT_VERSION}] ${ACCOUNT_CONSENT_TEXT}`
 }
+
+/**
+ * Accepted with every course booking — its own purpose (organising the
+ * course the person signs up for), so its own text and version.
+ */
+export const BOOKING_CONSENT_VERSION = '2026-10-02'
+
+export const BOOKING_CONSENT_TEXT =
+  'Wyrażam zgodę na przetwarzanie moich danych (imię, nazwisko, adres e-mail, ' +
+  'numer telefonu) w celu zapisu na wybrany kurs, kontaktu w jego sprawie ' +
+  'i jego organizacji. Administratorem danych jest ABC Wspinania.'
+
+export function bookingConsentForStorage(): string {
+  return `[${BOOKING_CONSENT_VERSION}] ${BOOKING_CONSENT_TEXT}`
+}

@@ -309,3 +309,127 @@ test('a secondary link cannot break out of its attribute either', () => {
   })
   assert.ok(html.includes('href="https://a.pl/&quot;onclick=&quot;x"'))
 })
+
+// --- course bookings ---------------------------------------------------------
+
+import {
+  bookingReceivedEmail,
+  bookingStatusEmail,
+  newAccountFromBookingEmail,
+  newBookingNotification,
+} from '@/lib/email/templates'
+
+const course = {
+  firstName: 'Ola',
+  courseTitle: 'Kurs wspinaczki skalnej PZA',
+  dates: '4–9 maja 2027',
+  location: 'Rzędkowice',
+  accountUrl: 'https://x.pl/konto',
+}
+
+test('the booking confirmation names the course, dates and place', () => {
+  const email = bookingReceivedEmail('pl', { ...course, waitlist: false })
+  assert.match(email.subject, /Kurs wspinaczki skalnej PZA/)
+  assert.match(email.text, /4–9 maja 2027/)
+  assert.match(email.text, /Rzędkowice/)
+  // No money talk yet — the deposit rules are still to be agreed.
+  assert.doesNotMatch(email.text, /zł|konto bankowe|numer konta|przelew/i)
+})
+
+test('a waiting-list booking is told it is on the waiting list', () => {
+  assert.match(
+    bookingReceivedEmail('pl', { ...course, waitlist: true }).text,
+    /list(a|ę|y) rezerwow/,
+  )
+  assert.match(bookingReceivedEmail('en', { ...course, waitlist: true }).text, /waiting list/i)
+  assert.doesNotMatch(bookingReceivedEmail('pl', { ...course, waitlist: false }).text, /rezerwow/)
+})
+
+test('every booking email to the participant exists in both languages', () => {
+  for (const lang of ['pl', 'en'] as const) {
+    assert.ok(bookingReceivedEmail(lang, { ...course, waitlist: false }).subject)
+    for (const status of ['confirmed', 'paid', 'cancelled'] as const) {
+      const email = bookingStatusEmail(lang, status, course)
+      assert.ok(email.subject && email.text.includes(course.dates), `${lang} ${status}`)
+    }
+    assert.ok(
+      newAccountFromBookingEmail(lang, { firstName: 'Ola', url: 'u', validHours: 2 }).subject,
+    )
+  }
+  assert.notEqual(
+    bookingStatusEmail('pl', 'confirmed', course).subject,
+    bookingStatusEmail('en', 'confirmed', course).subject,
+  )
+})
+
+test('booking emails point to the account only when there is one', () => {
+  assert.match(bookingReceivedEmail('pl', { ...course, waitlist: false }).text, /x\.pl\/konto/)
+  const noAccount = bookingReceivedEmail('pl', { ...course, accountUrl: null, waitlist: false })
+  assert.doesNotMatch(noAccount.text, /\/konto/)
+})
+
+test('the new-account email is about SETTING a password, not resetting one', () => {
+  const email = newAccountFromBookingEmail('pl', {
+    firstName: 'Ola',
+    url: 'https://x.pl/u',
+    validHours: 2,
+  })
+  assert.match(email.text, /ustaw/i)
+  assert.doesNotMatch(email.text, /nowe hasło|poprosił/)
+  assert.match(email.text, /2 godz\./)
+})
+
+test('the school hears about every booking, with the waiting list flagged', () => {
+  const base = {
+    name: 'Ola Nowak',
+    email: 'ola@example.com',
+    phone: '+48600100200',
+    courseTitle: 'Kurs PZA',
+    dates: '4–9 maja 2027',
+    notes: 'Mam własną uprząż.',
+    adminUrl: 'https://x.pl/admin/collections/bookings/3',
+    language: 'en' as const,
+    hasAccount: true,
+  }
+  const normal = newBookingNotification({ ...base, waitlist: false })
+  assert.match(normal.subject, /Nowy zapis: Ola Nowak — Kurs PZA/)
+  assert.match(normal.text, /Mam własną uprząż\./)
+  assert.match(normal.text, /po angielsku/)
+  assert.match(newBookingNotification({ ...base, waitlist: true }).subject, /rezerwow/)
+})
+
+test('a line break in the name cannot reach the booking subject either', () => {
+  const email = newBookingNotification({
+    name: 'Ola\r\nBcc: x@evil.pl',
+    email: 'o@x.pl',
+    phone: '+48600100200',
+    courseTitle: 'K',
+    dates: 'd',
+    notes: '',
+    adminUrl: 'u',
+    language: 'pl',
+    hasAccount: false,
+    waitlist: false,
+  })
+  assert.doesNotMatch(email.subject, /[\r\n]/)
+})
+
+import { placeFreedNotification } from '@/lib/email/templates'
+
+test('the freed-place email names the session and the first person waiting', () => {
+  const email = placeFreedNotification({
+    courseTitle: 'Kurs PZA',
+    dates: '4–9 maja 2027',
+    spotsLeft: 1,
+    waiting: [
+      { name: 'Basia Testowa', phone: '+48600100200', email: 'b@x.pl' },
+      { name: 'Celina Druga', phone: '+48600100201', email: 'c@x.pl' },
+    ],
+    adminUrl: 'https://x.pl/admin/collections/sessions/10',
+  })
+  assert.match(email.subject, /Zwolniło się miejsce: Kurs PZA/)
+  assert.match(email.text, /Basia Testowa/)
+  assert.ok(email.text.indexOf('Basia') < email.text.indexOf('Celina'), 'in order of booking')
+  assert.match(email.text, /\+48600100200/)
+  assert.match(email.text, /4–9 maja 2027/)
+})

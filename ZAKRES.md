@@ -38,7 +38,7 @@ Numeracja jak w wiadomości do Krzyśka.
 | 2 | System zarządzania obozami | formularz zapisu + obsługa zgłoszeń w panelu (rozbicie niżej) | **do zrobienia** |
 | 3 | Powiadomienia mailowe | mail wychodzi przy nowym zgłoszeniu i zapisie na obóz | **częściowo** — od 01.10.2026 mail do szkoły przy wiadomości z formularza (Brevo, PL/EN); zapis na obóz dojdzie z pozycją 2 |
 | 4 | Newsletter | zapis działa, zgoda wersjonowana | **gotowe** |
-| 4b | Zapis na kurs „w 10 sekund" | skrócona ścieżka zapisu z podstrony kursu | **do zrobienia** |
+| 4b | Zapis na kurs „w 10 sekund" | skrócona ścieżka zapisu z podstrony kursu | **gotowe** (03.10.2026, czeka na wdrożenie) — zalogowany: termin + zgoda; bez konta: dane + opcja „załóż konto” |
 | 5 | RODO i polityka prywatności | rozbicie niżej | **częściowo** |
 | 6 | Bez banera ciasteczek, bez przekazywania danych | brak trackerów, brak ciasteczek innych niż sesyjne | **gotowe — z zastrzeżeniem o mailach (niżej)** |
 | 7 | Backupy szyfrowane dwupoziomowo | skrypt na serwerze + wysyłka na Drive + **odtworzenie przetestowane** | **gotowe** (06.10.2026) — co noc: serwer 7 dni + zaszyfrowany Google Drive 40 dni (od 09.10.2026; wcześniej 90), archiwum zdjęć tylko gdy się zmieniły (alarm healthchecks.io gotowy w skrypcie, adres do podpięcia); odtworzenie z kopii pobranej z Drive przećwiczone, zgodne z produkcją (`deploy/RESTORE.md`) |

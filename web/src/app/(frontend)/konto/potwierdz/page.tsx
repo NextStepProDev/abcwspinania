@@ -5,6 +5,7 @@ import { AccountPage, FormDone, TextLink } from '@/components/AccountForm'
 import { VERIFY_LINK_HOURS } from '@/collections/Customers'
 import { accountPageMetadata } from '@/lib/auth'
 import { ResendLinkForm } from '../ResendLinkForm'
+import { claimBookings } from '@/lib/bookingEffects'
 import { isExpired } from '@/lib/expiry'
 import { pluralPl } from '@/lib/format'
 
@@ -45,7 +46,11 @@ async function confirm(token: string): Promise<Outcome> {
   if (!account) return 'invalid'
   const sentAt = account.verificationSentAt ?? account.createdAt
   if (isExpired(sentAt, VERIFY_LINK_HOURS, new Date())) return 'expired'
-  return (await payload.verifyEmail({ collection: 'customers', token })) ? 'confirmed' : 'invalid'
+  const confirmed = await payload.verifyEmail({ collection: 'customers', token })
+  if (!confirmed) return 'invalid'
+  // The address is proven — bookings made with it join the account.
+  await claimBookings(payload, account).catch((e) => console.error('claim failed:', e))
+  return 'confirmed'
 }
 
 export default async function ConfirmPage({ searchParams }: Props) {

@@ -12,6 +12,7 @@ import { Instructors } from './Instructors'
 import { Messages } from './Messages'
 import { Newsletter } from './Newsletter'
 import { Customers } from './Customers'
+import { Bookings } from './Bookings'
 
 /**
  * Every collection, in the order the panel lists them.
@@ -24,6 +25,7 @@ export const collections: CollectionConfig[] = [
   Courses,
   Camps,
   Sessions,
+  Bookings,
   Posts,
   Testimonials,
   Instructors,

@@ -240,6 +240,9 @@ export function getUpcomingSessions(limit = 100): Promise<Session[]> {
     async (payload) => {
       const { docs } = await payload.find({
         collection: 'sessions',
+        // Never the `bookings` join: it carries participants' personal data,
+        // and the Local API here skips access rules.
+        joins: false,
         where: {
           and: [
             { status: { in: ['open', 'waitlist'] } },
@@ -274,6 +277,9 @@ export function getSessionsForCourse(courseId: number): Promise<Session[]> {
     async (payload) => {
       const { docs } = await payload.find({
         collection: 'sessions',
+        // Never the `bookings` join: it carries participants' personal data,
+        // and the Local API here skips access rules.
+        joins: false,
         where: {
           and: [
             { course: { equals: courseId } },
@@ -298,6 +304,9 @@ export function getSessionsForCamp(campId: number): Promise<Session[]> {
     async (payload) => {
       const { docs } = await payload.find({
         collection: 'sessions',
+        // Never the `bookings` join: it carries participants' personal data,
+        // and the Local API here skips access rules.
+        joins: false,
         where: {
           and: [
             { camp: { equals: campId } },

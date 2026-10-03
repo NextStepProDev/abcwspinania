@@ -281,7 +281,16 @@ export default async function CoursePage({ params }: Props) {
             )}
 
             <div className="flex flex-col gap-2.5">
-              <Button href={`/kontakt?course=${course.slug}`} className="w-full">
+              {/* The booking form when there are dates to pick; without them the
+                  contact form, where the visitor can ask for the next one. */}
+              <Button
+                href={
+                  sessions.length > 0
+                    ? `/kursy/${course.slug}/zapis`
+                    : `/kontakt?course=${course.slug}`
+                }
+                className="w-full"
+              >
                 Zapisz się na kurs
               </Button>
               {tel && (

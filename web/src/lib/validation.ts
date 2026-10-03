@@ -284,3 +284,49 @@ export function safeNextPath(raw: unknown, fallback = '/konto'): string {
   if (!raw.startsWith('/') || raw.startsWith('//') || raw.startsWith('/\\')) return fallback
   return raw
 }
+
+// --- Course bookings ---------------------------------------------------------
+
+export interface BookingData {
+  /** The id of the chosen session, as sent by the form. */
+  sessionId: string
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  notes: string
+  consent: boolean
+}
+
+export type BookingErrors = Partial<Record<keyof BookingData, string>>
+
+const NOTES_MAX = 2000
+
+/**
+ * A course booking. Logged in, the contact details come from the account,
+ * so only the session, the notes and the consent are checked here; without
+ * an account every contact field is — with the same rules as registration.
+ */
+export function validateBooking(data: BookingData, loggedIn: boolean): BookingErrors {
+  const errors: BookingErrors = {}
+
+  if (!/^[1-9]\d*$/.test(data.sessionId.trim())) errors.sessionId = 'Wybierz termin.'
+
+  if (!loggedIn) {
+    const firstName = checkName(data.firstName, 'Podaj imię.')
+    if (firstName) errors.firstName = firstName
+    const lastName = checkName(data.lastName, 'Podaj nazwisko.')
+    if (lastName) errors.lastName = lastName
+    const email = checkEmail(data.email)
+    if (email) errors.email = email
+    const phone = checkPhone(data.phone)
+    if (phone) errors.phone = phone
+  }
+
+  if (data.notes.trim().length > NOTES_MAX)
+    errors.notes = `Uwagi mogą mieć najwyżej ${NOTES_MAX} znaków.`
+
+  if (!data.consent) errors.consent = 'Bez tej zgody nie możemy przyjąć zapisu.'
+
+  return errors
+}

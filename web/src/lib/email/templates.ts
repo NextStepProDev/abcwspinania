@@ -221,3 +221,234 @@ export function accountExistsEmail(lang: EmailLanguage, data: AccountExistsData)
     }),
   }
 }
+
+// --- Course bookings ---------------------------------------------------------
+
+interface BookingEmailData {
+  firstName?: string | null
+  courseTitle: string
+  /** Already formatted for the language (`formatSessionDates`). */
+  dates: string
+  location?: string | null
+  /** "Moje konto" — only when the booking belongs to an account. */
+  accountUrl?: string | null
+}
+
+function bookingDetails(lang: EmailLanguage, data: BookingEmailData): [string, string][] {
+  const rows: [string, string][] = [
+    [lang === 'pl' ? 'Kurs' : 'Course', data.courseTitle],
+    [lang === 'pl' ? 'Termin' : 'Dates', data.dates],
+  ]
+  if (data.location) rows.push([lang === 'pl' ? 'Miejsce' : 'Place', data.location])
+  return rows
+}
+
+function greeting(lang: EmailLanguage, name?: string | null): string {
+  if (lang === 'pl') return name ? `Cześć ${name}!` : 'Cześć!'
+  return name ? `Hi ${name}!` : 'Hi!'
+}
+
+const RECEIVED = {
+  pl: {
+    subject: (course: string, waitlist: boolean) =>
+      waitlist ? `Lista rezerwowa: ${course}` : `Przyjęliśmy zgłoszenie: ${course}`,
+    body: (waitlist: boolean) =>
+      waitlist
+        ? 'Na ten termin nie ma już wolnych miejsc, więc Twoje zgłoszenie trafiło na listę rezerwową. Gdy zwolni się miejsce, odezwiemy się od razu.'
+        : 'Dziękujemy za zapis. Potwierdzimy miejsce i prześlemy szczegóły, w tym informacje o płatności — zwykle tego samego dnia.',
+    account: 'Swoje zapisy widzisz w Moim koncie',
+    note: 'Masz pytanie? Po prostu odpowiedz na tę wiadomość.',
+  },
+  en: {
+    subject: (course: string, waitlist: boolean) =>
+      waitlist ? `Waiting list: ${course}` : `Booking received: ${course}`,
+    body: (waitlist: boolean) =>
+      waitlist
+        ? 'This session is fully booked, so your booking is on the waiting list. We will get in touch as soon as a place frees up.'
+        : 'Thank you for booking. We will confirm your place and send the details, payment included — usually the same day.',
+    account: 'Your bookings are in your account',
+    note: 'Any questions? Just reply to this email.',
+  },
+} satisfies Record<EmailLanguage, unknown>
+
+/** To the participant, right after booking. No amounts or bank details yet. */
+export function bookingReceivedEmail(
+  lang: EmailLanguage,
+  data: BookingEmailData & { waitlist: boolean },
+): Email {
+  const copy = RECEIVED[lang]
+  return {
+    subject: oneLine(copy.subject(data.courseTitle, data.waitlist)),
+    ...renderEmail({
+      lang,
+      heading: greeting(lang, data.firstName),
+      paragraphs: [copy.body(data.waitlist)],
+      details: bookingDetails(lang, data),
+      action: data.accountUrl ? { label: copy.account, href: data.accountUrl } : undefined,
+      note: copy.note,
+    }),
+  }
+}
+
+const STATUS = {
+  pl: {
+    confirmed: {
+      subject: (c: string) => `Miejsce potwierdzone: ${c}`,
+      body: 'Masz potwierdzone miejsce. Szczegóły płatności i przygotowania prześlemy osobno, jeśli jeszcze ich nie masz.',
+    },
+    paid: {
+      subject: (c: string) => `Płatność zaksięgowana: ${c}`,
+      body: 'Dziękujemy — płatność za kurs jest zaksięgowana. Do zobaczenia w skałach!',
+    },
+    cancelled: {
+      subject: (c: string) => `Zapis anulowany: ${c}`,
+      body: 'Twój zapis na ten termin został anulowany. Jeśli to pomyłka albo chcesz wybrać inny termin, odpowiedz na tę wiadomość.',
+    },
+    account: 'Moje konto',
+  },
+  en: {
+    confirmed: {
+      subject: (c: string) => `Place confirmed: ${c}`,
+      body: 'Your place is confirmed. We will send the payment and preparation details separately if you do not have them yet.',
+    },
+    paid: {
+      subject: (c: string) => `Payment received: ${c}`,
+      body: 'Thank you — your payment for the course has been received. See you on the rock!',
+    },
+    cancelled: {
+      subject: (c: string) => `Booking cancelled: ${c}`,
+      body: 'Your booking for this session has been cancelled. If this is a mistake or you would like another date, just reply to this email.',
+    },
+    account: 'My account',
+  },
+} satisfies Record<EmailLanguage, unknown>
+
+/** To the participant when the school changes the booking's status in the panel. */
+export function bookingStatusEmail(
+  lang: EmailLanguage,
+  status: 'confirmed' | 'paid' | 'cancelled',
+  data: BookingEmailData,
+): Email {
+  const copy = STATUS[lang]
+  return {
+    subject: oneLine(copy[status].subject(data.courseTitle)),
+    ...renderEmail({
+      lang,
+      heading: greeting(lang, data.firstName),
+      paragraphs: [copy[status].body],
+      details: bookingDetails(lang, data),
+      action: data.accountUrl ? { label: copy.account, href: data.accountUrl } : undefined,
+    }),
+  }
+}
+
+const NEW_ACCOUNT = {
+  pl: {
+    subject: 'Ustaw hasło do konta — ABC Wspinania',
+    body: 'Przy zapisie zaznaczono „załóż mi konto”. Konto czeka — wystarczy ustawić hasło, a zobaczysz w nim swoje zapisy.',
+    action: 'Ustaw hasło',
+    note: (h: number) =>
+      `Link działa przez ${h} godz. Jeśli nie zakładasz konta, zignoruj tę wiadomość — zapis na kurs jest ważny i bez niego.`,
+  },
+  en: {
+    subject: 'Set your account password — ABC Wspinania',
+    body: 'When booking, "create an account for me" was ticked. The account is waiting — just set a password to see your bookings in it.',
+    action: 'Set password',
+    note: (h: number) =>
+      `The link works for ${h} hours. If you did not ask for an account, ignore this email — your booking stands without it.`,
+  },
+} satisfies Record<EmailLanguage, unknown>
+
+/** An account created from a booking: the first password, which also confirms the address. */
+export function newAccountFromBookingEmail(
+  lang: EmailLanguage,
+  data: { firstName?: string | null; url: string; validHours: number },
+): Email {
+  const copy = NEW_ACCOUNT[lang]
+  return {
+    subject: copy.subject,
+    ...renderEmail({
+      lang,
+      heading: greeting(lang, data.firstName),
+      paragraphs: [copy.body],
+      action: { label: copy.action, href: data.url },
+      note: copy.note(data.validHours),
+    }),
+  }
+}
+
+export interface NewBookingData {
+  name: string
+  email: string
+  phone: string
+  courseTitle: string
+  dates: string
+  notes?: string | null
+  waitlist: boolean
+  hasAccount: boolean
+  language?: EmailLanguage | null
+  adminUrl: string
+}
+
+/** To the school: a new course booking. */
+export function newBookingNotification(data: NewBookingData): Email {
+  const details: [string, string][] = [
+    ['Kto', data.name],
+    ['E-mail', data.email],
+    ['Telefon', data.phone],
+    ['Kurs', data.courseTitle],
+    ['Termin', data.dates],
+    ['Konto', data.hasAccount ? 'tak' : 'nie (zapis bez konta)'],
+  ]
+  if (data.notes) details.push(['Uwagi', data.notes])
+  const intro = data.waitlist
+    ? 'Nowe zgłoszenie na LISTĘ REZERWOWĄ — termin jest pełny.'
+    : 'Nowy zapis na kurs. Potwierdź miejsce w panelu — zmiana statusu wyśle kursantowi maila.'
+  const note = languageNote(data.language)
+  return {
+    subject: oneLine(
+      `${data.waitlist ? 'Lista rezerwowa' : 'Nowy zapis'}: ${data.name} — ${data.courseTitle}`,
+    ),
+    ...renderEmail({
+      lang: 'pl',
+      heading: data.waitlist ? 'Zgłoszenie na listę rezerwową' : 'Nowy zapis na kurs',
+      paragraphs: note ? [intro, note] : [intro],
+      details,
+      action: { label: 'Otwórz w panelu', href: data.adminUrl },
+    }),
+  }
+}
+
+export interface PlaceFreedData {
+  courseTitle: string
+  dates: string
+  spotsLeft: number
+  /** In order of booking — the first one is next in line. */
+  waiting: { name: string; phone: string; email: string }[]
+  adminUrl: string
+}
+
+/** To the school: a place freed up on a session with a waiting list. */
+export function placeFreedNotification(data: PlaceFreedData): Email {
+  const details: [string, string][] = [
+    ['Kurs', data.courseTitle],
+    ['Termin', data.dates],
+    ['Wolne miejsca', String(data.spotsLeft)],
+    ...data.waiting.map((w, i): [string, string] => [
+      `${i + 1}. na liście`,
+      `${w.name}, ${w.phone}, ${w.email}`,
+    ]),
+  ]
+  return {
+    subject: oneLine(`Zwolniło się miejsce: ${data.courseTitle}, ${data.dates}`),
+    ...renderEmail({
+      lang: 'pl',
+      heading: 'Zwolniło się miejsce',
+      paragraphs: [
+        'Na tym terminie są wolne miejsca, a na liście rezerwowej czekają osoby — kolejność jak przy zapisie. Zmiana statusu osoby na „potwierdzony” wyśle jej maila.',
+      ],
+      details,
+      action: { label: 'Otwórz termin w panelu', href: data.adminUrl },
+    }),
+  }
+}
