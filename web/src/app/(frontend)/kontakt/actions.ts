@@ -5,7 +5,8 @@ import { getPayload } from 'payload'
 import config from '@payload-config'
 
 import { pickLanguage } from '@/lib/email/language'
-import { consentForStorage, newsletterConsentForStorage } from '@/lib/consent'
+import { consentForStorage } from '@/lib/consent'
+import { subscribe } from '@/lib/newsletter'
 import { validateContact, validateNewsletter, isValid, looksLikeBot } from '@/lib/validation'
 import type { ContactFormData, ValidationErrors, NewsletterErrors } from '@/lib/validation'
 import type { Message } from '@/payload-types'
@@ -146,11 +147,9 @@ export interface NewsletterState {
 }
 
 /**
- * Newsletter sign-up.
- *
- * Sending is not wired up yet (Brevo is a separate stage) — the address lands in
- * the database and waits there. That is deliberate: a field that stores nothing
- * loses the addresses of interested people, and those cannot be recovered.
+ * Newsletter sign-up: stores the address as `pending` and emails a
+ * confirmation link (`lib/newsletter.ts`). Broadcasts go only to confirmed
+ * addresses.
  */
 export async function subscribeToNewsletter(
   _previous: NewsletterState,
@@ -178,55 +177,9 @@ export async function subscribeToNewsletter(
 
   try {
     const payload = await getPayload({ config })
-
-    // The address is unique in the collection, so a repeat sign-up would fail on
-    // a database constraint. For the person on the other side a repeat sign-up
-    // is not an error but a confirmation — and that is how we report it. It also
-    // revives someone who unsubscribed earlier and is now coming back.
-    // ⚠️ `overrideAccess: true` — the only place in the code where an access
-    // rule is bypassed. Reading this collection requires authentication (a list
-    // of addresses is personal data), and here the request comes from an
-    // anonymous visitor. It is safe because we check ONLY the address that this
-    // person supplied a moment ago, and we answer identically regardless of the
-    // result — so no way of probing who is on the list comes into being.
-    const { docs } = await payload.find({
-      collection: 'newsletter',
-      where: { email: { equals: email } },
-      limit: 1,
-      overrideAccess: true,
-    })
-
-    if (docs[0]) {
-      if (docs[0].status === 'unsubscribed') {
-        await payload.update({
-          collection: 'newsletter',
-          id: docs[0].id,
-          data: {
-            status: 'subscribed',
-            language: pickLanguage((await headers()).get('accept-language')),
-            consentText: newsletterConsentForStorage(),
-            consentDate: new Date().toISOString(),
-          },
-          overrideAccess: true,
-        })
-      }
-      return { status: 'subscribed' }
-    }
-
-    await payload.create({
-      collection: 'newsletter',
-      data: {
-        email,
-        status: 'subscribed',
-        language: pickLanguage((await headers()).get('accept-language')),
-        consentText: newsletterConsentForStorage(),
-        consentDate: new Date().toISOString(),
-      },
-      // Creation goes through the collection's `create` rule, exactly as with
-      // the contact form — tightening it must break the form LOUDLY.
-      overrideAccess: false,
-    })
-
+    // Double opt-in, and the same answer whether the address was new, waiting
+    // or already subscribed — see `lib/newsletter.ts`.
+    await subscribe(payload, email, pickLanguage((await headers()).get('accept-language')))
     return { status: 'subscribed' }
   } catch (error) {
     console.error('Failed to store a newsletter subscription:', error)

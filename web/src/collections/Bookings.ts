@@ -2,7 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 import { adminOrOwner, isAdmin } from '../lib/access'
 import { BOOKING_STATUS_OPTIONS, statusEmailFor, type BookingStatus } from '../lib/bookings'
-import { idOf, recountSession, sendStatusEmail } from '../lib/bookingEffects'
+import { idOf, recordEmailIssue, recountSession, sendStatusEmail } from '../lib/bookingEffects'
 import { LANGUAGE_OPTIONS_FOR_PAYLOAD } from '../lib/email/language'
 
 /**
@@ -25,6 +25,13 @@ import { LANGUAGE_OPTIONS_FOR_PAYLOAD } from '../lib/email/language'
  * participant. A booking the SCHOOL creates in the panel sends nothing — it
  * was arranged in person.
  */
+/** How the panel names each status email when one does not go out. */
+const STATUS_EMAIL_LABEL = {
+  confirmed: 'Mail „miejsce potwierdzone”',
+  paid: 'Mail „płatność zaksięgowana”',
+  cancelled: 'Mail „zapis anulowany”',
+} as const
+
 export const Bookings: CollectionConfig = {
   slug: 'bookings',
   labels: {
@@ -89,6 +96,8 @@ export const Bookings: CollectionConfig = {
     ],
     afterChange: [
       async ({ doc, previousDoc, operation, req, context }) => {
+        // A note about a failed email (`recordEmailIssue`) changes nothing to count.
+        if (context.skipRecount) return doc
         const sessionId = idOf(doc.session)
         const previousSessionId = idOf(previousDoc?.session)
         try {
@@ -109,8 +118,9 @@ export const Bookings: CollectionConfig = {
         try {
           await sendStatusEmail(req.payload, doc, status, req)
         } catch (error) {
-          // The status is saved; a failed email must not undo it.
-          req.payload.logger.error({ err: error }, 'Failed to send a booking status email')
+          // The status is saved; a failed email must not undo it — but the
+          // school must learn that the participant was not told.
+          await recordEmailIssue(req.payload, doc.id, STATUS_EMAIL_LABEL[status], error, req)
         }
         return doc
       },
@@ -216,6 +226,44 @@ export const Bookings: CollectionConfig = {
       // school's notes are not part of what they see.
       access: { read: isAdmin },
       admin: { description: 'Widoczne tylko w panelu — kursant ich nie widzi.' },
+    },
+    {
+      // Set by `recordEmailIssue` when an email to the participant did not go
+      // out; counted on the dashboard until the school ticks "Załatwione".
+      name: 'emailIssue',
+      type: 'text',
+      label: 'Mail, który nie doszedł',
+      access: { read: isAdmin },
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+        condition: (data) => Boolean(data?.emailIssue),
+        description: 'Kursant tego maila nie dostał — skontaktuj się sam i zaznacz „Załatwione”.',
+      },
+    },
+    {
+      name: 'emailIssueAt',
+      type: 'date',
+      label: 'Kiedy',
+      index: true,
+      access: { read: isAdmin },
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+        condition: (data) => Boolean(data?.emailIssue),
+        date: { pickerAppearance: 'dayAndTime', displayFormat: 'd.MM.yyyy, HH:mm' },
+      },
+    },
+    {
+      name: 'emailIssueHandled',
+      type: 'checkbox',
+      label: 'Załatwione',
+      defaultValue: false,
+      access: { read: isAdmin },
+      admin: {
+        position: 'sidebar',
+        condition: (data) => Boolean(data?.emailIssue),
+      },
     },
     {
       name: 'customer',

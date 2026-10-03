@@ -18,8 +18,12 @@ import type { Customer } from '@/payload-types'
  * rendered per request.
  */
 export async function getCurrentCustomer(): Promise<Customer | null> {
+  // The headers FIRST: reading them marks the page dynamic. With the database
+  // first, `next build` (no database in CI) tried to prerender `/konto`,
+  // failed to connect and stopped the build (found 03.10.2026).
+  const requestHeaders = await headers()
   const payload = await getPayload({ config })
-  const { user } = await payload.auth({ headers: await headers() })
+  const { user } = await payload.auth({ headers: requestHeaders })
   return user?.collection === 'customers' ? (user as Customer) : null
 }
 

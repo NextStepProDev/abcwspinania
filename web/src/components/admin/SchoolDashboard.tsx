@@ -16,7 +16,8 @@ import { formatDateRange } from '@/lib/format'
 function listUrl(collection: string, where: Record<string, unknown>): string {
   const params = new URLSearchParams()
   const add = (prefix: string, value: unknown) => {
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
+    // Arrays by index (`where[and][0][…]`), the way Payload's list reads them.
+    if (value && typeof value === 'object') {
       for (const [k, v] of Object.entries(value)) add(`${prefix}[${k}]`, v)
     } else {
       params.append(prefix, String(value))
@@ -40,11 +41,17 @@ export async function SchoolDashboard({ payload, user }: { payload: Payload; use
   const count = async (collection: 'bookings' | 'messages', where: Record<string, unknown>) =>
     (await payload.count({ collection, where: where as never, overrideAccess: true })).totalDocs
 
-  const [newBookings, awaitingDeposit, waiting, newMessages] = await Promise.all([
+  // An email to the participant that did not go out (`recordEmailIssue`)
+  // and that the school has not dealt with yet.
+  const lostEmails = {
+    and: [{ emailIssueAt: { exists: true } }, { emailIssueHandled: { not_equals: true } }],
+  }
+  const [newBookings, awaitingDeposit, waiting, newMessages, emailIssues] = await Promise.all([
     count('bookings', { status: { equals: 'new' } }),
     count('bookings', { status: { equals: 'confirmed' } }),
     count('bookings', { status: { equals: 'waitlist' } }),
     count('messages', { status: { equals: 'new' } }),
+    count('bookings', lostEmails),
   ])
 
   const { docs: sessions } = await payload.find({
@@ -91,6 +98,12 @@ export async function SchoolDashboard({ payload, user }: { payload: Payload; use
       hint: 'czekają na miejsce',
       value: waiting,
       href: listUrl('bookings', { status: { equals: 'waitlist' } }),
+    },
+    {
+      label: 'Maile, które nie doszły',
+      hint: 'kursant nie wie — odezwij się sam',
+      value: emailIssues,
+      href: listUrl('bookings', lostEmails),
     },
     {
       label: 'Nowe wiadomości',

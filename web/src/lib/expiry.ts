@@ -41,3 +41,33 @@ export function staleUnverifiedWhere(now: Date, days = UNVERIFIED_ACCOUNT_DAYS):
     ],
   }
 }
+
+/**
+ * Days a newsletter sign-up may wait for its confirmation click before it is
+ * deleted — the same week as an unconfirmed account. An address someone else
+ * typed in must not stay in our database.
+ */
+export const PENDING_NEWSLETTER_DAYS = 7
+
+/**
+ * Which newsletter rows the daily sweep deletes: still `pending`, signed up
+ * (`consentDate`, renewed on every sign-up) and last emailed before the
+ * cutoff. A row that once unsubscribed and signed up again without
+ * confirming goes too — keeping it would keep the address of someone who
+ * never finished saying yes.
+ */
+export function stalePendingNewsletterWhere(now: Date, days = PENDING_NEWSLETTER_DAYS): Where {
+  const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString()
+  return {
+    and: [
+      { status: { equals: 'pending' } },
+      { consentDate: { less_than: cutoff } },
+      {
+        or: [
+          { confirmationSentAt: { less_than: cutoff } },
+          { confirmationSentAt: { exists: false } },
+        ],
+      },
+    ],
+  }
+}

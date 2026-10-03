@@ -48,6 +48,8 @@ subdomeny `api.*`.
 | `Newsletter` | `newsletter` | **nie** | zapisy na newsletter — dane osobowe |
 | `Customers` | `customers` | **tylko własne konto** | konta uczestników (logowanie na stronie) |
 | `Bookings` | `bookings` | **tylko własne zapisy** | zapisy na kursy — dane osobowe |
+| `Broadcasts` | `broadcasts` | **nie** | „Wysyłki” — wiadomości do grup |
+| `BroadcastDeliveries` | `broadcast-deliveries` | **nie** | odbiorcy każdej wysyłki i stan kolejki; ukryte w menu |
 | `Users` | `users` | **nie** | konta do panelu |
 
 | Global | Slug | Po co |
@@ -58,9 +60,10 @@ subdomeny `api.*`.
 | `CampsPage` | `camps-page` | wstęp podstrony „Obozy i wyjazdy" |
 | `EnglishPage` | `english-page` | jedyna podstrona po angielsku |
 
-`Messages` i `Newsletter` przyjmują zapis od **każdego** (to formularze
-publiczne), ale odczyt, zmiana i kasowanie wymagają **konta szkoły** — nie
-„dowolnego zalogowania” (zasada 28). Publiczny odczyt byłby wyciekiem danych
+`Messages` przyjmuje zapis od **każdego** (to formularz publiczny), ale
+odczyt, zmiana i kasowanie wymagają **konta szkoły** — nie „dowolnego
+zalogowania” (zasada 28). `Newsletter` ma REST zamknięty w całości — zapis idzie
+wyłącznie akcją serwerową (patrz „Wysyłki i newsletter”). Publiczny odczyt byłby wyciekiem danych
 osobowych, nie udogodnieniem. Wszystko, czego nie ma w kolumnie „publiczny
 odczyt”, w tym tworzenie i zmiana treści, jest wyłącznie dla konta szkoły.
 
@@ -815,6 +818,14 @@ i `lib/bookingEffects.ts` (skutki uboczne).
   zasady zaliczek są do ustalenia) i do Krzyśka; przy zmianie statusu
   w panelu na potwierdzony / opłacony / rezygnacja — do kursanta
   (`statusEmailFor`). Każdy mail osobno po zapisie, błąd nie cofa zapisu.
+- **Mail do kursanta, który nie wyszedł, zostaje odnotowany w zapisie**
+  (`recordEmailIssue`, od 03.10.2026): pola „Mail, który nie doszedł” (co
+  i dlaczego, po ludzku — `emailFailureReason`), data i „Załatwione”; kafelek
+  na pulpicie liczy nieodhaczone. Te maile NIE mają kolejki ani ponowień —
+  Krzysiek odzywa się sam. Kolejny błąd przy nieodhaczonym dopisuje się, po
+  odhaczeniu zaczyna od nowa. Zapis z hooka idzie przez `req` zapisu w toku:
+  wiersz jest zablokowany jego transakcją, zapis innym połączeniem czekałby
+  w nieskończoność. Kontekst `skipRecount` + `skipStatusEmail`.
 - **⚠️ Pole `bookings` (join) w `Sessions` niesie dane osobowe.** Strona czyta
   terminy przez Local API z pominięciem reguł, więc KAŻDE zapytanie o
   terminy w kodzie strony ma `joins: false` (`lib/content.ts`, „Moje
@@ -833,7 +844,7 @@ zasada 25), inaczej panel nie znajdzie komponentu.
 
 - **Pulpit „Do zrobienia”** (`SchoolDashboard`, `admin.components.
   beforeDashboard`): nowe zgłoszenia, potwierdzone (czekają na zaliczkę),
-  lista rezerwowa, nowe wiadomości — każda liczba to link do listy
+  lista rezerwowa, maile, które nie doszły, nowe wiadomości — każda liczba to link do listy
   przefiltrowanej przez `?where[...]` w adresie; pod spodem 8 najbliższych
   terminów z obłożeniem „zajęte / limit” i linkami do zapisanych i Excela.
 - **Status jako lista rozwijana na liście zapisów** (`BookingStatusCell`).
@@ -848,6 +859,66 @@ zasada 25), inaczej panel nie znajdzie komponentu.
   tego Excel robi z niego liczbę bez plusa).
 - **Bez `@payloadcms/ui` w naszym kodzie**: to zależność Payloada, nie
   projektu — import działałby przypadkiem. Id terminu bierzemy z adresu.
+
+---
+
+## Wysyłki i newsletter
+
+Od 03.10.2026 (etap 5). Kolekcja `Broadcasts` („Wysyłki”, grupa „Zapisy”),
+logika w `lib/broadcasts.ts` (czyste funkcje) i `lib/broadcastSender.ts`
+(odbiorcy, kolejka, endpointy), newsletter w `lib/newsletter.ts`.
+
+- **Trzy grupy odbiorców:** zapisani na jeden termin, wszyscy z nadchodzącymi
+  zapisami (termin od dziś, status `open`/`waitlist`), newsletter (tylko
+  `subscribed`). Domyślnie osoby z miejscem (`ACTIVE_STATUSES`); lista
+  rezerwowa po zaznaczeniu „Także lista rezerwowa” (decyzja 03.10.2026).
+  Jeden mail na adres — para z jednym adresem dostaje jeden.
+- **Lista odbiorców USTALANA w chwili „Wyślij”** — wiersz w
+  `broadcast-deliveries` na adres, w transakcji z blokadą na wysyłkę
+  (`pg_advisory_xact_lock(7303, id)`). Zmierzone 03.10.2026: dwa kliknięcia
+  naraz — jedno 200, drugie 409, dwa wiersze, nie cztery.
+- **Wysyła zegar w procesie serwera** (`instrumentation.ts`, co 20 s, 20
+  maili na takt), nie kolejka zadań Payloada — powód jak przy sprzątaniu
+  kont. Każdy wiersz oznaczany jako wysłany dopiero PO przyjęciu przez Brevo;
+  przyjęte ryzyko: awaria dokładnie między tymi krokami wyśle jeden mail
+  dwa razy. **Zegar startuje tylko przy starcie serwera** — po zmianie
+  w `instrumentation.ts` lokalnie trzeba zrestartować `npm run dev`.
+- **Błędy wysyłki** (`classifySendError`): dzienny limit Brevo (401/402/403/429,
+  „credit/limit/quota”) albo odrzucony klucz WSTRZYMUJĄ wysyłkę na godzinę
+  i wznawiają ją same; odrzucony adres — błąd tylko tego wiersza; sieć i 5xx
+  — ponowienie za 10 min, do 5 prób. Darmowy plan Brevo = 300 maili dziennie
+  łącznie ze wszystkimi innymi mailami strony.
+- **Wysłanej wiadomości nie da się zmienić** (pola z `access.update` tylko dla
+  szkicu + hook `beforeChange`) — ma zostać to, co ludzie dostali. „Duplikuj”
+  daje szkic z wyzerowanymi licznikami (`beforeDuplicate`).
+- **Treść z edytora → mail przez NASZ konwerter** (`lib/email/richText.ts`),
+  nie `@payloadcms/richtext-lexical/html`: style inline (Outlook), każdy tekst
+  przez `escapeHtml`, linki tylko `http(s)`/`mailto`/`tel`. Edytor wysyłek ma
+  okrojone funkcje (bez obrazków, tabel, linków do dokumentów panelu).
+  `layout.ts` przyjmuje gotowy `body` WYŁĄCZNIE z tego konwertera.
+- **Wersja angielska opcjonalna** — idzie do osób z `language = en`, gdy ma
+  i temat, i treść; inaczej polska. Panel ostrzega przed „Wyślij”.
+- **Newsletter z potwierdzeniem (double opt-in, 03.10.2026).** Formularz
+  zapisuje `pending` + token i wysyła link; wysyłki dostają tylko
+  `subscribed`. Adresy sprzed tej daty zostały `subscribed` (ta sama zgoda,
+  zapisana treścią). Niepotwierdzone usuwa dzienne sprzątanie po 7 dniach.
+  Ponowny zapis w ciągu 10 min nie wysyła drugiego maila. Odpowiedź
+  formularza jest jedna dla każdego adresu.
+- **Potwierdzenie i wypisanie PRZYCISKIEM, nie samym linkiem**
+  (`/newsletter/potwierdz`, `/newsletter/wypisz`) — skaner poczty otwiera
+  linki za człowieka; przy koncie to tylko dowód adresu, tu byłaby to zgoda
+  albo jej wycofanie w czyimś imieniu.
+- **Wypisanie jednym kliknięciem z poziomu skrzynki** — nagłówki
+  `List-Unsubscribe` + `List-Unsubscribe-Post` (RFC 8058) na newsletterze,
+  POST na `/api/newsletter/unsubscribe?token=` (endpoint kolekcji, zawsze
+  200). Wiadomości do zapisanych na kurs ich nie mają — to informacja
+  o usłudze, nie marketing. Sprawdzone 03.10.2026: Brevo przyjmuje te nagłówki.
+- **Wypisany zostaje w bazie** (`unsubscribed` + data) — dowód wycofania
+  zgody. Wypisany między „Wyślij” a swoją kolejką jest pomijany (`skipped`).
+- **Limit nginx `site_actions`**: wysłania akcji serwerowych (POST
+  z `Next-Action`) z KAŻDEJ strony — newsletter jest w stopce. **Panel
+  `/admin` wyłączony z limitu**: Payload używa akcji serwerowych przy edycji
+  formularzy i 10/min zablokowałoby pracę.
 
 ---
 

@@ -15,10 +15,9 @@ const INITIAL_STATE: NewsletterState = { status: 'idle' }
  * (`lib/consent.ts`). The same pattern as the contact form: we store the TEXT of
  * the consent, not a bare "yes".
  *
- * Sending is not wired up yet; the addresses wait in the database for a provider
- * to be plugged in. That is why the confirmation speaks of being signed up
- * rather than of something arriving — promising an email that will not go out
- * would be worse than having no form.
+ * Double opt-in: the answer asks to check the inbox for the confirmation
+ * link, worded so it fits an address that was already subscribed too — the
+ * form must not tell anyone whether an address is on the list.
  */
 export function NewsletterForm() {
   const [state, action, pending] = useActionState(subscribeToNewsletter, INITIAL_STATE)
@@ -28,9 +27,10 @@ export function NewsletterForm() {
   if (state.status === 'subscribed') {
     return (
       <div role="status" className="rounded-lg border border-rock-line bg-rock-800 px-5 py-4">
-        <p className="font-medium text-white">Zapisane — dzięki.</p>
+        <p className="font-medium text-white">Sprawdź skrzynkę.</p>
         <p className="mt-1 text-sm text-rock-fg">
-          Odezwiemy się, gdy ruszą zapisy albo pojawi się nowy tekst.
+          Wysłaliśmy link — kliknij go, żeby potwierdzić zapis. Jeśli ten adres był już zapisany,
+          nic nie musisz robić.
         </p>
       </div>
     )

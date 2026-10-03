@@ -13,6 +13,8 @@ import { Messages } from './Messages'
 import { Newsletter } from './Newsletter'
 import { Customers } from './Customers'
 import { Bookings } from './Bookings'
+import { Broadcasts } from './Broadcasts'
+import { BroadcastDeliveries } from './BroadcastDeliveries'
 
 /**
  * Every collection, in the order the panel lists them.
@@ -26,6 +28,8 @@ export const collections: CollectionConfig[] = [
   Camps,
   Sessions,
   Bookings,
+  Broadcasts,
+  BroadcastDeliveries,
   Posts,
   Testimonials,
   Instructors,

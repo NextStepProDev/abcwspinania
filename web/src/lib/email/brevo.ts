@@ -36,6 +36,7 @@ interface BrevoBody {
   subject: string
   htmlContent?: string
   textContent?: string
+  headers?: Record<string, string>
 }
 
 // Spelled out rather than taken from `SendEmailOptions`: Payload derives that
@@ -119,6 +120,13 @@ export function toBrevoBody(message: SendEmailOptions, sender: Sender): BrevoBod
   if (replyTo) body.replyTo = replyTo
   if (typeof message.html === 'string') body.htmlContent = message.html
   if (typeof message.text === 'string') body.textContent = message.text
+  // Plain string headers only (`List-Unsubscribe` on newsletters). Nodemailer
+  // also accepts arrays and objects here; nothing in this project sends them,
+  // and passing them on unchecked would be a refused send at Brevo.
+  const headers = Object.entries((message.headers ?? {}) as Record<string, unknown>).filter(
+    (entry): entry is [string, string] => typeof entry[1] === 'string',
+  )
+  if (headers.length) body.headers = Object.fromEntries(headers)
   return body
 }
 

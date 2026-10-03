@@ -8,7 +8,7 @@ import { RESET_LINK_HOURS } from '@/collections/Customers'
 import { sendVerificationLink } from '@/lib/accountEmails'
 import { getCurrentCustomer } from '@/lib/auth'
 import { formatSessionDates } from '@/lib/bookings'
-import { sessionSummary } from '@/lib/bookingEffects'
+import { recordEmailIssue, sessionSummary } from '@/lib/bookingEffects'
 import { createBooking } from '@/lib/bookingService'
 import { pickLanguage } from '@/lib/email/language'
 import { publicUrl, tokenLink } from '@/lib/email/links'
@@ -35,7 +35,8 @@ import {
  * why (five simultaneous bookings for one place all got it before the lock).
  *
  * The booking is committed FIRST; the emails after it, each on its own. A
- * failed email is logged and the person still has their place.
+ * failed email to the participant is noted on the booking
+ * (`recordEmailIssue`) for the school's dashboard; the place is kept.
  */
 
 export interface BookingState {
@@ -171,7 +172,14 @@ export async function bookCourse(
           }),
         ),
       })
-      .catch((error) => console.error('Failed to send the booking confirmation:', error))
+      .catch((error) =>
+        recordEmailIssue(
+          payload,
+          booking.id,
+          waitlist ? 'Mail „lista rezerwowa”' : 'Potwierdzenie zapisu',
+          error,
+        ),
+      )
 
     if (newAccount) {
       try {
@@ -193,7 +201,8 @@ export async function bookCourse(
           })
         }
       } catch (error) {
-        console.error('Failed to send the new-account email:', error)
+        // Without it the person never learns an account was made for them.
+        await recordEmailIssue(payload, booking.id, 'Link do ustawienia hasła (nowe konto)', error)
       }
     }
     if (unconfirmedAccount) {

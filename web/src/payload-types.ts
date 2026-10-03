@@ -72,6 +72,8 @@ export interface Config {
     camps: Camp;
     sessions: Session;
     bookings: Booking;
+    broadcasts: Broadcast;
+    'broadcast-deliveries': BroadcastDelivery;
     posts: Post;
     testimonials: Testimonial;
     instructors: Instructor;
@@ -90,12 +92,17 @@ export interface Config {
     sessions: {
       bookings: 'bookings';
     };
+    broadcasts: {
+      deliveries: 'broadcast-deliveries';
+    };
   };
   collectionsSelect: {
     courses: CoursesSelect<false> | CoursesSelect<true>;
     camps: CampsSelect<false> | CampsSelect<true>;
     sessions: SessionsSelect<false> | SessionsSelect<true>;
     bookings: BookingsSelect<false> | BookingsSelect<true>;
+    broadcasts: BroadcastsSelect<false> | BroadcastsSelect<true>;
+    'broadcast-deliveries': BroadcastDeliveriesSelect<false> | BroadcastDeliveriesSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
     testimonials: TestimonialsSelect<false> | TestimonialsSelect<true>;
     instructors: InstructorsSelect<false> | InstructorsSelect<true>;
@@ -511,6 +518,12 @@ export interface Booking {
    */
   adminNotes?: string | null;
   /**
+   * Kursant tego maila nie dostał — skontaktuj się sam i zaznacz „Załatwione”.
+   */
+  emailIssue?: string | null;
+  emailIssueAt?: string | null;
+  emailIssueHandled?: boolean | null;
+  /**
    * Puste przy zapisie bez konta. Zapis trafia na konto, gdy osoba potwierdzi ten sam adres.
    */
   customer?: (number | null) | Customer;
@@ -571,6 +584,124 @@ export interface Customer {
     | null;
   password?: string | null;
   collection: 'customers';
+}
+/**
+ * Wiadomości do grup: zapisanych na termin, wszystkich z nadchodzącymi zapisami albo newslettera. Zapisz, wyślij próbnie do siebie, potem „Wyślij”.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "broadcasts".
+ */
+export interface Broadcast {
+  id: number;
+  subject: string;
+  /**
+   * Na górze maila pojawi się temat jako nagłówek, na dole — skąd ktoś ma tę wiadomość. Odpowiedzi trafiają na adres szkoły.
+   */
+  content: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  subjectEn?: string | null;
+  contentEn?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  audience: 'session' | 'upcoming' | 'newsletter';
+  session?: (number | null) | Session;
+  /**
+   * Domyślnie wiadomość dostają tylko osoby z miejscem. Zaznacz np. przy odwołaniu terminu albo zmianie dat.
+   */
+  includeWaitlist?: boolean | null;
+  status: 'draft' | 'sending' | 'sent';
+  recipientsCount?: number | null;
+  sentCount?: number | null;
+  failedCount?: number | null;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  pausedUntil?: string | null;
+  lastError?: string | null;
+  /**
+   * Lista ustalona w chwili „Wyślij” — kto później zapisze się na termin, tej wiadomości nie dostanie.
+   */
+  deliveries?: {
+    docs?: (number | BroadcastDelivery)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "broadcast-deliveries".
+ */
+export interface BroadcastDelivery {
+  id: number;
+  broadcast: number | Broadcast;
+  email: string;
+  language?: ('pl' | 'en') | null;
+  newsletter?: (number | null) | Newsletter;
+  status: 'pending' | 'sent' | 'failed' | 'skipped';
+  attempts?: number | null;
+  nextAttemptAt?: string | null;
+  sentAt?: string | null;
+  error?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Adresy zapisane przez formularz w stopce. Wysyłki dostają tylko adresy „zapisany” — czyli potwierdzone kliknięciem w link z maila. Niepotwierdzone znikają same po 7 dniach.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "newsletter".
+ */
+export interface Newsletter {
+  id: number;
+  /**
+   * Unikalny — powtórny zapis tego samego adresu nie tworzy drugiego wpisu.
+   */
+  email: string;
+  /**
+   * Wypisanych NIE kasujemy — trzeba móc wykazać, że i kiedy ktoś zgodę wycofał.
+   */
+  status: 'pending' | 'subscribed' | 'unsubscribed';
+  /**
+   * Ustawiany z przeglądarki przy zapisie. Osoby z angielskim dostaną angielską wersję wysyłki, jeśli ją dopiszesz.
+   */
+  language?: ('pl' | 'en') | null;
+  token?: string | null;
+  confirmationSentAt?: string | null;
+  confirmedAt?: string | null;
+  unsubscribedAt?: string | null;
+  /**
+   * Dokładne brzmienie klauzuli zaakceptowanej przy zapisie.
+   */
+  consentText: string;
+  consentDate: string;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * Teksty na stronie. Najnowsze u góry.
@@ -742,34 +873,6 @@ export interface Message {
   createdAt: string;
 }
 /**
- * Adresy zapisane przez formularz w stopce. Wysyłki jeszcze nie ma.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "newsletter".
- */
-export interface Newsletter {
-  id: number;
-  /**
-   * Unikalny — powtórny zapis tego samego adresu nie tworzy drugiego wpisu.
-   */
-  email: string;
-  /**
-   * Wypisanych NIE kasujemy — trzeba móc wykazać, że i kiedy ktoś zgodę wycofał.
-   */
-  status: 'subscribed' | 'unsubscribed';
-  /**
-   * Ustawiany z przeglądarki przy zapisie. Osoby z angielskim dostaną angielską wersję wysyłki, jeśli ją dopiszesz.
-   */
-  language?: ('pl' | 'en') | null;
-  /**
-   * Dokładne brzmienie klauzuli zaakceptowanej przy zapisie.
-   */
-  consentText: string;
-  consentDate: string;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
@@ -835,6 +938,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'bookings';
         value: number | Booking;
+      } | null)
+    | ({
+        relationTo: 'broadcasts';
+        value: number | Broadcast;
+      } | null)
+    | ({
+        relationTo: 'broadcast-deliveries';
+        value: number | BroadcastDelivery;
       } | null)
     | ({
         relationTo: 'posts';
@@ -1060,10 +1171,54 @@ export interface BookingsSelect<T extends boolean = true> {
   phone?: T;
   notes?: T;
   adminNotes?: T;
+  emailIssue?: T;
+  emailIssueAt?: T;
+  emailIssueHandled?: T;
   customer?: T;
   language?: T;
   consentText?: T;
   consentDate?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "broadcasts_select".
+ */
+export interface BroadcastsSelect<T extends boolean = true> {
+  subject?: T;
+  content?: T;
+  subjectEn?: T;
+  contentEn?: T;
+  audience?: T;
+  session?: T;
+  includeWaitlist?: T;
+  status?: T;
+  recipientsCount?: T;
+  sentCount?: T;
+  failedCount?: T;
+  startedAt?: T;
+  finishedAt?: T;
+  pausedUntil?: T;
+  lastError?: T;
+  deliveries?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "broadcast-deliveries_select".
+ */
+export interface BroadcastDeliveriesSelect<T extends boolean = true> {
+  broadcast?: T;
+  email?: T;
+  language?: T;
+  newsletter?: T;
+  status?: T;
+  attempts?: T;
+  nextAttemptAt?: T;
+  sentAt?: T;
+  error?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1205,6 +1360,10 @@ export interface NewsletterSelect<T extends boolean = true> {
   email?: T;
   status?: T;
   language?: T;
+  token?: T;
+  confirmationSentAt?: T;
+  confirmedAt?: T;
+  unsubscribedAt?: T;
   consentText?: T;
   consentDate?: T;
   updatedAt?: T;

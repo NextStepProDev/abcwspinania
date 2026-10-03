@@ -28,6 +28,12 @@ export interface EmailContent {
   preheader?: string
   heading: string
   paragraphs: string[]
+  /**
+   * Formatted content after the paragraphs — ONLY the output of
+   * `renderRichText` (`richText.ts`), which escapes every piece of text itself.
+   * Inserted as is: never build this from a visitor's input by hand.
+   */
+  body?: { html: string; text: string }
   /** Label–value rows, e.g. the data someone typed into a form. */
   details?: [label: string, value: string][]
   action?: { label: string; href: string }
@@ -76,6 +82,7 @@ function renderHtml({
   preheader,
   heading,
   paragraphs,
+  body,
   details,
   action,
   secondaryAction,
@@ -101,6 +108,7 @@ ${preheader ? `<div style="display:none;max-height:0;overflow:hidden">${escapeHt
 <tr><td style="padding:28px">
 <h1 style="margin:0 0 16px;font-size:22px;line-height:1.3;color:${INK}">${escapeHtml(heading)}</h1>
 ${paragraphs.map((p) => `<p style="margin:0 0 14px">${multiline(p)}</p>`).join('\n')}
+${body?.html ?? ''}
 ${rows ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 18px;font-size:15px">${rows}</table>` : ''}
 ${
   action
@@ -126,12 +134,14 @@ function renderText({
   lang,
   heading,
   paragraphs,
+  body,
   details,
   action,
   secondaryAction,
   note,
 }: EmailContent): string {
   const parts = [heading, '', ...paragraphs.flatMap((p) => [p, ''])]
+  if (body?.text) parts.push(body.text, '')
   if (details?.length) {
     parts.push(...details.map(([label, value]) => `${label}: ${value}`), '')
   }

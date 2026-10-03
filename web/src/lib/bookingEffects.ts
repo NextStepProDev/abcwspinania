@@ -7,6 +7,7 @@ import {
   placeFreedForWaitlist,
   type StatusEmail,
 } from '@/lib/bookings'
+import { emailFailureReason } from '@/lib/broadcasts'
 import { publicUrl } from '@/lib/email/links'
 import type { EmailLanguage } from '@/lib/email/language'
 import { bookingStatusEmail, placeFreedNotification } from '@/lib/email/templates'
@@ -164,6 +165,55 @@ export async function sendStatusEmail(
     html: email.html,
     text: email.text,
   })
+}
+
+/**
+ * Notes on the booking that an email to the participant did not go out, so
+ * the school learns it from the panel (the "Maile, które nie doszły" tile)
+ * instead of never. These emails have no queue: the booking is saved, the
+ * email is not retried — the school gets in touch itself and ticks
+ * "Załatwione".
+ *
+ * Pass the `req` of the save in progress: the booking row is locked by that
+ * transaction, and a write from another connection would wait for it
+ * forever. Never throws — a note about a lost email must not lose the save.
+ */
+export async function recordEmailIssue(
+  payload: Payload,
+  bookingId: number,
+  what: string,
+  error: unknown,
+  req?: Req,
+): Promise<void> {
+  payload.logger.error({ err: error }, `Email to a participant failed: ${what}`)
+  try {
+    // Two emails failing for one booking (the confirmation and the account
+    // link) must both show: an issue not yet handled is added to, not replaced.
+    const current = await payload.findByID({
+      collection: 'bookings',
+      id: bookingId,
+      depth: 0,
+      req,
+      overrideAccess: true,
+    })
+    const line = `${what} — ${emailFailureReason(error)}`
+    const open = current.emailIssue && !current.emailIssueHandled ? current.emailIssue : null
+    await payload.update({
+      collection: 'bookings',
+      id: bookingId,
+      data: {
+        emailIssue: (open ? `${open}; ${line}` : line).slice(0, 1000),
+        emailIssueAt: new Date().toISOString(),
+        emailIssueHandled: false,
+      },
+      // Only these three fields change: no status email, no recount.
+      context: { skipStatusEmail: true, skipRecount: true },
+      req,
+      overrideAccess: true,
+    })
+  } catch (writeError) {
+    payload.logger.error({ err: writeError }, 'Could not note a failed email on the booking')
+  }
 }
 
 /**

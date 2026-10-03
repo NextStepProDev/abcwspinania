@@ -37,7 +37,7 @@ Numeracja jak w wiadomości do Krzyśka.
 | 1b | Przekierowania 301 ze **starych adresów Joomli** | każdy adres starej strony kieruje na odpowiednik; sprawdzone w Search Console | **częściowo** — od 05.10.2026 (czeka na wdrożenie) wszystkie znalezione stare adresy przekierowane i sprawdzone testem; zostaje sprawdzenie w Search Console po przełączeniu domeny |
 | 2 | System zarządzania obozami | formularz zapisu + obsługa zgłoszeń w panelu (rozbicie niżej) | **do zrobienia** |
 | 3 | Powiadomienia mailowe | mail wychodzi przy nowym zgłoszeniu i zapisie na obóz | **częściowo** — od 01.10.2026 mail do szkoły przy wiadomości z formularza (Brevo, PL/EN); zapis na obóz dojdzie z pozycją 2 |
-| 4 | Newsletter | zapis działa, zgoda wersjonowana | **gotowe** |
+| 4 | Newsletter | zapis działa, zgoda wersjonowana | **gotowe** — od 03.10.2026 (czeka na wdrożenie): potwierdzenie zapisu mailem, wysyłka z panelu („Wysyłki”), wypisanie jednym kliknięciem; poza obietnicą: wiadomości do zapisanych na termin i do wszystkich z nadchodzącymi zapisami |
 | 4b | Zapis na kurs „w 10 sekund" | skrócona ścieżka zapisu z podstrony kursu | **gotowe** (03.10.2026, czeka na wdrożenie) — zalogowany: termin + zgoda; bez konta: dane + opcja „załóż konto” |
 | 5 | RODO i polityka prywatności | rozbicie niżej | **częściowo** |
 | 6 | Bez banera ciasteczek, bez przekazywania danych | brak trackerów, brak ciasteczek innych niż sesyjne | **gotowe — z zastrzeżeniem o mailach (niżej)** |
@@ -96,6 +96,7 @@ adresy przechodzą na nowe, bez błędów 404).
 |---|---|
 | Zgody zapisywane treścią i wersją, nie znacznikiem „tak" | gotowe |
 | Osobna klauzula marketingowa dla newslettera | gotowe |
+| Newsletter: potwierdzenie zapisu (double opt-in), wypisanie jednym kliknięciem, niepotwierdzone usuwane po 7 dniach | gotowe (03.10.2026) |
 | Strona z polityką prywatności | **do zrobienia** |
 | Okresy przechowywania (zgłoszenia, zapisy, dane zdrowotne) | **do zrobienia** |
 | Podwyższone wymagania przy danych dzieci i danych o zdrowiu | **do zrobienia** |

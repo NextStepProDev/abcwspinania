@@ -1,7 +1,7 @@
 import { getPayload } from 'payload'
 import config from '@payload-config'
 
-import { staleUnverifiedWhere } from '@/lib/expiry'
+import { stalePendingNewsletterWhere, staleUnverifiedWhere } from '@/lib/expiry'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -23,6 +23,22 @@ export async function deleteStaleUnverifiedAccounts(): Promise<void> {
   }
 }
 
+/** Deletes newsletter sign-ups nobody confirmed in time (`lib/expiry.ts`). */
+export async function deleteStalePendingNewsletter(): Promise<void> {
+  const payload = await getPayload({ config })
+  const { docs, errors } = await payload.delete({
+    collection: 'newsletter',
+    where: stalePendingNewsletterWhere(new Date()),
+    overrideAccess: true,
+  })
+  if (docs.length) {
+    payload.logger.info(`Deleted ${docs.length} newsletter sign-up(s) left unconfirmed`)
+  }
+  if (errors.length) {
+    payload.logger.warn({ errors }, `Could not delete ${errors.length} unconfirmed sign-up(s)`)
+  }
+}
+
 /**
  * Runs the sweep a minute after the server starts, then once a day.
  *
@@ -37,10 +53,14 @@ export async function deleteStaleUnverifiedAccounts(): Promise<void> {
  * again.
  */
 export function scheduleAccountCleanup(): void {
-  const run = () =>
+  const run = () => {
     deleteStaleUnverifiedAccounts().catch((error) => {
       console.warn('Unconfirmed-account cleanup failed, will retry tomorrow:', error)
     })
+    deleteStalePendingNewsletter().catch((error) => {
+      console.warn('Unconfirmed-newsletter cleanup failed, will retry tomorrow:', error)
+    })
+  }
   setTimeout(run, 60_000).unref()
   setInterval(run, DAY_MS).unref()
 }

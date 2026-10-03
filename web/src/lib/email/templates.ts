@@ -452,3 +452,97 @@ export function placeFreedNotification(data: PlaceFreedData): Email {
     }),
   }
 }
+
+// --- Newsletter and broadcasts -------------------------------------------------
+
+const NEWSLETTER_CONFIRM = {
+  pl: {
+    subject: 'Potwierdź zapis na newsletter — ABC Wspinania',
+    heading: 'Potwierdź zapis na newsletter',
+    body: 'Ktoś — najpewniej Ty — wpisał ten adres w formularz newslettera na stronie ABC Wspinania. Kliknij przycisk, żeby zacząć dostawać wiadomości o terminach kursów, obozach i nowych tekstach.',
+    action: 'Potwierdzam zapis',
+    note: 'Jeśli to nie Ty, zignoruj tę wiadomość — bez potwierdzenia nic do Ciebie nie wyślemy, a adres usuniemy po 7 dniach.',
+  },
+  en: {
+    subject: 'Confirm your newsletter subscription — ABC Wspinania',
+    heading: 'Confirm your newsletter subscription',
+    body: 'Someone — most likely you — entered this address in the newsletter form on the ABC Wspinania website. Click the button to start receiving news about course dates, camps and new articles.',
+    action: 'Confirm subscription',
+    note: 'If it was not you, ignore this email — without confirmation we will send you nothing, and the address is deleted after 7 days.',
+  },
+} satisfies Record<EmailLanguage, unknown>
+
+/** Double opt-in: nothing goes to a newsletter address until its owner clicks this. */
+export function newsletterConfirmEmail(lang: EmailLanguage, data: { url: string }): Email {
+  const copy = NEWSLETTER_CONFIRM[lang]
+  return {
+    subject: copy.subject,
+    ...renderEmail({
+      lang,
+      heading: copy.heading,
+      paragraphs: [copy.body],
+      action: { label: copy.action, href: data.url },
+      note: copy.note,
+    }),
+  }
+}
+
+/** Why this person got a broadcast — the small print under it. */
+export type BroadcastReason =
+  | { kind: 'session'; label: string }
+  | { kind: 'upcoming' }
+  | { kind: 'newsletter'; unsubscribeUrl: string }
+
+const BROADCAST_NOTE = {
+  pl: {
+    session: (label: string) =>
+      `Dostajesz tę wiadomość, bo masz zapis na: ${label}. Odpowiedź na nią trafi wprost do nas.`,
+    upcoming:
+      'Dostajesz tę wiadomość, bo masz zapis na nadchodzący kurs w ABC Wspinania. Odpowiedź na nią trafi wprost do nas.',
+    newsletter: 'Dostajesz tę wiadomość, bo ten adres jest zapisany na newsletter ABC Wspinania.',
+    unsubscribe: 'Wypisz się z newslettera',
+  },
+  en: {
+    session: (label: string) =>
+      `You are receiving this because you are booked on: ${label}. Replies come straight to us.`,
+    upcoming:
+      'You are receiving this because you are booked on an upcoming course with ABC Wspinania. Replies come straight to us.',
+    newsletter: 'You are receiving this because you subscribed to the ABC Wspinania newsletter.',
+    unsubscribe: 'Unsubscribe from the newsletter',
+  },
+} satisfies Record<EmailLanguage, unknown>
+
+export interface BroadcastEmailData {
+  subject: string
+  /** Rendered by `renderRichText` — escaped there. */
+  body: { html: string; text: string }
+  reason: BroadcastReason
+}
+
+/** A message the school writes in the panel ("Wysyłki") to a group of people. */
+export function broadcastEmail(lang: EmailLanguage, data: BroadcastEmailData): Email {
+  const copy = BROADCAST_NOTE[lang]
+  const { reason } = data
+  const note =
+    reason.kind === 'session'
+      ? copy.session(reason.label)
+      : reason.kind === 'upcoming'
+        ? copy.upcoming
+        : copy.newsletter
+  const subject = oneLine(data.subject)
+  return {
+    subject,
+    ...renderEmail({
+      lang,
+      preheader: data.body.text.slice(0, 120),
+      heading: subject,
+      paragraphs: [],
+      body: data.body,
+      secondaryAction:
+        reason.kind === 'newsletter'
+          ? { label: copy.unsubscribe, href: reason.unsubscribeUrl }
+          : undefined,
+      note,
+    }),
+  }
+}
