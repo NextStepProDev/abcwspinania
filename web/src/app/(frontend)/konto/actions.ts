@@ -7,10 +7,11 @@ import config from '@payload-config'
 
 import { VERIFY_LINK_HOURS } from '@/collections/Customers'
 import { sendAccountExistsEmail, sendPasswordLink, sendVerificationLink } from '@/lib/accountEmails'
-import { getCurrentCustomer, setLoginCookie } from '@/lib/auth'
+import { clearLoginCookie, getCurrentCustomer, setLoginCookie } from '@/lib/auth'
 import { claimBookings } from '@/lib/bookingEffects'
 import { accountConsentForStorage } from '@/lib/consent'
 import { pickLanguage } from '@/lib/email/language'
+import { accountDeletedEmail } from '@/lib/email/templates'
 import {
   isValid,
   normalizePhone,
@@ -361,4 +362,68 @@ export async function updateLanguage(
     console.error('Failed to update a participant language:', error)
     return { status: 'error', message: 'Nie udało się zapisać. Spróbuj ponownie.' }
   }
+}
+
+// --- Deleting the account ----------------------------------------------------
+
+/**
+ * "Usuń konto" — the right to erasure, without writing to the school.
+ *
+ * The password again, not just the login: a session left open on a shared
+ * computer must not be enough to wipe someone's account. The id comes from
+ * that session, never from the form.
+ *
+ * What goes: the account (name, phone, language, consent, login sessions).
+ * What stays: the bookings — a separate purpose (organising the course,
+ * accounting) with its own consent, and a copy of the contact data of their
+ * own. Postgres unlinks them (`customer` is optional, so the foreign key sets
+ * it to null); the page says so before, the email after. Erasing those too
+ * is a request to the school, decided by its retention rules.
+ */
+export async function deleteAccount(
+  _previous: FormState<{ password?: string }>,
+  formData: FormData,
+): Promise<FormState<{ password?: string }>> {
+  const customer = await getCurrentCustomer()
+  if (!customer) redirect('/logowanie?next=/konto/usun')
+
+  const password = field(formData, 'password')
+  if (!password) return { status: 'error', errors: { password: 'Wpisz hasło.' } }
+
+  try {
+    const payload = await getPayload({ config })
+    try {
+      await payload.login({ collection: 'customers', data: { email: customer.email, password } })
+    } catch (error) {
+      if (error instanceof LockedAuth) {
+        return {
+          status: 'error',
+          message: 'Zbyt wiele nieudanych prób — spróbuj ponownie za 15 minut.',
+        }
+      }
+      if (error instanceof AuthenticationError) {
+        return { status: 'error', errors: { password: 'Nieprawidłowe hasło.' } }
+      }
+      throw error
+    }
+
+    await payload.delete({ collection: 'customers', id: customer.id, overrideAccess: true })
+    await clearLoginCookie()
+
+    const email = accountDeletedEmail(customer.language ?? 'pl', { firstName: customer.firstName })
+    await payload
+      .sendEmail({
+        to: customer.email,
+        replyTo: process.env.ADMIN_NOTIFY_EMAIL || undefined,
+        subject: email.subject,
+        html: email.html,
+        text: email.text,
+      })
+      .catch((error) => console.error('Failed to send the account-deleted email:', error))
+  } catch (error) {
+    console.error('Failed to delete a participant account:', error)
+    return { status: 'error', message: 'Nie udało się usunąć konta. Spróbuj ponownie za chwilę.' }
+  }
+  // Outside try/catch: `redirect` throws.
+  redirect('/konto/usuniete')
 }

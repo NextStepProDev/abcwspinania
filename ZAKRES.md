@@ -101,7 +101,7 @@ adresy przechodzą na nowe, bez błędów 404).
 | Okresy przechowywania (zgłoszenia, zapisy, dane zdrowotne) | **do zrobienia** |
 | Podwyższone wymagania przy danych dzieci i danych o zdrowiu | **do zrobienia** |
 | Umowa powierzenia przetwarzania między Krzyśkiem a wykonawcą | **do zrobienia** |
-| Mechanizm usunięcia danych na żądanie | **do zrobienia** |
+| Mechanizm usunięcia danych na żądanie | **częściowo** — od 04.10.2026 „Usuń konto” samodzielnie w Moim koncie; zapisy usuwa szkoła na prośbę (okresy przechowywania do ustalenia) |
 
 ### Rozbicie pozycji 11 — security
 

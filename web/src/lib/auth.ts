@@ -46,6 +46,12 @@ export async function setLoginCookie(token: string, expiresAt: number | undefine
   })
 }
 
+/** Drops the login cookie — after the account it belonged to is gone. */
+export async function clearLoginCookie() {
+  const payload = await getPayload({ config })
+  ;(await cookies()).delete(`${payload.config.cookiePrefix}-token`)
+}
+
 /** Account pages stay out of search engines — there is nothing to find there. */
 export function accountPageMetadata(title: string): Metadata {
   return { title, robots: { index: false, follow: false } }

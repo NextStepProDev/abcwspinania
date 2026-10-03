@@ -764,6 +764,17 @@ zrobi z kursanta administratora. Koszt: zasada 28.
   „kilku zwykłych słów” (to czytało się jak zachęta do słabego hasła). Logowanie
   sprawdza tylko obecność pól — reguły długości przy logowaniu zdradzałyby,
   jakich haseł nie ma.
+- **„Usuń konto” w Moim koncie** (`/konto/usun`, od 04.10.2026). Wymaga
+  hasła ponownie — otwarta sesja na cudzym komputerze nie wystarcza. Kasuje
+  konto i jego sesje; **zapisy zostają w szkole**, odpięte od konta (pole
+  `customer` jest opcjonalne, więc klucz obcy ustawia je na null —
+  sprawdzone 04.10.2026). To osobny cel przetwarzania (organizacja kursu,
+  rozliczenia) z własną zgodą; strona mówi o tym przed usunięciem, a
+  nadchodzący zapis wymienia z nazwy — usunięcie konta go NIE odwołuje.
+  Pełne usunięcie zapisów to prośba do szkoły, zależna od okresów
+  przechowywania (do ustalenia z Krzyśkiem). Po usunięciu idzie mail
+  z potwierdzeniem. Założenie konta na ten sam adres później znów
+  podepnie stare zapisy (`claimBookings`) — to ta sama, udowodniona osoba.
 - **Dzieci (do zapisów na obozy) dojdą w etapie 4**, nie teraz — żeby nie
   projektować pól pod wymagania, których Krzysiek jeszcze nie podał.
 

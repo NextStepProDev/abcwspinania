@@ -546,3 +546,39 @@ export function broadcastEmail(lang: EmailLanguage, data: BroadcastEmailData): E
     }),
   }
 }
+
+// --- Account deletion -------------------------------------------------------------
+
+const ACCOUNT_DELETED = {
+  pl: {
+    subject: 'Konto usunięte — ABC Wspinania',
+    body: 'Twoje konto w ABC Wspinania zostało usunięte razem z danymi konta. Nie zalogujesz się już na nie.',
+    bookings:
+      'Zapisy na kursy zostają w szkole — bez powiązania z kontem — bo dotyczą organizacji zajęć. Chcesz odwołać zapis albo usunąć też te dane? Odpowiedz na tę wiadomość.',
+    note: 'Jeśli konto usunął ktoś inny niż Ty, odpowiedz na tę wiadomość od razu.',
+  },
+  en: {
+    subject: 'Account deleted — ABC Wspinania',
+    body: 'Your ABC Wspinania account has been deleted together with its data. You can no longer log in to it.',
+    bookings:
+      'Course bookings stay with the school — no longer linked to an account — because they concern organising the course. Want to cancel a booking or have that data deleted too? Reply to this email.',
+    note: 'If you did not delete the account, reply to this email straight away.',
+  },
+} satisfies Record<EmailLanguage, unknown>
+
+/** To the former participant, after "Usuń konto". */
+export function accountDeletedEmail(
+  lang: EmailLanguage,
+  data: { firstName?: string | null },
+): Email {
+  const copy = ACCOUNT_DELETED[lang]
+  return {
+    subject: copy.subject,
+    ...renderEmail({
+      lang,
+      heading: greeting(lang, data.firstName),
+      paragraphs: [copy.body, copy.bookings],
+      note: copy.note,
+    }),
+  }
+}
