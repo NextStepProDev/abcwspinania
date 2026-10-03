@@ -56,8 +56,10 @@ jobs:
       # zależności produkcyjne. Bez tej flagi audyt zgłasza podatności w narzędziach
       # deweloperskich (drizzle-kit, eslint), które nigdy nie opuszczają CI —
       # i bramka musiałaby stać na `continue-on-error`, czyli nie pilnować niczego.
+      # `npm run audit` = `npm audit --omit=dev` + high/critical + lista wyjątków
+      # po identyfikatorze, każdy z powodem (web/scripts/audit-gate.mjs).
       - name: npm audit (produkcyjne, high+)
-        run: npm audit --omit=dev --audit-level=high
+        run: npm run audit
       # Typy Payloada są generowane z konfiguracji kolekcji i COMMITOWANE.
       # Ten krok pilnuje, żeby nie rozjechały się z konfiguracją: jeśli ktoś
       # zmienił pole i nie przegenerował typów, `git diff` to wyłapie tutaj,
