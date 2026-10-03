@@ -16,7 +16,8 @@
     "generate:importmap": "NODE_OPTIONS=--no-deprecation payload generate:importmap",
     "migrate:create": "NODE_OPTIONS=--no-deprecation payload migrate:create",
     "migrate": "NODE_OPTIONS=--no-deprecation payload migrate",
-    "seed": "NODE_OPTIONS=--no-deprecation payload run scripts/seed.ts"
+    "seed": "NODE_OPTIONS=--no-deprecation payload run scripts/seed.ts",
+    "audit": "node scripts/audit-gate.mjs"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "3.90.2",

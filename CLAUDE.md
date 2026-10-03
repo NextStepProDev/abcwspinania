@@ -299,6 +299,29 @@ a Payload zapytałby wtedy o zgodę na utratę danych. Drugą linią obrony jest
   zostanie po cichu i kiedyś cofnie Payload do starszego `undici`) i ten
   akapit. Potem `npm ls undici esbuild` w `web/`; jeśli `esbuild` wciąż
   sprzed poprawki — sprawdzić, czy nie wszedł do obrazu.
+- **Bramka audytu ma listę wyjątków — `web/scripts/audit-gate.mjs`**
+  (`npm run audit`, od 03.10.2026). Sam `npm audit` umie tylko „wszystko
+  albo nic”, a od 02.10 (przegląd GitHuba; opublikowany 18.09) zgłasza
+  alert **high** bez żadnej poprawki:
+  **`braces`** (`GHSA-vfj7-8cjw-p6xm`, przepełnienie stosu przy głęboko
+  zagnieżdżonym wzorcu). Łańcuch: `@payloadcms/next` → `sass` 1.77.4
+  (przypięty co do numeru) → `chokidar` 3 → `braces`. To narzędzia budowania:
+  żadnego z nich nie ma w `.next/standalone`, a aplikacja nie rozwija wzorców
+  od odwiedzających. Najnowszy Payload 3.x (3.90.2) wciąż przypina ten
+  `sass`, a `braces` nie ma wydania z poprawką — bez wyjątku stały WSZYSTKIE
+  PR-y i wdrożenia, na czas nieokreślony.
+  - Wyjątek obejmuje **jeden identyfikator**, nie pakiet ani poziom — każda
+    inna dziura high/critical, także nowa w `braces`, zatrzymuje CI jak dotąd.
+  - Wpis, którego audyt już nie zgłasza, **też wywala bramkę** (`STALE`),
+    więc wyjątek nie zostanie po cichu po naprawie.
+  - **Przy podbiciu Payloada:** `npm view @payloadcms/next@<nowa>
+    dependencies.sass` — od `sass` 1.79 jest `chokidar` 4 bez `braces`.
+  - Nowy wyjątek tylko z opisem w skrypcie: dlaczego nieosiągalny i kiedy go
+    zdjąć. Obniżanie poziomu bramki albo `continue-on-error` — nie.
+  - Obok: zadanie Dependabota „dompurify” kończy się na czerwono
+    (`security_update_not_possible`) — `dompurify` przypina `monaco-editor`
+    z Payloada (zasada 19), alert jest `low`, nie blokuje CI. Na produkcję
+    nie wpływa; zniknie przy podbiciu Payloada.
 - **PostgreSQL 18** (`postgres:18-alpine`). 19 istnieje tylko jako beta.
 
 ---
@@ -746,7 +769,7 @@ npm run migrate                       # schemat z migracji w repo
 npm run dev                           # strona :3000, panel :3000/admin
 
 npm run lint && npx tsc --noEmit && npm test && npm run build
-npm audit --omit=dev --audit-level=high   # bramka BLOKUJĄCA w CI
+npm run audit                             # bramka BLOKUJĄCA w CI (npm audit + wyjątki)
 npm run generate:types && git diff --exit-code src/payload-types.ts
 
 # nginx.conf — nazwa `app` nie rozwiązuje się poza siecią compose,
