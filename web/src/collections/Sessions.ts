@@ -1,6 +1,7 @@
 import { APIError, type CollectionConfig } from 'payload'
 
 import { recountSession } from '../lib/bookingEffects'
+import { exportSessionHandler } from '../lib/sessionExport'
 
 import { anyone, isAdmin } from '../lib/access'
 
@@ -39,6 +40,8 @@ export const Sessions: CollectionConfig = {
     delete: isAdmin,
   },
   defaultSort: 'startDate',
+  // The participant list as a spreadsheet — see `lib/sessionExport.ts`.
+  endpoints: [{ path: '/:id/export', method: 'get', handler: exportSessionHandler }],
   hooks: {
     beforeDelete: [
       // A session with bookings is never deleted: the bookings' `session` is
@@ -238,6 +241,15 @@ export const Sessions: CollectionConfig = {
       admin: {
         defaultColumns: ['label', 'status', 'phone'],
         description: 'Wszystkie zapisy na ten termin — także rezerwowe i rezygnacje.',
+      },
+    },
+    {
+      // A button on the session's page that downloads its participant list.
+      name: 'exportLink',
+      type: 'ui',
+      admin: {
+        position: 'sidebar',
+        components: { Field: '/components/admin/SessionExportLink#SessionExportLink' },
       },
     },
   ],

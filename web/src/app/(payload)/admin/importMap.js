@@ -21,6 +21,9 @@ import { StrikethroughFeatureClient as StrikethroughFeatureClient_e70f5e05f09f93
 import { UnderlineFeatureClient as UnderlineFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { BoldFeatureClient as BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
+import { SessionExportLink as SessionExportLink_1b5e838108c8abf745555d86e410b317 } from '../../../components/admin/SessionExportLink'
+import { BookingStatusCell as BookingStatusCell_9ca1a4f5c0ba98f89d83789886169772 } from '../../../components/admin/BookingStatusCell'
+import { SchoolDashboard as SchoolDashboard_e244a23061373c24572efb1fc83a2cf1 } from '../../../components/admin/SchoolDashboard'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
 /** @type import('payload').ImportMap */
@@ -48,5 +51,8 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#UnderlineFeatureClient": UnderlineFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#BoldFeatureClient": BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#ItalicFeatureClient": ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
+  "/components/admin/SessionExportLink#SessionExportLink": SessionExportLink_1b5e838108c8abf745555d86e410b317,
+  "/components/admin/BookingStatusCell#BookingStatusCell": BookingStatusCell_9ca1a4f5c0ba98f89d83789886169772,
+  "/components/admin/SchoolDashboard#SchoolDashboard": SchoolDashboard_e244a23061373c24572efb1fc83a2cf1,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }

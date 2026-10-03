@@ -154,6 +154,8 @@ export const Bookings: CollectionConfig = {
       label: 'Status',
       options: BOOKING_STATUS_OPTIONS,
       admin: {
+        // A select in the list itself — see the component.
+        components: { Cell: '/components/admin/BookingStatusCell#BookingStatusCell' },
         description:
           '„Lista rezerwowa” i „rezygnacja” nie zajmują miejsca. Zmiana na „potwierdzony”, „opłacony” lub „rezygnacja” wysyła kursantowi maila.',
       },

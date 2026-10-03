@@ -74,7 +74,10 @@ Obiecane wprost w wiadomości, więc żadnego z tych punktów nie da się pomin�
 - [ ] system składa **gotową kartę kwalifikacyjną uczestnika** z danych wpisanych przez rodzica
 - [ ] statusy zgłoszenia: zgłoszony → potwierdzony → zaliczka → opłacony → rezygnacja
 - [ ] obsługa rezygnacji i **listy rezerwowej** (kto dostaje zwolnione miejsce)
-- [ ] w panelu: statystyki, powiadomienia, lista rzeczy do zrobienia
+- [ ] w panelu: statystyki, powiadomienia, lista rzeczy do zrobienia —
+  **częściowo** (03.10.2026, dla kursów): pulpit „Do zrobienia” z obłożeniem
+  terminów, maile o zapisach i zwolnionych miejscach, eksport listy do
+  Excela; obozowa część dojdzie z formularzem obozów
 
 Płatności **przelewem na konto**, bez operatora online — patrz „Poza zakresem".
 

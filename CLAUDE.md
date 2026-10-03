@@ -824,6 +824,33 @@ i `lib/bookingEffects.ts` (skutki uboczne).
 
 ---
 
+## Panel szkoły — pulpit, szybki status, eksport
+
+Od 03.10.2026 (etap 3). Własne elementy panelu w `src/components/admin/`,
+podpięte ścieżkami w configu — **po dodaniu albo przeniesieniu któregoś:
+`npm run generate:importmap`** (plik `importMap.js` jest generowany,
+zasada 25), inaczej panel nie znajdzie komponentu.
+
+- **Pulpit „Do zrobienia”** (`SchoolDashboard`, `admin.components.
+  beforeDashboard`): nowe zgłoszenia, potwierdzone (czekają na zaliczkę),
+  lista rezerwowa, nowe wiadomości — każda liczba to link do listy
+  przefiltrowanej przez `?where[...]` w adresie; pod spodem 8 najbliższych
+  terminów z obłożeniem „zajęte / limit” i linkami do zapisanych i Excela.
+- **Status jako lista rozwijana na liście zapisów** (`BookingStatusCell`).
+  Zapisuje przez REST, więc działa wszystko, co idzie za zmianą statusu
+  (mail, przeliczenie miejsc). Status wysyłający kursantowi maila pyta
+  najpierw — klik w zły wiersz nie może wysłać „zapis anulowany”.
+- **Eksport uczestników terminu** — `GET /api/sessions/:id/export`
+  (`lib/sessionExport.ts`), przycisk na stronie terminu. Tylko konto szkoły.
+  CSV pod POLSKIEGO Excela (`lib/csv.ts`): BOM (inaczej „Å»aneta”), średnik,
+  komórki zaczynające się od `= + - @` z apostrofem (formuła wpisana
+  w formularz nie wykona się u Krzyśka), telefon jako `="+48 600 …"` (bez
+  tego Excel robi z niego liczbę bez plusa).
+- **Bez `@payloadcms/ui` w naszym kodzie**: to zależność Payloada, nie
+  projektu — import działałby przypadkiem. Id terminu bierzemy z adresu.
+
+---
+
 ## Maile (Brevo)
 
 Od 01.10.2026 aplikacja wysyła maile przez **Brevo, przez jego HTTP API**

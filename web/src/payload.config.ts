@@ -69,6 +69,11 @@ export default buildConfig({
     importMap: {
       baseDir: path.resolve(dirname),
     },
+    // "Do zrobienia" above the collections: new bookings, waiting list,
+    // occupancy of the next sessions — see the component.
+    components: {
+      beforeDashboard: ['/components/admin/SchoolDashboard#SchoolDashboard'],
+    },
     meta: {
       titleSuffix: '— ABC Wspinania',
       description: 'Panel zarządzania treścią szkoły wspinaczkowej ABC Wspinania',
