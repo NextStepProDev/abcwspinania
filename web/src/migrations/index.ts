@@ -5,6 +5,8 @@ import * as migration_20260923_213302_gallery_photos_collection from './20260923
 import * as migration_20260924_133009_home_page_hero_image from './20260924_133009_home_page_hero_image';
 import * as migration_20260924_223953_camps_page_intro from './20260924_223953_camps_page_intro';
 import * as migration_20261002_090000_publish_existing_content from './20261002_090000_publish_existing_content';
+import * as migration_20261005_195005_newsletter_pending_status from './20261005_195005_newsletter_pending_status';
+import * as migration_20261005_195006_bookings_accounts_broadcasts from './20261005_195006_bookings_accounts_broadcasts';
 
 export const migrations = [
   {
@@ -35,11 +37,21 @@ export const migrations = [
   {
     up: migration_20260924_223953_camps_page_intro.up,
     down: migration_20260924_223953_camps_page_intro.down,
-    name: '20260924_223953_camps_page_intro'
+    name: '20260924_223953_camps_page_intro',
   },
   {
     up: migration_20261002_090000_publish_existing_content.up,
     down: migration_20261002_090000_publish_existing_content.down,
     name: '20261002_090000_publish_existing_content',
+  },
+  {
+    up: migration_20261005_195005_newsletter_pending_status.up,
+    down: migration_20261005_195005_newsletter_pending_status.down,
+    name: '20261005_195005_newsletter_pending_status',
+  },
+  {
+    up: migration_20261005_195006_bookings_accounts_broadcasts.up,
+    down: migration_20261005_195006_bookings_accounts_broadcasts.down,
+    name: '20261005_195006_bookings_accounts_broadcasts'
   },
 ];

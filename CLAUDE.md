@@ -210,6 +210,33 @@ bazy wystawionej **wyłącznie na pętli zwrotnej serwera** (`127.0.0.1:5432`).
 schemat zmieniają wyłącznie migracje — żeby start kontenera nie mógł przepisać
 tabeli z danymi klienta.
 
+### ⚠️ Wygenerowanej migracji nie ufaj, dopóki nie przejdzie na bazie z `main`
+
+Zmierzone 05.10.2026 przy migracji zapisów i wysyłek: `migrate:create` wygenerował
+dwa błędy, których nie wyłapał żaden lint, typ ani test na bazie w trybie push.
+
+- **Nowa wartość typu wyliczeniowego użyta w tej samej migracji** (`ADD VALUE
+  'pending'`, potem `SET DEFAULT 'pending'`) → `unsafe use of new value`. Payload
+  wykonuje migrację w jednej transakcji, a Postgres nie pozwala użyć wartości
+  dodanej w niezatwierdzonej transakcji. **`ADD VALUE` idzie do osobnej, ręcznej
+  migracji przed właściwą** (wzór: `20261005_195005_newsletter_pending_status`).
+- **`down` padał**: kasuje tabele z `CASCADE`, a potem ich ograniczenia, których
+  już nie ma. Ręcznie: `DROP CONSTRAINT IF EXISTS`.
+
+Sprawdzenie bez ruszania lokalnej bazy z treścią — obok, na tym samym serwerze:
+
+```bash
+docker exec abcwspinania-postgres-dev psql -U abcwspinania -d abcwspinania \
+  -c "CREATE DATABASE abc_migration_check;"
+# DATABASE_URI z .env z nazwą bazy podmienioną na abc_migration_check, potem:
+npm run migrate < /dev/null            # w górę: wszystko z repo
+npm run payload -- migrate:down < /dev/null && npm run migrate < /dev/null
+# … i DROP DATABASE abc_migration_check
+```
+
+Job `integration` w CI stawia bazę wyłącznie z migracji, więc błąd w górę
+zatrzyma PR — ale `down` sprawdza tylko ręczna próba.
+
 ---
 
 ### ⚠️ Tryb `push` blokuje migracje — i wiesza je bez terminala
@@ -260,12 +287,12 @@ a Payload zapytałby wtedy o zgodę na utratę danych. Drugą linią obrony jest
   Major którejkolwiek wywala `npm ci`, więc w Dependabocie są zablokowane
   i odblokowuje się je razem z podbiciem Payloada.
 - **Node 26** (`node:26-alpine`). **Ta sama liczba musi stać w `node-version:`
-  w `ci.yml`.** Dependabot podbijałby ją wyłącznie w Dockerfile (ekosystem
+  w `ci.yml` — w OBU jobach** (`lint-typecheck-build` i `integration`). Dependabot podbijałby ją wyłącznie w Dockerfile (ekosystem
   `docker` czyta tylko Dockerfile'e) — w anovastudio po bumpie 24 → 26 CI został
   na 24 i przez jakiś czas testował kod na innym silniku niż produkcja. Dlatego
   major Node jest w Dependabocie **zablokowany**: łatki przychodzą same (tag
   pływający), a nieparzyste majory nigdy nie dostają LTS. **Przejście na 28 to
-  ręczna zmiana obu miejsc naraz.**
+  ręczna zmiana wszystkich trzech miejsc naraz.**
 - **Łatki bezpieczeństwa idą poza harmonogramem** — to nie zasługa
   `dependabot.yml` (ten działa raz w miesiącu), tylko ustawień repozytorium:
   *Dependabot alerts* i *Dependabot security updates*. Włączone 28.09.2026;
@@ -330,6 +357,9 @@ a Payload zapytałby wtedy o zgodę na utratę danych. Drugą linią obrony jest
     z Payloada (zasada 19), alert jest `low`, nie blokuje CI. Na produkcję
     nie wpływa; zniknie przy podbiciu Payloada.
 - **PostgreSQL 18** (`postgres:18-alpine`). 19 istnieje tylko jako beta.
+  Ta sama wersja stoi w `services:` joba `integration` w `ci.yml` —
+  Dependabot jej tam nie widzi, więc przy podbiciu majora zmienić ręcznie,
+  żeby testy biegły na tym samym Postgresie co produkcja.
 
 ---
 
@@ -1269,7 +1299,9 @@ docker run --rm -v "$PWD/..:/repo" -w /repo rhysd/actionlint:latest -color
 
 ### Testy integracyjne
 
-Od 05.10.2026 `npm run test:integration` (`web/tests/integration/`):
+Od 05.10.2026 `npm run test:integration` (`web/tests/integration/`), także
+w CI (job `integration`: Postgres jako usługa, schemat WYŁĄCZNIE z migracji,
+serwer `.next/standalone/server.js` jak w obrazie; job `docker` czeka na niego):
 prawdziwa baza i działający serwer (`TEST_BASE_URL`, domyślnie
 `http://localhost:3000`). Sprawdza to, czego nie widzą testy jednostkowe:
 kto czyta co przez REST (kursant nie widzi cudzych zapisów ani danych

@@ -124,8 +124,8 @@ adresy przechodzą na nowe, bez błędów 404).
   prawdziwa baza i serwer: uprawnienia (kursant nie czyta cudzych danych
   przez API), zapis na kurs (wyścig o miejsce, podwójne kliknięcie),
   newsletter, wysyłki, niedostarczone maile, usunięcie konta
-- **do zrobienia:** uruchamianie ich w CI (wymaga wspólnej migracji
-  schematu) i zapis na obóz (etap obozów)
+  — uruchamiane w CI przy każdym PR-ze, na bazie postawionej z samych migracji
+- **do zrobienia:** zapis na obóz (etap obozów)
 
 ---
 
