@@ -567,7 +567,7 @@ export function scheduleBroadcastWorker(getPayloadInstance: () => Promise<Payloa
 /** Thrown by the collection hook when a sent broadcast is edited. */
 export function lockedError(): APIError {
   return new APIError(
-    'Ta wiadomość jest już wysłana albo w trakcie wysyłki — zmian nie da się zapisać. Żeby wysłać podobną, użyj „Duplikuj”.',
+    'Ta wiadomość jest już wysłana albo w trakcie wysyłki — zmian nie da się zapisać. Żeby wysłać podobną, wybierz „Zduplikuj” z menu z trzema kropkami.',
     400,
     null,
     true,

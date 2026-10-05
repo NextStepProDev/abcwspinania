@@ -25,7 +25,7 @@ import { hasText, type RichTextValue } from '../lib/email/richText'
  * `lib/broadcastSender.ts`.
  *
  * A sent broadcast cannot be edited (`beforeChange`): its text must stay what
- * people actually received. "Duplikuj" makes an editable copy — the status
+ * people actually received. "Zduplikuj" (the ⋮ menu) makes an editable copy — the status
  * and counters reset on duplication (`beforeDuplicate`).
  */
 

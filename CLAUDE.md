@@ -942,7 +942,7 @@ logika w `lib/broadcasts.ts` (czyste funkcje) i `lib/broadcastSender.ts`
   — ponowienie za 10 min, do 5 prób. Darmowy plan Brevo = 300 maili dziennie
   łącznie ze wszystkimi innymi mailami strony.
 - **Wysłanej wiadomości nie da się zmienić** (pola z `access.update` tylko dla
-  szkicu + hook `beforeChange`) — ma zostać to, co ludzie dostali. „Duplikuj”
+  szkicu + hook `beforeChange`) — ma zostać to, co ludzie dostali. „Zduplikuj” (menu ⋮)
   daje szkic z wyzerowanymi licznikami (`beforeDuplicate`).
 - **Treść z edytora → mail przez NASZ konwerter** (`lib/email/richText.ts`),
   nie `@payloadcms/richtext-lexical/html`: style inline (Outlook), każdy tekst
