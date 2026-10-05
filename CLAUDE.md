@@ -894,6 +894,18 @@ logika w `lib/broadcasts.ts` (czyste funkcje) i `lib/broadcastSender.ts`
   przyjęte ryzyko: awaria dokładnie między tymi krokami wyśle jeden mail
   dwa razy. **Zegar startuje tylko przy starcie serwera** — po zmianie
   w `instrumentation.ts` lokalnie trzeba zrestartować `npm run dev`.
+- **Jeden takt kolejki naraz — dwie blokady.** Flaga na `globalThis`
+  (zegar i endpoint „Wyślij” Next pakuje osobno; flaga w module dawała
+  dwie kopie i — zmierzone 04.10.2026 — 20 maili do 10 adresów) oraz
+  `pg_try_advisory_xact_lock(7304)` na cały takt, wspólny dla WSZYSTKICH
+  procesów: drugiej instancji albo testów integracyjnych kolejkujących do
+  bazy, nad którą tyka serwer deweloperski z prawdziwym kluczem Brevo.
+- **Jedna zepsuta wysyłka nie może zatrzymać kolejki.** Znalezione
+  05.10.2026: wysyłka „w trakcie”, której termin usunięto (Postgres
+  wyczyścił pole), nie przechodziła walidacji „Wybierz termin” przy zapisie
+  własnych liczników — każdy takt padał, a z nim wszystkie wysyłki za nią.
+  Teraz termin jest wymagany tylko w szkicu, każda wysyłka w takcie ma
+  własny `catch`, a bez terminu notka pod mailem jest ogólna.
 - **Błędy wysyłki** (`classifySendError`): dzienny limit Brevo (401/402/403/429,
   „credit/limit/quota”) albo odrzucony klucz WSTRZYMUJĄ wysyłkę na godzinę
   i wznawiają ją same; odrzucony adres — błąd tylko tego wiersza; sieć i 5xx
@@ -1242,6 +1254,7 @@ npm run dev                           # strona :3000, panel :3000/admin
 
 npm run lint && npx tsc --noEmit && npm test && npm run build
 npm run audit                             # bramka BLOKUJĄCA w CI (npm audit + wyjątki)
+npm run test:integration                  # przy działającym npm run dev (patrz niżej)
 npm run generate:types && git diff --exit-code src/payload-types.ts
 
 # nginx.conf — nazwa `app` nie rozwiązuje się poza siecią compose,
@@ -1253,6 +1266,39 @@ docker run --rm -v /tmp/n.conf:/etc/nginx/conf.d/default.conf:ro \
 # Workflow'y (wymaga zainicjowanego repozytorium git)
 docker run --rm -v "$PWD/..:/repo" -w /repo rhysd/actionlint:latest -color
 ```
+
+### Testy integracyjne
+
+Od 05.10.2026 `npm run test:integration` (`web/tests/integration/`):
+prawdziwa baza i działający serwer (`TEST_BASE_URL`, domyślnie
+`http://localhost:3000`). Sprawdza to, czego nie widzą testy jednostkowe:
+kto czyta co przez REST (kursant nie widzi cudzych zapisów ani danych
+szkoły — obietnica ZAKRES pkt 8), wyścig o ostatnie miejsce i podwójne
+kliknięcie, newsletter z potwierdzeniem, kolejkę wysyłek, odnotowane
+maile, usunięcie konta.
+
+- **Własny mały runner, nie `node:test`.** Testy idą przez `payload run`
+  (`.env`, aliasy `@/`, prawdziwy Payload — bez nowej zależności), a ono
+  woła `process.exit(0)`, gdy tylko skrypt się załaduje: `node:test`
+  zostałby ucięty, a błędy kończyłyby się kodem 0. `harness.ts` czeka na
+  każdy test i sam ustawia kod wyjścia; nieudane sprzątanie też go psuje.
+- **Żaden mail nie wychodzi**: skrypt zeruje `BREVO_API_KEY`, a
+  `payload.sendEmail` jest podmieniony na skrzynkę w pamięci, którą testy
+  czytają. Przez HTTP testy czytają, dostają odmowy i wypisują z newslettera
+  — nic, co wysyła maile. Wszystko, co wysyła, wołają w swoim procesie (endpointy wysyłek z kontem szkoły na
+  żądaniu), bo maili serwera nie da się stąd zatrzymać.
+- **Każdy rekord ma znacznik i jest kasowany na końcu** — można je puszczać
+  na bazie deweloperskiej. Kasowanie przez `where` idzie przez `removeWhere`:
+  hurtowe `payload.delete` NIE rzuca, tylko zwraca odmowy w `errors` —
+  wysyłki „w trakcie” zostawały w bazie po cichu i blokowały kolejkę
+  następnego przebiegu.
+- **Zmiana kolekcji = restart `npm run dev` przed testami HTTP.** Serwer
+  deweloperski nie przeładowuje konfiguracji Payloada w locie (zmierzone
+  04–05.10.2026: nowe pola nieznane, zmieniona reguła dostępu nadal stara),
+  więc test dostępu mierzyłby STARĄ konfigurację.
+- Sprawdzone mutacjami 05.10.2026: zdjęta blokada „Wyślij” → czerwony test
+  podwójnego kliknięcia; `read: () => true` w `Bookings` → trzy czerwone
+  testy dostępu.
 
 ---
 

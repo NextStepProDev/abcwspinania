@@ -58,6 +58,8 @@ import type { Broadcast, BroadcastDelivery } from '@/payload-types'
  */
 
 const LOCK_BROADCAST = 7303
+/** One queue tick at a time, across processes (`processBroadcasts`). */
+const LOCK_QUEUE = 7304
 /** Emails per tick — with the tick below, about 60 a minute. */
 const BATCH = 20
 const TICK_MS = 20_000
@@ -165,7 +167,9 @@ async function reasonFor(
     return { kind: 'newsletter', unsubscribeUrl: unsubscribeUrl(token ?? 'test') }
   }
   if (broadcast.audience === 'session') {
-    return { kind: 'session', label: await sessionLabel(payload, broadcast, lang) }
+    const label = await sessionLabel(payload, broadcast, lang)
+    // The session deleted after "Wyślij": the general note, not "booked on: ."
+    if (label) return { kind: 'session', label }
   }
   return { kind: 'upcoming' }
 }
@@ -504,7 +508,24 @@ async function processBroadcast(payload: Payload, broadcast: Broadcast): Promise
 export async function processBroadcasts(payload: Payload): Promise<void> {
   if (queue.__broadcastQueueRunning) return
   queue.__broadcastQueueRunning = true
+  // The flag covers this process; this lock covers ALL of them — a second
+  // instance, or the integration tests (`tests/integration`) queueing into
+  // the database a development server is ticking over. A transaction-level
+  // advisory lock, held only by the open transaction (its own pooled
+  // connection) and released by the commit in `finally`; the sending itself
+  // writes through other connections. Not taken: someone else is ticking.
+  // Inside the `try`: a database that fails here already must still reach
+  // the `finally`, or the flag stays set and this process never ticks again
+  // (measured 05.10.2026 with a failing `beginTransaction`).
+  let lockReq: Awaited<ReturnType<typeof createLocalReq>> | null = null
   try {
+    lockReq = await createLocalReq({}, payload)
+    await initTransaction(lockReq)
+    const tx = await txOf(payload, lockReq)
+    const result = (await tx.execute(
+      sql`SELECT pg_try_advisory_xact_lock(${LOCK_QUEUE}) AS locked`,
+    )) as { rows?: { locked: boolean }[] }
+    if (!result.rows?.[0]?.locked) return
     const { docs } = await payload.find({
       collection: 'broadcasts',
       where: { status: { equals: 'sending' } },
@@ -514,10 +535,23 @@ export async function processBroadcasts(payload: Payload): Promise<void> {
       joins: false,
       overrideAccess: true,
     })
-    for (const broadcast of docs) await processBroadcast(payload, broadcast)
+    // Each on its own: one broadcast that cannot be processed must not hold
+    // up the ones behind it, tick after tick.
+    for (const broadcast of docs) {
+      await processBroadcast(payload, broadcast).catch((error) =>
+        payload.logger.warn(
+          { err: error },
+          `Broadcast ${broadcast.id} failed this tick, will retry`,
+        ),
+      )
+    }
   } catch (error) {
     payload.logger.warn({ err: error }, 'Broadcast queue tick failed, will retry')
   } finally {
+    if (lockReq) {
+      const req = lockReq
+      await commitTransaction(req).catch(() => killTransaction(req).catch(() => undefined))
+    }
     queue.__broadcastQueueRunning = false
   }
 }

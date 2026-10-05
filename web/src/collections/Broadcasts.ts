@@ -198,8 +198,14 @@ export const Broadcasts: CollectionConfig = {
       relationTo: 'sessions',
       label: 'Termin',
       admin: { condition: (data) => data?.audience === 'session' },
+      // Required for a DRAFT only. Once queued the recipient list is fixed, and
+      // a session deleted later (Postgres empties this field) must not make
+      // the queue's own writes fail — that jammed every broadcast behind it.
       validate: (value: unknown, { siblingData }: { siblingData: Record<string, unknown> }) =>
-        siblingData.audience !== 'session' || Boolean(value) || 'Wybierz termin.',
+        siblingData.audience !== 'session' ||
+        (siblingData.status !== undefined && siblingData.status !== 'draft') ||
+        Boolean(value) ||
+        'Wybierz termin.',
     },
     {
       name: 'includeWaitlist',

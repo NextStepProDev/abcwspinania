@@ -120,8 +120,12 @@ adresy przechodzą na nowe, bez błędów 404).
 
 - **gotowe:** 41 testów jednostkowych (`web/src/lib/lib.test.ts`), uruchamiane
   w CI, przechodzą pod czterema strefami czasowymi
-- **do zrobienia:** testy integracyjne — przejście formularza od wysyłki do
-  zapisu w bazie, zapis na obóz, logowanie do panelu
+- **gotowe (05.10.2026):** testy integracyjne `npm run test:integration` —
+  prawdziwa baza i serwer: uprawnienia (kursant nie czyta cudzych danych
+  przez API), zapis na kurs (wyścig o miejsce, podwójne kliknięcie),
+  newsletter, wysyłki, niedostarczone maile, usunięcie konta
+- **do zrobienia:** uruchamianie ich w CI (wymaga wspólnej migracji
+  schematu) i zapis na obóz (etap obozów)
 
 ---
 

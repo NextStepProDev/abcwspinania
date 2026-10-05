@@ -32,7 +32,7 @@ import type { Booking, Course, Customer, Session } from '@/payload-types'
  * request-bound parts — who is logged in, the form, the emails after commit.
  */
 
-/** Namespaces for `pg_advisory_xact_lock(int, int)` — any fixed numbers, distinct (7303: `broadcastSender.ts`). */
+/** Namespaces for `pg_advisory_xact_lock(int, int)` — any fixed numbers, distinct (7303, 7304: `broadcastSender.ts`). */
 const LOCK_SESSION = 7301
 const LOCK_EMAIL = 7302
 
