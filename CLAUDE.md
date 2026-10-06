@@ -689,6 +689,40 @@ Są w kodzie i jadą z deployem.
 
 ---
 
+## Przekierowania ze starej strony
+
+Od 05.10.2026 (ZAKRES pkt 1b). Stare adresy Joomli → nowe odpowiedniki,
+`redirects()` w `next.config.ts` z listy w `src/lib/legacyRedirects.ts`,
+na stałe (308). Działają na każdej domenie — na tymczasowej nikt z nich
+nie przychodzi, więc ożyją same w dniu przełączenia.
+
+- **Spis zrobiony przejściem po linkach** starej strony (nie miała mapy):
+  około czterdziestu podstron i artykułów. Kalendarz (`/kalendarz/...`
+  generuje stronę na każdy dzień) i tagi — jedną regułą na całą sekcję.
+- **Tylko DOKŁADNE stare ścieżki, żadnych wzorców na prefiksach nowej
+  strony** (`/kursy/*`, `/aktualnosci/*`, `/obozy/*`). Nowy wpis
+  `/aktualnosci/25-lat-abc-wspinania` zaczyna się od cyfr jak stare
+  `/aktualnosci/107-20lat` — reguła „numerowany adres” połknęłaby go.
+- **`legacyRedirects.test.ts` pilnuje**: żadna reguła nie przechwytuje trasy
+  z `src/app/(frontend)` ani adresu treści z listy `CONTENT`; każdy cel
+  istnieje; każdy znaleziony stary adres jest obsłużony; brak łańcuchów.
+  ⚠️ `CONTENT` to adresy z panelu na 05.10.2026 — **zmiana sluga kursu,
+  obozu albo wpisu w panelu łamie przekierowanie na niego bez śladu**.
+  Przy zmianie sluga: popraw cel w `legacyRedirects.ts` i `CONTENT`.
+- Stare artykuły bez odpowiednika → `/aktualnosci`, stare „O ABC” → `/o-nas`.
+- **Po przełączeniu domeny**: Search Console, raport „Strony” — stare
+  adresy mają przechodzić na nowe, bez 404.
+
+**Przy okazji: mapa strony nie odświeżała się wcale.** `sitemap.ts` nie miał
+`revalidate`, więc Next generował ją raz, przy buildzie w CI — bez bazy —
+i trzymał na zawsze (`initialRevalidateSeconds: false` w
+`.next/prerender-manifest.json`). Produkcja pokazywała w mapie tylko strony
+stałe, bez żadnego kursu, obozu ani wpisu. `revalidate` layoutu NIE dociera
+do tras metadanych (`sitemap`, `robots`, `manifest`) — każda potrzebuje
+własnego. Teraz `revalidate = 3600`.
+
+---
+
 ## Domena tymczasowa i Cloudflare
 
 Ustalone 26.09.2026. Do czasu przełączenia `abcwspinania.info` (pod którą wciąż
