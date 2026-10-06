@@ -63,7 +63,7 @@ przypisania do osoby), ale technicznie istnieje. Strona sama w sobie nadal
 nie ma trackerów ani ciasteczek innych niż sesyjne.
 
 Do zrobienia: **powiedzieć o tym Krzyśkowi** (to dopisek do obietnicy „bez
-przekazywania danych”) i ująć Brevo w polityce prywatności (pozycja 5).
+przekazywania danych”). Brevo jest ujęty w polityce prywatności (06.10.2026).
 
 ### Rozbicie pozycji 2 — system obozów
 
@@ -97,8 +97,8 @@ adresy przechodzą na nowe, bez błędów 404).
 | Zgody zapisywane treścią i wersją, nie znacznikiem „tak" | gotowe |
 | Osobna klauzula marketingowa dla newslettera | gotowe |
 | Newsletter: potwierdzenie zapisu (double opt-in), wypisanie jednym kliknięciem, niepotwierdzone usuwane po 7 dniach | gotowe (03.10.2026) |
-| Strona z polityką prywatności | **do zrobienia** |
-| Okresy przechowywania (zgłoszenia, zapisy, dane zdrowotne) | **do zrobienia** |
+| Strona z polityką prywatności | **wersja robocza** (06.10.2026, czeka na wdrożenie) — `/polityka-prywatnosci`, link w stopce i przy każdej zgodzie; dane administratora z rejestrów (`lib/legal.ts`) do potwierdzenia przez Krzyśka |
+| Okresy przechowywania (zgłoszenia, zapisy, dane zdrowotne) | **częściowo** — wpisane w politykę; automatycznie: wiadomości z formularza po 12 miesiącach, niepotwierdzone konta i zapisy do newslettera po 7 dniach, logi kontenerów rotowane (3 × 10 MB); ręcznie (na razie): zapisy po 5 latach, wypisani z newslettera; dane zdrowotne — z obozami |
 | Podwyższone wymagania przy danych dzieci i danych o zdrowiu | **do zrobienia** |
 | Umowa powierzenia przetwarzania między Krzyśkiem a wykonawcą | **do zrobienia** |
 | Mechanizm usunięcia danych na żądanie | **częściowo** — od 04.10.2026 „Usuń konto” samodzielnie w Moim koncie; zapisy usuwa szkoła na prośbę (okresy przechowywania do ustalenia) |

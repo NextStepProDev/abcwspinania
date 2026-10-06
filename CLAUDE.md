@@ -689,6 +689,34 @@ pipeline'u SCSS dla jednego pustego arkusza.
 
 ---
 
+## Polityka prywatności i administrator danych
+
+Od 06.10.2026 (wersja robocza, do potwierdzenia przez Krzyśka).
+
+- **Administrator to osoba, nie marka.** „ABC Wspinania” to nazwa szkoły, nie
+  podmiot prawny — klauzula „Administratorem danych jest ABC Wspinania” nie
+  mówiła, kto nim jest. Dane (Krzysztof Wróbel, IQ SERVICE, adres, NIP, REGON,
+  `biuro@abcwspinania.info`) siedzą w **jednym miejscu**: `src/lib/legal.ts`.
+  Czerpią z niego wszystkie cztery klauzule w `consent.ts` i strona
+  `/polityka-prywatnosci`. Zmiana danych firmy = zmiana tego pliku **i wersji
+  klauzul** (zasada 18), bo zmienia się tekst zapisywany w bazie.
+  `consent.test.ts` pilnuje, że żadna klauzula nie wraca do samej marki.
+- **Słowa „polityce prywatności” w klauzuli są linkiem** (`ConsentText.tsx`,
+  nowa karta) — tekst zapisywany w bazie zostaje zwykłym tekstem.
+- **Polityka opisuje to, co robi kod.** Dokładasz podmiot przetwarzający
+  (nowa usługa widząca dane), nowe dane albo zmieniasz okres przechowywania
+  (`lib/expiry.ts`, kopie w `deploy/abc-backup.sh`) — popraw stronę i podbij
+  `PRIVACY_POLICY_VERSION`. Rozjazd jest niewidoczny dla testów, a wobec
+  UODO liczy się to, co napisane.
+- **Okresy przechowywania automatyczne:** wiadomości z formularza 12 miesięcy
+  (`MESSAGE_RETENTION_MONTHS`, to samo dzienne sprzątanie co konta),
+  niepotwierdzone konta i zapisy do newslettera 7 dni, logi kontenerów
+  3 × 10 MB na usługę (`x-logging` w `docker-compose.prod.yml` — bez tego
+  Docker trzyma je bez końca, razem z adresami IP), kopie 90 dni. **Ręcznie,
+  na razie:** zapisy po 5 latach od końca roku i wypisani z newslettera.
+
+---
+
 ## Konta uczestników
 
 Od 02.10.2026 (etap 1b). Druga kolekcja z logowaniem, `customers`, obok

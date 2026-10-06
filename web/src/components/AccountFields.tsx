@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { Check } from '@/components/Icons'
 import { passwordLengthLabel } from '@/lib/validation'
+import { ConsentText } from '@/components/ConsentText'
 
 /**
  * Form fields of the account pages, with live validation.
@@ -196,7 +197,9 @@ export function ConsentField({
           aria-invalid={shownError ? true : undefined}
           className="mt-1 size-4 shrink-0"
         />
-        <span>{text}</span>
+        <span>
+          <ConsentText text={text} />
+        </span>
       </label>
       {shownError && (
         <p id={`${id}-error`} className="text-sm text-error">

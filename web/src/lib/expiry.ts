@@ -71,3 +71,17 @@ export function stalePendingNewsletterWhere(now: Date, days = PENDING_NEWSLETTER
     ],
   }
 }
+
+/**
+ * Months a contact-form message is kept (decided 06.10.2026, stated in the
+ * privacy policy). The conversation itself carries on by email, in the
+ * school's mailbox; the copy in the panel only has to cover answering.
+ */
+export const MESSAGE_RETENTION_MONTHS = 12
+
+/** Which messages the daily sweep deletes: sent more than the retention period ago. */
+export function expiredMessagesWhere(now: Date, months = MESSAGE_RETENTION_MONTHS): Where {
+  const cutoff = new Date(now)
+  cutoff.setUTCMonth(cutoff.getUTCMonth() - months)
+  return { createdAt: { less_than: cutoff.toISOString() } }
+}

@@ -1,7 +1,11 @@
 import { getPayload } from 'payload'
 import config from '@payload-config'
 
-import { stalePendingNewsletterWhere, staleUnverifiedWhere } from '@/lib/expiry'
+import {
+  expiredMessagesWhere,
+  stalePendingNewsletterWhere,
+  staleUnverifiedWhere,
+} from '@/lib/expiry'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -40,6 +44,23 @@ export async function deleteStalePendingNewsletter(): Promise<void> {
 }
 
 /**
+ * Deletes contact-form messages past their retention (`lib/expiry.ts`) — the
+ * period the privacy policy promises.
+ */
+export async function deleteExpiredMessages(): Promise<void> {
+  const payload = await getPayload({ config })
+  const { docs, errors } = await payload.delete({
+    collection: 'messages',
+    where: expiredMessagesWhere(new Date()),
+    overrideAccess: true,
+  })
+  if (docs.length) payload.logger.info(`Deleted ${docs.length} contact message(s) past retention`)
+  if (errors.length) {
+    payload.logger.warn({ errors }, `Could not delete ${errors.length} expired message(s)`)
+  }
+}
+
+/**
  * Runs the sweep a minute after the server starts, then once a day.
  *
  * Why not Payload's job queue: its cron starts only when something calls
@@ -59,6 +80,9 @@ export function scheduleAccountCleanup(): void {
     })
     deleteStalePendingNewsletter().catch((error) => {
       console.warn('Unconfirmed-newsletter cleanup failed, will retry tomorrow:', error)
+    })
+    deleteExpiredMessages().catch((error) => {
+      console.warn('Contact-message cleanup failed, will retry tomorrow:', error)
     })
   }
   setTimeout(run, 60_000).unref()

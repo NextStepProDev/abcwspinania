@@ -5,6 +5,7 @@ import { useActionState, useId } from 'react'
 import { CONSENT_TEXT } from '@/lib/consent'
 import { TOPICS } from '@/lib/topics'
 import { sendMessage, type ContactFormState } from './actions'
+import { ConsentText } from '@/components/ConsentText'
 
 const INITIAL_STATE: ContactFormState = { status: 'idle' }
 
@@ -196,7 +197,9 @@ export function ContactForm({
           />
           {/* Pełna treść klauzuli jest widoczna przy polu, a nie schowana pod
               linkiem. Ta sama treść trafia do bazy razem ze zgłoszeniem. */}
-          <span>{CONSENT_TEXT}</span>
+          <span>
+            <ConsentText text={CONSENT_TEXT} />
+          </span>
         </label>
         {state.errors?.consent && (
           <p id={fieldId('zgoda-blad')} className="text-sm text-rope">

@@ -4,6 +4,7 @@ import { useActionState, useId } from 'react'
 
 import { NEWSLETTER_CONSENT_TEXT } from '@/lib/consent'
 import { subscribeToNewsletter, type NewsletterState } from '@/app/(frontend)/kontakt/actions'
+import { ConsentText } from '@/components/ConsentText'
 
 const INITIAL_STATE: NewsletterState = { status: 'idle' }
 
@@ -101,7 +102,9 @@ export function NewsletterForm() {
           aria-invalid={state.errors?.consent ? true : undefined}
           className="mt-0.5 size-4 shrink-0"
         />
-        <span>{NEWSLETTER_CONSENT_TEXT}</span>
+        <span>
+          <ConsentText text={NEWSLETTER_CONSENT_TEXT} />
+        </span>
       </label>
 
       {(state.errors?.email || state.errors?.consent || state.message) && (

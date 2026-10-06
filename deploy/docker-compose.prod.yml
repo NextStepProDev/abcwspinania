@@ -15,6 +15,16 @@
 # Dzielisz limit Ampere na dwie instancje (1 OCPU / 6 GB)? Odkomentuj profil
 # "pół maszyny" w .env.example — limity I strojenie Postgresa/Node'a razem.
 
+# Log rotation for every container. Docker's default json-file driver keeps
+# logs without limit: the disk fills slowly, and nginx's access log keeps
+# every visitor's IP address forever, which the privacy policy cannot promise.
+# 3 files × 10 MB per container; the oldest entries are overwritten.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: '10m'
+    max-file: '3'
+
 services:
   postgres:
     # WERSJA GŁÓWNA musi się zgadzać z docker-compose.yml w korzeniu repo.
@@ -22,6 +32,7 @@ services:
     # Podbicie majora to MIGRACJA DANYCH, nie podmiana obrazu (patrz CLAUDE.md).
     image: postgres:18-alpine
     container_name: abcwspinania-postgres-prod
+    logging: *logging
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
@@ -63,6 +74,7 @@ services:
   app:
     image: ghcr.io/${GHCR_OWNER}/abcwspinania:${VERSION:-latest}
     container_name: abcwspinania-app-prod
+    logging: *logging
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -97,6 +109,7 @@ services:
   nginx:
     image: nginx:1.31-alpine
     container_name: abcwspinania-nginx-prod
+    logging: *logging
     restart: unless-stopped
     ports:
       - "80:80"

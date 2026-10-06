@@ -13,6 +13,7 @@ import {
 import { ACCOUNT_CONSENT_TEXT, BOOKING_CONSENT_TEXT } from '@/lib/consent'
 import { checkEmail, checkName, checkPhone } from '@/lib/validation'
 import { bookCourse, type BookingState } from './actions'
+import { ConsentText } from '@/components/ConsentText'
 
 export interface SessionChoice {
   id: number
@@ -214,7 +215,7 @@ export function BookingForm({
           />
           <span>
             <strong className="text-rock-900">Załóż mi konto z tych danych</strong> — przyjdzie link
-            do ustawienia hasła. {ACCOUNT_CONSENT_TEXT}
+            do ustawienia hasła. <ConsentText text={ACCOUNT_CONSENT_TEXT} />
           </span>
         </label>
       )}

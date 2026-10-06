@@ -6,6 +6,7 @@ import { BRAND } from '@/lib/site'
 import { FullLogo } from './Logo'
 import { NewsletterForm } from './NewsletterForm'
 import { OFFER_NAV, SCHOOL_NAV, type NavItem } from './navigation'
+import { PRIVACY_POLICY_PATH } from '@/lib/legal'
 
 /**
  * The footer.
@@ -122,7 +123,12 @@ export function Footer({ config }: { config: SiteConfig }) {
           <span>
             © {year} {config.legalName || 'ABC Wspinania'}
           </span>
-          {config.pzaLicence && <span>Licencja instruktorska PZA nr {config.pzaLicence}</span>}
+          <span className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <Link href={PRIVACY_POLICY_PATH} className="hover:text-rope-light">
+              Polityka prywatności
+            </Link>
+            {config.pzaLicence && <span>Licencja instruktorska PZA nr {config.pzaLicence}</span>}
+          </span>
         </div>
       </div>
     </footer>
