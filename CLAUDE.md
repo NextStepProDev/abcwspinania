@@ -751,7 +751,11 @@ tam od 09.2026 — powody każdego kroku przeniesione razem z kodem.
   **Sekretów nie dotyka**: `/root/.config/rclone/rclone.conf` (token Google
   i hasła szyfrowania) i `HEALTHCHECK_URL` ustawia się ręcznie raz —
   `deploy/RESTORE.md`, sekcja 0. ⚠️ **`rclone.conf` musi być w menedżerze haseł**:
-  bez niego kopie na Drive są nie do odczytania, także przez nas.
+  bez niego kopie na Drive są nie do odczytania, także przez nas. **I `deploy/.env`
+  z serwera też** (sekcja 0.3) — GitHub nie oddaje zapisanych sekretów, a przy
+  odbudowie `POSTGRES_USER` i `POSTGRES_DB` muszą być takie jak w zrzucie.
+- **Odbudowa po utracie całego serwera: `RESTORE.md`, sekcja 8** (06.10.2026) —
+  nowa maszyna, sekrety z menedżera haseł, Deploy, kopia z Drive, dopiero na końcu DNS.
 - **Odtwarzanie i ćwiczenie: `deploy/RESTORE.md`.** Ćwiczenie raz na kwartał, na
   tymczasowym kontenerze, z wynikiem zapisanym w tabeli. Przećwiczone lokalnie
   06.10.2026 (zrzut z bazy deweloperskiej wlany bez błędu, liczby wierszy zgodne).
