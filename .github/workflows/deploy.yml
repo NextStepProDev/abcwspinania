@@ -42,6 +42,9 @@ jobs:
             echo "compose=$(base64 -w 0 deploy/docker-compose.prod.yml)"
             echo "nginx=$(base64 -w 0 deploy/nginx.conf)"
             echo "swap=$(base64 -w 0 deploy/setup-swap.sh)"
+            echo "backup=$(base64 -w 0 deploy/abc-backup.sh)"
+            echo "backuplog=$(base64 -w 0 deploy/abc-backup.logrotate)"
+            echo "backupsetup=$(base64 -w 0 deploy/setup-backups.sh)"
           } >> "$GITHUB_OUTPUT"
 
       - name: Deploy to production VM
@@ -50,6 +53,9 @@ jobs:
           COMPOSE_B64: ${{ steps.cfg.outputs.compose }}
           NGINX_B64: ${{ steps.cfg.outputs.nginx }}
           SWAP_B64: ${{ steps.cfg.outputs.swap }}
+          BACKUP_B64: ${{ steps.cfg.outputs.backup }}
+          BACKUPLOG_B64: ${{ steps.cfg.outputs.backuplog }}
+          BACKUPSETUP_B64: ${{ steps.cfg.outputs.backupsetup }}
           VERSION: ${{ steps.version.outputs.version }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
           GHCR_OWNER: ${{ secrets.GHCR_OWNER }}
@@ -57,7 +63,7 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          envs: COMPOSE_B64,NGINX_B64,SWAP_B64,VERSION,DEPLOY_PATH,GHCR_OWNER
+          envs: COMPOSE_B64,NGINX_B64,SWAP_B64,BACKUP_B64,BACKUPLOG_B64,BACKUPSETUP_B64,VERSION,DEPLOY_PATH,GHCR_OWNER
           script: |
             # Przerwij (czerwony deploy) przy PIERWSZYM błędzie — np. gdy
             # `docker compose pull` trafi na nieistniejący tag. Bez tego skrypt
@@ -68,6 +74,15 @@ jobs:
             # Swap musi istnieć, zanim wstaną kontenery (skrypt idempotentny).
             echo "$SWAP_B64"    | base64 -d > "$DEPLOY_PATH/setup-swap.sh"
             sudo -n bash "$DEPLOY_PATH/setup-swap.sh" || echo "UWAGA: konfiguracja swapu pominięta (sprawdź sudo bez hasła)"
+            # Kopie zapasowe: skrypt, harmonogram i rotacja logu jadą z każdym
+            # deployem (deploy/RESTORE.md). Idempotentne; sekretów nie rusza.
+            # Błąd tu nie blokuje wdrożenia strony — ale widać go w logu joba.
+            mkdir -p "$DEPLOY_PATH/backup"
+            echo "$BACKUP_B64"      | base64 -d > "$DEPLOY_PATH/backup/abc-backup.sh"
+            echo "$BACKUPLOG_B64"   | base64 -d > "$DEPLOY_PATH/backup/abc-backup.logrotate"
+            echo "$BACKUPSETUP_B64" | base64 -d > "$DEPLOY_PATH/backup/setup-backups.sh"
+            sudo -n bash "$DEPLOY_PATH/backup/setup-backups.sh" "$DEPLOY_PATH/backup" \
+              || echo "UWAGA: instalacja kopii zapasowych nie powiodła się — sprawdź log powyżej"
             cd "$DEPLOY_PATH"
             # Utrwal rozwiązaną wersję w .env na serwerze, żeby późniejsze RĘCZNE
             # `docker compose pull/up -d` użyło tego samego taga, a nie starego pinu.
