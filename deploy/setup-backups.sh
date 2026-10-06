@@ -63,4 +63,11 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 CRON
 chmod 0644 /etc/cron.d/abc-backup
 
-echo "==> Backups installed. Off-site copy: $(rclone listremotes 2>/dev/null | grep -qx 'abc-crypt:' && echo configured || echo 'NOT configured yet (RESTORE.md, section 0)')"
+# Not `rclone listremotes | grep -q`: under pipefail the early exit of grep
+# turns a found remote into a failure (see abc-backup.sh).
+REMOTES=$(rclone listremotes 2>/dev/null || true)
+if grep -qx 'abc-crypt:' <<<"$REMOTES"; then
+  echo "==> Backups installed. Off-site copy: configured"
+else
+  echo "==> Backups installed. Off-site copy: NOT configured yet (RESTORE.md, section 0)"
+fi

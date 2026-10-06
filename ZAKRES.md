@@ -41,7 +41,7 @@ Numeracja jak w wiadomości do Krzyśka.
 | 4b | Zapis na kurs „w 10 sekund" | skrócona ścieżka zapisu z podstrony kursu | **do zrobienia** |
 | 5 | RODO i polityka prywatności | rozbicie niżej | **częściowo** |
 | 6 | Bez banera ciasteczek, bez przekazywania danych | brak trackerów, brak ciasteczek innych niż sesyjne | **gotowe** |
-| 7 | Backupy szyfrowane dwupoziomowo | skrypt na serwerze + wysyłka na Drive + **odtworzenie przetestowane** | **częściowo** — od 06.10.2026 skrypt (serwer 7 dni + zaszyfrowany Google Drive 90 dni, alarm healthchecks.io) i instrukcja odtwarzania gotowe, odtworzenie przećwiczone lokalnie; zostaje konfiguracja Drive na serwerze i ćwiczenie odtworzenia z kopii produkcyjnej |
+| 7 | Backupy szyfrowane dwupoziomowo | skrypt na serwerze + wysyłka na Drive + **odtworzenie przetestowane** | **gotowe** (06.10.2026) — co noc: serwer 7 dni + zaszyfrowany Google Drive 90 dni (alarm healthchecks.io gotowy w skrypcie, adres do podpięcia); odtworzenie z kopii pobranej z Drive przećwiczone, zgodne z produkcją (`deploy/RESTORE.md`) |
 | 8 | Testy automatyczne | jednostkowe **i integracyjne** | **częściowo** |
 | 9 | Testy wydajnościowe i na wycieki pamięci | raport z liczbami | **do zrobienia** |
 | 10 | Testy manualne | spisany scenariusz + wynik przejścia | **do zrobienia** |

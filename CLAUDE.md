@@ -759,6 +759,17 @@ tam od 09.2026 — powody każdego kroku przeniesione razem z kodem.
   przerywa się na `ALTER ... OWNER TO`.
 - Wszystkie ścieżki i nazwy w skrypcie można nadpisać zmiennymi środowiska (próba
   na Macu); wartości domyślne są produkcyjne.
+- **⚠️ Nigdy `polecenie | grep -q` przy `set -o pipefail`.** Znalezione przy
+  pierwszym prawdziwym przebiegu (06.10.2026): `rclone listremotes | grep -qx
+  abc-crypt:` — grep kończy na pierwszej linii, rclone dostaje SIGPIPE przy drugiej
+  (`gdrive:`), a `pipefail` robi z trafienia porażkę (kod 141). Skonfigurowany Drive
+  wyglądał na brak. Lokalnie niewidoczne: bez rclone nie było drugiej linii. Wynik
+  najpierw do zmiennej, potem `grep -q ... <<<"$zmienna"` — tak samo przy znaczniku
+  końca zrzutu.
+- **Konfiguracja Drive na serwerze zrobiona 06.10.2026** (`RESTORE.md`, sekcja 0.1):
+  token z Maca przeniesiony bez wyświetlania, hasła szyfrowania wygenerowane na
+  serwerze. Pierwsza pełna kopia: 67 s (108 MB zdjęć). **Ćwiczenie odtworzenia z kopii
+  pobranej z Drive: zgodne z produkcją** (wynik w tabeli `RESTORE.md`, sekcja 5).
 
 ---
 
