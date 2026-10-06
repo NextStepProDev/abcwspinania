@@ -94,7 +94,11 @@ docker exec "$DB_CONTAINER" sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' \
 # end. 20 lines, not 5: PostgreSQL 17.6+ appends `\unrestrict <token>` after
 # the marker, and another trailing line in a future version must not turn a
 # good backup into a nightly false alarm.
-if ! gunzip -c "${DB_BACKUP}.part" | tail -20 | grep -q 'PostgreSQL database dump complete'; then
+# The tail is read into a variable first, not piped into `grep -q`: grep -q
+# exits at its first match, the writer then gets SIGPIPE, and under
+# `pipefail` the whole test fails — a good dump reported as truncated.
+DUMP_TAIL=$(gunzip -c "${DB_BACKUP}.part" | tail -20)
+if ! grep -q 'PostgreSQL database dump complete' <<<"$DUMP_TAIL"; then
   fail "DB dump has no completion marker — truncated. Kept as ${DB_BACKUP}.part for inspection."
 fi
 mv "${DB_BACKUP}.part" "$DB_BACKUP"
@@ -121,7 +125,11 @@ log "Files OK: $(du -sh "$FILES_BACKUP" | cut -f1)"
 # --------------------------------------------------------------------------
 # Not configured yet (no rclone.conf with the remote): the local copies above
 # stand, and the run reports a failure, so the missing off-site half is seen.
-if ! rclone listremotes 2>/dev/null | grep -qx "${REMOTE}"; then
+# Read into a variable, not piped into `grep -q` — found 06.10.2026 on the
+# first real run: grep -q stopped at `abc-crypt:`, rclone got SIGPIPE writing
+# `gdrive:`, and under `pipefail` a configured remote read as missing (141).
+REMOTES=$(rclone listremotes 2>/dev/null || true)
+if ! grep -qx "${REMOTE}" <<<"$REMOTES"; then
   fail "rclone remote ${REMOTE} is not configured — local copies made, NOTHING sent off the server."
 fi
 # `sync` mirrors the local directory, so the local prune below would delete

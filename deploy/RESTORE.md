@@ -20,41 +20,52 @@ Ręcznie robi się tylko to, co jest sekretem — dlatego nie ma tego w repo.
 
 Kopie lądują na Google Drive **zaszyfrowane przed wysłaniem** (remote typu `crypt`).
 Bez haseł z `rclone.conf` **nie odczyta ich nikt** — także przez przeglądarkę Drive.
+Sposób sprawdzony 06.10.2026: token i hasła ani razu nie pojawiają się na ekranie.
 
-1. **Na Macu** — token Google (serwer nie ma przeglądarki):
+1. **Na Macu** — logowanie do Google (serwer nie ma przeglądarki). Otworzy się
+   przeglądarka: wybierz konto, „Zezwól”, poczekaj na „Success”.
    ```bash
-   brew install rclone
-   rclone authorize "drive"
+   brew install rclone            # jeśli go nie ma
+   rclone config create gdrive drive scope=drive.file > /dev/null 2>&1; echo "exit=$?"
    ```
-   Otworzy się przeglądarka, logujesz się na konto Google, na którym mają leżeć kopie.
-   W terminalu pojawi się blok `{"access_token":...}` — skopiuj go całego.
+   `scope=drive.file`: rclone widzi tylko pliki, które sam utworzył, nie cały Drive.
 
-2. **Na serwerze** — konfiguracja dwóch remote'ów:
+2. **Na Macu** — przeniesienie połączenia na serwer, bez wyświetlania tokenu:
    ```bash
-   sudo rclone config
+   CONF="$(rclone config file | tail -1)"
+   { echo "[gdrive]"; sed -n '/^\[gdrive\]$/,/^$/p' "$CONF" | sed '1d'; } \
+     | ssh abcwspinania 'sudo install -d -m 700 /root/.config/rclone \
+         && sudo install -m 600 /dev/null /root/.config/rclone/rclone.conf \
+         && sudo tee /root/.config/rclone/rclone.conf >/dev/null'
+   rclone config delete gdrive     # token nie jest już potrzebny na Macu
    ```
-   - `n` (new remote) → nazwa **`gdrive`** → typ **`drive`** → client_id/secret puste →
-     scope **`drive.file`** (rclone widzi tylko pliki, które sam utworzył) →
-     root_folder_id i service_account puste → advanced `n` → auto config **`n`** →
-     wklej token z kroku 1 → team drive `n` → `y`.
-   - `n` → nazwa **`abc-crypt`** → typ **`crypt`** → remote **`gdrive:abcwspinania-kopie`** →
-     filename_encryption `standard` → directory_name_encryption `true` →
-     hasło: **`g` (wygeneruj), 256 bitów** → salt: **`g`, 256 bitów** → `y`.
-   - `q` (wyjdź).
+   ⚠️ To NADPISUJE `rclone.conf` na serwerze. Przy wymianie samego tokenu na
+   działającym serwerze użyj `sudo rclone config` → edytuj `gdrive`.
 
-3. ⚠️ **Zapisz oba wygenerowane hasła (i cały plik) w menedżerze haseł — OD RAZU.**
+3. **Na serwerze** — zaszyfrowany folder. Hasła (256 bitów każde) powstają na serwerze
+   i nie są nigdzie wypisywane:
    ```bash
-   sudo cat /root/.config/rclone/rclone.conf
+   sudo rclone config create abc-crypt crypt remote=gdrive:abcwspinania-kopie \
+     filename_encryption=standard directory_name_encryption=true \
+     password="$(openssl rand -hex 32)" password2="$(openssl rand -hex 32)" \
+     --obscure >/dev/null 2>&1; echo "create=$?"
+   sudo rclone listremotes --long   # abc-crypt: crypt, gdrive: drive
    ```
-   Skopiuj całą zawartość jako notatkę „ABC Wspinania — rclone.conf (kopie zapasowe)”.
+
+4. ⚠️ **Zapisz cały `rclone.conf` w menedżerze haseł — OD RAZU.** Wykonaj to we
+   WŁASNYM terminalu (nie w czacie z Claude), skopiuj wynik do notatki
+   „ABC Wspinania — rclone.conf (kopie zapasowe)”:
+   ```bash
+   ssh abcwspinania 'sudo cat /root/.config/rclone/rclone.conf'
+   ```
    Bez tego pliku kopie na Drive to szum: przy utracie serwera **nie ma czego odtworzyć**.
 
-4. Sprawdzenie:
+5. Sprawdzenie — mała próba zapisu i odczytu przez szyfrowanie:
    ```bash
-   sudo rclone listremotes --long   # gdrive: drive, abc-crypt: crypt
-   sudo rclone mkdir abc-crypt:     # tworzy zaszyfrowany katalog na Drive
-   sudo rclone lsd abc-crypt:       # bez błędu = token i szyfrowanie działają
+   echo test | sudo rclone rcat abc-crypt:probe/p.txt && sudo rclone cat abc-crypt:probe/p.txt
+   sudo rclone purge abc-crypt:probe
    ```
+   ⚠️ `rclone lsl` na tym Drive bywa bardzo wolny (minuta i dłużej) — to nie awaria.
 
 ### 0.2 Alarm, gdy kopia się nie zrobi (healthchecks.io)
 
@@ -249,6 +260,7 @@ najpierw `sudo rclone copy "abc-crypt:db/${DATE}.sql.gz" /tmp/drill/` i wlej tam
 
 | Data ćwiczenia | Kopia z | courses | sessions | media | migracje | Kto |
 |---|---|---|---|---|---|---|
+| 2026-10-06 | Drive (`abc-crypt:`), kopia z 06.10 | 7 | 10 | 16 | 6 | Claude z Mateuszem; zgodne z produkcją, 78/78 plików |
 | | | | | | | |
 
 ---
