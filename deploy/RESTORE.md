@@ -4,6 +4,9 @@ Runbook do wykonania **pod presją**, więc komendy są dosłowne i w kolejnośc
 Jak kopie powstają i dlaczego tak — `deploy/abc-backup.sh` i sekcja
 „Kopie zapasowe” w `CLAUDE.md`. Wzór: Next Step Pro (`nsp-backup.sh`, `RESTORE.md`).
 
+> **Serwer istnieje, ale dane są złe** (skasowane, zepsute) → sekcje 1–4.
+> **Serwer zniknął całkowicie** → sekcja 8, potem 1–4.
+>
 > **Ćwiczenie odtwarzania jest w sekcji 5 i nie dotyka produkcji.** Zrób je raz na kwartał.
 > Kopia, z której nigdy nie odtwarzano, jest nieodróżnialna od takiej, która nie działa.
 
@@ -80,7 +83,18 @@ Bez tego nieudana kopia jest **cicha** — dowiadujesz się dopiero, gdy jest po
    ```
    Plik tworzy pusty `setup-backups.sh` i **nigdy go nie nadpisuje** — wartość przeżywa deploye.
 
-### 0.3 Pierwsza kopia ręcznie
+### 0.3 ⚠️ `deploy/.env` też do menedżera haseł
+
+Przy utracie serwera potrzebne są **dwie** notatki: `rclone.conf` (klucz do kopii, 0.1)
+i `.env` aplikacji — nazwa i hasło bazy, `PAYLOAD_SECRET`, maile. GitHub nie pozwala
+odczytać zapisanych sekretów, więc bez tej notatki trzeba by je wymyślać od nowa.
+We **własnym terminalu**:
+```bash
+ssh abcwspinania 'cat ~/abcwspinania/.env'
+```
+Notatka „ABC Wspinania — deploy/.env (serwer)”. Po każdej zmianie `.env` — zaktualizuj ją.
+
+### 0.4 Pierwsza kopia ręcznie
 
 ```bash
 sudo /usr/local/bin/abc-backup.sh && sudo tail -15 /var/log/abc-backup.log
@@ -292,3 +306,75 @@ sudo gunzip -c "$F" | tail -20 | grep -q 'PostgreSQL database dump complete' && 
 | Wgranie zdjęcia w panelu rzuca błędem | Zły właściciel wolumenu | `chown -R 1000:1000` (3.4) |
 | `token expired` / `invalid_grant` w logu | Token Google unieważniony (zmiana hasła, odebrany dostęp) | `rclone authorize "drive"` na Macu i podmiana tokenu: `sudo rclone config` → edytuj `gdrive` |
 | Kopii z potrzebnego dnia nie ma nigdzie | Kopie milczały | `/var/log/abc-backup.log` i healthchecks.io (sekcja 0.2) |
+
+---
+
+## 8. Serwer zniknął całkowicie (nowa maszyna)
+
+Kolejność ma znaczenie: **DNS przestawiasz na końcu**. Do tego czasu odwiedzający widzą
+starą (niedziałającą) stronę zamiast pustej nowej — a pusta baza ma otwarty ekran
+„utwórz pierwszego administratora” dla każdego, kto zna adres.
+
+Potrzebne z menedżera haseł: **`rclone.conf`** (0.1) i **`deploy/.env`** (0.3).
+
+### 8.1 Nowa maszyna
+
+1. Oracle Cloud → nowa instancja Ubuntu 24.04, ARM (Ampere A1), z publicznym IP.
+   Porty 80 i 443 otwarte (Security List i zapora Ubuntu — patrz CLAUDE.md, „Lista
+   pierwszego uruchomienia”). Klucz SSH: ten sam, którego używa Deploy (`DEPLOY_SSH_KEY`).
+2. Na maszynie: Docker z wtyczką compose, użytkownik w grupie `docker`, `sudo` bez
+   hasła dla tego użytkownika (Deploy woła `sudo -n`).
+3. Katalog aplikacji i sekrety:
+   ```bash
+   mkdir -p ~/abcwspinania/certs
+   nano ~/abcwspinania/.env            # wklej notatkę „deploy/.env” z menedżera haseł
+   chmod 600 ~/abcwspinania/.env
+   ```
+   ⚠️ **`POSTGRES_USER` i `POSTGRES_DB` muszą być TAKIE SAME jak w starym `.env`** —
+   zrzut nadaje tabele właścicielowi o tej nazwie (sekcja 5). Hasła mogą być nowe.
+   Brak notatki: wygeneruj nowe hasła (`openssl rand -hex 32`, każde osobno), nazwy
+   użytkownika i bazy odczytaj ze zrzutu: `gunzip -c <zrzut> | grep -m1 'OWNER TO'`.
+4. Certyfikaty do `~/abcwspinania/certs/` — Origin Certificate z Cloudflare (panel
+   Cloudflare → SSL/TLS → Origin Server → nowy certyfikat; pliki o nazwach z
+   `deploy/nginx.conf`, dyrektywy `ssl_certificate`). Bez nich nginx nie wstanie.
+
+### 8.2 Aplikacja (na razie z pustą bazą)
+
+1. GitHub → Settings → Secrets → **`DEPLOY_HOST`** = nowe IP. Gdy hasła bazy lub
+   `PAYLOAD_SECRET` są nowe — podmień też `POSTGRES_PASSWORD` i `PAYLOAD_SECRET`.
+2. Workflow **Deploy**. Stawia kontenery i instaluje kopie zapasowe (`rclone`, skrypt,
+   harmonogram). Smoke test może się nie udać, dopóki DNS wskazuje stary adres — to nic.
+   **Nie uruchamiaj Migrate** — schemat przyjdzie razem ze zrzutem.
+
+### 8.3 Klucz do kopii i pobranie z Drive
+
+```bash
+sudo install -d -m 700 /root/.config/rclone
+sudo nano /root/.config/rclone/rclone.conf     # wklej notatkę „rclone.conf”
+sudo chmod 600 /root/.config/rclone/rclone.conf
+sudo rclone lsd abc-crypt:                      # db/ i files/ = klucz działa
+
+sudo rclone lsl abc-crypt:db | sort -k2,3 | tail -5   # najnowsze kopie
+DATE=2026-10-21                                        # ← najnowsza data z listy
+sudo rclone copy "abc-crypt:db/${DATE}.sql.gz"    /backups/db/
+sudo rclone copy "abc-crypt:files/${DATE}.tar.gz" /backups/files/
+```
+Potem **sprawdzenie kopii z sekcji 1** (znacznik końca zrzutu, `tar tzf`).
+`abc-crypt:` niewidoczny albo `lsd` z błędem → zła notatka; sekcja 7.
+
+### 8.4 Dane
+
+Sekcja **2** (baza — krok 2.1 pomiń, bieżąca baza jest pusta) i sekcja **3** (pliki),
+**z tej samej daty**. Potem sekcja **4** — liczby wierszy porównaj z ostatnim ćwiczeniem
+(tabela w sekcji 5).
+
+### 8.5 Ruch na nową maszynę
+
+1. Cloudflare → DNS → rekordy **A** dla `@` i `www` → nowe IP (proxy włączone).
+2. Po kilku minutach: strona główna, kurs, galeria, logowanie do panelu.
+3. Workflow **Deploy** jeszcze raz — tym razem smoke test musi przejść.
+4. Alarm kopii: `HEALTHCHECK_URL` z healthchecks.io (check „abcwspinania backup” →
+   adres pingu) do `/etc/abc-backup.env` (sekcja 0.2). Potem pierwsza kopia ręcznie (0.4).
+5. Zaktualizuj notatkę „deploy/.env”, jeśli hasła są nowe, i adres serwera w
+   konfiguracji SSH na Macu (`~/.ssh/config`, host `abcwspinania`).
+
