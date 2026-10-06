@@ -723,6 +723,45 @@ własnego. Teraz `revalidate = 3600`.
 
 ---
 
+## Kopie zapasowe
+
+Od 06.10.2026 (ZAKRES pkt 7). Wzór: Next Step Pro (`nsp-backup.sh`), działający
+tam od 09.2026 — powody każdego kroku przeniesione razem z kodem.
+
+- **Co noc o 03:00** (`/etc/cron.d/abc-backup`) `deploy/abc-backup.sh`: zrzut bazy
+  (`pg_dump`, plain SQL, gzip) i archiwum wolumenu uploadów (Media + Galeria; cache
+  obrazków pominięty — Next odbuduje go sam).
+- **Dwa poziomy:** dysk serwera (7 dni, `/backups`, tylko root) i Google Drive
+  (90 dni) przez `rclone` z remote'em **`crypt`** — szyfrowanie PRZED wysłaniem.
+  Drive na start Mateusza (decyzja 06.10.2026); przeniesienie na konto szkoły
+  albo przekazanie haseł Krzyśkowi — do ustalenia.
+- **Każdy plik powstaje jako `.part` i dostaje właściwą nazwę dopiero po
+  sprawdzeniu**: zrzut — po znaczniku `PostgreSQL database dump complete` (obcięty
+  zrzut gzipuje się poprawnie i przechodzi `gunzip -t`), archiwum — po `tar tzf`.
+  Sprawdzone 06.10.2026: zrzut ucięty w połowie zostaje `.part` i kończy przebieg błędem.
+- **`rclone copy`, nigdy `sync`** — inaczej lokalne sprzątanie po 7 dniach
+  kasowałoby też kopie na Drive.
+- **`/backups/milestones`** — zrzuty ręczne przed ryzykowną operacją (Migrate na
+  prawdziwych danych, major Postgresa). Nie czyści ich nic, ani lokalnie, ani na Drive.
+- **Alarm przez healthchecks.io** (`/etc/abc-backup.env`, `HEALTHCHECK_URL`):
+  start, sukces albo `/fail`. Cisza = awaria. Bez skonfigurowanego Drive przebieg
+  robi kopie lokalne i **kończy się błędem** — brak kopii poza serwerem ma być widać.
+- **Instaluje je workflow Deploy** (`setup-backups.sh`, jak swap): skrypt, cron,
+  logrotate, katalogi, `rclone` z apt. Idempotentne, błąd nie blokuje wdrożenia.
+  **Sekretów nie dotyka**: `/root/.config/rclone/rclone.conf` (token Google
+  i hasła szyfrowania) i `HEALTHCHECK_URL` ustawia się ręcznie raz —
+  `deploy/RESTORE.md`, sekcja 0. ⚠️ **`rclone.conf` musi być w menedżerze haseł**:
+  bez niego kopie na Drive są nie do odczytania, także przez nas.
+- **Odtwarzanie i ćwiczenie: `deploy/RESTORE.md`.** Ćwiczenie raz na kwartał, na
+  tymczasowym kontenerze, z wynikiem zapisanym w tabeli. Przećwiczone lokalnie
+  06.10.2026 (zrzut z bazy deweloperskiej wlany bez błędu, liczby wierszy zgodne).
+  Użytkownik tymczasowej bazy musi nazywać się jak na produkcji — inaczej zrzut
+  przerywa się na `ALTER ... OWNER TO`.
+- Wszystkie ścieżki i nazwy w skrypcie można nadpisać zmiennymi środowiska (próba
+  na Macu); wartości domyślne są produkcyjne.
+
+---
+
 ## Domena tymczasowa i Cloudflare
 
 Ustalone 26.09.2026. Do czasu przełączenia `abcwspinania.info` (pod którą wciąż
