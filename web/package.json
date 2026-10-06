@@ -17,6 +17,7 @@
     "migrate:create": "NODE_OPTIONS=--no-deprecation payload migrate:create",
     "migrate": "NODE_OPTIONS=--no-deprecation payload migrate",
     "seed": "NODE_OPTIONS=--no-deprecation payload run scripts/seed.ts",
+    "seed:test": "NODE_OPTIONS=--no-deprecation payload run scripts/seed-test.ts",
     "audit": "node scripts/audit-gate.mjs",
     "test:integration": "BREVO_API_KEY= NODE_OPTIONS=--no-deprecation payload run tests/integration/run.ts"
   },

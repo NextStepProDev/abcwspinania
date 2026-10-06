@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Scenariusz testów ręcznych — ABC Wspinania</title>
+<!--
+  Manual test scenario (ZAKRES item 10). Source of the PDF; the PDF itself is
+  not kept in the repo. Test data: `npm run seed:test` (web/scripts/seed-test.ts).
+  Change a feature — change its steps here in the same commit.
+  PDF: Chrome headless, `--print-to-pdf --no-pdf-header-footer`.
+-->
+<style>
+  @page { size: A4; margin: 16mm 14mm 16mm 14mm; }
+  :root { --ink: #23201b; --muted: #6b645a; --accent: #0b4a99; --soft: #eef3fa; --warn: #fff6e5; --warn-line: #e3a73a; --line: #ddd6cb; --head: #f4f1ec; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; color: var(--ink); font-size: 10.5pt; line-height: 1.5; margin: 0; }
+  h1 { font-size: 26pt; line-height: 1.15; margin: 0 0 8pt; }
+  h2 { font-size: 15pt; margin: 0 0 8pt; color: var(--accent); break-after: avoid; }
+  h3 { font-size: 11.5pt; margin: 12pt 0 5pt; break-after: avoid; }
+  p { margin: 0 0 7pt; }
+  ul, ol { margin: 0 0 8pt; padding-left: 17pt; }
+  li { margin-bottom: 2pt; }
+  section { break-before: page; }
+  .cover { height: 255mm; display: flex; flex-direction: column; justify-content: center; }
+  .cover .brand { color: var(--accent); font-weight: 700; font-size: 13pt; margin-bottom: 18pt; letter-spacing: .02em; }
+  .cover .lead { font-size: 12.5pt; color: var(--muted); max-width: 150mm; }
+  .cover table { margin-top: 26pt; max-width: 120mm; }
+  .box { border-radius: 5pt; padding: 7pt 10pt; margin: 7pt 0 10pt; break-inside: avoid; }
+  .do { background: var(--soft); border-left: 4px solid var(--accent); }
+  .warn { background: var(--warn); border-left: 4px solid var(--warn-line); }
+  .box > strong:first-child { display: block; margin-bottom: 2pt; }
+  table { border-collapse: collapse; width: 100%; margin: 5pt 0 10pt; font-size: 9.5pt; }
+  th, td { text-align: left; vertical-align: top; padding: 4pt 6pt; border: 1px solid var(--line); }
+  th { background: var(--head); font-weight: 600; }
+  tr { break-inside: avoid; }
+  thead { display: table-header-group; }
+  table.steps td:nth-child(1) { width: 9mm; font-weight: 700; color: var(--accent); }
+  table.steps td:nth-child(2) { width: 62mm; }
+  table.steps td:nth-child(4) { width: 17mm; white-space: nowrap; font-size: 9pt; }
+  table.steps td:nth-child(5) { width: 30mm; }
+  code { font-family: "SF Mono", Menlo, monospace; font-size: 8.8pt; background: #f4f1ec; padding: 0 2pt; border-radius: 2pt; overflow-wrap: anywhere; }
+  .ui { font-weight: 600; }
+  .muted { color: var(--muted); }
+  .toc ol { list-style: none; padding-left: 0; columns: 2; column-gap: 12mm; }
+  .toc li { margin-bottom: 4pt; }
+  .sign td { height: 11mm; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="brand">ABC Wspinania</div>
+  <h1>Scenariusz testów ręcznych</h1>
+  <p class="lead">Zapisy na kursy, konta uczestników, newsletter, panel szkoły i wysyłki — krok po kroku, z tym, co ma się stać na stronie i w skrzynce. Do przejścia na komputerze, przed każdym większym wdrożeniem.</p>
+  <table>
+    <tr><th>Wersja aplikacji</th><td>&nbsp;</td></tr>
+    <tr><th>Data przejścia</th><td>&nbsp;</td></tr>
+    <tr><th>Testował(a)</th><td>&nbsp;</td></tr>
+  </table>
+</div>
+
+<section class="toc">
+  <h2>Spis treści</h2>
+  <ol start="0">
+    <li>0. Przygotowanie</li>
+    <li>A. Rejestracja od zera</li>
+    <li>B. Logowanie i hasło</li>
+    <li>C. Zapis na kurs</li>
+    <li>D. Moje konto</li>
+    <li>E. Newsletter</li>
+    <li>F. Formularz kontaktowy</li>
+    <li>G. Panel szkoły</li>
+    <li>H. Wysyłki</li>
+    <li>I. Polityka prywatności i zgody</li>
+    <li>J. Telefon</li>
+    <li>K. Szczelność i blokada konta</li>
+    <li>Sprzątanie i wynik</li>
+  </ol>
+
+  <h3>Jak czytać ten scenariusz</h3>
+  <ul>
+    <li>Każdy krok ma numer (np. <b>A3</b>), opis <b>co zrobić</b> i <b>co ma się stać</b> — na stronie i w skrzynce.</li>
+    <li>Przy każdym kroku zaznacz <b>☐ OK</b> albo <b>☐ Błąd</b>. Przy błędzie zapisz w „Uwagach”, co zobaczyłeś zamiast tego — najlepiej z godziną i zrzutem ekranu.</li>
+    <li><b>Błąd nie zatrzymuje testu.</b> Zanotuj i idź dalej. Jeśli krok zależy od poprzedniego, który nie wyszedł, zaznacz go jako „nie dało się sprawdzić”.</li>
+    <li>Kroki idą po kolei — późniejsze korzystają z tego, co zrobiły wcześniejsze (np. konto z rozdziału A).</li>
+    <li>Całość zajmuje około 1,5–2 godzin.</li>
+  </ul>
+
+  <h3>Konta testowe</h3>
+  <p>Wszystkie adresy to <b>odmiany jednego, Twojego adresu Gmail</b>: <code>twojadres<b>+abctest-ola</b>@gmail.com</code>. Dla strony to osobne konta, a wszystkie maile trafiają do jednej skrzynki — w polu „Do” widać, do którego konta przyszły. <b>Hasło każdego gotowego konta: <code>Testy-ABC-2026</code></b>.</p>
+  <table>
+    <thead><tr><th>Kto</th><th>Adres (po plusie)</th><th>Co to za konto</th></tr></thead>
+    <tr><td>Panel szkoły</td><td><code>+abctest-szkola</code></td><td>logowanie do panelu (<code>/admin</code>)</td></tr>
+    <tr><td>Ola</td><td><code>+abctest-ola</code></td><td>konto potwierdzone, po polsku; jeden zapis nadchodzący i jeden w archiwum</td></tr>
+    <tr><td>Tom</td><td><code>+abctest-tom</code></td><td>konto potwierdzone, maile po angielsku</td></tr>
+    <tr><td>Ewa</td><td><code>+abctest-ewa</code></td><td>konto niepotwierdzone — link z maila już wygasł</td></tr>
+    <tr><td>Gość</td><td><code>+abctest-gosc</code></td><td>zapis na kurs <b>bez konta</b>; konto zakładasz w kroku A6</td></tr>
+    <tr><td>Nowy</td><td><code>+abctest-nowy</code></td><td><b>nie istnieje</b> — zakładasz je od zera w rozdziale A</td></tr>
+    <tr><td>Bez konta</td><td><code>+abctest-zapis</code>, <code>+abctest-zapis2</code>, <code>+abctest-news</code>, <code>+abctest-kontakt</code></td><td>adresy do zapisów, newslettera i formularza w rozdziałach C, E, F</td></tr>
+  </table>
+  <p>Skrypt zakłada też trzy <b>terminy testowe</b> z dopiskiem „termin testowy (seed:test)” na pierwszym kursie w ofercie: <b>otwarty</b> (6 miejsc, 2 zajęte), <b>pełny</b> (2 miejsca zajęte + 1 osoba na liście rezerwowej) i <b>zakończony</b> (do archiwum Oli).</p>
+</section>
+
+<section>
+  <h2>0. Przygotowanie</h2>
+
+  <div class="box do"><strong>Raz, przed pierwszym testem</strong>
+  W pliku <code>web/.env</code> muszą być: <code>BREVO_API_KEY</code> (klucz z Brevo), <code>EMAIL_FROM</code> (adres nadawcy na uwierzytelnionej domenie), <code>ADMIN_NOTIFY_EMAIL</code> (adres, na który przychodzą maile „do szkoły” — może być Twój zwykły adres) i <code>PUBLIC_URL=http://localhost:3000</code>. Bez klucza Brevo maile nie wyjdą — pojawią się tylko w oknie terminala.</div>
+
+  <table class="steps">
+    <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th><th>Wynik</th><th>Uwagi</th></tr></thead>
+    <tr><td>0.1</td><td>W terminalu, w katalogu projektu: <code>docker compose up -d</code></td><td>Baza wstaje (Docker Desktop pokazuje kontener <code>abcwspinania-postgres-dev</code>).</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>0.2</td><td>W katalogu <code>web</code>: <code>npm run dev</code> i zostaw to okno otwarte.</td><td>Po chwili „Ready”. Strona działa pod <code>http://localhost:3000</code>.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>0.3</td><td>W drugim oknie terminala, w <code>web</code>:<br><code>TEST_INBOX=twojadres@gmail.com npm run seed:test</code><br>(Twój adres, <b>bez</b> plusa).</td><td>Na końcu tabelka kont, hasło, adres kursu, daty terminów testowych i <b>„Ewa's expired link”</b> — skopiuj ten link, przyda się w kroku A5. Żaden mail nie przychodzi.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>0.4</td><td>Przygotuj <b>dwie przeglądarki</b> (np. Chrome i Safari, albo Chrome i okno prywatne). W pierwszej będziesz kursantem, w drugiej — szkołą w panelu.</td><td>Panel i strona używają tego samego ciasteczka logowania: zalogowanie się jako kursant w tej samej przeglądarce <b>wylogowuje z panelu</b> i odwrotnie. To zamierzone, nie błąd.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>0.5</td><td>W drugiej przeglądarce wejdź na <code>localhost:3000/admin</code> i zaloguj się jako <b>Panel szkoły</b> (<code>+abctest-szkola</code>, hasło testowe).</td><td>Pulpit „Do zrobienia” z liczbami (zgłoszenia, lista rezerwowa, mail, który nie doszedł).</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+  </table>
+
+  <div class="box warn"><strong>Limit maili</strong>
+  Darmowe Brevo wysyła 300 maili dziennie — łącznie ze wszystkim, co robi strona. Cały scenariusz to około 40–60 maili, więc jedno przejście dziennie mieści się spokojnie. Gdyby mail nie dotarł: sprawdź <b>Spam</b> i zakładkę <b>Oferty</b> w Gmailu, a potem okno terminala z <code>npm run dev</code> — błąd wysyłki jest tam wypisany.</div>
+
+  <div class="box do"><strong>Linki w mailach</strong>
+  Linki w mailach prowadzą do <code>localhost:3000</code>, więc otwierają się tylko na tym komputerze, na którym działa <code>npm run dev</code>. Otwieraj maile w przeglądarce kursanta (pierwszej).</div>
+</section>
+
+<section>
+  <h2>A. Rejestracja od zera</h2>
+  <p>Przeglądarka kursanta. Zakładasz konto <b>Nowy</b>, którego jeszcze nie ma, a potem sprawdzasz sytuacje brzegowe na gotowych kontach.</p>
+  <table class="steps">
+    <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th><th>Wynik</th><th>Uwagi</th></tr></thead>
+    <tr><td>A1</td><td>Kliknij w nagłówku ikonę konta / <span class="ui">Zaloguj się</span>, potem <span class="ui">Załóż je</span>. Wpisz w imię jedną literę i przejdź do następnego pola (Tab).</td><td>Pole imienia czerwienieje dopiero <b>po wyjściu</b> z niego, z podpowiedzią, co poprawić. Po dopisaniu drugiej litery od razu robi się poprawne (zielony znaczek).</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>A2</td><td>Sprawdź pozostałe pola: telefon bez <code>+48</code> (np. <code>600100200</code>), adres bez <code>@</code>, hasło krótsze niż 10 znaków (licznik pod polem). Potem popraw wszystko: imię, nazwisko, <code>+abctest-nowy</code>, telefon <code>+48 600 100 200</code>, hasło min. 10 znaków. Nie zaznaczaj zgody i kliknij <span class="ui">Załóż konto</span>.</td><td>Każde złe pole mówi, co jest nie tak. Bez zgody formularz <b>nie przechodzi</b>, a wpisane dane <b>zostają w polach</b> (hasło trzeba wpisać ponownie).</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>A3</td><td>Zaznacz zgodę i wyślij formularz.</td><td>Strona „Sprawdź skrzynkę”. W skrzynce mail (do <code>+abctest-nowy</code>) z przyciskiem potwierdzenia adresu; link ważny 48 godzin.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>A4</td><td><b>Zanim klikniesz w mail:</b> wejdź na <span class="ui">Zaloguj się</span> i zaloguj się kontem Nowy (dobre hasło).</td><td>Logowanie nie przechodzi — komunikat, że adres nie jest jeszcze potwierdzony, i przycisk <span class="ui">Wyślij link ponownie</span>. Kliknięcie go wysyła <b>nowy</b> mail.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>A5</td><td>Kliknij link z <b>pierwszego</b> maila (z kroku A3).</td><td>„Ten link jest nieważny albo został już użyty” — działa tylko najnowszy link. Kliknij link z <b>drugiego</b> maila: „Adres potwierdzony”, możesz się zalogować.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>A6</td><td>Zaloguj się kontem Nowy.</td><td>„Moje konto”: „Nie masz jeszcze zapisów”. W nagłówku zamiast „Zaloguj się” jest „Moje konto”. Wyloguj się (<span class="ui">Wyloguj się</span>).</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>A7</td><td>Załóż konto jeszcze raz na adres <b>Oli</b> (<code>+abctest-ola</code>) — dowolne dane, nowe hasło.</td><td>Strona wygląda <b>tak samo</b> jak przy nowym koncie („Sprawdź skrzynkę”) — nie zdradza, że adres ma konto. Do Oli przychodzi mail „Masz już konto” z przyciskiem logowania i linkiem do ustawienia nowego hasła. Hasło Oli się <b>nie</b> zmieniło.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>A8</td><td>Otwórz <b>wygasły link Ewy</b> (z kroku 0.3).</td><td>„Ten link wygasł — działa 48 godzin od wysłania.” i przycisk <span class="ui">Wyślij link ponownie</span>. Po kliknięciu: mail do <code>+abctest-ewa</code>; link z niego potwierdza konto. Ewa loguje się hasłem testowym.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>A9</td><td>Na stronie logowania kliknij <span class="ui">Nie dotarł mail z potwierdzeniem?</span> i wpisz adres, który <b>nie ma</b> konta (np. <code>+abctest-nikt</code>).</td><td>Ta sama odpowiedź co dla istniejącego konta — strona nie zdradza, czy konto istnieje. Mail nie przychodzi.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>A10</td><td>Załóż konto na adres <b>Gościa</b> (<code>+abctest-gosc</code>), potwierdź mail i zaloguj się.</td><td>W „Moich zapisach” → „Nadchodzące” jest <b>zapis z terminu testowego</b>, zrobiony wcześniej bez konta. Zapis przypina się do konta dopiero po potwierdzeniu adresu.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>B. Logowanie i hasło</h2>
+  <table class="steps">
+    <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th><th>Wynik</th><th>Uwagi</th></tr></thead>
+    <tr><td>B1</td><td>Wyloguj się. Zaloguj się jako Ola ze <b>złym</b> hasłem.</td><td>„Nieprawidłowy adres e-mail lub hasło. Po 5 nieudanych próbach logowanie blokuje się na 15 minut.” — jeden komunikat, bez podpowiedzi, czy błędny jest adres, czy hasło. Wpisany adres zostaje w polu.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>B2</td><td>Kliknij <span class="ui">Nie pamiętam hasła</span>, wpisz adres Oli.</td><td>„Sprawdź skrzynkę”. Mail z linkiem do ustawienia nowego hasła (ważny 2 godziny).</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>B3</td><td>To samo dla adresu bez konta (<code>+abctest-nikt</code>).</td><td>Identyczna odpowiedź na stronie, żaden mail.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>B4</td><td>Otwórz link z maila B2, ustaw nowe hasło <b>Testy-ABC-2026-b</b>.</td><td>„Nowe hasło ustawione. Możesz korzystać z konta.” — od razu zalogowana. <b>Od teraz Ola ma to nowe hasło.</b></td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>B5</td><td>Otwórz ten sam link drugi raz, wpisz dowolne nowe hasło i zatwierdź.</td><td>Hasło się nie zmienia, komunikat: „Ten link jest nieważny albo już wygasł…” — link działa tylko raz.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>B6</td><td>Wyloguj się i wejdź na <code>localhost:3000/konto</code>.</td><td>Przeniesienie na logowanie. Po zalogowaniu (nowe hasło) wraca na „Moje konto”.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>C. Zapis na kurs</h2>
+  <p>Kurs z terminami testowymi: adres wypisany w kroku 0.3 („Course”). Na stronie kursu terminy testowe rozpoznasz po dacie (wypisane w 0.3 jako „Test sessions”: <i>open</i> — otwarty, <i>full</i> — pełny), a w formularzu zapisu po dopisku „termin testowy (seed:test)”. Każdy zapis wysyła mail do kursanta <b>i</b> do szkoły (<code>ADMIN_NOTIFY_EMAIL</code>).</p>
+  <table class="steps">
+    <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th><th>Wynik</th><th>Uwagi</th></tr></thead>
+    <tr><td>C1</td><td><b>Wylogowany.</b> Na stronie kursu kliknij <span class="ui">Zapisz się na kurs</span> i wybierz <b>otwarty</b> termin testowy. Wypełnij dane adresem <code>+abctest-zapis</code>, <b>bez</b> „Załóż mi konto”, zaznacz zgodę i wyślij.</td><td>Potwierdzenie przyjęcia zgłoszenia na stronie. Mail do kursanta „przyjęliśmy zgłoszenie” z kursem i datą. Mail do szkoły „nowy zapis” z danymi i telefonem.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>C2</td><td>Wyślij ten sam formularz jeszcze raz (te same dane, ten sam termin).</td><td>Strona odpowiada tak samo („przyjęte”), ale w panelu <b>nie ma</b> drugiego zapisu (sprawdzisz w G2).</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>C3</td><td>Zapis na otwarty termin adresem <code>+abctest-zapis2</code>, tym razem z zaznaczonym <span class="ui">Załóż mi konto z tych danych</span>.</td><td>Mail o zapisie <b>i</b> osobny mail z linkiem do ustawienia hasła. Po ustawieniu hasła konto jest gotowe, a zapis widać w „Moich zapisach”.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>C4</td><td>Zaloguj się jako <b>Ola</b> i zapisz się na <b>pełny</b> termin testowy.</td><td>Formularz pyta tylko o termin i zgodę (dane są z konta). Strona i mail mówią: <b>lista rezerwowa</b>, nie „miejsce przyjęte”.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>C5</td><td>Na stronie kursu zobacz otwarty termin testowy.</td><td>Liczba wolnych miejsc spadła o zapisy z C1 i C3 (z 4 na 2). Pełny termin pokazuje brak miejsc / listę rezerwową.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>C6</td><td>Zgoda przy formularzu: kliknij w słowa <span class="ui">polityce prywatności</span>.</td><td>Polityka otwiera się w <b>nowej karcie</b>; formularz z wpisanymi danymi zostaje w starej, pole zgody się nie zaznaczyło.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>D. Moje konto</h2>
+  <table class="steps">
+    <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th><th>Wynik</th><th>Uwagi</th></tr></thead>
+    <tr><td>D1</td><td>Jako Ola otwórz <span class="ui">Moje konto</span>.</td><td>„Nadchodzące”: otwarty termin (potwierdzony) i pełny (lista rezerwowa). „Archiwum”: zakończony termin (opłacony).</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>D2</td><td>Zaloguj się jako <b>Tom</b> i zapisz się na <b>otwarty</b> termin testowy.</td><td>Mail do Toma <b>po angielsku</b>. Mail do szkoły po polsku, z dopiskiem, że kursant pisze po angielsku.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>D3</td><td>Tom: w „Wiadomości od nas” przełącz język na polski i zapisz.</td><td>Potwierdzenie zmiany. Następne maile do Toma idą po polsku. Na koniec przełącz z powrotem na angielski — przyda się w H4.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>D4</td><td>Zaloguj się kontem <b>Nowy</b> (z rozdziału A), wejdź w <span class="ui">Usuń konto</span>, wpisz <b>złe</b> hasło.</td><td>Konto <b>nie</b> zostaje usunięte, komunikat o złym haśle.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>D5</td><td>Jako <b>Gość</b> (z A10, ma zapis) wejdź w <span class="ui">Usuń konto</span>.</td><td>Strona uprzedza, że zapis na kurs <b>zostaje</b> w szkole i wymienia go z nazwy. Po wpisaniu hasła i <span class="ui">Usuń konto na zawsze</span>: „Konto usunięte”, mail z potwierdzeniem, wylogowanie.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>D6</td><td>Spróbuj zalogować się jako Gość.</td><td>Nie da się — konta już nie ma. (W G2 sprawdzisz, że zapis Gościa jest w panelu.)</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>E. Newsletter</h2>
+  <table class="steps">
+    <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th><th>Wynik</th><th>Uwagi</th></tr></thead>
+    <tr><td>E1</td><td>W stopce strony wpisz <code>+abctest-news</code>, zaznacz zgodę i zapisz.</td><td>Komunikat, żeby potwierdzić zapis mailem. Mail z przyciskiem potwierdzenia. W panelu (Newsletter) adres ma status „czeka na potwierdzenie”.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>E2</td><td>Zapisz ten sam adres drugi raz od razu.</td><td>Ta sama odpowiedź na stronie, ale <b>drugi mail nie przychodzi</b> (ochrona przed zasypywaniem skrzynki przez 10 minut).</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>E3</td><td>Kliknij link z maila.</td><td>Strona z przyciskiem <span class="ui">Potwierdzam zapis</span> — samo otwarcie linku <b>niczego nie potwierdza</b>. Po kliknięciu: „Zapis potwierdzony”. W panelu status „zapisany”.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>E4</td><td>Wypisanie sprawdzisz po wysyłce newslettera w kroku H5.</td><td>—</td><td class="muted">—</td><td></td></tr>
+  </table>
+
+  <h2 style="margin-top:14pt">F. Formularz kontaktowy</h2>
+  <table class="steps">
+    <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th><th>Wynik</th><th>Uwagi</th></tr></thead>
+    <tr><td>F1</td><td>Na <code>/kontakt</code> wyślij wiadomość z adresu <code>+abctest-kontakt</code>, z wybranym tematem i zgodą.</td><td>Podziękowanie na stronie. Mail do szkoły z treścią wiadomości.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>F2</td><td>W mailu do szkoły kliknij <span class="ui">Odpowiedz</span>.</td><td>Odpowiedź jest adresowana do <b>osoby piszącej</b> (<code>+abctest-kontakt</code>), nie do adresu nadawcy strony.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>F3</td><td>W panelu otwórz <span class="ui">Wiadomości</span>.</td><td>Wiadomość jest na liście, z treścią zgody i datą. Na pulpicie licznik „Nowe wiadomości” wzrósł.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>G. Panel szkoły</h2>
+  <p>Druga przeglądarka, zalogowana jako Panel szkoły.</p>
+  <table class="steps">
+    <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th><th>Wynik</th><th>Uwagi</th></tr></thead>
+    <tr><td>G1</td><td>Odśwież pulpit „Do zrobienia”. Kliknij w każdą liczbę po kolei.</td><td>Liczby zgadzają się z tym, co zrobiłeś (nowe zgłoszenia z C, lista rezerwowa z C4, 1 mail, który nie doszedł). Każda liczba otwiera listę przefiltrowaną dokładnie do tych pozycji. Pod spodem terminy z obłożeniem „zajęte / limit”.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>G2</td><td>Otwórz <span class="ui">Zapisy</span>, filtr po otwartym terminie testowym.</td><td>Jest <b>jeden</b> zapis <code>+abctest-zapis</code> (nie dwa — C2), zapis Toma, zapis <code>+abctest-zapis2</code> z kontem i zapis Gościa — <b>bez konta</b> po D5.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>G3</td><td>Na liście zapisów zmień status <code>+abctest-zapis</code> na <span class="ui">potwierdzony</span> z listy rozwijanej.</td><td>Najpierw pytanie „Zmienić status… Kursant dostanie maila.” Po zgodzie: status zmieniony, mail „miejsce potwierdzone” do kursanta. Przy „Anuluj” nic się nie zmienia.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>G4</td><td>Na <b>pełnym</b> terminie zmień status Piotra (<code>+abctest-piotr</code>) na <span class="ui">rezygnacja</span>.</td><td>Mail do Piotra o rezygnacji (do jego adresu — przyjdzie do Twojej skrzynki). Mail do szkoły: zwolniło się miejsce, z kolejką listy rezerwowej (Marek, potem Ola). <b>Nikt nie zostaje przesunięty sam.</b> Termin pokazuje 1 wolne miejsce.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>G5</td><td>Zmień status Marka z <span class="ui">lista rezerwowa</span> na <span class="ui">potwierdzony</span>.</td><td>Mail do Marka. Termin znów pełny („lista rezerwowa”), a w „Moim koncie” Oli nadal lista rezerwowa.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>G6</td><td>Otwórz zapis Katarzyny (<code>+abctest-kasia</code>) — ma uzupełnione „Mail, który nie doszedł”. Zaznacz <span class="ui">Załatwione</span> i zapisz.</td><td>Na pulpicie licznik „Maile, które nie doszły” spada do zera.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>G7</td><td>Otwórz pełny termin testowy (<span class="ui">Terminy</span>) i kliknij <span class="ui">Pobierz listę uczestników</span>. Otwórz plik w Excelu albo Numbers.</td><td>Kolumny rozdzielone poprawnie, polskie litery w porządku (Wiśniewski, Zieliński, Lewandowska), telefon z plusem (<code>+48 600 …</code>), nie zamieniony na liczbę.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>G8</td><td>Spróbuj <b>usunąć</b> ten termin.</td><td>Panel odmawia z wyjaśnieniem: termin ma zapisy, zamiast usuwać — ustaw status „odwołany” albo „zakończony”.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>G9</td><td>Dodaj ręcznie zapis telefoniczny: <span class="ui">Zapisy</span> → <span class="ui">Utwórz</span>, otwarty termin, dowolne dane, status „potwierdzony”.</td><td>Zapis jest na liście, wolne miejsca w terminie spadają o jedno. <b>Żaden mail</b> nie wychodzi (umówione przez telefon).</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>H. Wysyłki</h2>
+  <p>Panel → <span class="ui">Wysyłki</span>. Wysyłka rusza w ciągu około 20 sekund od kliknięcia <span class="ui">Wyślij</span>.</p>
+  <div class="box warn"><strong>Przed każdym „Wyślij” sprawdź liczbę odbiorców</strong>
+  Panel pokazuje, do ilu osób pójdzie wiadomość. Na lokalnej bazie powinny to być wyłącznie adresy testowe. Jeśli liczba jest większa, niż się spodziewasz (np. zostały stare dane z innych prób) — <b>nie wysyłaj</b>, tylko zanotuj.</div>
+  <table class="steps">
+    <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th><th>Wynik</th><th>Uwagi</th></tr></thead>
+    <tr><td>H1</td><td><span class="ui">Utwórz</span>: temat, treść z pogrubieniem i listą punktowaną, <span class="ui">Do kogo</span>: zapisani na jeden termin → <b>pełny</b> termin testowy. Zapisz.</td><td>Po zapisaniu pojawiają się <span class="ui">Wyślij próbnie do mnie</span> i <span class="ui">Wyślij</span>, z liczbą odbiorców (osoby z miejscem, bez listy rezerwowej).</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>H2</td><td>Zaznacz <span class="ui">Także lista rezerwowa</span>, zapisz.</td><td>Liczba odbiorców rośnie o osoby z listy rezerwowej (Ola).</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>H3</td><td><span class="ui">Wyślij próbnie do mnie</span>, potem <span class="ui">Wyślij</span>.</td><td>Próbny mail przychodzi tylko na <code>+abctest-szkola</code>, z formatowaniem. Po „Wyślij” status „Wysyłka trwa”, potem „Wysłana” z liczbą wysłanych; maile dochodzą do każdego odbiorcy <b>jeden raz</b>. Mail ma dopisek, że dotyczy zapisu na termin — i nie ma linku „wypisz się”.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>H4</td><td>Nowa wysyłka do <b>otwartego</b> terminu (jest tam Tom z językiem angielskim), bez wersji angielskiej.</td><td>Panel ostrzega, że część osób dostanie wersję angielską, a jej brak. Po uzupełnieniu „Wersja angielska” i wysłaniu: Tom dostaje angielską, reszta polską.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>H5</td><td>Wysyłka do <span class="ui">newsletter (potwierdzone adresy)</span>. Sprawdź liczbę odbiorców i wyślij.</td><td>Odbiorcy: tylko <b>potwierdzone</b> adresy (bez czekającego <code>+abctest-nl3</code>). W mailu do <code>+abctest-news</code> jest link „wypisz się” na dole.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>H6</td><td>W mailu z H5 (do <code>+abctest-news</code>) kliknij <span class="ui">wypisz się</span>.</td><td>Strona z przyciskiem <span class="ui">Wypisz mnie</span> — samo otwarcie niczego nie zmienia. Po kliknięciu „Wypisano”. W panelu adres ma status „wypisany” z datą. Jeśli Gmail pokazuje przy mailu „Anuluj subskrypcję” — działa tak samo.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>H7</td><td>Otwórz wysłaną wysyłkę i spróbuj zmienić temat albo treść.</td><td>Pola są zablokowane — wysłanej wiadomości nie da się zmienić.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>H8</td><td>Menu z trzema kropkami (⋮) → <span class="ui">Zduplikuj</span>.</td><td>Nowy <b>szkic</b> z tą samą treścią, z wyzerowanymi licznikami, do edycji.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>I. Polityka prywatności i zgody</h2>
+  <table class="steps">
+    <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th><th>Wynik</th><th>Uwagi</th></tr></thead>
+    <tr><td>I1</td><td>Na dole każdej strony kliknij <span class="ui">Polityka prywatności</span>.</td><td>Strona polityki: administrator (Krzysztof Wróbel, IQ SERVICE, adres, NIP), adres <code>biuro@abcwspinania.info</code>, okresy przechowywania, firmy, którym przekazujemy dane.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>I2</td><td>Przejrzyj zgody pod formularzami: rejestracja, zapis na kurs, kontakt, newsletter.</td><td>Każda zgoda podaje administratora z nazwiska i firmy (nie samą nazwę szkoły) i ma link do polityki.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>I3</td><td>W panelu otwórz zapis z C1 i wiadomość z F1.</td><td>W polu zgody zapisana jest <b>pełna treść</b> klauzuli z datą wersji w nawiasie, np. <code>[2026-10-06] Wyrażam zgodę…</code>.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+  </table>
+
+  <h2 style="margin-top:14pt">J. Telefon</h2>
+  <p>W Chrome: <b>⌥⌘I</b> (narzędzia), potem <b>⇧⌘M</b> i u góry wybierz np. „iPhone 12 Pro”. (Prawdziwy telefon nie otworzy linków z maili, bo prowadzą do <code>localhost</code>.)</p>
+  <table class="steps">
+    <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th><th>Wynik</th><th>Uwagi</th></tr></thead>
+    <tr><td>J1</td><td>Przejdź na wąskim ekranie: logowanie, rejestracja, zapis na kurs, Moje konto, polityka.</td><td>Nic nie wychodzi poza ekran, nie trzeba przewijać w bok, przyciski da się trafić palcem, komunikaty błędów są widoczne pod polami.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>J2</td><td>Menu w nagłówku (☰).</td><td>Jest wejście do konta („Zaloguj się” albo „Moje konto”, zależnie od zalogowania).</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>K. Szczelność i blokada konta</h2>
+  <p>Przeglądarka kursanta, zalogowana jako <b>Ola</b>.</p>
+  <table class="steps">
+    <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th><th>Wynik</th><th>Uwagi</th></tr></thead>
+    <tr><td>K1</td><td>Wejdź na <code>localhost:3000/admin</code>.</td><td>Panel <b>nie</b> wpuszcza kursanta (ekran logowania albo odmowa) — ani listy zapisów, ani wiadomości.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>K2</td><td>Wejdź na <code>localhost:3000/api/bookings</code>.</td><td>Tekst techniczny (JSON) zawierający <b>wyłącznie</b> zapisy Oli — żadnego Piotra, Marka ani Toma.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>K3</td><td>Wejdź na <code>localhost:3000/api/messages</code> i <code>/api/customers</code>.</td><td>Wiadomości: odmowa (brak dostępu). Uczestnicy: tylko konto Oli.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+    <tr><td>K4</td><td>Wyloguj się. Zaloguj się jako <b>Tom</b> pięć razy ze złym hasłem, a za szóstym z dobrym (<code>Testy-ABC-2026</code>).</td><td>Pięć razy ten sam komunikat co w B1. Szósta próba — mimo dobrego hasła — <b>też</b> się nie udaje: konto jest zablokowane na 15 minut, a komunikat jest ten sam (nie mówi, że to blokada). Po 15 minutach dobre hasło działa.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+  </table>
+
+  <h2 style="margin-top:14pt">Sprzątanie</h2>
+  <table class="steps">
+    <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th><th>Wynik</th><th>Uwagi</th></tr></thead>
+    <tr><td>Z1</td><td>W <code>web</code>: <code>TEST_INBOX=twojadres@gmail.com npm run seed:test -- clean</code></td><td>„Removed test data (3 test sessions)”. Z bazy znikają konta, zapisy, newsletter, wiadomości i terminy testowe. Wysyłki z rozdziału H zostają w panelu — usuń je ręcznie, jeśli przeszkadzają.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
+  </table>
+  <p class="muted">Żeby przejść scenariusz jeszcze raz od początku, wystarczy samo <code>npm run seed:test</code> (bez <code>clean</code>) — najpierw sprząta, potem zakłada wszystko od nowa.</p>
+</section>
+
+<section>
+  <h2>Wynik przejścia</h2>
+  <table>
+    <thead><tr><th>Rozdział</th><th>Kroków</th><th>OK</th><th>Błąd</th><th>Nie dało się sprawdzić</th></tr></thead>
+    <tr><td>0. Przygotowanie</td><td>5</td><td></td><td></td><td></td></tr>
+    <tr><td>A. Rejestracja od zera</td><td>10</td><td></td><td></td><td></td></tr>
+    <tr><td>B. Logowanie i hasło</td><td>6</td><td></td><td></td><td></td></tr>
+    <tr><td>C. Zapis na kurs</td><td>6</td><td></td><td></td><td></td></tr>
+    <tr><td>D. Moje konto</td><td>6</td><td></td><td></td><td></td></tr>
+    <tr><td>E. Newsletter</td><td>3</td><td></td><td></td><td></td></tr>
+    <tr><td>F. Formularz kontaktowy</td><td>3</td><td></td><td></td><td></td></tr>
+    <tr><td>G. Panel szkoły</td><td>9</td><td></td><td></td><td></td></tr>
+    <tr><td>H. Wysyłki</td><td>8</td><td></td><td></td><td></td></tr>
+    <tr><td>I. Polityka i zgody</td><td>3</td><td></td><td></td><td></td></tr>
+    <tr><td>J. Telefon</td><td>2</td><td></td><td></td><td></td></tr>
+    <tr><td>K. Szczelność</td><td>4</td><td></td><td></td><td></td></tr>
+    <tr><th>Razem</th><th>65</th><th></th><th></th><th></th></tr>
+  </table>
+
+  <h3>Znalezione błędy</h3>
+  <table class="sign">
+    <thead><tr><th style="width:14mm">Krok</th><th>Co się stało zamiast tego</th><th style="width:28mm">Naprawione (data)</th></tr></thead>
+    <tr><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td></tr>
+  </table>
+
+  <p style="margin-top:14pt"><b>Wniosek:</b> ☐ gotowe do wdrożenia &nbsp;&nbsp; ☐ do poprawy przed wdrożeniem</p>
+  <p>Podpis: ………………………………………… &nbsp;&nbsp; Data: ……………………</p>
+</section>
+
+</body>
+</html>

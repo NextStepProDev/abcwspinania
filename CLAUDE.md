@@ -1325,6 +1325,26 @@ docker run --rm -v /tmp/n.conf:/etc/nginx/conf.d/default.conf:ro \
 docker run --rm -v "$PWD/..:/repo" -w /repo rhysd/actionlint:latest -color
 ```
 
+### Testy ręczne
+
+Od 06.10.2026 (ZAKRES pkt 10). Scenariusz: `docs/testy-reczne.html` — źródło
+PDF-a (Chrome headless, `--print-to-pdf --no-pdf-header-footer`; PDF poza
+repo). **Zmieniasz funkcję — zmień jej kroki w tym samym commicie.**
+
+- Dane: `TEST_INBOX=ty@gmail.com npm run seed:test` (`web/scripts/seed-test.ts`).
+  Każdy adres to alias jednej skrzynki (`ty+abctest-ola@gmail.com`), więc
+  konta są osobne, a maile — prawdziwe, przez Brevo — trafiają do testera.
+  Znacznik `+abctest-` w adresie i dopisek „termin testowy (seed:test)” przy
+  terminie to sposób, w jaki skrypt znajduje swoje dane: każde uruchomienie
+  najpierw je kasuje, `-- clean` tylko kasuje. Wysyłki utworzone w teście
+  zostają (nie da się ich rozpoznać).
+- Seed niczego nie wysyła (`payload.sendEmail` podmieniony); maile idą
+  dopiero z kliknięć testera. Konto do rejestracji od zera
+  (`+abctest-nowy`) celowo nie powstaje.
+- Wygasły link potwierdzający (Ewa) — token i `verificationSentAt` sprzed
+  3 dni zapisane przez `payload.db.updateOne`, jak w `sendVerificationLink`.
+- Strażnik produkcji jak w `seed.ts`: konta mają znane hasło.
+
 ### Testy integracyjne
 
 Od 05.10.2026 `npm run test:integration` (`web/tests/integration/`), także
