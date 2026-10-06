@@ -11,6 +11,15 @@ import { SITE_URL } from '@/lib/site'
  * Courses are added automatically: adding one in the panel puts it in the map at
  * the next revalidation, with nothing to remember.
  */
+
+/**
+ * ⚠️ Without this the map is built ONCE, at `next build` — in CI, with no
+ * database — and kept for good: the layout's `revalidate` does not reach
+ * this route. Found 05.10.2026: production's map listed the fixed pages and
+ * not one course, camp or post (`initialRevalidateSeconds: false` in the
+ * prerender manifest). An hour is plenty for search engines.
+ */
+export const revalidate = 3600
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [courses, camps, posts] = await Promise.all([getCourses(), getCamps(), getPosts(200)])
 

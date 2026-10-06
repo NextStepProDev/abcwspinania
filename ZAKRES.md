@@ -34,7 +34,7 @@ Numeracja jak w wiadomości do Krzyśka.
 | # | Obietnica | Co znaczy „zrobione" | Stan |
 |---|---|---|---|
 | 1 | Strona z panelem, przeniesienie treści | 13 tras, panel po polsku, treść ze starej strony | **gotowe** |
-| 1b | Przekierowania 301 ze **starych adresów Joomli** | każdy adres starej strony kieruje na odpowiednik; sprawdzone w Search Console | **do zrobienia** |
+| 1b | Przekierowania 301 ze **starych adresów Joomli** | każdy adres starej strony kieruje na odpowiednik; sprawdzone w Search Console | **częściowo** — od 05.10.2026 (czeka na wdrożenie) wszystkie znalezione stare adresy przekierowane i sprawdzone testem; zostaje sprawdzenie w Search Console po przełączeniu domeny |
 | 2 | System zarządzania obozami | formularz zapisu + obsługa zgłoszeń w panelu (rozbicie niżej) | **do zrobienia** |
 | 3 | Powiadomienia mailowe | mail wychodzi przy nowym zgłoszeniu i zapisie na obóz | **do zrobienia** |
 | 4 | Newsletter | zapis działa, zgoda wersjonowana | **gotowe** |
@@ -69,11 +69,11 @@ Płatności **przelewem na konto**, bez operatora online — patrz „Poza zakre
 ### Uwaga do pozycji 1b — co już jest, a czego nie ma
 
 `deploy/nginx.conf` ma **dwa** przekierowania 301: z HTTP na HTTPS i z `www`
-na adres bez `www`. To nie jest to samo co pozycja 1b. Brakuje mapowania
-starych adresów Joomli (`/kursy/kurs-skalkowy-pza`,
-`/kursy/kursnaubezpioeczonych`, `/rekreacja/obozy-jura-lato`, `/kalendarz`
-i pozostałych) na nowe. Bez tego Google potraktuje przeprowadzkę jak
-skasowanie dwudziestu stron.
+na adres bez `www`. Mapowanie starych adresów Joomli na nowe jest od
+05.10.2026 w aplikacji (`web/src/lib/legacyRedirects.ts`): około czterdziestu
+podstron i artykułów, cały stary kalendarz i strony tagów. Zostaje: po
+przełączeniu domeny sprawdzić w Search Console raport „Strony” (czy stare
+adresy przechodzą na nowe, bez błędów 404).
 
 ### Rozbicie pozycji 5 — RODO
 

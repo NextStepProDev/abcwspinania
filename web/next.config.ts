@@ -4,6 +4,8 @@ import { fileURLToPath } from 'url'
 import { withPayload } from '@payloadcms/next/withPayload'
 import type { NextConfig } from 'next'
 
+import { LEGACY_REDIRECTS } from './src/lib/legacyRedirects'
+
 // ESM: `__dirname` nie istnieje, bo package.json ma "type": "module"
 // (wymagane przez Payload).
 const filename = fileURLToPath(import.meta.url)
@@ -85,6 +87,11 @@ const nextConfig: NextConfig = {
   },
   // Nie ogłaszaj, na czym stoi serwis.
   poweredByHeader: false,
+  // The old Joomla site's addresses → their new counterparts, permanently
+  // (308). The list and the reasons are in `src/lib/legacyRedirects.ts`.
+  async redirects() {
+    return LEGACY_REDIRECTS.map((rule) => ({ ...rule, permanent: true }))
+  },
   async headers() {
     return [
       { source: '/images/:path*', headers: [{ key: 'Cache-Control', value: STATIC_MEDIA_CACHE }] },
