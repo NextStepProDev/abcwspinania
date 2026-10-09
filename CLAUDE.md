@@ -730,9 +730,17 @@ tam od 09.2026 — powody każdego kroku przeniesione razem z kodem.
 
 - **Co noc o 03:00** (`/etc/cron.d/abc-backup`) `deploy/abc-backup.sh`: zrzut bazy
   (`pg_dump`, plain SQL, gzip) i archiwum wolumenu uploadów (Media + Galeria; cache
-  obrazków pominięty — Next odbuduje go sam).
+  obrazków pominięty — Next odbuduje go sam). **Archiwum uploadów tylko gdy się
+  zmieniły** (odcisk ścieżka|rozmiar|mtime w `/var/lib/abc-backup/files-state`),
+  najrzadziej co 30 dni; każde jest pełne, a do zrzutu z dnia X pasuje najnowsze
+  archiwum ≤ X, nie „z tej samej daty”. `FILES_REFRESH_DAYS` musi być mniejsze niż
+  retencja na Drive — inaczej przycinanie skasowałoby jedyne archiwum (skrypt
+  odmawia startu).
 - **Dwa poziomy:** dysk serwera (7 dni, `/backups`, tylko root) i Google Drive
-  (90 dni) przez `rclone` z remote'em **`crypt`** — szyfrowanie PRZED wysłaniem.
+  (40 dni, od 09.10.2026; wcześniej 90) przez `rclone` z remote'em **`crypt`** —
+  szyfrowanie PRZED wysłaniem. Polityka prywatności (`/polityka-prywatnosci`,
+  wchodzi z zapisami) mówi „do 40 dni” — każda zmiana retencji wymaga poprawki
+  strony i `PRIVACY_POLICY_VERSION`.
   Drive na start Mateusza (decyzja 06.10.2026); przeniesienie na konto szkoły
   albo przekazanie haseł Krzyśkowi — do ustalenia.
 - **Każdy plik powstaje jako `.part` i dostaje właściwą nazwę dopiero po
