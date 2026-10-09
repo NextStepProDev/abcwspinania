@@ -712,8 +712,10 @@ Od 06.10.2026 (wersja robocza, do potwierdzenia przez Krzyśka).
   (`MESSAGE_RETENTION_MONTHS`, to samo dzienne sprzątanie co konta),
   niepotwierdzone konta i zapisy do newslettera 7 dni, logi kontenerów
   3 × 10 MB na usługę (`x-logging` w `docker-compose.prod.yml` — bez tego
-  Docker trzyma je bez końca, razem z adresami IP), kopie 90 dni. **Ręcznie,
-  na razie:** zapisy po 5 latach od końca roku i wypisani z newslettera.
+  Docker trzyma je bez końca, razem z adresami IP), kopie 40 dni (od
+  09.10.2026; zmiana retencji w `abc-backup.sh` = zmiana tego zdania na
+  stronie). **Ręcznie, na razie:** zapisy po 5 latach od końca roku
+  i wypisani z newslettera.
 
 ---
 

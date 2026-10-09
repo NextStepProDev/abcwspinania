@@ -152,7 +152,7 @@ export default function PrivacyPolicyPage() {
                 automatycznie nadpisywane nowymi.
               </li>
               <li>
-                <strong>Kopie zapasowe</strong> — zaszyfrowane kopie bazy danych przechowujemy do 90
+                <strong>Kopie zapasowe</strong> — zaszyfrowane kopie bazy danych przechowujemy do 40
                 dni, potem są usuwane automatycznie.
               </li>
             </List>
