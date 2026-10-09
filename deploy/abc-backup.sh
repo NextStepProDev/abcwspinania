@@ -3,9 +3,11 @@
 # abc-backup.sh — daily backup of the ABC Wspinania production stack.
 #
 #   1. pg_dump of the database      -> /backups/db/<date>.sql.gz
-#   2. tar of the uploads volume    -> /backups/files/<date>.tar.gz
+#   2. tar of the uploads volume    -> /backups/files/<date>.tar.gz — only when
+#      the uploads changed, or the newest archive is FILES_REFRESH_DAYS old
 #   3. upload to the encrypted Google Drive remote (abc-crypt:)
-#   4. prune: 7 days locally, 90 days on the remote — /backups/milestones is exempt
+#   4. prune: 7 days locally, 40 days on the remote — /backups/milestones is
+#      exempt, and the newest uploads archive is always kept locally
 #
 # Two levels, as promised in ZAKRES.md (item 7): the server's own disk for a
 # quick restore, and an encrypted copy off the server for when the server
@@ -44,7 +46,26 @@ UPLOADS_VOLUME="${UPLOADS_VOLUME:-abcwspinania_abcwspinania_uploads_prod}"
 LOG="${LOG:-/var/log/abc-backup.log}"
 REMOTE="${REMOTE:-abc-crypt:}"
 LOCAL_RETENTION_DAYS=7
-REMOTE_RETENTION_DAYS=90
+# 40 days, not 90 — set on 09.10.2026 for all four projects that back up this
+# way, after the Drive the other three share was measured a month from full.
+# This one has a Drive account of its own; the rule is kept the same so the
+# four runbooks stay interchangeable. The privacy policy states "up to 40
+# days" — change this number and the policy page changes with it.
+REMOTE_RETENTION_DAYS=40
+
+# The uploads archive is only made when the uploads changed. Every archive is a
+# complete copy, so a nightly archive of the same photos spent Drive space for
+# nothing. Each archive is still FULL, never incremental: a restore is the
+# chosen dump plus the newest uploads archive dated on or before it — no newer
+# archive means precisely that nothing changed in between.
+#
+# The state file holds a fingerprint of the volume (path, size and mtime of
+# every file). Even with no change an archive is made every FILES_REFRESH_DAYS
+# days, which must stay below REMOTE_RETENTION_DAYS, or the remote prune would
+# delete the only archive there is. No state file (a new server) means an
+# archive straight away.
+FILES_REFRESH_DAYS=30
+FILES_STATE="${FILES_STATE:-/var/lib/abc-backup/files-state}"
 
 # HEALTHCHECK_URL lives here, never in git — the URL is the credential.
 # Missing or empty = no pings; the backup runs the same.
@@ -78,7 +99,10 @@ trap 'code=$?; log "ERROR: unexpected failure at line ${LINENO} (exit ${code})";
 
 log "=== Backup start ==="
 ping_healthcheck "/start"
-mkdir -p "$DB_DIR" "$FILES_DIR" "$MILESTONE_DIR"
+mkdir -p "$DB_DIR" "$FILES_DIR" "$MILESTONE_DIR" "$(dirname "$FILES_STATE")"
+
+[ "$FILES_REFRESH_DAYS" -lt "$REMOTE_RETENTION_DAYS" ] \
+  || fail "FILES_REFRESH_DAYS (${FILES_REFRESH_DAYS}) must be below REMOTE_RETENTION_DAYS (${REMOTE_RETENTION_DAYS}) — Drive would be left without an uploads archive"
 
 # --------------------------------------------------------------------------
 # 1. Database
@@ -108,17 +132,46 @@ log "DB OK: $(du -sh "$DB_BACKUP" | cut -f1)"
 # 2. Uploaded files (Media and the gallery)
 # --------------------------------------------------------------------------
 # The image cache volume is left out on purpose: Next rebuilds it on demand.
-log "Files archive -> ${FILES_BACKUP}.part"
-docker run --rm -v "${UPLOADS_VOLUME}:/data:ro" -v "${FILES_DIR}:/backup" alpine \
-  tar czf "/backup/${DATE}.tar.gz.part" -C /data .
+#
+# Fingerprint of the volume: path|size|mtime of every file, sorted and hashed.
+# Adding, removing or replacing an upload changes it. Taken BEFORE the archive:
+# a file added in between lands in the archive and changes tomorrow's
+# fingerprint — at worst one archive too many, never one too few.
+FILES_FP=$(docker run --rm -v "${UPLOADS_VOLUME}:/data:ro" alpine \
+  sh -c 'cd /data && find . -type f -exec stat -c "%n|%s|%Y" {} + | sort' \
+  | sha256sum | cut -d' ' -f1)
 
-# Reads the whole archive back through gzip + tar: catches a corrupt stream
-# and a truncated member table — what a disk filling up mid-tar produces.
-if ! tar tzf "${FILES_BACKUP}.part" >/dev/null 2>&1; then
-  fail "Files archive is unreadable — kept as ${FILES_BACKUP}.part for inspection."
+PREV_FP=""
+PREV_AT=0
+if [ -r "$FILES_STATE" ]; then
+  read -r PREV_FP PREV_AT < "$FILES_STATE" || true
 fi
-mv "${FILES_BACKUP}.part" "$FILES_BACKUP"
-log "Files OK: $(du -sh "$FILES_BACKUP" | cut -f1)"
+# A damaged state file (a write cut short by a full disk) must not break every
+# night's backup: anything that is not a number counts as no state, so an
+# archive is made and the write after it repairs the file.
+case "$PREV_AT" in
+  ''|*[!0-9]*) PREV_FP=""; PREV_AT=0 ;;
+esac
+FILES_AGE_DAYS=$(( ( $(date +%s) - PREV_AT ) / 86400 ))
+
+if [ "$FILES_FP" != "$PREV_FP" ] || [ "$FILES_AGE_DAYS" -ge "$FILES_REFRESH_DAYS" ]; then
+  log "Files archive -> ${FILES_BACKUP}.part"
+  docker run --rm -v "${UPLOADS_VOLUME}:/data:ro" -v "${FILES_DIR}:/backup" alpine \
+    tar czf "/backup/${DATE}.tar.gz.part" -C /data .
+
+  # Reads the whole archive back through gzip + tar: catches a corrupt stream
+  # and a truncated member table — what a disk filling up mid-tar produces.
+  if ! tar tzf "${FILES_BACKUP}.part" >/dev/null 2>&1; then
+    fail "Files archive is unreadable — kept as ${FILES_BACKUP}.part for inspection."
+  fi
+  mv "${FILES_BACKUP}.part" "$FILES_BACKUP"
+  # Written only once the archive is published: a run that dies leaves the old
+  # fingerprint, so the next run makes the archive again.
+  printf '%s %s\n' "$FILES_FP" "$(date +%s)" > "$FILES_STATE"
+  log "Files OK: $(du -sh "$FILES_BACKUP" | cut -f1)"
+else
+  log "Files unchanged since $(date -d "@${PREV_AT}" +%F 2>/dev/null || echo "${FILES_AGE_DAYS} days ago") — newest archive still current, not making another"
+fi
 
 # --------------------------------------------------------------------------
 # 3. Upload — copy, never sync
@@ -148,7 +201,11 @@ rclone delete "$REMOTE" --min-age "${REMOTE_RETENTION_DAYS}d" \
 
 log "Prune local older than ${LOCAL_RETENTION_DAYS}d"
 find "$DB_DIR"    -name '*.sql.gz' -mtime "+${LOCAL_RETENTION_DAYS}" -delete
-find "$FILES_DIR" -name '*.tar.gz' -mtime "+${LOCAL_RETENTION_DAYS}" -delete
+# The newest uploads archive always stays, even past 7 days: while nothing
+# changes it IS the current copy, and a restore from this box alone (no Drive)
+# must still have one. File names are dates, so sorting by name is by age.
+NEWEST_FILES=$(find "$FILES_DIR" -maxdepth 1 -name '*.tar.gz' | sort | tail -1)
+find "$FILES_DIR" -name '*.tar.gz' -mtime "+${LOCAL_RETENTION_DAYS}" ! -path "${NEWEST_FILES:-/none}" -delete
 # Leftovers from failed runs: kept for inspection, but not forever.
 find "$DB_DIR" "$FILES_DIR" -name '*.part' -mtime "+${LOCAL_RETENTION_DAYS}" -delete
 

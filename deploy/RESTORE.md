@@ -106,12 +106,22 @@ W healthchecks.io check powinien zrobić się zielony. Potem **sekcja 5 — ćwi
 
 ## 1. Co gdzie leży i wybór kopii
 
-| Co | Lokalnie (7 dni) | Zdalnie (90 dni) |
+| Co | Lokalnie (7 dni) | Zdalnie (40 dni) |
 |---|---|---|
-| Baza | `/backups/db/<RRRR-MM-DD>.sql.gz` | `abc-crypt:db/` |
-| Pliki (`/app/uploads`: Media, Galeria) | `/backups/files/<RRRR-MM-DD>.tar.gz` | `abc-crypt:files/` |
+| Baza (co noc) | `/backups/db/<RRRR-MM-DD>.sql.gz` | `abc-crypt:db/` |
+| Pliki (`/app/uploads`: Media, Galeria) — **tylko gdy się zmieniły**, najrzadziej co 30 dni; najnowsze zostaje lokalnie zawsze | `/backups/files/<RRRR-MM-DD>.tar.gz` | `abc-crypt:files/` |
 | Zrzuty ręczne przed ryzykowną operacją | `/backups/milestones/` (bez limitu) | `abc-crypt:milestones/` (bez limitu) |
 
+- **Archiwum plików nie powstaje co noc.** Skrypt porównuje listę plików (nazwa, rozmiar,
+  data modyfikacji) z poprzednią (`/var/lib/abc-backup/files-state`) i pakuje je tylko przy
+  zmianie albo gdy ostatnie archiwum ma 30 dni — żeby przycinanie Drive po 40 dniach nigdy
+  nie zostawiło go bez archiwum. **Każde archiwum jest pełne**, nie przyrostowe. Do zrzutu
+  bazy z dnia `DATE` pasuje **najnowsze archiwum plików z dnia `DATE` albo wcześniejszego**
+  (`FILES_DATE` w komendach niżej) — brak nowszego znaczy dokładnie tyle, że pliki od tamtej
+  pory się nie zmieniły. Skasowanie pliku stanu wymusza archiwum przy najbliższym przebiegu.
+- 40 dni, nie 90 — ustalone 09.10.2026 dla wszystkich czterech projektów z tym samym
+  schematem kopii. Polityka prywatności mówi „do 40 dni” — zmiana tej liczby to też
+  zmiana polityki.
 - Format zrzutu: **plain SQL** (`pg_dump` bez `-F c`) w gzipie → odtwarza `psql`, nie `pg_restore`.
 - Kontenery: `abcwspinania-postgres-prod`, `abcwspinania-app-prod`.
   Wolumen plików: `abcwspinania_abcwspinania_uploads_prod`.
@@ -124,18 +134,21 @@ sudo rclone lsl abc-crypt:db                    # zdalnie
 sudo rclone lsl abc-crypt:files
 ```
 
-Potrzebnej daty nie ma lokalnie — ściągnij z Drive (pobranie, nic nie kasuje):
+Ustal dwie daty: `DATE` — dzień zrzutu bazy, `FILES_DATE` — **najnowsze archiwum plików
+nie późniejsze niż `DATE`** (zwykle wcześniejsze). Czego nie ma lokalnie, ściągnij z Drive
+(pobranie, nic nie kasuje):
 ```bash
 DATE=2026-10-21
-sudo rclone copy "abc-crypt:db/${DATE}.sql.gz"    /backups/db/
-sudo rclone copy "abc-crypt:files/${DATE}.tar.gz" /backups/files/
+FILES_DATE=2026-10-14
+sudo rclone copy "abc-crypt:db/${DATE}.sql.gz"          /backups/db/
+sudo rclone copy "abc-crypt:files/${FILES_DATE}.tar.gz" /backups/files/
 ```
 
 **Sprawdź kopię, ZANIM na niej cokolwiek oprzesz** (`gunzip -t` nie wystarcza — patrz skrypt):
 ```bash
 sudo gunzip -c /backups/db/${DATE}.sql.gz | tail -20 | grep -q 'PostgreSQL database dump complete' \
   && echo "OK: zrzut kompletny" || echo "UWAGA: zrzut obcięty — weź inną datę"
-sudo tar tzf /backups/files/${DATE}.tar.gz >/dev/null \
+sudo tar tzf /backups/files/${FILES_DATE}.tar.gz >/dev/null \
   && echo "OK: archiwum czytelne" || echo "UWAGA: archiwum uszkodzone — weź inną datę"
 ```
 
@@ -180,7 +193,7 @@ migracji, którą chcesz ponowić. Zrzut zawiera tabelę `payload_migrations` �
 ## 3. Odtworzenie plików (zdjęcia z Mediów i Galerii)
 
 ```bash
-DATE=2026-10-21
+FILES_DATE=2026-10-14     # najnowsze archiwum plików ≤ dzień zrzutu bazy (sekcja 1)
 cd /home/ubuntu/abcwspinania
 VOL=abcwspinania_abcwspinania_uploads_prod
 
@@ -194,7 +207,7 @@ sudo docker run --rm -v ${VOL}:/data:ro -v /backups/milestones:/backup alpine \
 # 3.3 Wyczyść ZAWARTOŚĆ wolumenu (nie sam wolumen) i rozpakuj archiwum
 docker run --rm -v ${VOL}:/data alpine sh -c 'rm -rf /data/* /data/.[!.]* 2>/dev/null; true'
 sudo docker run --rm -v ${VOL}:/data -v /backups/files:/backup:ro alpine \
-  tar xzf "/backup/${DATE}.tar.gz" -C /data
+  tar xzf "/backup/${FILES_DATE}.tar.gz" -C /data
 
 # 3.4 Właściciel: aplikacja chodzi jako `node` (uid 1000). Zły właściciel nie psuje
 #     wyświetlania, a dopiero pierwsze wgranie zdjęcia w panelu kończy się błędem.
@@ -204,8 +217,10 @@ docker run --rm -v ${VOL}:/data alpine chown -R 1000:1000 /data
 docker compose -f docker-compose.prod.yml start app
 ```
 
-**Bazę i pliki odtwarzaj z TEJ SAMEJ daty.** Baza z 21., a pliki z 14. dadzą stronę, która
-odpowiada 200 i ma połamane obrazki.
+**Pliki odtwarzaj z NAJNOWSZEGO archiwum nie późniejszego niż zrzut bazy.** Baza z 21.
+i pliki z 14. są spójną parą tylko wtedy, gdy między 14. a 21. nie powstało nowsze
+archiwum — pominięcie nowszego (np. z 18.) da stronę, która odpowiada 200 i ma połamane
+obrazki.
 
 ---
 
@@ -263,8 +278,10 @@ docker exec abc-restore-drill psql -U "$U" -d "$D" -c "
 
 docker stop abc-restore-drill
 
-# Archiwum plików — bez rozpakowywania
-sudo tar tzf /backups/files/${DATE}.tar.gz | wc -l
+# Archiwum plików — bez rozpakowywania. Najnowsze, nie dzisiejsze: archiwum
+# powstaje tylko przy zmianie plików, więc z dzisiejszą datą zwykle go nie ma.
+FILES_LATEST=$(sudo ls /backups/files | grep '\.tar\.gz$' | sort | tail -1)
+sudo tar tzf "/backups/files/${FILES_LATEST}" | wc -l
 ```
 
 **Ćwiczenie z kopii z Drive** (to sprawdza też szyfrowanie i hasła): zamiast lokalnej kopii
@@ -290,7 +307,7 @@ docker exec abcwspinania-postgres-prod sh -c 'pg_dump -U "$POSTGRES_USER" "$POST
 sudo gunzip -c "$F" | tail -20 | grep -q 'PostgreSQL database dump complete' && echo "OK: $F"
 ```
 
-`milestones/` nie czyści nic — ani 7 dni lokalnie, ani 90 na Drive. Kasujesz ręcznie.
+`milestones/` nie czyści nic — ani 7 dni lokalnie, ani 40 na Drive. Kasujesz ręcznie.
 
 ---
 
@@ -302,7 +319,7 @@ sudo gunzip -c "$F" | tail -20 | grep -q 'PostgreSQL database dump complete' && 
 | `syntax error at or near "\restrict"` | `psql` starszy niż serwer zrzutu | Odtwarzaj w kontenerze `postgres:18-alpine` (sekcje 2, 5) |
 | `database ... is being accessed by other users` | Aplikacja trzyma połączenia | `docker compose -f docker-compose.prod.yml stop app` przed DROP |
 | `role "..." does not exist` przy ćwiczeniu | Inny użytkownik niż na produkcji | Sekcja 5 — `U` i `D` z kontenera produkcyjnego |
-| Strona działa, obrazki połamane | Baza i pliki z różnych dni | Odtwórz oba z tej samej daty |
+| Strona działa, obrazki połamane | Archiwum plików starsze niż najnowsze ≤ dzień zrzutu | Weź **najnowsze** archiwum z `abc-crypt:files` nie późniejsze niż zrzut (sekcja 1) |
 | Wgranie zdjęcia w panelu rzuca błędem | Zły właściciel wolumenu | `chown -R 1000:1000` (3.4) |
 | `token expired` / `invalid_grant` w logu | Token Google unieważniony (zmiana hasła, odebrany dostęp) | `rclone authorize "drive"` na Macu i podmiana tokenu: `sudo rclone config` → edytuj `gdrive` |
 | Kopii z potrzebnego dnia nie ma nigdzie | Kopie milczały | `/var/log/abc-backup.log` i healthchecks.io (sekcja 0.2) |
@@ -354,18 +371,20 @@ sudo nano /root/.config/rclone/rclone.conf     # wklej notatkę „rclone.conf�
 sudo chmod 600 /root/.config/rclone/rclone.conf
 sudo rclone lsd abc-crypt:                      # db/ i files/ = klucz działa
 
-sudo rclone lsl abc-crypt:db | sort -k2,3 | tail -5   # najnowsze kopie
-DATE=2026-10-21                                        # ← najnowsza data z listy
-sudo rclone copy "abc-crypt:db/${DATE}.sql.gz"    /backups/db/
-sudo rclone copy "abc-crypt:files/${DATE}.tar.gz" /backups/files/
+sudo rclone lsl abc-crypt:db | sort -k2,3 | tail -5      # najnowsze zrzuty bazy
+sudo rclone lsl abc-crypt:files | sort -k2,3 | tail -5   # archiwa plików (tylko dni ze zmianą)
+DATE=2026-10-21          # ← najnowsza data zrzutu bazy
+FILES_DATE=2026-10-14    # ← najnowsze archiwum plików nie późniejsze niż DATE
+sudo rclone copy "abc-crypt:db/${DATE}.sql.gz"          /backups/db/
+sudo rclone copy "abc-crypt:files/${FILES_DATE}.tar.gz" /backups/files/
 ```
 Potem **sprawdzenie kopii z sekcji 1** (znacznik końca zrzutu, `tar tzf`).
 `abc-crypt:` niewidoczny albo `lsd` z błędem → zła notatka; sekcja 7.
 
 ### 8.4 Dane
 
-Sekcja **2** (baza — krok 2.1 pomiń, bieżąca baza jest pusta) i sekcja **3** (pliki),
-**z tej samej daty**. Potem sekcja **4** — liczby wierszy porównaj z ostatnim ćwiczeniem
+Sekcja **2** (baza — krok 2.1 pomiń, bieżąca baza jest pusta) z `DATE` i sekcja **3**
+(pliki) z `FILES_DATE` z kroku 8.3. Potem sekcja **4** — liczby wierszy porównaj z ostatnim ćwiczeniem
 (tabela w sekcji 5).
 
 ### 8.5 Ruch na nową maszynę
