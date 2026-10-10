@@ -19,10 +19,13 @@ export function LanguageForm({ current }: { current: 'pl' | 'en' }) {
         <label htmlFor={`${id}-language`} className="font-medium">
           Język maili
         </label>
+        {/* After a save: the saved language, and a new `key` so the select
+            is drawn afresh with it (see `updateLanguage`). */}
         <SelectBox
+          key={state.values?.language ?? current}
           id={`${id}-language`}
           name="language"
-          defaultValue={current}
+          defaultValue={state.values?.language ?? current}
           className={inputClass}
         >
           <option value="pl">polski</option>

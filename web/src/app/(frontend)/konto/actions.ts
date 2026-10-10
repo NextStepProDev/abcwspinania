@@ -361,7 +361,11 @@ export async function updateLanguage(
       data: { language },
       overrideAccess: true,
     })
-    return { status: 'done', message: 'Zapisane.' }
+    // The saved choice goes back to the form: React resets the form after the
+    // action to its `defaultValue` — the language the page was rendered with —
+    // so the select jumped back and the change looked lost (reported
+    // 10.10.2026), although it was saved.
+    return { status: 'done', message: 'Zapisane.', values: { language } }
   } catch (error) {
     console.error('Failed to update a participant language:', error)
     return { status: 'error', message: 'Nie udało się zapisać. Spróbuj ponownie.' }
