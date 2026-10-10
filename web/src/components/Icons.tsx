@@ -128,6 +128,12 @@ export const Close = (p: Props) => (
   </Svg>
 )
 
+export const ChevronDown = (p: Props) => (
+  <Svg {...p} strokeWidth={2}>
+    <path d="M6 9l6 6 6-6" />
+  </Svg>
+)
+
 export const Menu = (p: Props) => (
   <Svg {...p} strokeWidth={2}>
     <path d="M3.5 7h17M3.5 12h17M3.5 17h17" />

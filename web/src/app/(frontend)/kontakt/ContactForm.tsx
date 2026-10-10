@@ -7,6 +7,7 @@ import { TOPICS } from '@/lib/topics'
 import { sendMessage, type ContactFormState } from './actions'
 import { ConsentText } from '@/components/ConsentText'
 import { RevealOnMount } from '@/components/RevealOnMount'
+import { SelectBox } from '@/components/SelectBox'
 
 const INITIAL_STATE: ContactFormState = { status: 'idle' }
 
@@ -114,7 +115,7 @@ export function ContactForm({
         <label htmlFor={fieldId('topic')} className="font-medium">
           Czego dotyczy zapytanie
         </label>
-        <select
+        <SelectBox
           id={fieldId('topic')}
           name="topic"
           // Preselected when the visitor arrived from a course or camp page.
@@ -129,7 +130,7 @@ export function ContactForm({
               {t.label}
             </option>
           ))}
-        </select>
+        </SelectBox>
         {state.errors?.topic && (
           <p id={fieldId('temat-blad')} className="text-sm text-rope">
             {state.errors.topic}

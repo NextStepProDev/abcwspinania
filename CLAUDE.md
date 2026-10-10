@@ -860,6 +860,15 @@ zrobi z kursanta administratora. Koszt: zasada 28.
   przechowywania (do ustalenia z Krzyśkiem). Po usunięciu idzie mail
   z potwierdzeniem. Założenie konta na ten sam adres później znów
   podepnie stare zapisy (`claimBookings`) — to ta sama, udowodniona osoba.
+- **„Usuń wszystkie dane osoby”** (nad listą „Uczestnicy”, `ErasePersonPanel`,
+  `lib/personErasure.ts`, od 10.10.2026) — prośba o usunięcie danych załatwiana
+  przez szkołę bez programisty. Po adresie e-mail (bez względu na wielkość
+  liter, porównanie dokładne) usuwa konto, zapisy (także bez konta), wiadomości,
+  wpis w newsletterze i wiersze odbiorców wysłanych wiadomości — tej tabeli
+  panel nie pokazuje. Dwa kroki: podgląd (GET), potem usunięcie (POST) dopiero
+  z adresem przepisanym drugi raz — sprawdza to też serwer. W logu jest kto
+  i ile, nigdy czyj adres. Konta panelu (`users`) nie są ruszane. Tekst
+  o kopiach („znikną po 40 dniach”) powtarza retencję z `abc-backup.sh`.
 - **Dzieci (do zapisów na obozy) dojdą w etapie 4**, nie teraz — żeby nie
   projektować pól pod wymagania, których Krzysiek jeszcze nie podał.
 

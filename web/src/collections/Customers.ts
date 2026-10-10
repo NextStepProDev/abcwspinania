@@ -4,6 +4,7 @@ import { adminOrSelf, isAdmin } from '../lib/access'
 import { LANGUAGE_OPTIONS_FOR_PAYLOAD, type EmailLanguage } from '../lib/email/language'
 import { tokenLink } from '../lib/email/links'
 import { resetPasswordEmail, verifyAccountEmail } from '../lib/email/templates'
+import { eraseHandler, erasureSummaryHandler } from '../lib/personErasure'
 
 /**
  * Participant accounts — people who sign up for courses and camps.
@@ -61,7 +62,13 @@ export const Customers: CollectionConfig = {
     group: 'Zapisy',
     description:
       'Konta osób zapisujących się na kursy i obozy. Zakładają je same na stronie — tu tylko podgląd i pomoc.',
+    // "Usuń wszystkie dane osoby" — a request to be forgotten (`lib/personErasure.ts`).
+    components: { beforeList: ['/components/admin/ErasePersonPanel#ErasePersonPanel'] },
   },
+  endpoints: [
+    { path: '/erase', method: 'get', handler: erasureSummaryHandler },
+    { path: '/erase', method: 'post', handler: eraseHandler },
+  ],
   auth: {
     tokenExpiration: SESSION_DAYS * 24 * 60 * 60,
     maxLoginAttempts: 5,

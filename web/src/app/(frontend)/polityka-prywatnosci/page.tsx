@@ -172,8 +172,8 @@ export default function PrivacyPolicyPage() {
             </p>
             <List>
               <li>
-                <strong>Oracle</strong> (Oracle Cloud, centrum danych we Frankfurcie, UE) — serwer,
-                na którym działa strona i baza danych.
+                <strong>Dostawca serwera</strong> (centrum danych w Unii Europejskiej) — serwer, na
+                którym działa strona i baza danych.
               </li>
               <li>
                 <strong>Brevo</strong> (Sendinblue SAS, Francja, UE) — wysyłka maili: potwierdzeń
@@ -194,8 +194,7 @@ export default function PrivacyPolicyPage() {
                 dostępu do ich treści.
               </li>
               <li>
-                <strong>Obsługa techniczna strony</strong> — osoba, która utrzymuje stronę i serwer,
-                na podstawie umowy powierzenia przetwarzania danych.
+                <strong>Obsługa techniczna strony</strong> — osoba, która utrzymuje stronę i serwer.
               </li>
             </List>
             <p>

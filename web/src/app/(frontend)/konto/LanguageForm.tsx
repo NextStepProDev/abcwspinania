@@ -3,6 +3,7 @@
 import { useActionState, useId } from 'react'
 
 import { inputClass } from '@/components/AccountFields'
+import { SelectBox } from '@/components/SelectBox'
 import { updateLanguage, type FormState } from './actions'
 
 const INITIAL: FormState<never> = { status: 'idle' }
@@ -18,10 +19,15 @@ export function LanguageForm({ current }: { current: 'pl' | 'en' }) {
         <label htmlFor={`${id}-language`} className="font-medium">
           Język maili
         </label>
-        <select id={`${id}-language`} name="language" defaultValue={current} className={inputClass}>
+        <SelectBox
+          id={`${id}-language`}
+          name="language"
+          defaultValue={current}
+          className={inputClass}
+        >
           <option value="pl">polski</option>
           <option value="en">English</option>
-        </select>
+        </SelectBox>
       </div>
       <button
         type="submit"
