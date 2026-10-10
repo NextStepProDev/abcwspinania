@@ -4,6 +4,7 @@
  * `harness.ts` for why this is not `node:test` and why no email leaves.
  */
 import './access.int'
+import './accounts.int'
 import './bookings.int'
 import './broadcasts.int'
 import { run } from './harness'

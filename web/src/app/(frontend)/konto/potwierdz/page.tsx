@@ -25,9 +25,18 @@ type Outcome = 'confirmed' | 'expired' | 'invalid'
  * account from before that field falls back to `createdAt`). An expired link
  * confirms nothing, and the page offers a fresh one.
  *
- * Confirmed on opening the page: the token is single-use and long (40 hex
- * characters, `collections/operations/create.js`), and a mail scanner that
- * opens the link first only confirms the address of the person it scans for.
+ * Confirmed on opening the page: the token is long (40 hex characters) and a
+ * mail scanner that opens the link first only confirms the address of the
+ * person it scans for.
+ *
+ * ⚠️ The token is KEPT after confirming, not cleared as Payload's
+ * `verifyEmail` does. Reported 10.10.2026: the account got confirmed, yet the
+ * person saw "Link nie działa" — a second opening (a reload, a mail scanner
+ * ahead of the click, a double click) found the token already gone. Now a
+ * repeat finds an account already confirmed and says so. Keeping it costs
+ * nothing: the token only ever confirms the address it was sent to, the page
+ * shows nothing about the account, and the next link sent replaces it
+ * (`sendVerificationLink`), so only the newest link works, as before.
  */
 async function confirm(token: string): Promise<Outcome> {
   const payload = await getPayload({ config })
@@ -44,10 +53,20 @@ async function confirm(token: string): Promise<Outcome> {
   })
   const account = docs[0]
   if (!account) return 'invalid'
+  // Checked before the age: a link opened again after 48 h still belongs to
+  // a confirmed address, and "expired, send a new one" would be untrue.
+  if (account._verified) return 'confirmed'
   const sentAt = account.verificationSentAt ?? account.createdAt
   if (isExpired(sentAt, VERIFY_LINK_HOURS, new Date())) return 'expired'
-  const confirmed = await payload.verifyEmail({ collection: 'customers', token })
-  if (!confirmed) return 'invalid'
+  // Through the database adapter: `payload.update` runs the `_verified`
+  // field's own hook (`auth/baseFields/verification.js`), which clears the
+  // token the moment `_verified` turns true — the very thing to avoid here.
+  // The same path `sendVerificationLink` writes the token by.
+  await payload.db.updateOne({
+    collection: 'customers',
+    id: account.id,
+    data: { _verified: true },
+  })
   // The address is proven — bookings made with it join the account.
   await claimBookings(payload, account).catch((e) => console.error('claim failed:', e))
   return 'confirmed'

@@ -748,6 +748,11 @@ zrobi z kursanta administratora. Koszt: zasada 28.
   pola `verificationSentAt` (ustawianego przy każdej wysyłce). Endpoint
   `/api/customers/verify/:token` pominąłby tę kontrolę — **zamknięty w nginx**
   (lokalnie działa). Link do nowego hasła działa 2 h (`RESET_LINK_HOURS`).
+  **Token zostaje po potwierdzeniu** (od 10.10.2026): drugie otwarcie linku
+  (odświeżenie, skaner poczty, podwójny klik) pokazuje „Adres potwierdzony”,
+  a nie „Link nie działa”, choć konto było już potwierdzone (zgłoszone przy
+  testach). `_verified` zapisujemy przez `payload.db.updateOne`, bo hook pola
+  w Payloadzie kasuje token przy każdym `update` ustawiającym `_verified`.
 - **„Wyślij link ponownie”** — w trzech miejscach: po poprawnym haśle na
   niepotwierdzonym koncie (Payload mówi o tym dopiero PO sprawdzeniu hasła),
   na stronie wygasłego linku i na `/konto/wyslij-link` (link „Nie dotarł
