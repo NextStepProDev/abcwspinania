@@ -175,6 +175,14 @@ Blokują dowiezienie albo mogą wymusić przeróbkę:
     firmy czyta się jako „partner PZA”. Potrzebna zgoda Związku (albo zapis
     w regulaminie, że licencjonowany instruktor może go używać). Bez niej —
     usunąć obrazek z `kursy/page.tsx`.
+11. **Angielska ścieżka zapisu (wariant B)** — decyzja Mateusza z 10.10.2026,
+    **do zrobienia po wdrożeniu zapisów**, po akceptacji Krzyśka (nowa pozycja,
+    poza wyceną; pełne tłumaczenie zostaje w „Poza zakresem”). Po angielsku:
+    menu i stopka, lista kursów, strona kursu, zapis, logowanie, rejestracja,
+    Moje konto (maile już są dwujęzyczne). Treść z panelu: przy kursie
+    opcjonalne pola EN; puste → opis polski. Aktualności, galeria, „O nas”
+    zostają po polsku. Przełącznik PL/EN prowadzi na tę samą stronę w drugim
+    języku (mechanizm `TRANSLATED_PAGES` już jest).
 
 ---
 
