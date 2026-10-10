@@ -974,7 +974,10 @@ zasada 25), inaczej panel nie znajdzie komponentu.
 - **Status jako lista rozwijana na liście zapisów** (`BookingStatusCell`).
   Zapisuje przez REST, więc działa wszystko, co idzie za zmianą statusu
   (mail, przeliczenie miejsc). Status wysyłający kursantowi maila pyta
-  najpierw — klik w zły wiersz nie może wysłać „zapis anulowany”.
+  najpierw — klik w zły wiersz nie może wysłać „zapis anulowany”. To samo dla
+  wiadomości z formularza (`MessageStatusCell`, od 10.10.2026: nowa → w toku →
+  załatwiona jednym kliknięciem, bez pytania — nikt nie dostaje maila). Wspólny
+  komponent: `StatusSelectCell`.
 - **Eksport uczestników terminu** — `GET /api/sessions/:id/export`
   (`lib/sessionExport.ts`), przycisk na stronie terminu. Tylko konto szkoły.
   CSV pod POLSKIEGO Excela (`lib/csv.ts`): BOM (inaczej „Å»aneta”), średnik,

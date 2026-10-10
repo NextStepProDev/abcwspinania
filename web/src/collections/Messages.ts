@@ -5,6 +5,7 @@ import { TOPICS_FOR_PAYLOAD } from '../lib/topics'
 import { LANGUAGE_OPTIONS_FOR_PAYLOAD } from '../lib/email/language'
 import { newMessageNotification } from '../lib/email/templates'
 import { SITE_URL } from '../lib/site'
+import { MESSAGE_STATUS_OPTIONS } from '../lib/messages'
 
 /**
  * Messages from the contact form.
@@ -150,11 +151,11 @@ export const Messages: CollectionConfig = {
       type: 'select',
       defaultValue: 'new',
       label: 'Status',
-      options: [
-        { label: 'nowa', value: 'new' },
-        { label: 'w toku', value: 'in-progress' },
-        { label: 'załatwiona', value: 'resolved' },
-      ],
+      options: [...MESSAGE_STATUS_OPTIONS],
+      admin: {
+        // Changed straight in the list (`MessageStatusCell`).
+        components: { Cell: '/components/admin/MessageStatusCell#MessageStatusCell' },
+      },
     },
     // --- GDPR: consent must be documented, not presumed ---
     {
