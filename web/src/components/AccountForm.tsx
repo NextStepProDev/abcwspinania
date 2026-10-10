@@ -1,6 +1,7 @@
 import Link from 'next/link'
 
 import { Container } from '@/components/Ui'
+import { RevealOnMount } from '@/components/RevealOnMount'
 
 /**
  * Building blocks of the account pages (login, registration, password).
@@ -50,13 +51,16 @@ export function FormAlert({ children }: { children: React.ReactNode }) {
   )
 }
 
-/** A confirmation in place of the form — `role="status"` is announced too. */
+/**
+ * A confirmation in place of the form — `role="status"` is announced too, and
+ * it scrolls itself into view (`RevealOnMount`).
+ */
 export function FormDone({ title, children }: { title: string; children?: React.ReactNode }) {
   return (
-    <div role="status">
+    <RevealOnMount role="status">
       <h2 className="text-xl font-semibold">{title}</h2>
       {children && <div className="mt-2 text-rock-600">{children}</div>}
-    </div>
+    </RevealOnMount>
   )
 }
 

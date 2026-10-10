@@ -6,6 +6,7 @@ import { CONSENT_TEXT } from '@/lib/consent'
 import { TOPICS } from '@/lib/topics'
 import { sendMessage, type ContactFormState } from './actions'
 import { ConsentText } from '@/components/ConsentText'
+import { RevealOnMount } from '@/components/RevealOnMount'
 
 const INITIAL_STATE: ContactFormState = { status: 'idle' }
 
@@ -38,12 +39,12 @@ export function ContactForm({
     return (
       // role="status" makes the screen reader announce the confirmation —
       // without it a blind visitor never learns anything happened.
-      <div role="status" className="rounded-2xl border border-rock-200 bg-white p-8">
+      <RevealOnMount role="status" className="rounded-2xl border border-rock-200 bg-white p-8">
         <h2 className="text-xl font-semibold">Dziękujemy, wiadomość dotarła.</h2>
         <p className="mt-2 text-rock-600">
           Odpowiadamy zwykle tego samego dnia. Jeśli sprawa jest pilna, zadzwoń albo wyślij SMS.
         </p>
-      </div>
+      </RevealOnMount>
     )
   }
 
