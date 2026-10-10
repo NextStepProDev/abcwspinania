@@ -15,15 +15,15 @@ import { MountainBackdrop } from '@/components/MountainBackdrop'
  * and a search engine would take the page for Polish with odd content.
  */
 export function generateMetadata(): Metadata {
-  return {
-    ...pageMetadata({
-      title: 'Climbing courses on the Polish Jura',
-      description:
-        'Rock climbing courses in English on the Kraków-Częstochowa Upland, led by PZA-licensed instructors. Four climbers per instructor, own base in Rzędkowice.',
-      path: '/en',
-    }),
-    openGraph: { locale: 'en_GB' },
-  }
+  const base = pageMetadata({
+    title: 'Climbing courses on the Polish Jura',
+    description:
+      'Rock climbing courses in English on the Kraków-Częstochowa Upland, led by PZA-licensed instructors. Four climbers per instructor, own base in Rzędkowice.',
+    path: '/en',
+  })
+  // Spread, not replaced: `openGraph: { locale }` alone dropped the title,
+  // description and image from the shared preview (fixed 10.10.2026).
+  return { ...base, openGraph: { ...base.openGraph, locale: 'en_GB' } }
 }
 
 export default async function EnglishPage() {

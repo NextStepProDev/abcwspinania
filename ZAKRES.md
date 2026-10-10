@@ -44,7 +44,7 @@ Numeracja jak w wiadomości do Krzyśka.
 | 7 | Backupy szyfrowane dwupoziomowo | skrypt na serwerze + wysyłka na Drive + **odtworzenie przetestowane** | **gotowe** (06.10.2026) — co noc: serwer 7 dni + zaszyfrowany Google Drive 40 dni (od 09.10.2026; wcześniej 90), archiwum zdjęć tylko gdy się zmieniły (alarm healthchecks.io gotowy w skrypcie, adres do podpięcia); odtworzenie z kopii pobranej z Drive przećwiczone, zgodne z produkcją (`deploy/RESTORE.md`) |
 | 8 | Testy automatyczne | jednostkowe **i integracyjne** | **częściowo** |
 | 9 | Testy wydajnościowe i na wycieki pamięci | raport z liczbami | **do zrobienia** |
-| 10 | Testy manualne | spisany scenariusz + wynik przejścia | **częściowo** — scenariusz spisany 06.10.2026 (`docs/testy-reczne.html`, 66 kroków, dane testowe `npm run seed:test`); czeka na wynik przejścia |
+| 10 | Testy manualne | spisany scenariusz + wynik przejścia | **częściowo** — scenariusz spisany 06.10.2026 (`docs/testy-reczne.html`, 69 kroków, dane testowe `npm run seed:test`); czeka na wynik przejścia |
 | 11 | Security | rozbicie niżej | **częściowo** |
 | 12 | Szybkość działania | zmierzone Core Web Vitals, wynik zielony na telefonie | **do zrobienia** |
 | 13 | Analityka bez ciasteczek | Plausible albo Umami na własnym serwerze | **do zrobienia** |
@@ -97,11 +97,11 @@ adresy przechodzą na nowe, bez błędów 404).
 | Zgody zapisywane treścią i wersją, nie znacznikiem „tak" | gotowe |
 | Osobna klauzula marketingowa dla newslettera | gotowe |
 | Newsletter: potwierdzenie zapisu (double opt-in), wypisanie jednym kliknięciem, niepotwierdzone usuwane po 7 dniach | gotowe (03.10.2026) |
-| Strona z polityką prywatności | **wersja robocza** (06.10.2026, czeka na wdrożenie) — `/polityka-prywatnosci`, link w stopce i przy każdej zgodzie; dane administratora z rejestrów (`lib/legal.ts`) do potwierdzenia przez Krzyśka |
+| Strona z polityką prywatności | **wersja robocza** (06.10.2026, czeka na wdrożenie) — `/polityka-prywatnosci` i tłumaczenie `/en/privacy-policy`, link w stopce i przy każdej zgodzie; dane administratora z rejestrów (`lib/legal.ts`) do potwierdzenia przez Krzyśka |
 | Okresy przechowywania (zgłoszenia, zapisy, dane zdrowotne) | **częściowo** — wpisane w politykę; automatycznie: wiadomości z formularza po 12 miesiącach, niepotwierdzone konta i zapisy do newslettera po 7 dniach, zapisy na kursy anonimizowane po 5 latach od końca roku kursu (zostaje ślad do statystyk), poza przypiętymi do istniejącego konta (od 10.10.2026), logi kontenerów rotowane (3 × 10 MB); ręcznie (na razie): wypisani z newslettera; dane zdrowotne — z obozami |
 | Podwyższone wymagania przy danych dzieci i danych o zdrowiu | **do zrobienia** |
 | Umowa powierzenia przetwarzania między Krzyśkiem a wykonawcą | **do zrobienia** |
-| Mechanizm usunięcia danych na żądanie | **gotowe** — „Usuń konto” samodzielnie w Moim koncie (04.10.2026); „Usuń wszystkie dane osoby” w panelu (Uczestnicy) po adresie e-mail, z podglądem i potwierdzeniem przepisanym adresem (10.10.2026) |
+| Mechanizm usunięcia danych na żądanie | **gotowe** — „Usuń konto” samodzielnie w Moim koncie (04.10.2026); w panelu (Uczestnicy) po adresie e-mail: kopia danych do pobrania i „Usuń wszystkie dane osoby” z podglądem i potwierdzeniem przepisanym adresem (10.10.2026) |
 
 ### Rozbicie pozycji 11 — security
 

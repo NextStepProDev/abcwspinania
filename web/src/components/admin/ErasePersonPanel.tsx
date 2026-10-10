@@ -6,8 +6,9 @@ import { useState } from 'react'
 import { pluralPl } from '@/lib/format'
 
 /**
- * "Usuń wszystkie dane osoby" above the list of participants — a request to
- * be forgotten, handled by the school alone (`lib/personErasure.ts`).
+ * "Dane osoby" above the list of participants — a person's requests about
+ * their data, handled by the school alone (`lib/personErasure.ts`): a copy of
+ * everything we hold (a JSON file to send back), and erasure.
  *
  * Closed by default, and two deliberate steps: first "what do we have on
  * this address" (nothing is deleted), then the address typed AGAIN before the
@@ -97,10 +98,11 @@ export function ErasePersonPanel() {
       }}
     >
       <summary style={{ cursor: 'pointer', fontWeight: 600 }}>
-        Usuń wszystkie dane osoby (prośba o usunięcie danych)
+        Dane osoby — kopia albo usunięcie (prośby z RODO)
       </summary>
       <p style={muted}>
-        Wpisz adres e-mail osoby. Najpierw zobaczysz, co mamy — nic się jeszcze nie usunie.
+        Wpisz adres e-mail osoby. Najpierw zobaczysz, co mamy — nic się jeszcze nie usunie. Potem
+        możesz pobrać kopię jej danych (plik do wysłania jej w odpowiedzi) albo usunąć wszystko.
       </p>
       <form
         onSubmit={(e) => {
@@ -137,7 +139,7 @@ export function ErasePersonPanel() {
 
       {summary && found && (
         <div style={{ marginTop: 12 }}>
-          <p style={{ margin: 0, fontWeight: 600 }}>Dla {summary.email} usuniemy:</p>
+          <p style={{ margin: 0, fontWeight: 600 }}>Dla {summary.email} mamy:</p>
           <ul style={{ margin: '6px 0 0', paddingLeft: 20 }}>
             <li>
               {summary.account
@@ -153,6 +155,15 @@ export function ErasePersonPanel() {
             <li>newsletter: {summary.newsletter ? 'tak' : 'nie'}</li>
             <li>na listach odbiorców wysłanych wiadomości: {summary.deliveries}</li>
           </ul>
+          <a
+            href={`/api/customers/person-data?email=${encodeURIComponent(summary.email)}`}
+            download
+            className="btn btn--style-secondary btn--size-small"
+            style={{ margin: '12px 0 0' }}
+          >
+            Pobierz kopię danych (plik)
+          </a>
+          <p style={{ margin: '20px 0 0', fontWeight: 600 }}>Usunięcie wszystkich danych</p>
           <p
             style={{
               margin: '12px 0 0',

@@ -691,6 +691,15 @@ pipeline'u SCSS dla jednego pustego arkusza.
 
 ## Polityka prywatności i administrator danych
 
+**Dwie wersje:** `/polityka-prywatnosci` i tłumaczenie `/en/privacy-policy`
+(od 10.10.2026; wiążąca jest polska, strona angielska to mówi). Zmiana jednej
+= zmiana drugiej w tym samym commicie. Przełącznik PL/EN na stronach z listy
+`TRANSLATED_PAGES` (`components/navigation.ts`) prowadzi do tej samej strony
+w drugim języku, na pozostałych — na stronę główną drugiego języka (serwis
+nie jest tłumaczony, ZAKRES). Wspólny wygląd: `components/PolicyParts.tsx`.
+Serwer w polityce jest kategorią („dostawca serwera w UE”), bez nazwy firmy —
+decyzja 10.10.2026, żeby nie podawać, gdzie stoi.
+
 Od 06.10.2026 (wersja robocza, do potwierdzenia przez Krzyśka).
 
 - **Administrator to osoba, nie marka.** „ABC Wspinania” to nazwa szkoły, nie
@@ -860,9 +869,13 @@ zrobi z kursanta administratora. Koszt: zasada 28.
   przechowywania (do ustalenia z Krzyśkiem). Po usunięciu idzie mail
   z potwierdzeniem. Założenie konta na ten sam adres później znów
   podepnie stare zapisy (`claimBookings`) — to ta sama, udowodniona osoba.
-- **„Usuń wszystkie dane osoby”** (nad listą „Uczestnicy”, `ErasePersonPanel`,
-  `lib/personErasure.ts`, od 10.10.2026) — prośba o usunięcie danych załatwiana
-  przez szkołę bez programisty. Po adresie e-mail (bez względu na wielkość
+- **„Dane osoby — kopia albo usunięcie”** (nad listą „Uczestnicy”,
+  `ErasePersonPanel`, `lib/personErasure.ts`, od 10.10.2026) — prośby z RODO
+  załatwiane przez szkołę bez programisty. **Kopia** (`/api/customers/person-data`):
+  plik JSON ze wszystkim, co mamy pod adresem, złożony z LISTY DOZWOLONYCH pól —
+  konto ma też hash hasła, sól, sesje i tokeny, wpis w newsletterze token
+  wypisania; to klucze, nie dane osoby, i nie mogą wyjść w pliku wysłanym
+  mailem (test to pilnuje). **Usunięcie:** Po adresie e-mail (bez względu na wielkość
   liter, porównanie dokładne) usuwa konto, zapisy (także bez konta), wiadomości,
   wpis w newsletterze i wiersze odbiorców wysłanych wiadomości — tej tabeli
   panel nie pokazuje. Dwa kroki: podgląd (GET), potem usunięcie (POST) dopiero

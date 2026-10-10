@@ -7,7 +7,7 @@ import { useEffect, useId, useState } from 'react'
 import { Logo } from './Logo'
 import { Phone, Menu, Close, Person } from './Icons'
 import { useLoggedIn } from './useAccount'
-import { LANGUAGES, MAIN_NAV, isActive, languageOf } from './navigation'
+import { LANGUAGES, MAIN_NAV, isActive, languageHref, languageOf } from './navigation'
 
 /**
  * The site header.
@@ -124,7 +124,8 @@ export function Header({ phone, telHref }: { phone: string | null; telHref: stri
               and the fill is the one you notice first. Lightening it would
               leave the pair leaning on a difference between two greys. */}
           {/* The chip follows the page: on `/en` EN is the active one and PL
-              links back to the Polish homepage. A fixed "PL active, EN link"
+              links back to the Polish homepage — or, on a translated page
+              (`TRANSLATED_PAGES`), to the same page in Polish. A fixed "PL active, EN link"
               pair left `/en` with a switch pointing at itself and no way back.
               `aria-current="true"`, not `"page"`: on `/kursy` the PL chip marks
               the current language, not the current page. No `aria-label`: the
@@ -142,7 +143,7 @@ export function Header({ phone, telHref }: { phone: string | null; telHref: stri
             ) : (
               <Link
                 key={language.code}
-                href={language.href}
+                href={languageHref(language.code, pathname)}
                 hrefLang={language.code}
                 lang={language.code}
                 className="px-2.5 py-1.5 text-[13px] font-semibold text-rock-600 hover:text-rock-900"
@@ -248,7 +249,7 @@ export function Header({ phone, telHref }: { phone: string | null; telHref: stri
             </li>
             <li>
               <Link
-                href={otherLanguage.href}
+                href={languageHref(otherLanguage.code, pathname)}
                 hrefLang={otherLanguage.code}
                 lang={otherLanguage.code}
                 className="block origin-left py-2 pl-3 text-rock-600"

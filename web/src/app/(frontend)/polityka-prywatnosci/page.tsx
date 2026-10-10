@@ -10,6 +10,13 @@ import {
 } from '@/lib/expiry'
 import { CONTROLLER, PRIVACY_POLICY_VERSION } from '@/lib/legal'
 import { pageMetadata } from '@/lib/seo'
+import {
+  PolicyList as List,
+  PolicyMail,
+  PolicySection as Section,
+  policyDate,
+  policyLinkClass,
+} from '@/components/PolicyParts'
 
 /**
  * The privacy policy (ZAKRES item 5).
@@ -23,38 +30,25 @@ import { pageMetadata } from '@/lib/seo'
  *
  * A static page in code, not a panel global: legal text that changes with
  * the code's behaviour belongs next to that code, versioned with it.
+ *
+ * ⚠️ Translated: `/en/privacy-policy`. Change this text — change that one in
+ * the same commit (same `PRIVACY_POLICY_VERSION`).
  */
 
 export function generateMetadata(): Metadata {
-  return pageMetadata({
+  const base = pageMetadata({
     title: 'Polityka prywatności',
     description:
       'Kto przetwarza Twoje dane w ABC Wspinania, w jakim celu, jak długo i jakie masz prawa.',
     path: '/polityka-prywatnosci',
   })
+  return {
+    ...base,
+    alternates: { ...base.alternates, languages: { en: '/en/privacy-policy' } },
+  }
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="mt-10">
-      <h2 className="text-[22px] leading-tight lg:text-[26px]">{title}</h2>
-      <div className="mt-4 flex flex-col gap-3 text-[17px] leading-7 text-rock-700">{children}</div>
-    </section>
-  )
-}
-
-function List({ children }: { children: React.ReactNode }) {
-  return <ul className="flex list-disc flex-col gap-2 pl-6">{children}</ul>
-}
-
-const mail = (
-  <a
-    href={`mailto:${CONTROLLER.email}`}
-    className="font-medium text-rope underline-offset-4 hover:underline"
-  >
-    {CONTROLLER.email}
-  </a>
-)
+const mail = <PolicyMail />
 
 export default function PrivacyPolicyPage() {
   return (
@@ -64,9 +58,7 @@ export default function PrivacyPolicyPage() {
           <h1 className="text-balance text-[34px] leading-[1.1] lg:text-[44px]">
             Polityka prywatności
           </h1>
-          <p className="mt-3 text-rock-600">
-            Wersja z dnia {PRIVACY_POLICY_VERSION.split('-').reverse().join('.')}
-          </p>
+          <p className="mt-3 text-rock-600">Wersja z dnia {policyDate(PRIVACY_POLICY_VERSION)}</p>
 
           <Section title="Kto odpowiada za Twoje dane">
             <p>
@@ -222,10 +214,7 @@ export default function PrivacyPolicyPage() {
             </List>
             <p>
               Najprościej: napisz na {mail}. Część rzeczy zrobisz sam — konto usuniesz w zakładce{' '}
-              <Link
-                href="/konto"
-                className="font-medium text-rope underline-offset-4 hover:underline"
-              >
+              <Link href="/konto" className={policyLinkClass}>
                 Moje konto
               </Link>
               , a z newslettera wypiszesz się linkiem na dole każdej wiadomości.

@@ -141,6 +141,114 @@ export async function erasePerson(
   return erased
 }
 
+// --- a copy of the data (right of access) ---------------------------------------
+
+/** Picks the named fields that are present, so nothing else — no key — slips in. */
+function pick<T extends Record<string, unknown>>(doc: T, fields: string[]) {
+  return Object.fromEntries(fields.filter((f) => doc[f] !== undefined).map((f) => [f, doc[f]]))
+}
+
+/**
+ * Everything we hold about the person at `email`, for "Pobierz kopię danych
+ * osoby" — a person's right to a copy of their data (and to take it
+ * elsewhere), answered by the school from the panel.
+ *
+ * Built from an ALLOW-list of fields per collection, never from whole
+ * documents: an account also holds a password hash, a salt, login sessions
+ * and tokens, and a newsletter entry its unsubscribe token. Those are keys,
+ * not the person's data, and must not leave in a file sent by email.
+ */
+export async function personDataCopy(payload: Payload, email: string) {
+  const byIds = async (collection: Collection, depth = 0) => {
+    const ids = (await idsWithAddress(payload, collection, email)).map((r) => r.id)
+    if (ids.length === 0) return []
+    const { docs } = await payload.find({
+      collection,
+      where: { id: { in: ids } },
+      pagination: false,
+      depth,
+      overrideAccess: true,
+    })
+    return docs as unknown as Record<string, unknown>[]
+  }
+  const [accounts, bookings, messages, newsletter, deliveries] = await Promise.all([
+    byIds('customers'),
+    byIds('bookings', 1),
+    byIds('messages'),
+    byIds('newsletter'),
+    byIds('broadcast-deliveries', 1),
+  ])
+  const label = (value: unknown) =>
+    value && typeof value === 'object'
+      ? ((value as { label?: string; subject?: string }).label ??
+        (value as { subject?: string }).subject ??
+        null)
+      : null
+  return {
+    email,
+    madeAt: new Date().toISOString(),
+    account: accounts[0]
+      ? pick(accounts[0], [
+          'email',
+          'firstName',
+          'lastName',
+          'phone',
+          'language',
+          '_verified',
+          'consentText',
+          'consentDate',
+          'createdAt',
+          'updatedAt',
+        ])
+      : null,
+    bookings: bookings.map((b) => ({
+      ...pick(b, [
+        'firstName',
+        'lastName',
+        'email',
+        'phone',
+        'status',
+        'notes',
+        'language',
+        'consentText',
+        'consentDate',
+        'createdAt',
+      ]),
+      session: label(b.session),
+    })),
+    messages: messages.map((m) =>
+      pick(m, [
+        'name',
+        'email',
+        'phone',
+        'topic',
+        'preferredDate',
+        'message',
+        'language',
+        'consentText',
+        'consentDate',
+        'createdAt',
+      ]),
+    ),
+    newsletter: newsletter.map((n) =>
+      pick(n, [
+        'email',
+        'status',
+        'language',
+        'consentText',
+        'consentDate',
+        'confirmedAt',
+        'unsubscribedAt',
+        'createdAt',
+      ]),
+    ),
+    messagesSentToThem: deliveries.map((d) => ({
+      ...pick(d, ['status', 'sentAt']),
+      subject: label(d.broadcast),
+    })),
+  }
+}
+
 // --- panel endpoints (`Customers.endpoints`) -----------------------------------
 
 const forbidden = () => Response.json({ error: 'Tylko dla konta szkoły.' }, { status: 403 })
@@ -173,4 +281,20 @@ export async function eraseHandler(req: PayloadRequest): Promise<Response> {
   // address the person asked to have forgotten.
   req.payload.logger.info({ by: req.user?.email, erased }, 'Erased a person’s data on request')
   return Response.json({ erased })
+}
+
+export async function personDataHandler(req: PayloadRequest): Promise<Response> {
+  if (!isAdmin({ req })) return forbidden()
+  const email = normalizeAddress(new URL(req.url ?? '', 'http://x').searchParams.get('email'))
+  const invalid = checkEmail(email)
+  if (invalid) return Response.json({ error: invalid }, { status: 400 })
+  const copy = await personDataCopy(req.payload, email)
+  const name = `dane-${email.replace(/[^a-z0-9.@+-]/g, '_')}.json`
+  return new Response(JSON.stringify(copy, null, 2), {
+    headers: {
+      'content-type': 'application/json; charset=utf-8',
+      'content-disposition': `attachment; filename="${name}"`,
+      'cache-control': 'no-store',
+    },
+  })
 }

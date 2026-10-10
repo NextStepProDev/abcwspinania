@@ -206,3 +206,47 @@ test('the school erases everything about one person, only after typing the addre
   assert.equal(await count('customers', [other.id]), 1)
   assert.equal(await count('bookings', [kept.id, lookalike.id]), 2)
 })
+
+test('the school downloads a copy of one person’s data — no secrets in it', async () => {
+  const admin = await makeAdmin()
+  const person = await makeCustomer('copy-me')
+  const course = await makeCourse()
+  const session = await makeSession(course.id)
+  await makeBooking(session.id, 'copy-me', { customer: person.id, notes: 'Bez glutenu' })
+  const subscription = await payload.create({
+    collection: 'newsletter',
+    data: {
+      email: person.email,
+      status: 'subscribed',
+      token: newToken(),
+      language: 'pl',
+      consentText: 'zgoda na newsletter',
+      consentDate: new Date().toISOString(),
+    },
+    overrideAccess: true,
+  })
+  cleanup(() => removeWhere('newsletter', { id: { equals: subscription.id } }))
+
+  const asParticipant = await http(
+    `/api/customers/person-data?email=${encodeURIComponent(person.email)}`,
+    { token: person.token },
+  )
+  assert.equal(asParticipant.status, 403)
+
+  const response = await http(
+    `/api/customers/person-data?email=${encodeURIComponent(person.email.toUpperCase())}`,
+    { token: admin.token },
+  )
+  assert.equal(response.status, 200)
+  assert.match(response.headers.get('content-disposition') ?? '', /attachment/)
+  const text = await response.text()
+  const copy = JSON.parse(text)
+  assert.equal(copy.account.email, person.email)
+  assert.equal(copy.bookings.length, 1)
+  assert.equal(copy.bookings[0].notes, 'Bez glutenu')
+  assert.ok(copy.bookings[0].session, 'which course and date')
+  assert.equal(copy.newsletter.length, 1)
+  // Passwords, tokens and sessions are not the person's data — they are keys.
+  assert.doesNotMatch(text, /"(hash|salt|token|_verificationToken|resetPasswordToken|sessions)"/)
+  assert.doesNotMatch(text, new RegExp(subscription.token as string))
+})
