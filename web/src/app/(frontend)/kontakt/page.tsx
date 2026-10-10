@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-import { getCourse, getSiteConfig, telHref } from '@/lib/content'
+import { getCourse, getCourses, getSiteConfig, telHref } from '@/lib/content'
 import { mapEmbedSrc } from '@/lib/format'
 import { pageMetadata } from '@/lib/seo'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
@@ -21,11 +21,12 @@ type Props = { searchParams: Promise<{ course?: string; camp?: string }> }
 
 export default async function Kontakt({ searchParams }: Props) {
   const { course: courseSlug, camp } = await searchParams
-  const [siteConfig, course] = await Promise.all([
+  const [siteConfig, course, courses] = await Promise.all([
     getSiteConfig(),
     // The slug comes from the address, so it may point at nothing — in that
     // case we simply suggest nothing rather than showing an error.
     courseSlug ? getCourse(courseSlug) : Promise.resolve(null),
+    getCourses(),
   ])
   const tel = telHref(siteConfig)
 
@@ -60,8 +61,9 @@ export default async function Kontakt({ searchParams }: Props) {
             Formularz kontaktowy
           </h2>
           <ContactForm
-            topic={camp ? 'camp' : undefined}
-            course={course ? { id: course.id, title: course.title } : undefined}
+            topic={course ? 'course' : camp ? 'camp' : undefined}
+            course={course?.id}
+            courses={courses.map((c) => ({ id: c.id, title: c.title }))}
           />
         </section>
 

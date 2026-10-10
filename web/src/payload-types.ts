@@ -852,15 +852,15 @@ export interface Message {
   phone?: string | null;
   message: string;
   /**
-   * Wybrane przez osobę piszącą. Wypełnia się samo, gdy pisze z podstrony kursu.
+   * Wybrane przez osobę piszącą. Przy „Kurs” — który, w polu „Dotyczy kursu”. Wypełnia się samo, gdy pisze z podstrony kursu.
    */
-  topic?: ('rock-course' | 'bolted-routes' | 'trad' | 'indoor-wall' | 'camp' | 'private-lesson' | 'other') | null;
+  topic?: ('course' | 'camp' | 'other') | null;
   /**
    * Nieobowiązkowe, wpisywane własnymi słowami.
    */
   preferredDate?: string | null;
   /**
-   * Wypełnione automatycznie, gdy ktoś pisze z podstrony kursu.
+   * Wybrany przez osobę piszącą (lista kursów ze strony) albo wypełniony sam, gdy pisze z podstrony kursu.
    */
   course?: (number | null) | Course;
   /**

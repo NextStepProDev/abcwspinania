@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useId } from 'react'
+import { useActionState, useId, useState } from 'react'
 
 import { CONSENT_TEXT } from '@/lib/consent'
 import { TOPICS } from '@/lib/topics'
@@ -19,12 +19,24 @@ const pole =
 export function ContactForm({
   topic,
   course,
+  courses,
 }: {
   topic?: string
-  /** The course whose page the visitor came from — attached to the enquiry. */
-  course?: { id: number; title: string }
+  /** The course whose page the visitor came from — preselected. */
+  course?: number
+  /** The published courses, from the panel — the "Który kurs?" options. */
+  courses: { id: number; title: string }[]
 }) {
   const [state, action, pending] = useActionState(sendMessage, INITIAL_STATE)
+  // The course field shows only for the topic "Kurs". Follows the select as
+  // it changes, and the topic sent back after a failed send.
+  const initialTopic = state.values?.topic ?? topic ?? ''
+  const [chosenTopic, setChosenTopic] = useState(initialTopic)
+  const [answered, setAnswered] = useState(state)
+  if (answered !== state) {
+    setAnswered(state)
+    setChosenTopic(initialTopic)
+  }
   // ⚠️ Field ids MUST be unique across the whole document, not just the form.
   // This used to read `id="message"` — exactly the name of the content
   // container in the layout (the target of the skip link).
@@ -56,15 +68,6 @@ export function ContactForm({
       className="flex flex-col gap-5 rounded-2xl border border-rock-200 bg-white p-6 lg:p-8"
     >
       <h2 className="text-[24px] leading-tight">Napisz do nas</h2>
-
-      {course && (
-        <>
-          <p className="rounded-lg bg-rope-soft px-4 py-3 text-sm text-rope-dark">
-            Zapytanie dotyczy kursu <strong>{course.title}</strong>.
-          </p>
-          <input type="hidden" name="course" value={course.id} />
-        </>
-      )}
 
       {state.message && (
         <p
@@ -119,7 +122,8 @@ export function ContactForm({
           id={fieldId('topic')}
           name="topic"
           // Preselected when the visitor arrived from a course or camp page.
-          defaultValue={state.values?.topic ?? topic ?? ''}
+          defaultValue={initialTopic}
+          onChange={(e) => setChosenTopic(e.target.value)}
           aria-describedby={state.errors?.topic ? fieldId('temat-blad') : undefined}
           aria-invalid={state.errors?.topic ? true : undefined}
           className={pole}
@@ -136,6 +140,26 @@ export function ContactForm({
             {state.errors.topic}
           </p>
         )}
+      </div>
+
+      {/* `hidden`, not left out: it keeps its choice while the topic changes. */}
+      <div className="flex flex-col gap-1.5" hidden={chosenTopic !== 'course'}>
+        <label htmlFor={fieldId('course')} className="font-medium">
+          Który kurs?
+        </label>
+        <SelectBox
+          id={fieldId('course')}
+          name="course"
+          defaultValue={state.values?.course ?? (course ? String(course) : '')}
+          className={pole}
+        >
+          <option value="">— jeszcze nie wiem —</option>
+          {courses.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.title}
+            </option>
+          ))}
+        </SelectBox>
       </div>
 
       <Field

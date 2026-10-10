@@ -222,6 +222,12 @@ dwa błędy, których nie wyłapał żaden lint, typ ani test na bazie w trybie 
   migracji przed właściwą** (wzór: `20261005_195005_newsletter_pending_status`).
 - **`down` padał**: kasuje tabele z `CASCADE`, a potem ich ograniczenia, których
   już nie ma. Ręcznie: `DROP CONSTRAINT IF EXISTS`.
+- **Usunięcie wartości z `select`** (10.10.2026, tematy formularza kontaktowego):
+  wygenerowana migracja od razu rzutuje kolumnę na nowy typ, a każdy wiersz ze
+  starą wartością przerywa rzutowanie — na produkcji, z danymi. Ręcznie:
+  kolumna na `text`, `UPDATE` starych wartości, dopiero potem nowy typ
+  (wzór: `20261010_182558_messages_general_topics`). Sprawdzić na bazie, do
+  której przed migracją wstawiono wiersze ze starymi wartościami.
 
 Sprawdzenie bez ruszania lokalnej bazy z treścią — obok, na tym samym serwerze:
 

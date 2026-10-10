@@ -113,7 +113,8 @@ export const Messages: CollectionConfig = {
       label: 'Czego dotyczy',
       options: TOPICS_FOR_PAYLOAD,
       admin: {
-        description: 'Wybrane przez osobę piszącą. Wypełnia się samo, gdy pisze z podstrony kursu.',
+        description:
+          'Wybrane przez osobę piszącą. Przy „Kurs” — który, w polu „Dotyczy kursu”. Wypełnia się samo, gdy pisze z podstrony kursu.',
       },
     },
     {
@@ -129,7 +130,8 @@ export const Messages: CollectionConfig = {
       relationTo: 'courses',
       label: 'Dotyczy kursu',
       admin: {
-        description: 'Wypełnione automatycznie, gdy ktoś pisze z podstrony kursu.',
+        description:
+          'Wybrany przez osobę piszącą (lista kursów ze strony) albo wypełniony sam, gdy pisze z podstrony kursu.',
       },
     },
     {

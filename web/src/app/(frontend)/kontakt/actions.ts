@@ -43,8 +43,9 @@ export interface ContactFormState {
 }
 
 /** The form's fields as typed, for sending back with an error. */
-function valuesOf(data: ContactFormData): Record<string, string> {
+function valuesOf(data: ContactFormData, course: string): Record<string, string> {
   return {
+    course,
     name: data.name,
     email: data.email,
     phone: data.phone,
@@ -69,12 +70,15 @@ export async function sendMessage(
     consent: formData.get('consent') === 'on',
   }
 
-  // The id of the course whose page the enquiry came from. The `course` field
-  // in the collection exists for exactly this. We parse cautiously: the value
-  // comes from the form, so it can be anything, and a `NaN` in a relationship
-  // would break the save.
-  const rawCourse = Number(formData.get('course'))
-  const courseId = Number.isInteger(rawCourse) && rawCourse > 0 ? rawCourse : undefined
+  // Which course, chosen in the second field when the topic is "Kurs" (or
+  // preselected from a course page). Only kept with that topic — a course left
+  // selected before switching to "Inna sprawa" is not the enquiry's subject.
+  // We parse cautiously: the value comes from the form, so it can be anything,
+  // and a `NaN` in a relationship would break the save.
+  const courseValue = String(formData.get('course') ?? '')
+  const rawCourse = Number(courseValue)
+  const courseId =
+    data.topic === 'course' && Number.isInteger(rawCourse) && rawCourse > 0 ? rawCourse : undefined
 
   // The bot honeypot — we fake success and store nothing.
   if (looksLikeBot(String(formData.get('website') ?? ''))) {
@@ -86,7 +90,12 @@ export async function sendMessage(
   // without the form.
   const errors = validateContact(data)
   if (!isValid(errors)) {
-    return { status: 'error', errors, values: valuesOf(data), message: 'Popraw zaznaczone pola.' }
+    return {
+      status: 'error',
+      errors,
+      values: valuesOf(data, courseValue),
+      message: 'Popraw zaznaczone pola.',
+    }
   }
 
   try {
@@ -130,7 +139,7 @@ export async function sendMessage(
     console.error('Failed to store a message from the contact form:', error)
     return {
       status: 'error',
-      values: valuesOf(data),
+      values: valuesOf(data, courseValue),
       message: 'Nie udało się wysłać wiadomości. Spróbuj ponownie za chwilę albo zadzwoń.',
     }
   }
