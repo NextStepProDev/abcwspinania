@@ -161,3 +161,22 @@ export function placeFreedForWaitlist(
   if (previous === null || previous === undefined || next === null) return false
   return next > previous && waiting > 0
 }
+
+/**
+ * Where a date's "Zapisz się" leads (the schedule, `/terminarz`).
+ *
+ * A course date opens its booking form with that date already chosen — the
+ * form reads `?session=`. Camps take no bookings yet (stage 4), so a camp
+ * date asks through the contact form with the camp filled in. Until
+ * 10.10.2026 every date led to `/kontakt?termin=…`, a leftover from before
+ * bookings whose parameter the contact form never read.
+ */
+export function signUpPath(session: {
+  id: number
+  courseSlug: string | null
+  campSlug: string | null
+}): string {
+  if (session.courseSlug) return `/kursy/${session.courseSlug}/zapis?session=${session.id}`
+  if (session.campSlug) return `/kontakt?camp=${session.campSlug}`
+  return '/kontakt'
+}

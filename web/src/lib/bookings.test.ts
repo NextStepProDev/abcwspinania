@@ -7,6 +7,7 @@ import {
   formatSessionDates,
   isUpcoming,
   newBookingStatus,
+  signUpPath,
   statusEmailFor,
 } from '@/lib/bookings'
 import { isValid, validateBooking } from '@/lib/validation'
@@ -147,4 +148,19 @@ test('the school hears about a freed place only when someone is waiting', () => 
   assert.equal(placeFreedForWaitlist(1, 0, 3), false, 'a place taken, not freed')
   assert.equal(placeFreedForWaitlist(2, 2, 3), false, 'no change')
   assert.equal(placeFreedForWaitlist(null, 3, 3), false, 'the first count is not a freed place')
+})
+
+test('a course date signs up on its booking form, with that date chosen', () => {
+  assert.equal(
+    signUpPath({ id: 42, courseSlug: 'kurs-skalny', campSlug: null }),
+    '/kursy/kurs-skalny/zapis?session=42',
+  )
+})
+
+test('a camp date asks through the contact form until camps take bookings', () => {
+  assert.equal(
+    signUpPath({ id: 7, courseSlug: null, campSlug: 'oboz-letni' }),
+    '/kontakt?camp=oboz-letni',
+  )
+  assert.equal(signUpPath({ id: 7, courseSlug: null, campSlug: null }), '/kontakt')
 })

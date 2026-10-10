@@ -33,10 +33,10 @@ export function MobileActionBar({
         </a>
       )}
       <Link
-        href="/kontakt"
+        href="/terminarz"
         className="flex h-11 grow items-center justify-center rounded-lg bg-rope px-5 font-semibold text-white"
       >
-        Zapisz się na kurs
+        Zapisz się
       </Link>
     </div>
   )

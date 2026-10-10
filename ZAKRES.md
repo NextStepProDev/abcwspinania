@@ -44,7 +44,7 @@ Numeracja jak w wiadomości do Krzyśka.
 | 7 | Backupy szyfrowane dwupoziomowo | skrypt na serwerze + wysyłka na Drive + **odtworzenie przetestowane** | **gotowe** (06.10.2026) — co noc: serwer 7 dni + zaszyfrowany Google Drive 40 dni (od 09.10.2026; wcześniej 90), archiwum zdjęć tylko gdy się zmieniły (alarm healthchecks.io gotowy w skrypcie, adres do podpięcia); odtworzenie z kopii pobranej z Drive przećwiczone, zgodne z produkcją (`deploy/RESTORE.md`) |
 | 8 | Testy automatyczne | jednostkowe **i integracyjne** | **częściowo** |
 | 9 | Testy wydajnościowe i na wycieki pamięci | raport z liczbami | **do zrobienia** |
-| 10 | Testy manualne | spisany scenariusz + wynik przejścia | **częściowo** — scenariusz spisany 06.10.2026 (`docs/testy-reczne.html`, 65 kroków, dane testowe `npm run seed:test`); czeka na wynik przejścia |
+| 10 | Testy manualne | spisany scenariusz + wynik przejścia | **częściowo** — scenariusz spisany 06.10.2026 (`docs/testy-reczne.html`, 66 kroków, dane testowe `npm run seed:test`); czeka na wynik przejścia |
 | 11 | Security | rozbicie niżej | **częściowo** |
 | 12 | Szybkość działania | zmierzone Core Web Vitals, wynik zielony na telefonie | **do zrobienia** |
 | 13 | Analityka bez ciasteczek | Plausible albo Umami na własnym serwerze | **do zrobienia** |

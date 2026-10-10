@@ -192,7 +192,7 @@ export function Header({ phone, telHref }: { phone: string | null; telHref: stri
         </div>
 
         <Link
-          href="/kontakt"
+          href="/terminarz"
           className="hidden shrink-0 rounded-lg bg-rope px-5 py-2.5 text-[15px] font-semibold text-white hover:bg-rope-dark lg:block"
         >
           Zapisz się
