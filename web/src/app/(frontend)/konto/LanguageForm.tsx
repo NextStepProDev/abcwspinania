@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useId } from 'react'
+import { useActionState, useId, useState } from 'react'
 
 import { inputClass } from '@/components/AccountFields'
 import { SelectBox } from '@/components/SelectBox'
@@ -12,6 +12,16 @@ const INITIAL: FormState<never> = { status: 'idle' }
 export function LanguageForm({ current }: { current: 'pl' | 'en' }) {
   const [state, action, pending] = useActionState(updateLanguage, INITIAL)
   const id = useId()
+  // "Zapisane." describes the LAST save. While the select shows something
+  // else it would be untrue (reported 10.10.2026), so it hides until the
+  // choice is back at the saved one or a new answer arrives — the latter
+  // adjusted during render, as in Header.tsx.
+  const [changed, setChanged] = useState(false)
+  const [answered, setAnswered] = useState(state)
+  if (answered !== state) {
+    setAnswered(state)
+    setChanged(false)
+  }
 
   return (
     <form action={action} className="mt-4 flex flex-wrap items-end gap-4">
@@ -26,6 +36,7 @@ export function LanguageForm({ current }: { current: 'pl' | 'en' }) {
           id={`${id}-language`}
           name="language"
           defaultValue={state.values?.language ?? current}
+          onChange={(e) => setChanged(e.target.value !== (state.values?.language ?? current))}
           className={inputClass}
         >
           <option value="pl">polski</option>
@@ -39,7 +50,7 @@ export function LanguageForm({ current }: { current: 'pl' | 'en' }) {
       >
         {pending ? 'Zapisuję…' : 'Zapisz'}
       </button>
-      {state.message && (
+      {state.message && !changed && (
         <p role="status" className="text-sm text-rock-600">
           {state.message}
         </p>
