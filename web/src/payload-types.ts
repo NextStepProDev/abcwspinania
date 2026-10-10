@@ -533,6 +533,10 @@ export interface Booking {
    */
   consentText?: string | null;
   consentDate?: string | null;
+  /**
+   * Dane osobowe usunięte po okresie przechowywania — zostały termin i status, do statystyk.
+   */
+  anonymizedAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1178,6 +1182,7 @@ export interface BookingsSelect<T extends boolean = true> {
   language?: T;
   consentText?: T;
   consentDate?: T;
+  anonymizedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

@@ -45,6 +45,10 @@ export const Bookings: CollectionConfig = {
     description:
       'Zapisy na kursy. Zmiana statusu na „potwierdzony”, „opłacony” albo „rezygnacja” wysyła kursantowi maila. Zapis telefoniczny dodaj tu ręcznie — wtedy liczy się do wolnych miejsc.',
     listSearchableFields: ['label', 'email', 'phone'],
+    // Anonymized bookings (five years after the course, `lib/expiry.ts`) are
+    // a trace for statistics, not work: rows with no name would only clutter
+    // the list. They stay in the database.
+    baseFilter: () => ({ anonymizedAt: { exists: false } }),
   },
   access: {
     create: isAdmin,
@@ -301,6 +305,19 @@ export const Bookings: CollectionConfig = {
       type: 'date',
       label: 'Data zgody',
       admin: { readOnly: true },
+    },
+    {
+      name: 'anonymizedAt',
+      type: 'date',
+      index: true,
+      label: 'Zanonimizowany',
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+        description:
+          'Dane osobowe usunięte po okresie przechowywania — zostały termin i status, do statystyk.',
+        condition: (data) => Boolean(data?.anonymizedAt),
+      },
     },
   ],
   timestamps: true,

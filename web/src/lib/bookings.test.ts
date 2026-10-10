@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 
 import {
   ACTIVE_STATUSES,
+  anonymizedLabel,
   availability,
   formatSessionDates,
   isUpcoming,
@@ -163,4 +164,13 @@ test('a camp date asks through the contact form until camps take bookings', () =
     '/kontakt?camp=oboz-letni',
   )
   assert.equal(signUpPath({ id: 7, courseSlug: null, campSlug: null }), '/kontakt')
+})
+
+test('an anonymized booking keeps its date in the label, not the name', () => {
+  assert.equal(
+    anonymizedLabel('Ola Nowak · 4–9 maj 2027 · Kurs PZA'),
+    'zanonimizowany · 4–9 maj 2027 · Kurs PZA',
+  )
+  assert.equal(anonymizedLabel('Ola Nowak'), 'zanonimizowany')
+  assert.equal(anonymizedLabel(null), 'zanonimizowany')
 })

@@ -38,8 +38,18 @@ export async function SchoolDashboard({ payload, user }: { payload: Payload; use
   // the check costs nothing.
   if (user?.collection !== 'users') return null
 
+  // Anonymized bookings (`lib/expiry.ts`) are hidden from the list by its
+  // base filter; the counts must agree with the list they link to.
   const count = async (collection: 'bookings' | 'messages', where: Record<string, unknown>) =>
-    (await payload.count({ collection, where: where as never, overrideAccess: true })).totalDocs
+    (
+      await payload.count({
+        collection,
+        where: (collection === 'bookings'
+          ? { and: [where, { anonymizedAt: { exists: false } }] }
+          : where) as never,
+        overrideAccess: true,
+      })
+    ).totalDocs
 
   // An email to the participant that did not go out (`recordEmailIssue`)
   // and that the school has not dealt with yet.

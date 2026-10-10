@@ -433,3 +433,22 @@ test('the freed-place email names the session and the first person waiting', () 
   assert.match(email.text, /\+48600100200/)
   assert.match(email.text, /4–9 maja 2027/)
 })
+
+test('asked for a confirmation link on a confirmed address, it says the address is confirmed', () => {
+  // Reported 10.10.2026: "Wyślij link ponownie" on a confirmed account sent
+  // nothing, while the page said a link was on its way.
+  const pl = accountExistsEmail('pl', { ...exists, reason: 'resend' })
+  const en = accountExistsEmail('en', { ...exists, reason: 'resend' })
+  assert.match(pl.text, /już potwierdzony/)
+  assert.doesNotMatch(pl.text, /założyć konto/)
+  assert.match(en.text, /already confirmed/)
+  // The default stays the registration wording.
+  assert.match(accountExistsEmail('pl', exists).text, /założyć konto/)
+})
+
+test('the "account deleted" email says how long the bookings stay', async () => {
+  const { accountDeletedEmail } = await import('@/lib/email/templates')
+  const { BOOKING_RETENTION_YEARS } = await import('@/lib/expiry')
+  assert.match(accountDeletedEmail('pl', {}).text, new RegExp(`do ${BOOKING_RETENTION_YEARS} lat`))
+  assert.match(accountDeletedEmail('en', {}).text, new RegExp(`${BOOKING_RETENTION_YEARS} years`))
+})

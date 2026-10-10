@@ -714,8 +714,20 @@ Od 06.10.2026 (wersja robocza, do potwierdzenia przez Krzyśka).
   3 × 10 MB na usługę (`x-logging` w `docker-compose.prod.yml` — bez tego
   Docker trzyma je bez końca, razem z adresami IP), kopie 40 dni (od
   09.10.2026; zmiana retencji w `abc-backup.sh` = zmiana tego zdania na
-  stronie). **Ręcznie, na razie:** zapisy po 5 latach od końca roku
-  i wypisani z newslettera.
+  stronie), zapisy na kursy 5 lat od końca roku kursu (`BOOKING_RETENTION_YEARS`,
+  od 10.10.2026): 1 stycznia **anonimizowane, nie kasowane**
+  (`anonymizeExpiredBookings`) — czyścimy imię, nazwisko, e-mail, telefon,
+  uwagi, notatki i zgodę, a zostają termin, status, język i data zapisu, do
+  statystyk. Pole `anonymizedAt` chowa je z listy w panelu (`baseFilter`),
+  z liczników pulpitu i z eksportu do Excela. Zapis przez
+  `payload.db.updateOne` — reguły kolekcji odrzuciłyby puste wymagane pola,
+  a hooki odbudowałyby etykietę z nazwiska i przeliczyły miejsca. Rok liczony
+  w czasie polskim (kurs kończący się 1 stycznia to w bazie 23:00 UTC
+  poprzedniego dnia). Polityka, strona „Usuń konto” i mail po usunięciu
+  biorą liczbę lat z tej samej stałej. **Zapisy przypięte do konta zostają,
+  dopóki konto istnieje** (decyzja 10.10.2026 — historia w „Moim koncie”);
+  usunięcie konta je odpina i wtedy obowiązuje 5 lat. **Ręcznie, na razie:** wypisani
+  z newslettera.
 
 ---
 
@@ -759,6 +771,9 @@ zrobi z kursanta administratora. Koszt: zasada 28.
   mail z potwierdzeniem?” pod logowaniem i w potwierdzeniu rejestracji —
   sam przycisk po haśle okazał się niewidoczny). Odpowiedź jest zawsze taka
   sama, z kontem czy bez. Każda wysyłka nadaje NOWY token, więc działa tylko najnowszy link.
+  Adres JUŻ potwierdzony dostaje zamiast linku mail „Masz już konto” (wariant
+  `reason: 'resend'`) — do 10.10.2026 nie dostawał nic, a strona mówiła
+  „wysłaliśmy” (zgłoszone przy testach).
   Token zapisujemy przez `payload.db.updateOne`, bo pole
   `_verificationToken` w Payloadzie odrzuca każdą aktualizację.
   Przyjęte świadomie: wysyłka działa na sam adres, bez hasła. Link

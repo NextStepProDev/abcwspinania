@@ -238,16 +238,19 @@ export async function requestPasswordReset(
 // --- Sending the confirmation link again ------------------------------------
 
 const RESENT_MESSAGE =
-  `Jeśli konto czeka na potwierdzenie, wysłaliśmy nowy link — działa ${VERIFY_LINK_HOURS} godz. ` +
-  'Poprzednie linki przestały działać. Sprawdź też folder spam.'
+  `Jeśli ten adres ma u nas konto, wysłaliśmy maila: nowy link potwierdzający (działa ${VERIFY_LINK_HOURS} godz., ` +
+  'poprzednie przestały działać) albo — gdy adres jest już potwierdzony — przypomnienie, jak się zalogować. ' +
+  'Sprawdź też folder spam.'
 
 /**
  * A new confirmation link, by EITHER the address (the button after a correct
  * password at login, or the public `/konto/wyslij-link` page) or the token of
  * an expired link (the "link expired" page). The answer is the same whatever
  * happens — an address
- * without an account, or one already confirmed, sends nothing and says so in
- * no way. Rate limited by nginx with the other account forms.
+ * without an account sends nothing. One ALREADY confirmed gets the "you
+ * already have an account" email instead of a link (until 10.10.2026 it got
+ * nothing, while the page said a link was on its way — reported in testing).
+ * Rate limited by nginx with the other account forms.
  */
 export async function resendVerification(
   _previous: FormState<{ email?: string }>,
@@ -282,7 +285,8 @@ export async function resendVerification(
         showHiddenFields: true,
       })
       const customer = docs[0]
-      if (customer && !customer._verified) await sendVerificationLink(payload, customer)
+      if (customer?._verified) await sendAccountExistsEmail(payload, customer, 'resend')
+      else if (customer) await sendVerificationLink(payload, customer)
     }
   } catch (error) {
     console.error('Failed to resend a participant confirmation link:', error)

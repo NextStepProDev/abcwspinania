@@ -5,6 +5,7 @@ import { Container } from '@/components/Ui'
 import {
   UNVERIFIED_ACCOUNT_DAYS,
   PENDING_NEWSLETTER_DAYS,
+  BOOKING_RETENTION_YEARS,
   MESSAGE_RETENTION_MONTHS,
 } from '@/lib/expiry'
 import { CONTROLLER, PRIVACY_POLICY_VERSION } from '@/lib/legal'
@@ -133,8 +134,13 @@ export default function PrivacyPolicyPage() {
                 wysłania, potem są usuwane automatycznie.
               </li>
               <li>
-                <strong>Zapisy na kursy</strong> — przez czas organizacji kursu, a potem przez 5 lat
-                od końca roku, w którym kurs się odbył (rozliczenia i ewentualne roszczenia).
+                <strong>Zapisy na kursy</strong> — przez czas organizacji kursu, a potem przez{' '}
+                {BOOKING_RETENTION_YEARS} lat od końca roku, w którym kurs się odbył (rozliczenia i
+                ewentualne roszczenia). Potem, 1 stycznia, automatycznie usuwamy z nich dane osobowe
+                (imię, nazwisko, e-mail, telefon, uwagi) — zostaje tylko anonimowa informacja o
+                terminie i liczbie uczestników, do statystyk. Wyjątek: zapisy przypięte do Twojego
+                konta zostają, dopóki masz konto — to Twoja historia w zakładce Moje konto. Po
+                usunięciu konta obowiązuje ta sama zasada {BOOKING_RETENTION_YEARS} lat.
               </li>
               <li>
                 <strong>Konto</strong> — dopóki go nie usuniesz. Konto niepotwierdzone usuwamy

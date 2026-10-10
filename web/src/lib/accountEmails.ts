@@ -91,13 +91,18 @@ export async function sendPasswordLink(payload: Payload, email: string): Promise
 }
 
 /**
- * Someone registered with an address that already has a CONFIRMED account.
- * The page answered "check your inbox" as always; this tells the owner what
+ * Someone registered with — or asked for a confirmation link for — an
+ * address that already has a CONFIRMED account (`reason`). The page answered
+ * "check your inbox" as always; this tells the owner what
  * happened — log in, or set a new password if it is forgotten. The reset link
  * inside is a real one (2 hours, single use), so a forgotten password costs
  * no second email.
  */
-export async function sendAccountExistsEmail(payload: Payload, customer: Customer): Promise<void> {
+export async function sendAccountExistsEmail(
+  payload: Payload,
+  customer: Customer,
+  reason: 'register' | 'resend' = 'register',
+): Promise<void> {
   const token = await payload.forgotPassword({
     collection: 'customers',
     data: { email: customer.email },
@@ -112,6 +117,7 @@ export async function sendAccountExistsEmail(payload: Payload, customer: Custome
       loginUrl: `${publicUrl()}/logowanie`,
       resetUrl: tokenLink('/konto/ustaw-haslo', token),
       validHours: RESET_LINK_HOURS,
+      reason,
     }),
   )
 }

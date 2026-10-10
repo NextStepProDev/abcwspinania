@@ -180,3 +180,14 @@ export function signUpPath(session: {
   if (session.campSlug) return `/kontakt?camp=${session.campSlug}`
   return '/kontakt'
 }
+
+/**
+ * The list label of an anonymized booking (`anonymizeExpiredBookings`): the
+ * name goes, the date and course stay — "Ola Nowak · 4–9 maj 2027 · Kurs PZA"
+ * becomes "zanonimizowany · 4–9 maj 2027 · Kurs PZA". The label always starts
+ * with the name (the `Bookings` hook builds it so).
+ */
+export function anonymizedLabel(label: string | null | undefined): string {
+  const parts = (label ?? '').split(' · ')
+  return ['zanonimizowany', ...parts.slice(1)].join(' · ')
+}

@@ -98,7 +98,7 @@ adresy przechodzą na nowe, bez błędów 404).
 | Osobna klauzula marketingowa dla newslettera | gotowe |
 | Newsletter: potwierdzenie zapisu (double opt-in), wypisanie jednym kliknięciem, niepotwierdzone usuwane po 7 dniach | gotowe (03.10.2026) |
 | Strona z polityką prywatności | **wersja robocza** (06.10.2026, czeka na wdrożenie) — `/polityka-prywatnosci`, link w stopce i przy każdej zgodzie; dane administratora z rejestrów (`lib/legal.ts`) do potwierdzenia przez Krzyśka |
-| Okresy przechowywania (zgłoszenia, zapisy, dane zdrowotne) | **częściowo** — wpisane w politykę; automatycznie: wiadomości z formularza po 12 miesiącach, niepotwierdzone konta i zapisy do newslettera po 7 dniach, logi kontenerów rotowane (3 × 10 MB); ręcznie (na razie): zapisy po 5 latach, wypisani z newslettera; dane zdrowotne — z obozami |
+| Okresy przechowywania (zgłoszenia, zapisy, dane zdrowotne) | **częściowo** — wpisane w politykę; automatycznie: wiadomości z formularza po 12 miesiącach, niepotwierdzone konta i zapisy do newslettera po 7 dniach, zapisy na kursy anonimizowane po 5 latach od końca roku kursu (zostaje ślad do statystyk), poza przypiętymi do istniejącego konta (od 10.10.2026), logi kontenerów rotowane (3 × 10 MB); ręcznie (na razie): wypisani z newslettera; dane zdrowotne — z obozami |
 | Podwyższone wymagania przy danych dzieci i danych o zdrowiu | **do zrobienia** |
 | Umowa powierzenia przetwarzania między Krzyśkiem a wykonawcą | **do zrobienia** |
 | Mechanizm usunięcia danych na żądanie | **częściowo** — od 04.10.2026 „Usuń konto” samodzielnie w Moim koncie; zapisy usuwa szkoła na prośbę (okresy przechowywania do ustalenia) |

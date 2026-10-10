@@ -85,3 +85,49 @@ export function expiredMessagesWhere(now: Date, months = MESSAGE_RETENTION_MONTH
   cutoff.setUTCMonth(cutoff.getUTCMonth() - months)
   return { createdAt: { less_than: cutoff.toISOString() } }
 }
+
+/**
+ * Years a booking is kept after the end of the year its course took place in
+ * (privacy policy, decided 06.10.2026 — settlements and claims; to be
+ * confirmed by Krzysiek). Then the daily sweep strips the personal data from
+ * 1 January on (`anonymizeExpiredBookings`), so nobody has to remember.
+ */
+export const BOOKING_RETENTION_YEARS = 5
+
+const HOUR_MS = 60 * 60 * 1000
+
+/**
+ * Which bookings the daily sweep anonymizes: those NOT on an account, not
+ * anonymized yet, whose course ended before 1 January of (this year −
+ * retention). A course of 2026
+ * is kept through 2031 and goes on 1 January 2032.
+ *
+ * In Polish time, not UTC: dates are entered as Polish midnights, so a course
+ * ending on 1 January is stored as 23:00 UTC of 31 December and would count
+ * as the old year — gone a year early. January is always UTC+1 in Poland.
+ * A date with no end counts by its start.
+ */
+export function expiredBookingsWhere(now: Date, years = BOOKING_RETENTION_YEARS): Where {
+  const polishYear = new Date(now.getTime() + HOUR_MS).getUTCFullYear()
+  const cutoff = new Date(Date.UTC(polishYear - years, 0, 1) - HOUR_MS).toISOString()
+  return {
+    and: [
+      { anonymizedAt: { exists: false } },
+      // On an account it is the person's own history ("Archiwum"), kept
+      // while the account exists (decided 10.10.2026). Deleting the account
+      // unlinks it, and from then on this rule applies.
+      { customer: { exists: false } },
+      {
+        or: [
+          { 'session.endDate': { less_than: cutoff } },
+          {
+            and: [
+              { 'session.endDate': { exists: false } },
+              { 'session.startDate': { less_than: cutoff } },
+            ],
+          },
+        ],
+      },
+    ],
+  }
+}

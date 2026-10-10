@@ -7,6 +7,7 @@ import * as migration_20260924_223953_camps_page_intro from './20260924_223953_c
 import * as migration_20261002_090000_publish_existing_content from './20261002_090000_publish_existing_content';
 import * as migration_20261005_195005_newsletter_pending_status from './20261005_195005_newsletter_pending_status';
 import * as migration_20261005_195006_bookings_accounts_broadcasts from './20261005_195006_bookings_accounts_broadcasts';
+import * as migration_20261010_152334_bookings_anonymized_at from './20261010_152334_bookings_anonymized_at';
 
 export const migrations = [
   {
@@ -52,6 +53,11 @@ export const migrations = [
   {
     up: migration_20261005_195006_bookings_accounts_broadcasts.up,
     down: migration_20261005_195006_bookings_accounts_broadcasts.down,
-    name: '20261005_195006_bookings_accounts_broadcasts'
+    name: '20261005_195006_bookings_accounts_broadcasts',
+  },
+  {
+    up: migration_20261010_152334_bookings_anonymized_at.up,
+    down: migration_20261010_152334_bookings_anonymized_at.down,
+    name: '20261010_152334_bookings_anonymized_at'
   },
 ];

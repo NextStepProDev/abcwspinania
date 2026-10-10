@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict'
 import crypto from 'node:crypto'
 
-import { cleanup, email, http, payload, removeWhere, test } from './harness'
+import { resendVerification } from '@/app/(frontend)/konto/actions'
+
+import { cleanup, email, http, makeCustomer, outbox, payload, removeWhere, test } from './harness'
 
 /**
  * Participant accounts over HTTP — what a person sees on the pages the
@@ -58,4 +60,17 @@ test('an expired confirmation link confirms nothing', async () => {
   assert.match(page, /Ten link wygasł/)
   const account = await payload.findByID({ collection: 'customers', id, overrideAccess: true })
   assert.equal(account._verified, false)
+})
+
+test('"Wyślij link ponownie" on a confirmed address sends the "already confirmed" email', async () => {
+  // Reported 10.10.2026: it sent nothing, while the page said a link was sent.
+  const customer = await makeCustomer('resend-confirmed')
+  const form = new FormData()
+  form.set('email', customer.email)
+  const answer = await resendVerification({ status: 'idle' }, form)
+  assert.equal(answer.status, 'done')
+  const mail = outbox.filter((m) => m.to === customer.email)
+  assert.equal(mail.length, 1)
+  assert.match(mail[0].subject, /Masz już konto/)
+  assert.match(mail[0].text, /już potwierdzony/)
 })

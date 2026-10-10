@@ -49,7 +49,8 @@ export async function exportSessionHandler(req: PayloadRequest): Promise<Respons
 
   const { docs } = await req.payload.find({
     collection: 'bookings',
-    where: { session: { equals: id } },
+    // Anonymized rows have no one to list (`lib/expiry.ts`).
+    where: { and: [{ session: { equals: id } }, { anonymizedAt: { exists: false } }] },
     sort: 'createdAt',
     limit: 1000,
     depth: 0,

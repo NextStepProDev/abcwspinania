@@ -2,6 +2,7 @@ import { TOPICS } from '@/lib/topics'
 
 import type { EmailLanguage } from '@/lib/email/language'
 import { renderEmail, type RenderedEmail } from '@/lib/email/layout'
+import { BOOKING_RETENTION_YEARS } from '@/lib/expiry'
 
 /**
  * Email templates — one function per email, each returning a subject and the
@@ -170,6 +171,11 @@ interface AccountExistsData {
   /** A fresh "set a new password" link, for someone who forgot it. */
   resetUrl: string
   validHours: number
+  /**
+   * What the owner did: tried to register again (default), or asked for a
+   * confirmation link for an address already confirmed.
+   */
+  reason?: 'register' | 'resend'
 }
 
 const EXISTS: Record<
@@ -178,6 +184,7 @@ const EXISTS: Record<
     subject: string
     greeting: (name?: string | null) => string
     body: string
+    bodyResend: string
     login: string
     reset: (hours: number) => string
     note: string
@@ -187,6 +194,8 @@ const EXISTS: Record<
     subject: 'Masz już konto — ABC Wspinania',
     greeting: (name) => (name ? `Cześć ${name}!` : 'Cześć!'),
     body: 'Ktoś — najpewniej Ty — próbował założyć konto na ten adres, ale konto już istnieje. Wystarczy się zalogować.',
+    bodyResend:
+      'Ktoś — najpewniej Ty — poprosił o link potwierdzający ten adres, ale adres jest już potwierdzony. Wystarczy się zalogować.',
     login: 'Zaloguj się',
     reset: (h) => `Nie pamiętasz hasła? Ustaw nowe (link działa ${h} godz.)`,
     note: 'Jeśli to nie Ty, zignoruj tę wiadomość — nic się nie zmieniło, Twoje hasło działa jak dotąd.',
@@ -195,6 +204,8 @@ const EXISTS: Record<
     subject: 'You already have an account — ABC Wspinania',
     greeting: (name) => (name ? `Hi ${name}!` : 'Hi!'),
     body: 'Someone — most likely you — tried to create an account with this address, but it already has one. Just log in.',
+    bodyResend:
+      'Someone — most likely you — asked for a link to confirm this address, but it is already confirmed. Just log in.',
     login: 'Log in',
     reset: (h) => `Forgot your password? Set a new one (the link works for ${h} hours)`,
     note: 'If this was not you, ignore this email — nothing has changed and your password works as before.',
@@ -214,7 +225,7 @@ export function accountExistsEmail(lang: EmailLanguage, data: AccountExistsData)
     ...renderEmail({
       lang,
       heading: copy.greeting(data.firstName),
-      paragraphs: [copy.body],
+      paragraphs: [data.reason === 'resend' ? copy.bodyResend : copy.body],
       action: { label: copy.login, href: data.loginUrl },
       secondaryAction: { label: copy.reset(data.validHours), href: data.resetUrl },
       note: copy.note,
@@ -553,15 +564,13 @@ const ACCOUNT_DELETED = {
   pl: {
     subject: 'Konto usunięte — ABC Wspinania',
     body: 'Twoje konto w ABC Wspinania zostało usunięte razem z danymi konta. Nie zalogujesz się już na nie.',
-    bookings:
-      'Zapisy na kursy zostają w szkole — bez powiązania z kontem — bo dotyczą organizacji zajęć. Chcesz odwołać zapis albo usunąć też te dane? Odpowiedz na tę wiadomość.',
+    bookings: `Zapisy na kursy zostają w szkole — bez powiązania z kontem — bo dotyczą organizacji zajęć i rozliczeń: do ${BOOKING_RETENTION_YEARS} lat od końca roku, w którym odbył się kurs, potem automatycznie usuwamy z nich dane osobowe. Chcesz odwołać zapis albo usunąć też te dane wcześniej? Odpowiedz na tę wiadomość.`,
     note: 'Jeśli konto usunął ktoś inny niż Ty, odpowiedz na tę wiadomość od razu.',
   },
   en: {
     subject: 'Account deleted — ABC Wspinania',
     body: 'Your ABC Wspinania account has been deleted together with its data. You can no longer log in to it.',
-    bookings:
-      'Course bookings stay with the school — no longer linked to an account — because they concern organising the course. Want to cancel a booking or have that data deleted too? Reply to this email.',
+    bookings: `Course bookings stay with the school — no longer linked to an account — because they concern organising the course and settling payments: up to ${BOOKING_RETENTION_YEARS} years from the end of the year the course took place in, then we automatically remove the personal data from them. Want to cancel a booking or have that data deleted sooner? Reply to this email.`,
     note: 'If you did not delete the account, reply to this email straight away.',
   },
 } satisfies Record<EmailLanguage, unknown>

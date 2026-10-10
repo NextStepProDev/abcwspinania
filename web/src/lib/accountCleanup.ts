@@ -1,7 +1,9 @@
 import { getPayload } from 'payload'
 import config from '@payload-config'
 
+import { anonymizedLabel } from '@/lib/bookings'
 import {
+  expiredBookingsWhere,
   expiredMessagesWhere,
   stalePendingNewsletterWhere,
   staleUnverifiedWhere,
@@ -61,6 +63,50 @@ export async function deleteExpiredMessages(): Promise<void> {
 }
 
 /**
+ * Strips the personal data from bookings past their retention (`lib/expiry.ts`:
+ * five years from the end of the course's year) — from 1 January on, without
+ * anyone remembering. What stays is a trace for statistics: the date, the
+ * status, the language, when it was made. No name, address, phone, notes or
+ * consent text — data that no longer points to a person is not personal data.
+ *
+ * Through the database adapter, row by row: the collection's own rules would
+ * refuse empty required fields, and its hooks would rebuild the list label
+ * from the name and recount places — and a recount of a date years past, left
+ * "open" with a waiting list, could email the school about a "freed place".
+ */
+export async function anonymizeExpiredBookings(): Promise<void> {
+  const payload = await getPayload({ config })
+  const { docs } = await payload.find({
+    collection: 'bookings',
+    where: expiredBookingsWhere(new Date()),
+    pagination: false,
+    depth: 0,
+    overrideAccess: true,
+  })
+  const now = new Date().toISOString()
+  for (const booking of docs) {
+    await payload.db.updateOne({
+      collection: 'bookings',
+      id: booking.id,
+      data: {
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        notes: null,
+        adminNotes: null,
+        consentText: '',
+        emailIssue: null,
+        emailIssueAt: null,
+        label: anonymizedLabel(booking.label),
+        anonymizedAt: now,
+      },
+    })
+  }
+  if (docs.length) payload.logger.info(`Anonymized ${docs.length} booking(s) past retention`)
+}
+
+/**
  * Runs the sweep a minute after the server starts, then once a day.
  *
  * Why not Payload's job queue: its cron starts only when something calls
@@ -83,6 +129,9 @@ export function scheduleAccountCleanup(): void {
     })
     deleteExpiredMessages().catch((error) => {
       console.warn('Contact-message cleanup failed, will retry tomorrow:', error)
+    })
+    anonymizeExpiredBookings().catch((error) => {
+      console.warn('Booking anonymization failed, will retry tomorrow:', error)
     })
   }
   setTimeout(run, 60_000).unref()

@@ -2,11 +2,14 @@ import assert from 'node:assert/strict'
 
 import { createBooking, type BookingInput } from '@/lib/bookingService'
 import { recordEmailIssue } from '@/lib/bookingEffects'
+import { anonymizeExpiredBookings } from '@/lib/accountCleanup'
+import { idOf } from '@/lib/bookingEffects'
 
 import {
   email,
   failEmails,
   makeBooking,
+  makeCustomer,
   makeCourse,
   makeSession,
   outbox,
@@ -210,4 +213,57 @@ test('deleting an account keeps its bookings, unlinked', async () => {
   })
   assert.equal(after.customer ?? null, null)
   assert.equal(after.status, 'confirmed')
+})
+
+test('bookings are anonymized five years after their course’s year; newer ones and accounts’ stay', async () => {
+  const course = await makeCourse()
+  // Over six years ago, left "open" with a waiting list (see the note on
+  // `skipRecount` in `anonymizeExpiredBookings`).
+  const old = await makeSession(course.id, { capacity: 1, daysAhead: -6 * 366 })
+  const recent = await makeSession(course.id, { daysAhead: -3 * 365 })
+  const expired = await makeBooking(old.id, 'retention-old', { notes: 'Jem bez glutenu' })
+  const waiting = await makeBooking(old.id, 'retention-waiting', { status: 'waitlist' })
+  const kept = await makeBooking(recent.id, 'retention-recent')
+  const owner = await makeCustomer('retention-owner')
+  const onAccount = await makeBooking(old.id, 'retention-owner', { customer: owner.id })
+  const before = outbox.length
+
+  await anonymizeExpiredBookings()
+
+  const byId = async (id: number) =>
+    payload.findByID({ collection: 'bookings', id, depth: 0, overrideAccess: true })
+  // The trace stays for statistics: which date, how many, what status.
+  for (const id of [expired.id, waiting.id]) {
+    const b = await byId(id)
+    assert.ok(b.anonymizedAt, `booking ${id} marked`)
+    assert.equal(idOf(b.session), old.id)
+    for (const field of ['firstName', 'lastName', 'email', 'phone', 'consentText'] as const)
+      assert.equal(b[field], '', `${field} cleared`)
+    assert.equal(b.notes ?? null, null)
+    assert.doesNotMatch(b.label ?? '', /retention/)
+  }
+  assert.equal((await byId(waiting.id)).status, 'waitlist')
+  // Newer bookings and an account's own history are left as they were.
+  assert.equal((await byId(kept.id)).anonymizedAt ?? null, null)
+  const own = await byId(onAccount.id)
+  assert.equal(own.anonymizedAt ?? null, null)
+  assert.equal(own.email, email('retention-owner'))
+  assert.equal(outbox.length, before, 'no email')
+
+  // A second sweep finds nothing left to do.
+  const markedAt = (await byId(expired.id)).anonymizedAt
+  await anonymizeExpiredBookings()
+  assert.equal((await byId(expired.id)).anonymizedAt, markedAt)
+
+  // Out of the panel's list and the dashboard's counts, still in the database.
+  const listed = await payload.find({
+    collection: 'bookings',
+    where: { and: [{ session: { equals: old.id } }, { anonymizedAt: { exists: false } }] },
+    depth: 0,
+    overrideAccess: true,
+  })
+  assert.deepEqual(
+    listed.docs.map((b) => b.id),
+    [onAccount.id],
+  )
 })

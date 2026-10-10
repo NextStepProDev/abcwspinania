@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 
 import { AccountPage, TextLink } from '@/components/AccountForm'
 import { accountPageMetadata, getCurrentCustomer } from '@/lib/auth'
+import { BOOKING_RETENTION_YEARS } from '@/lib/expiry'
 import { bookingsOf } from '@/lib/participantBookings'
 import { DeleteAccountForm } from './DeleteAccountForm'
 
@@ -33,8 +34,10 @@ export default async function DeleteAccountPage() {
           </p>
           <p>
             <strong className="text-rock-900">Zostaną w szkole:</strong> Twoje zapisy na kursy, już
-            bez powiązania z kontem. Dotyczą organizacji zajęć i rozliczeń. Jeśli chcesz usunąć
-            także je, napisz do nas — <TextLink href="/kontakt">kontakt</TextLink>.
+            bez powiązania z kontem. Dotyczą organizacji zajęć i rozliczeń, więc trzymamy je do{' '}
+            {BOOKING_RETENTION_YEARS} lat od końca roku, w którym odbył się kurs, potem usuwamy z
+            nich dane osobowe (ze starszych — w ciągu doby). Jeśli chcesz usunąć je wcześniej,
+            napisz do nas — <TextLink href="/kontakt">kontakt</TextLink>.
           </p>
           {upcoming.length > 0 && (
             <p
