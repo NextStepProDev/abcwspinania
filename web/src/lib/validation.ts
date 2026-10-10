@@ -48,6 +48,10 @@ const LIMITS = {
  */
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+/** Shown under an unticked consent box — by the server and, earlier, by the browser. */
+export const ACCOUNT_CONSENT_MISSING = 'Bez tej zgody nie możemy prowadzić konta.'
+export const BOOKING_CONSENT_MISSING = 'Bez tej zgody nie możemy przyjąć zapisu.'
+
 export function validateContact(data: ContactFormData): ValidationErrors {
   const errors: ValidationErrors = {}
 
@@ -239,7 +243,7 @@ export function validateRegistration(data: RegistrationData): RegistrationErrors
   const password = checkNewPassword(data.password)
   if (password) errors.password = password
 
-  if (!data.consent) errors.consent = 'Bez tej zgody nie możemy prowadzić konta.'
+  if (!data.consent) errors.consent = ACCOUNT_CONSENT_MISSING
 
   return errors
 }
@@ -326,7 +330,7 @@ export function validateBooking(data: BookingData, loggedIn: boolean): BookingEr
   if (data.notes.trim().length > NOTES_MAX)
     errors.notes = `Uwagi mogą mieć najwyżej ${NOTES_MAX} znaków.`
 
-  if (!data.consent) errors.consent = 'Bez tej zgody nie możemy przyjąć zapisu.'
+  if (!data.consent) errors.consent = BOOKING_CONSENT_MISSING
 
   return errors
 }

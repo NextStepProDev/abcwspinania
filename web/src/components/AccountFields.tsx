@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 
 import { Check } from '@/components/Icons'
 import { passwordLengthLabel } from '@/lib/validation'
@@ -33,6 +33,37 @@ const invalidClass = `${base}border-error bg-error-soft focus-visible:border-err
 const validClass = `${base}border-available-text focus-visible:border-rope focus-visible:outline-rope`
 
 type Rule = (value: string) => string | undefined
+
+/**
+ * `onSubmit` for the account forms: stops a send the browser already knows
+ * is wrong — a missing consent, an empty or invalid field — before it
+ * reaches the server.
+ *
+ * Why it matters: the server never sends a password back, so every failed
+ * send emptied the password field, and a forgotten consent box cost the
+ * whole password (reported 10.10.2026). The forms keep `noValidate` (no
+ * browser bubbles in English); validity comes from our own rules, which
+ * each `TextField` mirrors into the input (`setCustomValidity`), and from
+ * `required` on the consent box. A blocked send marks every invalid field
+ * (their `invalid` event) and focuses the first. React does not start the
+ * form's action when `onSubmit` prevents the default. The server still
+ * checks everything — this only saves a round trip that cost a password.
+ */
+export function stopInvalidSubmit(event: FormEvent<HTMLFormElement>) {
+  const form = event.currentTarget
+  // Only OUR rules (customError) and empty required fields block. The
+  // browser's own checks disagree with ours: `type="email"` rejects
+  // `żaneta@example.pl`, which the server accepts — blocking on it stopped
+  // the send with no message at all, since our rule shows nothing.
+  const blocking = Array.from(form.elements).filter(
+    (el): el is HTMLInputElement =>
+      el instanceof HTMLInputElement && (el.validity.customError || el.validity.valueMissing),
+  )
+  if (blocking.length === 0) return
+  event.preventDefault()
+  form.checkValidity() // fires `invalid` on each field, which shows its message
+  blocking[0].focus()
+}
 
 export function TextField({
   id,
@@ -94,6 +125,11 @@ export function TextField({
     if (error) setTouched(true)
   }
 
+  // Our rule, not the browser's, decides validity — see `stopInvalidSubmit`.
+  useEffect(() => {
+    inputRef.current?.setCustomValidity(validate?.(value) ?? '')
+  }, [validate, value])
+
   const liveError = touched && validate ? validate(value) : undefined
   // The server's message stays until the person changes the field; after
   // that the live rule speaks, so a fixed field does not stay red.
@@ -131,6 +167,7 @@ export function TextField({
             setServerError(undefined)
           }}
           onBlur={() => setTouched(true)}
+          onInvalid={() => setTouched(true)}
           aria-describedby={describedBy || undefined}
           aria-invalid={shownError ? true : undefined}
           className={`${shownError ? invalidClass : passes ? validClass : inputClass} ${passes ? 'pr-10' : ''}`}
@@ -171,17 +208,21 @@ export function ConsentField({
   id,
   text,
   error,
+  missing,
   defaultChecked,
 }: {
   id: string
   text: string
   error?: string
+  /** Shown when a send is stopped in the browser — the server's own message. */
+  missing: string
   /** Kept ticked after a failed send — see `values` in `konto/actions.ts`. */
   defaultChecked?: boolean
 }) {
   const [checked, setChecked] = useState(Boolean(defaultChecked))
+  const [blocked, setBlocked] = useState(false)
   // Ticking the box clears its error at once, without waiting for a submit.
-  const shownError = checked ? undefined : error
+  const shownError = checked ? undefined : (error ?? (blocked ? missing : undefined))
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -193,6 +234,7 @@ export function ConsentField({
           required
           defaultChecked={defaultChecked}
           onChange={(e) => setChecked(e.target.checked)}
+          onInvalid={() => setBlocked(true)}
           aria-describedby={shownError ? `${id}-error` : undefined}
           aria-invalid={shownError ? true : undefined}
           className="mt-1 size-4 shrink-0"

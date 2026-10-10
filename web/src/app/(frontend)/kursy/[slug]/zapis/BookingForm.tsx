@@ -9,9 +9,10 @@ import {
   SubmitButton,
   TextField,
   inputClass,
+  stopInvalidSubmit,
 } from '@/components/AccountFields'
 import { ACCOUNT_CONSENT_TEXT, BOOKING_CONSENT_TEXT } from '@/lib/consent'
-import { checkEmail, checkName, checkPhone } from '@/lib/validation'
+import { BOOKING_CONSENT_MISSING, checkEmail, checkName, checkPhone } from '@/lib/validation'
 import { bookCourse, type BookingState } from './actions'
 import { ConsentText } from '@/components/ConsentText'
 
@@ -74,7 +75,7 @@ export function BookingForm({
   const defaultSession = sessions.some((s) => s.id === chosen) ? chosen : sessions[0]?.id
 
   return (
-    <form action={action} noValidate className="flex flex-col gap-6">
+    <form action={action} onSubmit={stopInvalidSubmit} noValidate className="flex flex-col gap-6">
       {state.message && (
         <FormAlert>
           {state.message} {state.loginExpired && <TextLink href={loginHref}>Zaloguj się</TextLink>}
@@ -202,6 +203,7 @@ export function BookingForm({
         id={`${id}-consent`}
         text={BOOKING_CONSENT_TEXT}
         error={state.errors?.consent}
+        missing={BOOKING_CONSENT_MISSING}
         defaultChecked={state.values?.consent === 'on'}
       />
 

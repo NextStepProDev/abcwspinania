@@ -809,7 +809,12 @@ zrobi z kursanta administratora. Koszt: zasada 28.
   akcji, `defaultValue` w polach). React 19 czyści formularz po KAŻDEJ akcji,
   także nieudanej — bez tego jeden błąd kasował całą rejestrację, a „popraw
   zaznaczone pola” wskazywało puste pola (zgłoszone 02.10.2026). Dotyczy też
-  formularza kontaktowego i newslettera. Hasła nigdy nie wracają.
+  formularza kontaktowego i newslettera. Hasła nigdy nie wracają — dlatego
+  rejestracja, zapis na kurs i nowe hasło mają `onSubmit={stopInvalidSubmit}`
+  (`AccountFields.tsx`, od 10.10.2026): błąd, który przeglądarka zna (brak
+  zgody, złe pole wg tych samych reguł — `TextField` przepisuje je do
+  `setCustomValidity`), zatrzymuje wysyłkę, zanim dotrze do serwera. Wcześniej
+  zapomniana zgoda kasowała wpisane hasło. Serwer i tak sprawdza wszystko.
 - **Walidacja na żywo w formularzach kont** (`components/AccountFields.tsx`),
   ustalone 02.10.2026: pole czerwienieje dopiero po WYJŚCIU z niego z błędem,
   potem zmienia się przy każdej literze, aż przejdzie (zielony znaczek);

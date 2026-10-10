@@ -3,7 +3,7 @@
 import { useActionState, useId } from 'react'
 
 import { FormAlert } from '@/components/AccountForm'
-import { SubmitButton, TextField } from '@/components/AccountFields'
+import { SubmitButton, TextField, stopInvalidSubmit } from '@/components/AccountFields'
 import { PASSWORD_MIN, checkNewPassword } from '@/lib/validation'
 import { setNewPassword, type FormState } from '../actions'
 
@@ -14,7 +14,7 @@ export function SetPasswordForm({ token }: { token: string }) {
   const id = useId()
 
   return (
-    <form action={action} noValidate className="flex flex-col gap-5">
+    <form action={action} onSubmit={stopInvalidSubmit} noValidate className="flex flex-col gap-5">
       {state.message && <FormAlert>{state.message}</FormAlert>}
       <input type="hidden" name="token" value={token} />
       <TextField

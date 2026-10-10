@@ -3,9 +3,16 @@
 import { useActionState, useId } from 'react'
 
 import { FormAlert, FormDone, TextLink } from '@/components/AccountForm'
-import { ConsentField, Honeypot, SubmitButton, TextField } from '@/components/AccountFields'
+import {
+  ConsentField,
+  Honeypot,
+  SubmitButton,
+  TextField,
+  stopInvalidSubmit,
+} from '@/components/AccountFields'
 import { ACCOUNT_CONSENT_TEXT } from '@/lib/consent'
 import {
+  ACCOUNT_CONSENT_MISSING,
   PASSWORD_MIN,
   checkEmail,
   checkName,
@@ -38,7 +45,7 @@ export function RegisterForm() {
   }
 
   return (
-    <form action={action} noValidate className="flex flex-col gap-5">
+    <form action={action} onSubmit={stopInvalidSubmit} noValidate className="flex flex-col gap-5">
       {state.message && <FormAlert>{state.message}</FormAlert>}
       <div className="grid gap-5 sm:grid-cols-2">
         <TextField
@@ -102,6 +109,7 @@ export function RegisterForm() {
         id={`${id}-consent`}
         text={ACCOUNT_CONSENT_TEXT}
         error={state.errors?.consent}
+        missing={ACCOUNT_CONSENT_MISSING}
         defaultChecked={state.values?.consent === 'on'}
       />
       <SubmitButton pending={pending} label="Załóż konto" busyLabel="Zakładam…" />
