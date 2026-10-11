@@ -60,8 +60,9 @@ subdomeny `api.*`.
 | `CampsPage` | `camps-page` | wstęp podstrony „Obozy i wyjazdy" |
 | `EnglishPage` | `english-page` | jedyna podstrona po angielsku |
 
-`Messages` przyjmuje zapis od **każdego** (to formularz publiczny), ale
-odczyt, zmiana i kasowanie wymagają **konta szkoły** — nie „dowolnego
+`Messages` przyjmuje zapis od **każdego poza szkołą** (formularz publiczny;
+konto panelu nie dodaje wiadomości — bez „Stwórz nowy”, `visitorsOnly`, od
+10.10.2026), ale odczyt, zmiana i kasowanie wymagają **konta szkoły** — nie „dowolnego
 zalogowania” (zasada 28). `Newsletter` ma REST zamknięty w całości — zapis idzie
 wyłącznie akcją serwerową (patrz „Wysyłki i newsletter”). Publiczny odczyt byłby wyciekiem danych
 osobowych, nie udogodnieniem. Wszystko, czego nie ma w kolumnie „publiczny

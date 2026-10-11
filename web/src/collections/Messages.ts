@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { anyone, isAdmin } from '../lib/access'
+import { isAdmin, visitorsOnly } from '../lib/access'
 import { TOPICS_FOR_PAYLOAD } from '../lib/topics'
 import { LANGUAGE_OPTIONS_FOR_PAYLOAD } from '../lib/email/language'
 import { newMessageNotification } from '../lib/email/templates'
@@ -32,10 +32,13 @@ export const Messages: CollectionConfig = {
     description: 'Zgłoszenia z formularza na stronie. Nowe są u góry.',
   },
   access: {
-    // ANYONE may create — this is a public form. Only the school may read,
-    // change or delete: messages carry personal data (name, email, phone).
+    // Visitors and participants create — this is a public form. The school
+    // does not (decided 10.10.2026): its "Stwórz nowy" was Payload's default,
+    // and an entry made there emailed the school itself and asked for a
+    // consent nobody gave. Only the school may read, change or delete:
+    // messages carry personal data (name, email, phone).
     // NOT `Boolean(req.user)` — a logged-in participant is not the school.
-    create: anyone,
+    create: visitorsOnly,
     read: isAdmin,
     update: isAdmin,
     delete: isAdmin,

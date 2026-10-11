@@ -82,6 +82,15 @@ export function anyone(): boolean {
 }
 
 /**
+ * A public form that the school does not fill in itself: visitors and
+ * participants yes, a panel account no — which also hides the panel's
+ * "Stwórz nowy" button, shown wherever the logged-in account may create.
+ */
+export function visitorsOnly(args: AccessArgs): boolean {
+  return !isAdmin(args)
+}
+
+/**
  * Collections with drafts: the school sees everything, everyone else only the
  * published version. With a plain `read: () => true` the REST API hands any
  * draft to anyone who asks (`?draft=true` included).

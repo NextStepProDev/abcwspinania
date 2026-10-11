@@ -30,6 +30,13 @@ const PUBLIC_FORMS = new Set(['messages', 'newsletter'])
 /** Collections whose entries are personal data — nobody but the school reads them. */
 const PRIVATE = new Set(['messages', 'newsletter', 'users'])
 
+/**
+ * Public forms the school does not fill in from the panel (no "Stwórz nowy").
+ * The only exception to "the school keeps full access" — named, so another
+ * one cannot slip in unnoticed.
+ */
+const NO_PANEL_CREATE = new Set(['messages'])
+
 /** Participant accounts: the school reads all, a participant only their own. */
 const SELF_READABLE = new Set(['customers'])
 
@@ -168,10 +175,23 @@ test('nothing public hands drafts to visitors', () => {
 test('the school keeps full access everywhere', () => {
   for (const c of collections) {
     for (const op of ['create', 'read', 'update', 'delete'] as const) {
+      if (op === 'create' && NO_PANEL_CREATE.has(c.slug)) continue
       assert.equal(rule(c.access?.[op])(admin), true, `admin denied ${op} on ${name(c)}`)
     }
   }
   for (const g of globals) {
     assert.equal(rule(g.access?.update)(admin), true, `admin denied update on ${name(g)}`)
   }
+})
+
+test('messages: everyone writes through the form, the school does not add any in the panel', () => {
+  // Decided 10.10.2026: the panel's "Stwórz nowy" in Wiadomości was Payload's
+  // default, not a feature — an entry made there emailed the school itself
+  // and asked for a consent nobody gave.
+  const messages = collections.find((c) => c.slug === 'messages')
+  assert.ok(messages, 'the messages collection is registered')
+  const create = rule(messages.access?.create)
+  assert.ok(create(anonymous), 'a visitor sends the contact form')
+  assert.ok(create(participant), 'a logged-in participant sends it too')
+  assert.ok(!create(admin), 'the panel offers no "create" for messages')
 })
