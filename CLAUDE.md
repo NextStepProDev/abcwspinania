@@ -879,7 +879,10 @@ zrobi z kursanta administratora. Koszt: zasada 28.
 - **„Dane osoby — kopia albo usunięcie”** (nad listą „Uczestnicy”,
   `ErasePersonPanel`, `lib/personErasure.ts`, od 10.10.2026) — prośby z RODO
   załatwiane przez szkołę bez programisty. **Kopia** (`/api/customers/person-data`):
-  plik JSON ze wszystkim, co mamy pod adresem, złożony z LISTY DOZWOLONYCH pól —
+  domyślnie czytelny dokument HTML po polsku (`lib/personDataDocument.ts`, od
+  12.10.2026 — JSON z nazwami pól nie nadawał się do wysłania osobie; otwiera
+  się w przeglądarce, drukuje do PDF), `?format=json` — ten sam zestaw do
+  przeniesienia danych. Oba ze wszystkiego, co mamy pod adresem, z LISTY DOZWOLONYCH pól —
   konto ma też hash hasła, sól, sesje i tokeny, wpis w newsletterze token
   wypisania; to klucze, nie dane osoby, i nie mogą wyjść w pliku wysłanym
   mailem (test to pilnuje). **Usunięcie:** Po adresie e-mail (bez względu na wielkość

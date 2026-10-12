@@ -233,12 +233,26 @@ test('the school downloads a copy of one person’s data — no secrets in it', 
   )
   assert.equal(asParticipant.status, 403)
 
-  const response = await http(
+  // By default the readable document the person gets back (12.10.2026).
+  const page = await http(
     `/api/customers/person-data?email=${encodeURIComponent(person.email.toUpperCase())}`,
     { token: admin.token },
   )
+  assert.equal(page.status, 200)
+  assert.match(page.headers.get('content-type') ?? '', /text\/html/)
+  assert.match(page.headers.get('content-disposition') ?? '', /attachment;.*\.html"/)
+  const document = await page.text()
+  assert.match(document, /Twoje dane w ABC Wspinania/)
+  assert.match(document, /Bez glutenu/)
+  assert.doesNotMatch(document, new RegExp(subscription.token as string))
+
+  // `format=json` — the same data for moving it to another company.
+  const response = await http(
+    `/api/customers/person-data?email=${encodeURIComponent(person.email.toUpperCase())}&format=json`,
+    { token: admin.token },
+  )
   assert.equal(response.status, 200)
-  assert.match(response.headers.get('content-disposition') ?? '', /attachment/)
+  assert.match(response.headers.get('content-disposition') ?? '', /attachment;.*\.json"/)
   const text = await response.text()
   const copy = JSON.parse(text)
   assert.equal(copy.account.email, person.email)

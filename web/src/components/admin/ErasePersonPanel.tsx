@@ -102,7 +102,8 @@ export function ErasePersonPanel() {
       </summary>
       <p style={muted}>
         Wpisz adres e-mail osoby. Najpierw zobaczysz, co mamy — nic się jeszcze nie usunie. Potem
-        możesz pobrać kopię jej danych (plik do wysłania jej w odpowiedzi) albo usunąć wszystko.
+        możesz pobrać kopię jej danych (czytelny plik do wysłania jej w odpowiedzi) albo usunąć
+        wszystko.
       </p>
       <form
         onSubmit={(e) => {
@@ -161,8 +162,18 @@ export function ErasePersonPanel() {
             className="btn btn--style-secondary btn--size-small"
             style={{ margin: '12px 0 0' }}
           >
-            Pobierz kopię danych (plik)
+            Pobierz kopię danych do wysłania osobie
           </a>
+          <p style={muted}>
+            Plik otwiera się w przeglądarce — można go wysłać mailem albo wydrukować do PDF.{' '}
+            <a
+              href={`/api/customers/person-data?email=${encodeURIComponent(summary.email)}&format=json`}
+              download
+            >
+              Wersja JSON
+            </a>{' '}
+            — tylko gdy osoba prosi o przeniesienie danych do innej firmy.
+          </p>
           <p style={{ margin: '20px 0 0', fontWeight: 600 }}>Usunięcie wszystkich danych</p>
           <p
             style={{

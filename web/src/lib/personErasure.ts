@@ -1,6 +1,7 @@
 import type { Payload, PayloadRequest } from 'payload'
 
 import { isAdmin } from '@/lib/access'
+import { personDataDocument, type PersonDataCopy } from '@/lib/personDataDocument'
 import { checkEmail } from '@/lib/validation'
 
 /**
@@ -157,8 +158,11 @@ function pick<T extends Record<string, unknown>>(doc: T, fields: string[]) {
  * documents: an account also holds a password hash, a salt, login sessions
  * and tokens, and a newsletter entry its unsubscribe token. Those are keys,
  * not the person's data, and must not leave in a file sent by email.
+ *
+ * ⚠️ A field added here needs a row in `personDataDocument.ts` too — the
+ * readable copy lists its fields by name.
  */
-export async function personDataCopy(payload: Payload, email: string) {
+export async function personDataCopy(payload: Payload, email: string): Promise<PersonDataCopy> {
   const byIds = async (collection: Collection, depth = 0) => {
     const ids = (await idsWithAddress(payload, collection, email)).map((r) => r.id)
     if (ids.length === 0) return []
@@ -289,10 +293,13 @@ export async function personDataHandler(req: PayloadRequest): Promise<Response> 
   const invalid = checkEmail(email)
   if (invalid) return Response.json({ error: invalid }, { status: 400 })
   const copy = await personDataCopy(req.payload, email)
-  const name = `dane-${email.replace(/[^a-z0-9.@+-]/g, '_')}.json`
-  return new Response(JSON.stringify(copy, null, 2), {
+  // A readable document by default — what the person gets back; `?format=json`
+  // for moving the data to another company (the right to data portability).
+  const json = new URL(req.url ?? '', 'http://x').searchParams.get('format') === 'json'
+  const name = `dane-${email.replace(/[^a-z0-9.@+-]/g, '_')}.${json ? 'json' : 'html'}`
+  return new Response(json ? JSON.stringify(copy, null, 2) : personDataDocument(copy), {
     headers: {
-      'content-type': 'application/json; charset=utf-8',
+      'content-type': json ? 'application/json; charset=utf-8' : 'text/html; charset=utf-8',
       'content-disposition': `attachment; filename="${name}"`,
       'cache-control': 'no-store',
     },
