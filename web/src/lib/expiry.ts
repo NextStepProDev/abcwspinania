@@ -131,3 +131,37 @@ export function expiredBookingsWhere(now: Date, years = BOOKING_RETENTION_YEARS)
     ],
   }
 }
+
+/**
+ * Which sessions the daily sweep marks "zakończony": still "open" or
+ * "waitlist" after their last day (decided 12.10.2026 — in the panel a past
+ * date kept saying "zapisy otwarte" until someone changed it by hand). The
+ * site, the dashboard and "Moje konto" go by the dates anyway, so this only
+ * keeps the panel's list honest. "odwołany" is the school's own word and
+ * stays.
+ *
+ * The cutoff is the start of YESTERDAY in UTC: a last day may be stored as
+ * UTC midnight (the date picker) or as Polish midnight, i.e. 22:00–23:00 UTC
+ * the day before. Either way the session turns "finished" a day or two after
+ * it ends — never on its last day, while people are still climbing. A date
+ * with no end counts by its start.
+ */
+export function finishedSessionsWhere(now: Date): Where {
+  const cutoff = new Date(now)
+  cutoff.setUTCHours(0, 0, 0, 0)
+  cutoff.setUTCDate(cutoff.getUTCDate() - 1)
+  const before = cutoff.toISOString()
+  return {
+    and: [
+      { status: { in: ['open', 'waitlist'] } },
+      {
+        or: [
+          { endDate: { less_than: before } },
+          {
+            and: [{ endDate: { exists: false } }, { startDate: { less_than: before } }],
+          },
+        ],
+      },
+    ],
+  }
+}

@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { expiredBookingsWhere } from '@/lib/expiry'
+import { expiredBookingsWhere, finishedSessionsWhere } from '@/lib/expiry'
 
 /**
  * Bookings are kept five years from the end of the year the course took
@@ -48,4 +48,35 @@ test('a booking on an account stays while the account exists', () => {
 test('a booking already anonymized is not touched again', () => {
   const where = JSON.stringify(expiredBookingsWhere(new Date('2032-06-01T12:00:00Z')))
   assert.match(where, /"anonymizedAt":\{"exists":false\}/)
+})
+
+/**
+ * Past sessions go "finished" by themselves (decided 12.10.2026). A last day
+ * may be stored as UTC midnight or as Polish midnight (23:00 / 22:00 UTC the
+ * day before) — neither may turn "finished" while the course still runs.
+ */
+const finishedCutoff = (now: string) =>
+  JSON.stringify(finishedSessionsWhere(new Date(now))).match(/"less_than":"([^"]+)"/)?.[1]
+
+test('a session is not finished on its last day, whichever way the day is stored', () => {
+  const cutoff = Date.parse(finishedCutoff('2026-10-15T21:30:00Z')!) // 23:30 in Poland, 15 Oct
+  assert.ok(Date.parse('2026-10-15T00:00:00.000Z') >= cutoff)
+  assert.ok(Date.parse('2026-10-14T22:00:00.000Z') >= cutoff)
+})
+
+test('a session is finished within two days after its last day', () => {
+  const cutoff = Date.parse(finishedCutoff('2026-10-17T06:00:00Z')!)
+  assert.ok(Date.parse('2026-10-15T00:00:00.000Z') < cutoff)
+  assert.ok(Date.parse('2026-10-14T22:00:00.000Z') < cutoff)
+})
+
+test('only open and waitlisted sessions change; a cancelled one stays cancelled', () => {
+  const where = JSON.stringify(finishedSessionsWhere(new Date('2026-10-17T06:00:00Z')))
+  assert.match(where, /"status":\{"in":\["open","waitlist"\]\}/)
+})
+
+test('a session without an end date counts by its start', () => {
+  const where = JSON.stringify(finishedSessionsWhere(new Date('2026-10-17T06:00:00Z')))
+  assert.match(where, /"endDate":\{"exists":false\}/)
+  assert.match(where, /"startDate":\{"less_than"/)
 })

@@ -927,6 +927,13 @@ i `lib/bookingEffects.ts` (skutki uboczne).
   bez nowego wpisu — inna odpowiedź mówiłaby, kto się zapisał. Z tego
   samego powodu przy „załóż mi konto” komunikat jest jeden, czy konto było
   nowe, czy czekało na potwierdzenie (wtedy idzie nowy link potwierdzający).
+- **Miniony termin sam przechodzi na „zakończony”** (od 12.10.2026,
+  `finishPastSessions` w dziennym sprzątaniu, `finishedSessionsWhere`):
+  tylko „zapisy otwarte” i „lista rezerwowa”, „odwołany” zostaje. Granica to
+  początek WCZORAJ w UTC — ostatni dzień bywa zapisany jako północ UTC albo
+  polska (22:00–23:00 UTC dzień wcześniej), więc termin nigdy nie kończy się
+  w swoim ostatnim dniu, najpóźniej dwa dni po. Strona, pulpit i „Moje
+  konto” i tak patrzą na daty — to porządek listy terminów w panelu.
 - **Terminu z zapisami nie da się usunąć** (hook `beforeDelete` w
   `Sessions.ts`): Postgres i tak odmawia (pole `session` jest wymagane),
   ale komunikatem „Failed query”; teraz panel mówi, żeby ustawić status

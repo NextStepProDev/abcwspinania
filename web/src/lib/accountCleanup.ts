@@ -5,6 +5,7 @@ import { anonymizedLabel } from '@/lib/bookings'
 import {
   expiredBookingsWhere,
   expiredMessagesWhere,
+  finishedSessionsWhere,
   stalePendingNewsletterWhere,
   staleUnverifiedWhere,
 } from '@/lib/expiry'
@@ -107,6 +108,30 @@ export async function anonymizeExpiredBookings(): Promise<void> {
 }
 
 /**
+ * Marks past sessions "zakończony" (`lib/expiry.ts`) — the panel's list of
+ * dates said "zapisy otwarte" for courses long over. Through the collection,
+ * so the list label stays as it is built; `recountingSpots` keeps the
+ * capacity hook from recounting (a finished session is left alone anyway).
+ */
+export async function finishPastSessions(): Promise<void> {
+  const payload = await getPayload({ config })
+  const { docs, errors } = await payload.update({
+    collection: 'sessions',
+    where: finishedSessionsWhere(new Date()),
+    data: { status: 'finished' },
+    depth: 0,
+    // Only the count is used — no join with the bookings' personal data.
+    select: { status: true },
+    overrideAccess: true,
+    context: { recountingSpots: true },
+  })
+  if (docs.length) payload.logger.info(`Marked ${docs.length} past session(s) as finished`)
+  if (errors.length) {
+    payload.logger.warn({ errors }, `Could not mark ${errors.length} past session(s) as finished`)
+  }
+}
+
+/**
  * Runs the sweep a minute after the server starts, then once a day.
  *
  * Why not Payload's job queue: its cron starts only when something calls
@@ -132,6 +157,9 @@ export function scheduleAccountCleanup(): void {
     })
     anonymizeExpiredBookings().catch((error) => {
       console.warn('Booking anonymization failed, will retry tomorrow:', error)
+    })
+    finishPastSessions().catch((error) => {
+      console.warn('Marking past sessions finished failed, will retry tomorrow:', error)
     })
   }
   setTimeout(run, 60_000).unref()
