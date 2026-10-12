@@ -106,7 +106,10 @@ const FORM_PAGES = [
  * from the page at `pathname`, or null where it must not show. Reported
  * 12.10.2026: on the booking form the bar sent the visitor to the schedule,
  * mid-form. On a course or camp page it leads where that page's own button
- * does (a course without dates: its booking page says "write to us").
+ * does (a course without dates: its booking page says "write to us"); on the
+ * course or camp list, to the schedule showing only those (13.10.2026 — from
+ * the camps the full schedule mixed in every course). The `show` values
+ * are the schedule's own filter (`terminarz/page.tsx`).
  */
 export function signUpHref(pathname: string): string | null {
   if (FORM_PAGES.some((page) => page.test(pathname))) return null
@@ -114,5 +117,7 @@ export function signUpHref(pathname: string): string | null {
   if (course) return `/kursy/${course[1]}/zapis`
   const camp = /^\/obozy\/([^/]+)$/.exec(pathname)
   if (camp) return `/kontakt?camp=${camp[1]}`
+  if (pathname === '/kursy') return '/terminarz?show=courses'
+  if (pathname === '/obozy') return '/terminarz?show=camps'
   return '/terminarz'
 }

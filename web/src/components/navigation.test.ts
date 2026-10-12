@@ -31,11 +31,11 @@ test('"Zapisz się" never leads away from a form the visitor is filling in', () 
   }
 })
 
-test('"Zapisz się" on a course or camp page leads to that one, elsewhere to the schedule', () => {
+test('"Zapisz się" on a course or camp page leads to that one, on a list to its dates, elsewhere to the schedule', () => {
   assert.equal(signUpHref('/kursy/kurs-pza'), '/kursy/kurs-pza/zapis')
   assert.equal(signUpHref('/obozy/oboz-letni'), '/kontakt?camp=oboz-letni')
   assert.equal(signUpHref('/'), '/terminarz')
-  assert.equal(signUpHref('/kursy'), '/terminarz')
-  assert.equal(signUpHref('/obozy'), '/terminarz')
+  assert.equal(signUpHref('/kursy'), '/terminarz?show=courses')
+  assert.equal(signUpHref('/obozy'), '/terminarz?show=camps')
   assert.equal(signUpHref('/kontaktowy'), '/terminarz', 'only the exact form pages')
 })
