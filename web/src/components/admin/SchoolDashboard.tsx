@@ -73,7 +73,7 @@ export async function SchoolDashboard({ payload, user }: { payload: Payload; use
       ],
     },
     sort: 'startDate',
-    limit: 8,
+    limit: 12,
     depth: 1,
     joins: false,
     overrideAccess: true,

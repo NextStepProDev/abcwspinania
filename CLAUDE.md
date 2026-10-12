@@ -977,7 +977,7 @@ zasada 25), inaczej panel nie znajdzie komponentu.
 - **Pulpit „Do zrobienia”** (`SchoolDashboard`, `admin.components.
   beforeDashboard`): nowe zgłoszenia, potwierdzone (czekają na zaliczkę),
   lista rezerwowa, maile, które nie doszły, nowe wiadomości — każda liczba to link do listy
-  przefiltrowanej przez `?where[...]` w adresie; pod spodem 8 najbliższych
+  przefiltrowanej przez `?where[...]` w adresie; pod spodem 12 najbliższych
   terminów z obłożeniem „zajęte / limit” i linkami do zapisanych i Excela.
 - **Status jako lista rozwijana na liście zapisów** (`BookingStatusCell`).
   Zapisuje przez REST, więc działa wszystko, co idzie za zmianą statusu
