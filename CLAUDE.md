@@ -1118,6 +1118,13 @@ Od 01.10.2026 aplikacja wysyła maile przez **Brevo, przez jego HTTP API**
   przy zgłoszeniu** (`language`), żeby późniejsze maile szły tym samym
   językiem bez zgadywania. Maile do szkoły są po polsku, z dopiskiem
   „odpowiedz po angielsku”, gdy trzeba.
+- **Nagłówek maili: ORYGINALNE logo + nazwa tekstem** (od 12.10.2026,
+  `header()` w `layout.ts`). Logo to PDF klienta bez zmian, wyrenderowany do
+  `public/logo/email-logo.png` (`design/logo/email_logo.py`) — nie dorysowany
+  znak z nagłówka strony. PNG z naszego serwera (`publicUrl()`), bo poczta nie
+  pokazuje SVG; nazwa zostaje tekstem, bo Outlook blokuje obrazki. Lokalnie
+  obrazka nie widać (Gmail nie sięgnie do localhost). Podmiana pliku = nowa
+  nazwa (zasada 13).
 - **Szablony to czyste funkcje** (`src/lib/email/templates.ts`, wygląd
   w `layout.ts`) — bez Payloada, testowane gołym `node --test`. Każda wartość
   od odwiedzającego przechodzi przez `escapeHtml` w `layout.ts`; szablon nie

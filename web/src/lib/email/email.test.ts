@@ -52,9 +52,22 @@ test('everything a visitor typed is escaped in the HTML', () => {
     details: [['Imię', `<img src=x onerror=alert(1)>`]],
   })
   assert.ok(!html.includes('<script>'))
-  assert.ok(!html.includes('<img'))
+  // The one image is the school's logo in the header.
+  assert.equal(html.match(/<img/g)?.length, 1)
+  assert.ok(!html.includes('<img src=x'))
   assert.ok(html.includes('&lt;script&gt;'))
   assert.ok(html.includes('&lt;b&gt;x&lt;/b&gt;'))
+})
+
+test('the header shows the original logo beside the name, which stays text', () => {
+  // Decided 12.10.2026. Outlook blocks images until allowed — the name must
+  // not depend on the picture.
+  const pl = renderEmail({ lang: 'pl', heading: 'x', paragraphs: [] }).html
+  const en = renderEmail({ lang: 'en', heading: 'x', paragraphs: [] }).html
+  assert.match(pl, /<img src="https?:\/\/[^"]+\/logo\/email-logo\.png" width="57" alt=""/)
+  assert.match(pl, />ABC Wspinania<\/div>/)
+  assert.match(pl, /szkoła wspinaczkowa · Jura Krakowsko-Częstochowska/)
+  assert.match(en, /climbing school · Kraków-Częstochowa Upland, Poland/)
 })
 
 test('an action link cannot break out of its attribute', () => {

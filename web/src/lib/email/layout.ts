@@ -1,4 +1,5 @@
 import type { EmailLanguage } from '@/lib/email/language'
+import { publicUrl } from '@/lib/email/links'
 import { BRAND_COLORS } from '@/lib/site'
 
 /**
@@ -54,6 +55,33 @@ const SURFACE = BRAND_COLORS.surface
 const MUTED = BRAND_COLORS.muted
 const LINE = BRAND_COLORS.line
 
+const TAGLINE: Record<EmailLanguage, string> = {
+  pl: 'szkoła wspinaczkowa · Jura Krakowsko-Częstochowska',
+  en: 'climbing school · Kraków-Częstochowa Upland, Poland',
+}
+
+/**
+ * The header: the ORIGINAL logo (decided 12.10.2026 — the client's PDF as
+ * drawn, `design/logo/email_logo.py`, not the site's completed sign) beside
+ * the school's name as TEXT. Outlook blocks images until the reader allows
+ * them: the name keeps the header readable, an image-only header would be an
+ * empty box. `alt=""` for that reason too — the name is right next to it.
+ * A PNG from our own server (`publicUrl`): emails show no SVG. In local tests
+ * the address is localhost, which Gmail cannot fetch — an empty frame there.
+ * Width only: the height follows the file's own proportions — never squeezed.
+ */
+function header(lang: EmailLanguage): string {
+  return (
+    `<tr><td style="padding:18px 28px;border-bottom:3px solid ${ACCENT}">` +
+    `<table role="presentation" cellpadding="0" cellspacing="0"><tr>` +
+    `<td style="vertical-align:middle"><img src="${escapeHtml(publicUrl())}/logo/email-logo.png" width="57" alt="" style="display:block;border:0;height:auto"></td>` +
+    `<td style="vertical-align:middle;padding-left:14px">` +
+    `<div style="font-weight:bold;font-size:20px;color:${ACCENT}">ABC Wspinania</div>` +
+    `<div style="font-size:13px;color:${MUTED}">${escapeHtml(TAGLINE[lang])}</div>` +
+    `</td></tr></table></td></tr>`
+  )
+}
+
 const FOOTER: Record<EmailLanguage, string> = {
   pl: 'ABC Wspinania · szkoła wspinaczkowa · Jura Krakowsko-Częstochowska',
   en: 'ABC Wspinania · climbing school · Kraków-Częstochowa Upland, Poland',
@@ -104,7 +132,7 @@ ${preheader ? `<div style="display:none;max-height:0;overflow:hidden">${escapeHt
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${SURFACE}">
 <tr><td align="center" style="padding:24px 16px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid ${LINE};border-radius:8px">
-<tr><td style="padding:20px 28px;border-bottom:3px solid ${ACCENT};font-weight:bold;font-size:18px;color:${ACCENT}">ABC Wspinania</td></tr>
+${header(lang)}
 <tr><td style="padding:28px">
 <h1 style="margin:0 0 16px;font-size:22px;line-height:1.3;color:${INK}">${escapeHtml(heading)}</h1>
 ${paragraphs.map((p) => `<p style="margin:0 0 14px">${multiline(p)}</p>`).join('\n')}
