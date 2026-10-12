@@ -7,7 +7,7 @@ import { useEffect, useId, useState } from 'react'
 import { Logo } from './Logo'
 import { Phone, Menu, Close, Person } from './Icons'
 import { useLoggedIn } from './useAccount'
-import { LANGUAGES, MAIN_NAV, isActive, languageHref, languageOf } from './navigation'
+import { LANGUAGES, MAIN_NAV, isActive, languageHref, languageOf, signUpHref } from './navigation'
 
 /**
  * The site header.
@@ -24,6 +24,8 @@ export function Header({ phone, telHref }: { phone: string | null; telHref: stri
   const [previousPathname, setPreviousPathname] = useState(pathname)
   const menuId = useId()
   const currentLanguage = languageOf(pathname)
+  // Hidden on forms, aimed at the course or camp on its page (`signUpHref`).
+  const signUp = signUpHref(pathname)
   const otherLanguage = LANGUAGES.find((language) => language.code !== currentLanguage)!
   const loggedIn = useLoggedIn(pathname)
   const account = loggedIn
@@ -192,12 +194,14 @@ export function Header({ phone, telHref }: { phone: string | null; telHref: stri
           </Link>
         </div>
 
-        <Link
-          href="/terminarz"
-          className="hidden shrink-0 rounded-lg bg-rope px-5 py-2.5 text-[15px] font-semibold text-white hover:bg-rope-dark lg:block"
-        >
-          Zapisz się
-        </Link>
+        {signUp && (
+          <Link
+            href={signUp}
+            className="hidden shrink-0 rounded-lg bg-rope px-5 py-2.5 text-[15px] font-semibold text-white hover:bg-rope-dark lg:block"
+          >
+            Zapisz się
+          </Link>
+        )}
 
         <button
           type="button"

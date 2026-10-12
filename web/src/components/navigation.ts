@@ -89,3 +89,30 @@ export function languageOf(pathname: string): (typeof LANGUAGES)[number]['code']
 export function isActive(href: string, pathname: string): boolean {
   return href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`)
 }
+
+/**
+ * Pages where the visitor is already signing up or filling in a form — and
+ * the schedule itself, where the call would lead to the page it is on.
+ * `/kontakt` is also the camp sign-up (`signUpPath` in `lib/bookings.ts`).
+ */
+const FORM_PAGES = [
+  /^\/kursy\/[^/]+\/zapis$/,
+  /^\/(kontakt|terminarz|logowanie|rejestracja)$/,
+  /^\/(konto|newsletter)(\/|$)/,
+]
+
+/**
+ * Where "Zapisz się" — the header button and the phone's bottom bar — leads
+ * from the page at `pathname`, or null where it must not show. Reported
+ * 12.10.2026: on the booking form the bar sent the visitor to the schedule,
+ * mid-form. On a course or camp page it leads where that page's own button
+ * does (a course without dates: its booking page says "write to us").
+ */
+export function signUpHref(pathname: string): string | null {
+  if (FORM_PAGES.some((page) => page.test(pathname))) return null
+  const course = /^\/kursy\/([^/]+)$/.exec(pathname)
+  if (course) return `/kursy/${course[1]}/zapis`
+  const camp = /^\/obozy\/([^/]+)$/.exec(pathname)
+  if (camp) return `/kontakt?camp=${camp[1]}`
+  return '/terminarz'
+}
