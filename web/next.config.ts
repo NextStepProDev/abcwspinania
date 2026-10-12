@@ -109,7 +109,10 @@ const nextConfig: NextConfig = {
   // dla Next-a innym źródłem i blokuje kanał HMR („Blocked cross-origin request
   // to Next.js dev resource"). Objaw jest mylący — strona renderuje się dobrze,
   // ale komponenty klienckie nie ożywają, bo bootstrap dev nie dochodzi do końca.
-  allowedDevOrigins: ['127.0.0.1', '*.ngrok-free.app', '*.ngrok.app', '*.ngrok.dev'],
+  // `192.168.*.*`: telefon w domowym Wi-Fi (`npm run dev -- -H 0.0.0.0`) przy
+  // testach ręcznych — bez tego menu ☰ i formularze na telefonie nie działały
+  // (12.10.2026). Dotyczy wyłącznie `next dev`.
+  allowedDevOrigins: ['127.0.0.1', '192.168.*.*', '*.ngrok-free.app', '*.ngrok.app', '*.ngrok.dev'],
   turbopack: {
     root: path.resolve(dirname),
   },

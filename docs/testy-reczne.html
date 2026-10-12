@@ -250,6 +250,7 @@
 
   <h2 style="margin-top:14pt">J. Telefon</h2>
   <p>W Chrome: <b>⌥⌘I</b> (narzędzia), potem <b>⇧⌘M</b> i u góry wybierz np. „iPhone 12 Pro”. (Prawdziwy telefon nie otworzy linków z maili, bo prowadzą do <code>localhost</code>.)</p>
+  <p>Prawdziwy telefon w tym samym Wi-Fi: <code>npm run dev -- -H 0.0.0.0</code>, adres Maca z <code>ipconfig getifaddr en0</code>, na telefonie <code>http://&lt;adres&gt;:3000</code>. Adres musi zaczynać się od <code>192.168.</code> — inny trzeba dopisać do <code>allowedDevOrigins</code> w <code>web/next.config.ts</code>, bo inaczej strona się wyświetli, ale menu i formularze nie zadziałają. Bez ngroka — wystawiłby lokalny serwer (konta testowe, klucz Brevo) do całego internetu.</p>
   <table class="steps">
     <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th><th>Wynik</th><th>Uwagi</th></tr></thead>
     <tr><td>J1</td><td>Przejdź na wąskim ekranie: logowanie, rejestracja, zapis na kurs, Moje konto, polityka.</td><td>Nic nie wychodzi poza ekran, nie trzeba przewijać w bok, przyciski da się trafić palcem, komunikaty błędów są widoczne pod polami.</td><td>☐ OK<br>☐ Błąd</td><td></td></tr>
