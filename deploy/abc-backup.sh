@@ -196,7 +196,11 @@ rclone copy "$BACKUP_ROOT" "$REMOTE" --exclude "*.part" --log-file="$LOG" --log-
 # --------------------------------------------------------------------------
 log "Prune remote older than ${REMOTE_RETENTION_DAYS}d"
 # The exclude is the remote half of the milestone rule above.
-rclone delete "$REMOTE" --min-age "${REMOTE_RETENTION_DAYS}d" \
+# --drive-use-trash=false deletes for good instead of moving to the Drive trash:
+# the trash counts against the account's 15 GB and Google empties it only after
+# 30 days, so every copy held space for 70 days instead of 40. An expired backup
+# has nothing worth undeleting. Same rule as the three sibling projects.
+rclone delete "$REMOTE" --min-age "${REMOTE_RETENTION_DAYS}d" --drive-use-trash=false \
   --exclude "milestones/**" --log-file="$LOG" --log-level INFO
 
 log "Prune local older than ${LOCAL_RETENTION_DAYS}d"
