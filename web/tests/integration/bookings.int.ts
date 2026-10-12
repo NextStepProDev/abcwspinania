@@ -123,6 +123,46 @@ test('a cancellation frees the place and tells the school who is waiting', async
   }
 })
 
+test('a phone booking without an address is counted, and nobody is emailed about it', async () => {
+  // Decided 12.10.2026: the school may add someone who gave only a phone.
+  const course = await makeCourse()
+  const session = await makeSession(course.id, { capacity: 1 })
+  const phone = await makeBooking(session.id, 'phone', { status: 'new', email: '' })
+  await makeBooking(session.id, 'phone-waiting', { status: 'waitlist', email: '  ' })
+  assert.equal(phone.email ?? null, null, 'an empty field is stored as no address')
+
+  outbox.length = 0
+  await payload.update({
+    collection: 'bookings',
+    id: phone.id,
+    data: { status: 'confirmed' },
+    overrideAccess: true,
+  })
+  const saved = await payload.findByID({
+    collection: 'bookings',
+    id: phone.id,
+    depth: 0,
+    overrideAccess: true,
+  })
+  assert.equal(outbox.length, 0, 'a status email went out with no address')
+  assert.equal(saved.emailIssue ?? null, null, 'no address is not a failed email')
+
+  await payload.update({
+    collection: 'bookings',
+    id: phone.id,
+    data: { status: 'cancelled' },
+    overrideAccess: true,
+  })
+  assert.ok(!outbox.some((m) => /anulowany/.test(m.subject)))
+  if (process.env.ADMIN_NOTIFY_EMAIL) {
+    // The school still hears about the freed place, with the phone to call.
+    const notice = outbox.find((m) => /Zwolniło się miejsce/.test(m.subject))
+    assert.ok(notice, 'no "place freed" email to the school')
+    assert.match(notice.text, /phone-waiting Test, \+48600100200/)
+    assert.doesNotMatch(notice.text, /null|undefined/)
+  }
+})
+
 test('a status email that fails is noted on the booking, in words, and can be ticked off', async () => {
   const course = await makeCourse()
   const session = await makeSession(course.id)

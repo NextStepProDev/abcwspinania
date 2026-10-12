@@ -908,6 +908,13 @@ i `lib/bookingEffects.ts` (skutki uboczne).
   `open` ↔ `waitlist` przełącza się sam. **Bez liczby miejsc** nic się nie
   liczy, decyduje status ustawiony ręcznie. Zapis telefoniczny liczy się,
   gdy Krzysiek doda go ręcznie w „Zapisach” (bez maili — umówiony osobiście).
+- **E-mail w zapisie opcjonalny — tylko w panelu** (od 12.10.2026): zapis
+  telefoniczny bez adresu. Formularz na stronie wymaga go dalej
+  (`validateBooking`). Puste pole zapisuje się jako `null`. Bez adresu nie
+  idzie nic: mail o statusie (i nie jest to „mail, który nie doszedł”),
+  wysyłki (`dedupeRecipients` pomija pusty adres); w mailu o zwolnionym
+  miejscu osoba stoi z imieniem i telefonem. „Dane osoby” szukają po adresie,
+  więc takiego zapisu nie znajdą — usuwa się go z listy „Zapisy”.
 - **Dane kontaktowe w zapisie to KOPIA** z chwili zapisu, także przy koncie.
   Adres e-mail zapisuje się małymi literami (hook w `Bookings.ts`), bo
   przypisanie do konta i kontrola duplikatów porównują dokładnie.

@@ -435,7 +435,7 @@ export interface PlaceFreedData {
   dates: string
   spotsLeft: number
   /** In order of booking — the first one is next in line. */
-  waiting: { name: string; phone: string; email: string }[]
+  waiting: { name: string; phone: string; email: string | null }[]
   adminUrl: string
 }
 
@@ -447,7 +447,7 @@ export function placeFreedNotification(data: PlaceFreedData): Email {
     ['Wolne miejsca', String(data.spotsLeft)],
     ...data.waiting.map((w, i): [string, string] => [
       `${i + 1}. na liście`,
-      `${w.name}, ${w.phone}, ${w.email}`,
+      [w.name, w.phone, w.email].filter(Boolean).join(', '),
     ]),
   ]
   return {

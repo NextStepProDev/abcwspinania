@@ -434,6 +434,19 @@ test('the freed-place email names the session and the first person waiting', () 
   assert.match(email.text, /4–9 maja 2027/)
 })
 
+test('someone waiting without an email address is listed by name and phone', () => {
+  // A phone booking may have no address (decided 12.10.2026).
+  const email = placeFreedNotification({
+    courseTitle: 'Kurs PZA',
+    dates: '4–9 maja 2027',
+    spotsLeft: 1,
+    waiting: [{ name: 'Dorota Telefon', phone: '+48600100202', email: null }],
+    adminUrl: 'https://x.pl/admin/collections/sessions/10',
+  })
+  assert.match(email.text, /Dorota Telefon, \+48600100202/)
+  assert.doesNotMatch(email.text, /null|, ,/)
+})
+
 test('asked for a confirmation link on a confirmed address, it says the address is confirmed', () => {
   // Reported 10.10.2026: "Wyślij link ponownie" on a confirmed account sent
   // nothing, while the page said a link was on its way.

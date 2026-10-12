@@ -107,7 +107,7 @@ async function announceFreedPlace(
     waiting: waiting.map((b) => ({
       name: `${b.firstName} ${b.lastName}`,
       phone: b.phone,
-      email: b.email,
+      email: b.email ?? null,
     })),
     adminUrl: `${publicUrl()}/admin/collections/sessions/${session.id}`,
   })
@@ -147,6 +147,9 @@ export async function sendStatusEmail(
   status: StatusEmail,
   req?: Req,
 ): Promise<void> {
+  // A phone booking may have no address: nothing to send, and nothing to
+  // note as "not delivered" — the school knows it calls this person.
+  if (!booking.email) return
   const sessionId = idOf(booking.session)
   if (!sessionId) return
   const lang = booking.language === 'en' ? 'en' : 'pl'

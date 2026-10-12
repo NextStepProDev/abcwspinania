@@ -9,6 +9,7 @@ import * as migration_20261005_195005_newsletter_pending_status from './20261005
 import * as migration_20261005_195006_bookings_accounts_broadcasts from './20261005_195006_bookings_accounts_broadcasts';
 import * as migration_20261010_152334_bookings_anonymized_at from './20261010_152334_bookings_anonymized_at';
 import * as migration_20261010_182558_messages_general_topics from './20261010_182558_messages_general_topics';
+import * as migration_20261012_162239_bookings_email_optional from './20261012_162239_bookings_email_optional';
 
 export const migrations = [
   {
@@ -64,6 +65,11 @@ export const migrations = [
   {
     up: migration_20261010_182558_messages_general_topics.up,
     down: migration_20261010_182558_messages_general_topics.down,
-    name: '20261010_182558_messages_general_topics'
+    name: '20261010_182558_messages_general_topics',
+  },
+  {
+    up: migration_20261012_162239_bookings_email_optional.up,
+    down: migration_20261012_162239_bookings_email_optional.down,
+    name: '20261012_162239_bookings_email_optional'
   },
 ];

@@ -138,7 +138,8 @@ export async function recipientsOf(
     docs.map((b) => {
       const account = typeof b.customer === 'object' ? b.customer : null
       return {
-        email: b.email,
+        // No address (a phone booking): dropped by `dedupeRecipients`.
+        email: b.email ?? '',
         firstName: b.firstName,
         language: account?.language ?? b.language ?? 'pl',
       }

@@ -510,7 +510,10 @@ export interface Booking {
   status: 'new' | 'confirmed' | 'deposit' | 'paid' | 'waitlist' | 'cancelled';
   firstName: string;
   lastName: string;
-  email: string;
+  /**
+   * Można pominąć przy zapisie telefonicznym — wtedy ta osoba nie dostaje maili ani wysyłek.
+   */
+  email?: string | null;
   phone: string;
   notes?: string | null;
   /**

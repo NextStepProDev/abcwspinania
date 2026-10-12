@@ -22,8 +22,8 @@ import { LANGUAGE_OPTIONS_FOR_PAYLOAD } from '../lib/email/language'
  *
  * Side effects (`lib/bookingEffects.ts`): every change recounts the session's
  * spots; a status change to confirmed / paid / cancelled emails the
- * participant. A booking the SCHOOL creates in the panel sends nothing — it
- * was arranged in person.
+ * participant (when the booking has an address). A booking the SCHOOL
+ * creates in the panel sends nothing — it was arranged in person.
  */
 /** How the panel names each status email when one does not go out. */
 const STATUS_EMAIL_LABEL = {
@@ -64,8 +64,10 @@ export const Bookings: CollectionConfig = {
       // (`claimBookings`) and the duplicate check compare emails exactly, and
       // Postgres compares case-sensitively — a phone booking typed in the
       // panel as "Ola@Gmail.com" would never reach that person's account.
+      // An empty field is no address at all (a phone booking without one),
+      // so it is stored as null, not "".
       ({ data }) => {
-        if (typeof data.email === 'string') data.email = data.email.trim().toLowerCase()
+        if (typeof data.email === 'string') data.email = data.email.trim().toLowerCase() || null
         return data
       },
       // The list label: "Ola Nowak · 4–9 maj 2027 · Kurs PZA", from the
@@ -199,12 +201,19 @@ export const Bookings: CollectionConfig = {
       type: 'row',
       fields: [
         {
+          // Optional for the school only (decided 12.10.2026): someone booking
+          // by phone may have no address to give. The site's form still
+          // requires one (`validateBooking`). Without it nothing is emailed —
+          // no status emails, no broadcasts — and the phone is the contact.
           name: 'email',
           type: 'email',
-          required: true,
           index: true,
           label: 'E-mail',
-          admin: { width: '50%' },
+          admin: {
+            width: '50%',
+            description:
+              'Można pominąć przy zapisie telefonicznym — wtedy ta osoba nie dostaje maili ani wysyłek.',
+          },
         },
         {
           name: 'phone',
