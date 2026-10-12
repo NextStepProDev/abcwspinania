@@ -262,6 +262,50 @@ test('broadcasts: two "Wyślij" clicks at once queue it once, and the queue send
   )
 })
 
+test('broadcasts: a copy from "Zduplikuj" cannot go out until someone saves it', async () => {
+  // Found in testing 12.10.2026: the copy is saved at once, so one click on
+  // "Wyślij" sent the same message a second time.
+  const admin = await makeAdmin()
+  const course = await makeCourse()
+  const session = await makeSession(course.id)
+  await makeBooking(session.id, 'copy-a')
+  const original = await makeBroadcast({ audience: 'session', session: session.id })
+  await sendHandler(schoolRequest(original.id, admin.email))
+  await drainQueue(original.id)
+
+  const copy = await payload.duplicate({
+    collection: 'broadcasts',
+    id: original.id,
+    overrideAccess: true,
+  })
+  cleanup(() => payload.delete({ collection: 'broadcasts', id: copy.id, overrideAccess: true }))
+  assert.equal(copy.status, 'draft')
+  assert.equal(copy.subject, `Test ${tag}`)
+  assert.equal(original.copyUnreviewed, false, 'a new broadcast is not a copy')
+
+  const before = await (await summaryHandler(schoolRequest(copy.id, admin.email))).json()
+  assert.equal(before.unreviewedCopy, true)
+  const refused = await sendHandler(schoolRequest(copy.id, admin.email))
+  assert.equal(refused.status, 409, 'an unreviewed copy must not be queued')
+  const { totalDocs } = await payload.count({
+    collection: 'broadcast-deliveries',
+    where: { broadcast: { equals: copy.id } },
+    overrideAccess: true,
+  })
+  assert.equal(totalDocs, 0)
+
+  // Saving it — or "Sprawdzone", the same write from the panel — is the decision.
+  const saved = await payload.update({
+    collection: 'broadcasts',
+    id: copy.id,
+    data: { subject: copy.subject },
+    overrideAccess: true,
+  })
+  assert.equal(saved.copyUnreviewed, false)
+  const after = await (await summaryHandler(schoolRequest(copy.id, admin.email))).json()
+  assert.equal(after.unreviewedCopy, false)
+})
+
 test('broadcasts: the daily limit pauses the queue and keeps the recipients', async () => {
   const admin = await makeAdmin()
   const course = await makeCourse()

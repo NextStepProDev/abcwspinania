@@ -642,6 +642,7 @@ export interface Broadcast {
    */
   includeWaitlist?: boolean | null;
   status: 'draft' | 'sending' | 'sent';
+  copyUnreviewed?: boolean | null;
   recipientsCount?: number | null;
   sentCount?: number | null;
   failedCount?: number | null;
@@ -1202,6 +1203,7 @@ export interface BroadcastsSelect<T extends boolean = true> {
   session?: T;
   includeWaitlist?: T;
   status?: T;
+  copyUnreviewed?: T;
   recipientsCount?: T;
   sentCount?: T;
   failedCount?: T;

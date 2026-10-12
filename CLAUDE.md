@@ -1055,6 +1055,15 @@ logika w `lib/broadcasts.ts` (czyste funkcje) i `lib/broadcastSender.ts`
   gdy przeglądarka jest bezczynna (do 500 ms) — dlatego po kliknięciu panel
   czeka 700 ms i sprawdza jeszcze raz. Sprawdzone w przeglądarce: kliknięcie
   zaraz po wpisaniu kończy się „Nic nie wysłano”.
+- **Kopia z „Zduplikuj” nie wychodzi bez przejrzenia** (od 12.10.2026,
+  pole `copyUnreviewed`): Payload zapisuje kopię od razu, więc jedno
+  „Wyślij” wysyłało tę samą wiadomość drugi raz (zgłoszone przy testach).
+  Hook `beforeChange` kolekcji rozpoznaje kopię po `originalDoc` przy
+  `create` (Payload podaje tam oryginał — BEZ id, usuwa je przed hookami;
+  przy zwykłym tworzeniu pusty obiekt); pierwszy zapis albo „Sprawdzone”
+  w panelu (bo „Zapisz” Payloada jest wyłączone na formularzu bez zmian)
+  zdejmuje znacznik. `sendHandler` odmawia też sam (409). Próbna wysyłka
+  kopii działa.
 - **Wysłanej wiadomości nie da się zmienić** (pola z `access.update` tylko dla
   szkicu + hook `beforeChange`) — ma zostać to, co ludzie dostali. „Zduplikuj” (menu ⋮)
   daje szkic z wyzerowanymi licznikami (`beforeDuplicate`).

@@ -256,6 +256,7 @@ export const summaryHandler: PayloadHandler = async (req) => {
       recipients: recipients.length,
       english: recipients.filter((r) => r.language === 'en').length,
       hasEnglish: hasEnglishVersion(broadcast),
+      unreviewedCopy: Boolean(broadcast.copyUnreviewed),
     })
   }
   const [sent, failed, skipped, pending] = await Promise.all(
@@ -337,6 +338,14 @@ export const sendHandler: PayloadHandler = async (req) => {
     if (broadcast.status !== 'draft') {
       await commitTransaction(txReq)
       return Response.json({ error: 'Ta wiadomość jest już wysłana.' }, { status: 409 })
+    }
+    // A copy from "Zduplikuj" goes out only after a person saved it (`copyUnreviewed`).
+    if (broadcast.copyUnreviewed) {
+      await commitTransaction(txReq)
+      return Response.json(
+        { error: 'To kopia — sprawdź treść i odbiorców, kliknij „Zapisz”, potem wyślij.' },
+        { status: 409 },
+      )
     }
     const recipients = await recipientsOf(payload, broadcast, txReq)
     if (recipients.length === 0) {

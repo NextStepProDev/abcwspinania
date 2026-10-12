@@ -18,6 +18,11 @@ import { pluralPl } from '@/lib/format'
  * `useFormModified` from `@payloadcms/ui`, a dependency of its own since
  * then, pinned with the rest of Payload. After a save the numbers are fetched
  * again — the recipients and the English warning follow the saved version.
+ *
+ * A copy from "Zduplikuj" is saved at once, so "Wyślij" stays off until a
+ * person saves it or ticks it off here ("Sprawdzone") — `copyUnreviewed`,
+ * checked by `sendHandler` too. "Sprawdzone" exists because Payload's own
+ * "Zapisz" is off on a form with no changes, and a copy may be right as it is.
  */
 
 interface Summary {
@@ -25,6 +30,7 @@ interface Summary {
   recipients: number
   english?: number
   hasEnglish?: boolean
+  unreviewedCopy?: boolean
   sent?: number
   failed?: number
   skipped?: number
@@ -64,7 +70,7 @@ export function BroadcastPanel() {
   const router = useRouter()
   const id = /\/collections\/broadcasts\/(\d+)(?:\/|$)/.exec(usePathname() ?? '')?.[1]
   const [summary, setSummary] = useState<Summary | null>(null)
-  const [busy, setBusy] = useState<'test' | 'send' | null>(null)
+  const [busy, setBusy] = useState<'test' | 'send' | 'review' | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const modified = useFormModified()
 
@@ -145,6 +151,25 @@ export function BroadcastPanel() {
     }
   }
 
+  async function markReviewed() {
+    setBusy('review')
+    setMessage(null)
+    try {
+      const response = await fetch(`/api/broadcasts/${id}`, {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ copyUnreviewed: false }),
+      })
+      if (!response.ok) setMessage('Nie udało się odblokować wysyłki.')
+    } catch {
+      setMessage('Brak połączenia z serwerem.')
+    } finally {
+      setBusy(null)
+      setVersion((v) => v + 1)
+    }
+  }
+
   function send() {
     if (!summary) return
     const english = summary.english ?? 0
@@ -174,6 +199,23 @@ export function BroadcastPanel() {
               : ' — bez wersji angielskiej dostaną polską.'}
           </p>
         )}
+        {summary.unreviewedCopy && (
+          <div style={{ margin: '10px 0 0' }}>
+            <p style={{ ...muted, color: 'var(--theme-error-500)', fontWeight: 600 }}>
+              To kopia innej wysyłki. Sprawdź treść i odbiorców: zmień, co trzeba, i kliknij
+              „Zapisz” — albo, jeśli wszystko się zgadza, „Sprawdzone”.
+            </p>
+            <button
+              type="button"
+              className="btn btn--style-secondary btn--size-small"
+              style={{ margin: '8px 0 0', ...off(busy !== null || modified) }}
+              disabled={busy !== null || modified}
+              onClick={() => void markReviewed()}
+            >
+              Sprawdzone — odblokuj wysyłkę
+            </button>
+          </div>
+        )}
         {modified ? (
           <p style={{ ...muted, color: 'var(--theme-error-500)', fontWeight: 600 }}>
             Masz niezapisane zmiany — kliknij „Zapisz”, potem wyślij. Wysyłamy zawsze zapisaną
@@ -195,8 +237,21 @@ export function BroadcastPanel() {
           <button
             type="button"
             className="btn btn--style-primary btn--size-small"
-            style={{ margin: 0, ...off(busy !== null || modified || summary.recipients === 0) }}
-            disabled={busy !== null || modified || summary.recipients === 0}
+            style={{
+              margin: 0,
+              ...off(
+                busy !== null ||
+                  modified ||
+                  summary.recipients === 0 ||
+                  Boolean(summary.unreviewedCopy),
+              ),
+            }}
+            disabled={
+              busy !== null ||
+              modified ||
+              summary.recipients === 0 ||
+              Boolean(summary.unreviewedCopy)
+            }
             onClick={send}
           >
             {busy === 'send' ? 'Kolejkuję…' : 'Wyślij'}

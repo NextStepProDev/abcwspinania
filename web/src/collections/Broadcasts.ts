@@ -92,9 +92,19 @@ export const Broadcasts: CollectionConfig = {
   ],
   hooks: {
     beforeChange: [
-      ({ operation, originalDoc, context }) => {
-        if (operation !== 'update' || context.broadcastQueue) return
+      ({ data, operation, originalDoc, context }) => {
+        // "Zduplikuj": on a create Payload passes the document copied FROM as
+        // `originalDoc` — without its id (removed before any hook runs), and
+        // an empty object for a new broadcast. The copy waits for a person.
+        if (operation === 'create') {
+          if (originalDoc && Object.keys(originalDoc).length > 0) data.copyUnreviewed = true
+          return data
+        }
+        if (context.broadcastQueue) return
         if (originalDoc?.status && originalDoc.status !== 'draft') throw lockedError()
+        // A person saved the copy: from now on it is a draft like any other.
+        if (originalDoc?.copyUnreviewed) data.copyUnreviewed = false
+        return data
       },
     ],
     beforeDelete: [
@@ -238,6 +248,17 @@ export const Broadcasts: CollectionConfig = {
       index: true,
       admin: { readOnly: true, position: 'sidebar' },
       hooks: { beforeDuplicate: [resetOnDuplicate('draft')] },
+    },
+    {
+      // "Zduplikuj" saves the copy at once, so it could be sent with one
+      // click — the same message twice (found in testing 12.10.2026). A copy
+      // waits for a person's save, or "Sprawdzone" in the panel, before
+      // "Wyślij" (`sendHandler` checks it too). Set and cleared by the
+      // collection's `beforeChange` above.
+      name: 'copyUnreviewed',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: { hidden: true },
     },
     {
       name: 'recipientsCount',
