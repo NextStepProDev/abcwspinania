@@ -6,10 +6,10 @@ import { usePathname } from 'next/navigation'
  * "Pobierz listę uczestników" on a session's page in the panel.
  *
  * The session id comes from the panel's own address
- * (`/admin/collections/sessions/<id>`), not from `@payloadcms/ui`'s
- * `useDocumentInfo`: that package is not a dependency of this project, only
- * of Payload's, and importing it would work by npm's hoisting alone. Shown
- * only for a saved session — `/create` has no id and no bookings.
+ * (`/admin/collections/sessions/<id>`) — enough here, no need for
+ * `useDocumentInfo` from `@payloadcms/ui` (a dependency of the project since
+ * 12.10.2026, see `BroadcastPanel.tsx`). Shown only for a saved session —
+ * `/create` has no id and no bookings.
  */
 export function SessionExportLink() {
   const id = /\/collections\/sessions\/(\d+)(?:\/|$)/.exec(usePathname() ?? '')?.[1]

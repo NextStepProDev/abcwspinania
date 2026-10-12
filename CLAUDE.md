@@ -1002,8 +1002,11 @@ zasada 25), inaczej panel nie znajdzie komponentu.
   komórki zaczynające się od `= + - @` z apostrofem (formuła wpisana
   w formularz nie wykona się u Krzyśka), telefon jako `="+48 600 …"` (bez
   tego Excel robi z niego liczbę bez plusa).
-- **Bez `@payloadcms/ui` w naszym kodzie**: to zależność Payloada, nie
-  projektu — import działałby przypadkiem. Id terminu bierzemy z adresu.
+- **`@payloadcms/ui` tylko jako JAWNA zależność** (od 12.10.2026 w
+  `package.json`, przypięta co do numeru jak reszta Payloada, grupa `payload`
+  w Dependabocie). Do tego dnia była wyłącznie zależnością Payloada i import
+  działałby przypadkiem. Weszła dla `useFormModified` w panelu wysyłek; gdzie
+  wystarcza adres (id terminu w eksporcie), zostaje adres.
 
 ---
 
@@ -1045,6 +1048,13 @@ logika w `lib/broadcasts.ts` (czyste funkcje) i `lib/broadcastSender.ts`
   i wznawiają ją same; odrzucony adres — błąd tylko tego wiersza; sieć i 5xx
   — ponowienie za 10 min, do 5 prób. Darmowy plan Brevo = 300 maili dziennie
   łącznie ze wszystkimi innymi mailami strony.
+- **„Wyślij” i „Wyślij próbnie” wyłączone przy niezapisanych zmianach**
+  (od 12.10.2026, `BroadcastPanel`, `useFormModified`): endpointy czytają
+  ZAPISANĄ wersję, więc dopisana i niezapisana wersja angielska wychodziła
+  bez niej (zgłoszone przy testach). Edytor treści zgłasza zmianę dopiero,
+  gdy przeglądarka jest bezczynna (do 500 ms) — dlatego po kliknięciu panel
+  czeka 700 ms i sprawdza jeszcze raz. Sprawdzone w przeglądarce: kliknięcie
+  zaraz po wpisaniu kończy się „Nic nie wysłano”.
 - **Wysłanej wiadomości nie da się zmienić** (pola z `access.update` tylko dla
   szkicu + hook `beforeChange`) — ma zostać to, co ludzie dostali. „Zduplikuj” (menu ⋮)
   daje szkic z wyzerowanymi licznikami (`beforeDuplicate`).

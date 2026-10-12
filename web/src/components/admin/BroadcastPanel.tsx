@@ -1,7 +1,8 @@
 'use client'
 
+import { useFormModified } from '@payloadcms/ui'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { pluralPl } from '@/lib/format'
 
@@ -11,9 +12,12 @@ import { pluralPl } from '@/lib/format'
  * in `lib/broadcastSender.ts`.
  *
  * Everything works on the SAVED broadcast — the endpoints read the database,
- * not the form. Hence the note to save first; reading the unsaved form would
- * need `@payloadcms/ui`, which is not this project's dependency (see
- * `SessionExportLink.tsx`). The id comes from the address for the same reason.
+ * not the form. So while the form has unsaved changes, both send buttons are
+ * off (decided 12.10.2026, found in testing: an English version typed in and
+ * not saved went out without it — and a sent broadcast cannot be changed).
+ * `useFormModified` from `@payloadcms/ui`, a dependency of its own since
+ * then, pinned with the rest of Payload. After a save the numbers are fetched
+ * again — the recipients and the English warning follow the saved version.
  */
 
 interface Summary {
@@ -40,6 +44,9 @@ async function fetchSummary(id: string): Promise<Summary> {
 }
 
 const box = { marginBottom: 'var(--base)' }
+// Payload's buttons look the same when disabled; these must not.
+const off = (disabled: boolean) =>
+  disabled ? { opacity: 0.45, cursor: 'not-allowed' as const } : {}
 const muted = { fontSize: 13, color: 'var(--theme-elevation-500)', margin: '6px 0 0' }
 
 function people(n: number): string {
@@ -59,9 +66,17 @@ export function BroadcastPanel() {
   const [summary, setSummary] = useState<Summary | null>(null)
   const [busy, setBusy] = useState<'test' | 'send' | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const modified = useFormModified()
 
-  // Bumped after an action to fetch the numbers again.
+  // Bumped after an action, or a save, to fetch the numbers again.
   const [version, setVersion] = useState(0)
+
+  // Unsaved → saved: what the endpoints read has just changed.
+  const wasModified = useRef(modified)
+  useEffect(() => {
+    if (wasModified.current && !modified) setVersion((v) => v + 1)
+    wasModified.current = modified
+  }, [modified])
 
   useEffect(() => {
     if (!id) return
@@ -91,6 +106,16 @@ export function BroadcastPanel() {
   async function post(action: 'test' | 'send') {
     setBusy(action)
     setMessage(null)
+    // The rich-text editor reports a change to the form only when the browser
+    // is idle — up to 500 ms after typing (Payload's `useRunDeprioritized`).
+    // A click inside that window would find the buttons still on, so look
+    // again once it has passed.
+    await new Promise((resolve) => setTimeout(resolve, 700))
+    if (wasModified.current) {
+      setBusy(null)
+      setMessage('Masz niezapisane zmiany — kliknij „Zapisz”, potem wyślij. Nic nie wysłano.')
+      return
+    }
     try {
       const response = await fetch(`/api/broadcasts/${id}/${action}`, {
         method: 'POST',
@@ -149,13 +174,20 @@ export function BroadcastPanel() {
               : ' — bez wersji angielskiej dostaną polską.'}
           </p>
         )}
-        <p style={muted}>Liczba odświeża się po zapisaniu zmian.</p>
+        {modified ? (
+          <p style={{ ...muted, color: 'var(--theme-error-500)', fontWeight: 600 }}>
+            Masz niezapisane zmiany — kliknij „Zapisz”, potem wyślij. Wysyłamy zawsze zapisaną
+            wersję.
+          </p>
+        ) : (
+          <p style={muted}>Liczba odświeża się po zapisaniu zmian.</p>
+        )}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
           <button
             type="button"
             className="btn btn--style-secondary btn--size-small"
-            style={{ margin: 0 }}
-            disabled={busy !== null}
+            style={{ margin: 0, ...off(busy !== null || modified) }}
+            disabled={busy !== null || modified}
             onClick={() => void post('test')}
           >
             {busy === 'test' ? 'Wysyłam…' : 'Wyślij próbnie do mnie'}
@@ -163,8 +195,8 @@ export function BroadcastPanel() {
           <button
             type="button"
             className="btn btn--style-primary btn--size-small"
-            style={{ margin: 0 }}
-            disabled={busy !== null || summary.recipients === 0}
+            style={{ margin: 0, ...off(busy !== null || modified || summary.recipients === 0) }}
+            disabled={busy !== null || modified || summary.recipients === 0}
             onClick={send}
           >
             {busy === 'send' ? 'Kolejkuję…' : 'Wyślij'}
