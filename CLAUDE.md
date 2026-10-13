@@ -920,6 +920,23 @@ zrobi z kursanta administratora. Koszt: zasada 28.
 - **Dzieci (do zapisów na obozy) dojdą w etapie 4**, nie teraz — żeby nie
   projektować pól pod wymagania, których Krzysiek jeszcze nie podał.
 
+### Konta panelu (`users`)
+
+Wszystkie równorzędne — bez ról (każde może zmienić i usunąć każde inne).
+Role dopiero, gdy dojdzie osoba z mniejszym dostępem.
+
+- **Mail po zmianie hasła albo adresu konta panelu** (od 13.10.2026, hooki
+  w `Users.ts`, szablon `panelAccountChangedEmail`). „Zmień hasło” w Payloadzie
+  NIE pyta o obecne hasło, więc panel otwarty na cudzym komputerze wystarcza
+  do przejęcia konta — mail mówi właścicielowi kiedy i z którego konta,
+  a odsyła do „Nie pamiętasz hasła?” (link idzie do JEGO skrzynki). Przy
+  zmianie adresu mail idzie na stary i nowy i NIE odsyła do resetu (link
+  poszedłby na nowy adres, po przejęciu — cudzy), tylko do Mateusza.
+  Hasło widać tylko w `beforeChange` (potem Payload je hashuje i usuwa
+  z danych), stąd znacznik w `req.context` po id. Reset z linku nie woła
+  hooków `update` — bez maila. Pytanie o obecne hasło odłożone: wymaga
+  własnego widoku w panelu.
+
 ---
 
 ## Zapisy na kursy
