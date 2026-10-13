@@ -674,23 +674,20 @@ pipeline'u SCSS dla jednego pustego arkusza.
     Wyłączenie nie wymagało migracji: Payload zostawia kolumny
     `focal_x`/`focal_y`, dopóki kolekcja ma `imageSizes`.
 
-27. **Logo „za skałą” na stronie głównej działa TYLKO z jednym zdjęciem.**
-    Od 30.09.2026 pełne logo stoi w hero za skałą: maska nieba
-    (`public/images/hero/`) jest zrobiona z pikseli zdjęcia
-    `20240828_134954(1).jpg`, a lista pasujących plików i współrzędne logo
-    siedzą w `components/HeroSign.tsx`. **Gdy klient podmieni zdjęcie w panelu albo
-    przestawi na nim punkt centralny, strona sama wraca do zwykłego logo**
-    (`heroSceneFits`) — nic się nie psuje, ale efekt znika bez śladu w logach.
-    Nowe zdjęcie = nowa maska (`design/hero/make_mask.py`) i nowe
-    współrzędne. Uwaga: oryginał ma w EXIF obrót o 180° — skrypt czytający
-    surowe piksele musi go najpierw zastosować.
+27. **Hero strony głównej: logo tylko na telefonie, na komputerze żadnego.**
+    Ustalone 13.10.2026. Od 30.09 na komputerze (od `xl`) stało pełne logo
+    „za skałą” (maska nieba z pikseli jednego zdjęcia) z odznaką PZA obok,
+    a na telefonie logo z odznaką przy dolnej krawędzi. Mateusz: na komputerze
+    dwa loga to za dużo — nagłówek i tak niesie znak szkoły. Zostało samo
+    logo ABC Wspinania poniżej `xl` (`components/HeroSign.tsx`). Scena,
+    maska i skrypt `make_mask.py` są w historii gita (przed tą zmianą), gdyby
+    efekt miał wrócić — wtedy z nową maską do zdjęcia, które jest w panelu.
 
-    Od 30.09.2026 jest też **wersja po retuszu** (`20240828_134954-retusz.jpg`,
-    bez ciemnej plamy w prawym dolnym rogu). Maska pasuje do obu, kod
-    rozpoznaje oba pliki. **Retusz nie jedzie z deployem** — zdjęcie siedzi
-    w panelu, więc na każdym serwerze trzeba je raz wgrać i wybrać w „Stronie
-    głównej”. Instrukcja i powód, dla którego nowy plik, a nie nadpisanie
-    starego: `design/hero/README.md`.
+    Hero bierze zdjęcie z panelu; **wersja po retuszu**
+    (`20240828_134954-retusz.jpg`, bez ciemnej plamy w prawym dolnym rogu)
+    nie jedzie z deployem — na każdym serwerze trzeba ją raz wgrać i wybrać
+    w „Stronie głównej”. Instrukcja i powód, dla którego nowy plik, a nie
+    nadpisanie starego: `design/hero/README.md`.
 
 28. **⚠️ Uprawnienia: każda kolekcja deklaruje WSZYSTKIE operacje, nigdy
     `Boolean(req.user)`.** Ustalone 01.10.2026, przed kontami uczestników.

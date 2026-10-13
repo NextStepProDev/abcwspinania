@@ -21,7 +21,7 @@ import { Quote } from '@/components/Quote'
 import { MountainBackdrop } from '@/components/MountainBackdrop'
 import { MountainRidges } from '@/components/MountainRidges'
 import { SignWatermark } from '@/components/Logo'
-import { HeroSignAtEdge, HeroSignPlain, HeroSignScene, heroSceneFits } from '@/components/HeroSign'
+import { HeroSignAtEdge } from '@/components/HeroSign'
 import { Button, Badge, SectionHeading, Container, ImagePlaceholder } from '@/components/Ui'
 
 // Exported as generateMetadata, NOT as `export const metadata` — that form
@@ -53,7 +53,6 @@ export default async function Home() {
   const tel = telHref(siteConfig)
   const years = yearsSince(siteConfig.foundedYear)
   const heroImage = asImage(content?.heroImage)
-  const sceneFits = !!heroImage?.url && heroSceneFits(heroImage)
   const heroText = content?.heroText ? splitFirstSentence(content.heroText) : null
 
   return (
@@ -76,9 +75,6 @@ export default async function Home() {
         ) : (
           <MountainBackdrop />
         )}
-        {/* The logo behind the rock — before the tint, so it sits IN the
-            photo and darkens with it. Only where the rock is in frame. */}
-        {sceneFits && <HeroSignScene className="hidden xl:block" />}
         {heroImage?.url ? (
           // A flat tint can't win here: dark enough to keep the text legible
           // over the photo's brightest leaves, and the photo itself goes dull;
@@ -153,18 +149,8 @@ export default async function Home() {
           </div>
         </Container>
 
-        {/* From `xl` up, where the photo shows the rock, the logo and the PZA
-            badge stand behind it (the scene above). Over any other photo the
-            rock mask would not fit, so they stand in the open right side
-            instead. */}
-        {!sceneFits && (
-          <Container className="pointer-events-none absolute inset-0 hidden items-center justify-end xl:flex">
-            <HeroSignPlain />
-          </Container>
-        )}
-
-        {/* Below `xl` the rock is out of frame: the logo and the badge stand
-            near the bottom edge of the section instead. Decorative everywhere — the
+        {/* Below `xl` only: the logo near the bottom edge of the section. From
+            `xl` up the hero has no logo (`HeroSign.tsx`). Decorative — the
             header already names the school. */}
         <Container className="pointer-events-none absolute inset-x-0 bottom-5 flex justify-end xl:hidden">
           <HeroSignAtEdge />
