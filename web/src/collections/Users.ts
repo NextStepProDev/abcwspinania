@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
+import { isAdmin } from '../lib/access'
+
 /**
  * Admin panel accounts.
  *
@@ -24,8 +26,17 @@ export const Users: CollectionConfig = {
     group: 'System',
   },
   auth: true,
-  // No `access.read: () => true` — account data is not public. Payload requires
-  // authentication by default, so we deliberately do NOT open this up.
+  // School accounts only. Payload's default would be "anyone logged in",
+  // which from the booking stage on includes participants. The very first
+  // account is still created through the panel's first-user screen: Payload
+  // registers it with access checks skipped.
+  access: {
+    admin: isAdmin,
+    create: isAdmin,
+    read: isAdmin,
+    update: isAdmin,
+    delete: isAdmin,
+  },
   fields: [
     {
       name: 'name',

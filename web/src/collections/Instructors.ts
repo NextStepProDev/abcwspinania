@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
+import { anyone, isAdmin } from '../lib/access'
+
 /** School staff — the "Instruktorzy" section on the About page. */
 export const Instructors: CollectionConfig = {
   slug: 'instructors',
@@ -10,7 +12,10 @@ export const Instructors: CollectionConfig = {
     group: 'Treść',
   },
   access: {
-    read: () => true,
+    read: anyone,
+    create: isAdmin,
+    update: isAdmin,
+    delete: isAdmin,
   },
   defaultSort: 'order',
   fields: [

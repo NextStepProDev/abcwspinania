@@ -17,12 +17,15 @@
     "migrate:create": "NODE_OPTIONS=--no-deprecation payload migrate:create",
     "migrate": "NODE_OPTIONS=--no-deprecation payload migrate",
     "seed": "NODE_OPTIONS=--no-deprecation payload run scripts/seed.ts",
-    "audit": "node scripts/audit-gate.mjs"
+    "seed:test": "NODE_OPTIONS=--no-deprecation payload run scripts/seed-test.ts",
+    "audit": "node scripts/audit-gate.mjs",
+    "test:integration": "BREVO_API_KEY= NODE_OPTIONS=--no-deprecation payload run tests/integration/run.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "3.90.2",
     "@payloadcms/next": "3.90.2",
     "@payloadcms/richtext-lexical": "3.90.2",
+    "@payloadcms/ui": "3.90.2",
     "graphql": "^16.14.2",
     "next": "16.3.8",
     "payload": "3.90.2",

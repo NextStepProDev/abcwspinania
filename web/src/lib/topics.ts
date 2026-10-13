@@ -10,13 +10,17 @@
  * This file is pure — no imports from Payload or Next — so that both the client
  * form and validation run under bare `node --test` can import it.
  */
+/**
+ * General on purpose (decided 10.10.2026). Until then this list named the
+ * courses, copied from the mockup before courses lived in the panel: two were
+ * missing and three were named differently from the offer, and a course
+ * added in the panel never reached the form. Now "Kurs" asks which one in a
+ * second field filled from the panel (`Messages.course`); camps get their own
+ * booking form in stage 4.
+ */
 export const TOPICS = [
-  { value: 'rock-course', label: 'Kurs wspinaczki skalnej PZA' },
-  { value: 'bolted-routes', label: 'Drogi ubezpieczone' },
-  { value: 'trad', label: 'Asekuracja tradycyjna' },
-  { value: 'indoor-wall', label: 'Ścianka wspinaczkowa' },
+  { value: 'course', label: 'Kurs' },
   { value: 'camp', label: 'Obóz lub wyjazd' },
-  { value: 'private-lesson', label: 'Szkolenie indywidualne' },
   { value: 'other', label: 'Inna sprawa' },
 ] as const
 

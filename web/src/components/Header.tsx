@@ -5,8 +5,9 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useId, useState } from 'react'
 
 import { Logo } from './Logo'
-import { Phone, Menu, Close } from './Icons'
-import { LANGUAGES, MAIN_NAV, isActive, languageOf } from './navigation'
+import { Phone, Menu, Close, Person } from './Icons'
+import { useLoggedIn } from './useAccount'
+import { LANGUAGES, MAIN_NAV, isActive, languageHref, languageOf, signUpHref } from './navigation'
 
 /**
  * The site header.
@@ -23,7 +24,13 @@ export function Header({ phone, telHref }: { phone: string | null; telHref: stri
   const [previousPathname, setPreviousPathname] = useState(pathname)
   const menuId = useId()
   const currentLanguage = languageOf(pathname)
+  // Hidden on forms, aimed at the course or camp on its page (`signUpHref`).
+  const signUp = signUpHref(pathname)
   const otherLanguage = LANGUAGES.find((language) => language.code !== currentLanguage)!
+  const loggedIn = useLoggedIn(pathname)
+  const account = loggedIn
+    ? { href: '/konto', label: 'Moje konto' }
+    : { href: '/logowanie', label: 'Zaloguj się' }
 
   // Changing page must close the menu — otherwise the panel stays open over the
   // new page after a link is clicked.
@@ -54,7 +61,7 @@ export function Header({ phone, telHref }: { phone: string | null; telHref: stri
       {/* TRIAL — thin stripe in the logo blue, purely decorative, no text on
           it. Remove if the client doesn't want it. */}
       <div className="h-[3px] bg-rope" aria-hidden="true" />
-      <div className="mx-auto flex h-[68px] max-w-[1440px] items-center gap-6 px-4 sm:px-6 lg:h-[76px] lg:gap-9 lg:px-20 xl:gap-6 wide:gap-9">
+      <div className="mx-auto flex h-[68px] max-w-[1440px] items-center gap-6 px-4 sm:px-6 lg:h-[76px] lg:gap-9 lg:px-20 xl:gap-5 wide:gap-9">
         <Link href="/" className="flex shrink-0 items-center gap-2.5 text-rock-900">
           <Logo />
         </Link>
@@ -119,7 +126,8 @@ export function Header({ phone, telHref }: { phone: string | null; telHref: stri
               and the fill is the one you notice first. Lightening it would
               leave the pair leaning on a difference between two greys. */}
           {/* The chip follows the page: on `/en` EN is the active one and PL
-              links back to the Polish homepage. A fixed "PL active, EN link"
+              links back to the Polish homepage — or, on a translated page
+              (`TRANSLATED_PAGES`), to the same page in Polish. A fixed "PL active, EN link"
               pair left `/en` with a switch pointing at itself and no way back.
               `aria-current="true"`, not `"page"`: on `/kursy` the PL chip marks
               the current language, not the current page. No `aria-label`: the
@@ -137,7 +145,7 @@ export function Header({ phone, telHref }: { phone: string | null; telHref: stri
             ) : (
               <Link
                 key={language.code}
-                href={language.href}
+                href={languageHref(language.code, pathname)}
                 hrefLang={language.code}
                 lang={language.code}
                 className="px-2.5 py-1.5 text-[13px] font-semibold text-rock-600 hover:text-rock-900"
@@ -148,27 +156,52 @@ export function Header({ phone, telHref }: { phone: string | null; telHref: stri
           )}
         </div>
 
-        {/* The number in the header: with a caption on a large screen, just the
-            icon with a label for screen readers on a small one. Rendered only
-            when it is in the CMS — an empty number would give a `tel:` link
-            leading nowhere. */}
-        {telHref && (
-          <a
-            href={telHref}
-            aria-label={phone ? `Zadzwoń: ${phone}` : 'Zadzwoń'}
-            className="ml-auto flex shrink-0 items-center gap-2 text-[15px] font-semibold text-rock-900 xl:ml-0"
-          >
-            <Phone className="text-rope" />
-            <span className="hidden wide:inline">{phone}</span>
-          </a>
-        )}
+        {/* Phone and account, side by side as two icons, 20 px apart (widened
+            from 12 on request, 02.10.2026 — measured to still fit at 1280 px).
+            One group rather than two items in the row's own gap: the row was
+            tuned to the pixel before the account link existed.
 
-        <Link
-          href="/kontakt"
-          className="hidden shrink-0 rounded-lg bg-rope px-5 py-2.5 text-[15px] font-semibold text-white hover:bg-rope-dark lg:block"
-        >
-          Zapisz się
-        </Link>
+            The number is an ICON ONLY at every width (decided 02.10.2026,
+            to make room for the account link): measured, the spelled-out
+            number from `wide` up plus the account link pushed "Zapisz się"
+            70 px past the edge, and at 1280 px the account link alone was
+            27 px too many. Hence also: each icon's padding (the click target)
+            is taken back by an equal negative margin, so it costs no width,
+            and the row's gap at `xl` went from 24 to 20 px. The number stays in the hover hint, the spoken
+            label, the footer, /kontakt and the phone's bottom bar.
+
+            The phone renders only when it is in the CMS — an empty number
+            would give a `tel:` link leading nowhere. The account link is
+            desktop-only here; the phone menu spells it out below. */}
+        <div className="ml-auto flex shrink-0 items-center gap-5 xl:ml-0">
+          {telHref && (
+            <a
+              href={telHref}
+              aria-label={phone ? `Zadzwoń: ${phone}` : 'Zadzwoń'}
+              title={phone ?? undefined}
+              className="-m-1.5 flex items-center rounded-md p-1.5 text-rope hover:bg-rock-100"
+            >
+              <Phone size={18} />
+            </a>
+          )}
+          <Link
+            href={account.href}
+            aria-label={account.label}
+            title={account.label}
+            className="-m-1.5 hidden items-center rounded-md p-1.5 text-rope hover:bg-rock-100 lg:flex"
+          >
+            <Person size={20} />
+          </Link>
+        </div>
+
+        {signUp && (
+          <Link
+            href={signUp}
+            className="hidden shrink-0 rounded-lg bg-rope px-5 py-2.5 text-[15px] font-semibold text-white hover:bg-rope-dark lg:block"
+          >
+            Zapisz się
+          </Link>
+        )}
 
         <button
           type="button"
@@ -211,7 +244,16 @@ export function Header({ phone, telHref }: { phone: string | null; telHref: stri
             })}
             <li className="mt-2 border-t border-rock-100 pt-3">
               <Link
-                href={otherLanguage.href}
+                href={account.href}
+                className="flex origin-left items-center gap-2 py-2 pl-3 font-semibold text-rock-900"
+              >
+                <Person size={18} className="text-rope" />
+                {account.label}
+              </Link>
+            </li>
+            <li>
+              <Link
+                href={languageHref(otherLanguage.code, pathname)}
                 hrefLang={otherLanguage.code}
                 lang={otherLanguage.code}
                 className="block origin-left py-2 pl-3 text-rock-600"

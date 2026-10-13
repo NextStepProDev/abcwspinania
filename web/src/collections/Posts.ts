@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
+import { isAdmin, publishedOrAdmin } from '../lib/access'
+
 /**
  * News: course reports, history of the region, how-to guides.
  *
@@ -17,7 +19,11 @@ export const Posts: CollectionConfig = {
     description: 'Teksty na stronie. Najnowsze u góry.',
   },
   access: {
-    read: () => true,
+    read: publishedOrAdmin,
+    readVersions: isAdmin,
+    create: isAdmin,
+    update: isAdmin,
+    delete: isAdmin,
   },
   versions: { drafts: true },
   defaultSort: '-publishedAt',

@@ -1,10 +1,13 @@
 'use client'
 
-import { useActionState, useId } from 'react'
+import { useActionState, useId, useState } from 'react'
 
 import { CONSENT_TEXT } from '@/lib/consent'
 import { TOPICS } from '@/lib/topics'
 import { sendMessage, type ContactFormState } from './actions'
+import { ConsentText } from '@/components/ConsentText'
+import { RevealOnMount } from '@/components/RevealOnMount'
+import { SelectBox } from '@/components/SelectBox'
 
 const INITIAL_STATE: ContactFormState = { status: 'idle' }
 
@@ -16,12 +19,24 @@ const pole =
 export function ContactForm({
   topic,
   course,
+  courses,
 }: {
   topic?: string
-  /** The course whose page the visitor came from — attached to the enquiry. */
-  course?: { id: number; title: string }
+  /** The course whose page the visitor came from — preselected. */
+  course?: number
+  /** The published courses, from the panel — the "Który kurs?" options. */
+  courses: { id: number; title: string }[]
 }) {
   const [state, action, pending] = useActionState(sendMessage, INITIAL_STATE)
+  // The course field shows only for the topic "Kurs". Follows the select as
+  // it changes, and the topic sent back after a failed send.
+  const initialTopic = state.values?.topic ?? topic ?? ''
+  const [chosenTopic, setChosenTopic] = useState(initialTopic)
+  const [answered, setAnswered] = useState(state)
+  if (answered !== state) {
+    setAnswered(state)
+    setChosenTopic(initialTopic)
+  }
   // ⚠️ Field ids MUST be unique across the whole document, not just the form.
   // This used to read `id="message"` — exactly the name of the content
   // container in the layout (the target of the skip link).
@@ -37,12 +52,12 @@ export function ContactForm({
     return (
       // role="status" makes the screen reader announce the confirmation —
       // without it a blind visitor never learns anything happened.
-      <div role="status" className="rounded-2xl border border-rock-200 bg-white p-8">
+      <RevealOnMount role="status" className="rounded-2xl border border-rock-200 bg-white p-8">
         <h2 className="text-xl font-semibold">Dziękujemy, wiadomość dotarła.</h2>
         <p className="mt-2 text-rock-600">
           Odpowiadamy zwykle tego samego dnia. Jeśli sprawa jest pilna, zadzwoń albo wyślij SMS.
         </p>
-      </div>
+      </RevealOnMount>
     )
   }
 
@@ -53,15 +68,6 @@ export function ContactForm({
       className="flex flex-col gap-5 rounded-2xl border border-rock-200 bg-white p-6 lg:p-8"
     >
       <h2 className="text-[24px] leading-tight">Napisz do nas</h2>
-
-      {course && (
-        <>
-          <p className="rounded-lg bg-rope-soft px-4 py-3 text-sm text-rope-dark">
-            Zapytanie dotyczy kursu <strong>{course.title}</strong>.
-          </p>
-          <input type="hidden" name="course" value={course.id} />
-        </>
-      )}
 
       {state.message && (
         <p
@@ -80,6 +86,7 @@ export function ContactForm({
           wymagane
           autoComplete="name"
           placeholder="Anna Kowalska"
+          defaultValue={state.values?.name}
           blad={state.errors?.name}
         />
         <Field
@@ -90,6 +97,7 @@ export function ContactForm({
           autoComplete="tel"
           placeholder="600 000 000"
           podpowiedz="Nieobowiązkowy — ułatwia szybki kontakt."
+          defaultValue={state.values?.phone}
           blad={state.errors?.phone}
         />
       </div>
@@ -102,6 +110,7 @@ export function ContactForm({
         wymagane
         autoComplete="email"
         placeholder="anna@example.com"
+        defaultValue={state.values?.email}
         blad={state.errors?.email}
       />
 
@@ -109,11 +118,12 @@ export function ContactForm({
         <label htmlFor={fieldId('topic')} className="font-medium">
           Czego dotyczy zapytanie
         </label>
-        <select
+        <SelectBox
           id={fieldId('topic')}
           name="topic"
           // Preselected when the visitor arrived from a course or camp page.
-          defaultValue={topic ?? ''}
+          defaultValue={initialTopic}
+          onChange={(e) => setChosenTopic(e.target.value)}
           aria-describedby={state.errors?.topic ? fieldId('temat-blad') : undefined}
           aria-invalid={state.errors?.topic ? true : undefined}
           className={pole}
@@ -124,12 +134,32 @@ export function ContactForm({
               {t.label}
             </option>
           ))}
-        </select>
+        </SelectBox>
         {state.errors?.topic && (
           <p id={fieldId('temat-blad')} className="text-sm text-rope">
             {state.errors.topic}
           </p>
         )}
+      </div>
+
+      {/* `hidden`, not left out: it keeps its choice while the topic changes. */}
+      <div className="flex flex-col gap-1.5" hidden={chosenTopic !== 'course'}>
+        <label htmlFor={fieldId('course')} className="font-medium">
+          Który kurs?
+        </label>
+        <SelectBox
+          id={fieldId('course')}
+          name="course"
+          defaultValue={state.values?.course ?? (course ? String(course) : '')}
+          className={pole}
+        >
+          <option value="">— jeszcze nie wiem —</option>
+          {courses.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.title}
+            </option>
+          ))}
+        </SelectBox>
       </div>
 
       <Field
@@ -138,6 +168,7 @@ export function ContactForm({
         label="Preferowany termin"
         podpowiedz="Nieobowiązkowe — np. „pierwsza połowa czerwca”."
         placeholder="np. pierwsza połowa czerwca"
+        defaultValue={state.values?.preferredDate}
         blad={state.errors?.preferredDate}
       />
 
@@ -151,6 +182,7 @@ export function ContactForm({
           rows={5}
           required
           placeholder="Napisz, ile masz doświadczenia i czego oczekujesz od kursu."
+          defaultValue={state.values?.message}
           aria-describedby={state.errors?.message ? fieldId('tresc-blad') : undefined}
           aria-invalid={state.errors?.message ? true : undefined}
           className={pole}
@@ -184,13 +216,16 @@ export function ContactForm({
             name="consent"
             type="checkbox"
             required
+            defaultChecked={state.values?.consent === 'on'}
             aria-describedby={state.errors?.consent ? fieldId('zgoda-blad') : undefined}
             aria-invalid={state.errors?.consent ? true : undefined}
             className="mt-1 size-4 shrink-0"
           />
           {/* Pełna treść klauzuli jest widoczna przy polu, a nie schowana pod
               linkiem. Ta sama treść trafia do bazy razem ze zgłoszeniem. */}
-          <span>{CONSENT_TEXT}</span>
+          <span>
+            <ConsentText text={CONSENT_TEXT} />
+          </span>
         </label>
         {state.errors?.consent && (
           <p id={fieldId('zgoda-blad')} className="text-sm text-rope">
@@ -222,6 +257,7 @@ function Field({
   podpowiedz,
   placeholder,
   blad,
+  defaultValue,
 }: {
   /** Unique across the document — see the `useId()` comment above. */
   id: string
@@ -233,6 +269,8 @@ function Field({
   podpowiedz?: string
   placeholder?: string
   blad?: string
+  /** What the visitor typed before a failed send — see `values` in actions.ts. */
+  defaultValue?: string
 }) {
   const idBledu = `${id}-blad`
   const idPodpowiedzi = `${id}-podpowiedz`
@@ -250,6 +288,7 @@ function Field({
         required={wymagane}
         autoComplete={autoComplete}
         placeholder={placeholder}
+        defaultValue={defaultValue}
         aria-describedby={opisy || undefined}
         aria-invalid={blad ? true : undefined}
         className={pole}

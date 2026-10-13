@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
-import { getUpcomingSessions, getSiteConfig, telHref } from '@/lib/content'
+import { signUpPath } from '@/lib/bookings'
+import { asCamp, asCourse, getUpcomingSessions, getSiteConfig, telHref } from '@/lib/content'
 import { formatPriceLabel, formatDateRangeShort, groupByMonth, pluralPl } from '@/lib/format'
 import { pageMetadata } from '@/lib/seo'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
@@ -124,7 +125,11 @@ export default async function SchedulePage({ searchParams }: Props) {
                             {formatPriceLabel(details.price, details.priceFrom)}
                           </span>
                           <Button
-                            href={`/kontakt?termin=${session.id}`}
+                            href={signUpPath({
+                              id: session.id,
+                              courseSlug: asCourse(session.course)?.slug ?? null,
+                              campSlug: asCamp(session.camp)?.slug ?? null,
+                            })}
                             variant={details.soldOut ? 'outline' : 'primary'}
                           >
                             {details.soldOut ? 'Lista rezerwowa' : 'Zapisz się'}

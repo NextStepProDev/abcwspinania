@@ -1,5 +1,9 @@
 import type { CollectionConfig } from 'payload'
 
+import { isAdmin } from '../lib/access'
+import { LANGUAGE_OPTIONS_FOR_PAYLOAD } from '../lib/email/language'
+import { unsubscribeHandler } from '../lib/newsletter'
+
 /**
  * Newsletter subscriptions.
  *
@@ -13,9 +17,21 @@ import type { CollectionConfig } from 'payload'
  * the wording of the clause changes there is otherwise no way to show what a
  * given person actually agreed to.
  *
- * Sending is not wired up yet (Brevo is a separate stage). Persisting to the
- * database works from day one and nothing is lost on the way — the addresses
- * wait for the provider to be plugged in.
+ * DOUBLE OPT-IN (decided 03.10.2026): the form creates the address as
+ * `pending` and emails a confirmation link; only `subscribed` addresses get
+ * broadcasts. Without it anyone could sign up someone else's address, and
+ * the "this is spam" clicks that follow can get the Brevo account blocked.
+ * Addresses from before that date stay `subscribed` — they gave the same
+ * consent, the stored clause shows which.
+ *
+ * Written only by the site's server actions (`kontakt/actions.ts`,
+ * `newsletter/*`): REST `create` is closed, otherwise a POST to
+ * `/api/newsletter` could set `status: subscribed` and skip the confirmation.
+ *
+ * One `token` per address, for the confirmation link and the unsubscribe
+ * link in every newsletter. A new one is drawn each time the address goes
+ * back to `pending`, never while it is subscribed — unsubscribe links in
+ * emails already sent keep working.
  */
 export const Newsletter: CollectionConfig = {
   slug: 'newsletter',
@@ -24,17 +40,23 @@ export const Newsletter: CollectionConfig = {
     useAsTitle: 'email',
     defaultColumns: ['email', 'status', 'createdAt'],
     group: 'Kontakt',
-    description: 'Adresy zapisane przez formularz w stopce. Wysyłki jeszcze nie ma.',
+    description:
+      'Adresy zapisane przez formularz w stopce. Wysyłki dostają tylko adresy „zapisany” — czyli potwierdzone kliknięciem w link z maila. Niepotwierdzone znikają same po 7 dniach.',
   },
   access: {
-    // Anyone may subscribe — this is a public form. Only authenticated users
-    // may read or delete: a list of addresses is personal data.
-    create: () => true,
-    read: ({ req }) => Boolean(req.user),
-    update: ({ req }) => Boolean(req.user),
-    delete: ({ req }) => Boolean(req.user),
+    // The form writes through a server action (see above); REST is the
+    // school's only. A list of addresses is personal data.
+    create: isAdmin,
+    read: isAdmin,
+    update: isAdmin,
+    delete: isAdmin,
   },
   defaultSort: '-createdAt',
+  endpoints: [
+    // The one-click unsubscribe from the `List-Unsubscribe-Post` header
+    // (RFC 8058) — Gmail and others show an "Unsubscribe" button that POSTs here.
+    { path: '/unsubscribe', method: 'post', handler: unsubscribeHandler },
+  ],
   fields: [
     {
       name: 'email',
@@ -50,15 +72,63 @@ export const Newsletter: CollectionConfig = {
     {
       name: 'status',
       type: 'select',
-      defaultValue: 'subscribed',
+      defaultValue: 'pending',
       required: true,
       label: 'Status',
       options: [
+        { label: 'czeka na potwierdzenie', value: 'pending' },
         { label: 'zapisany', value: 'subscribed' },
         { label: 'wypisany', value: 'unsubscribed' },
       ],
       admin: {
         description: 'Wypisanych NIE kasujemy — trzeba móc wykazać, że i kiedy ktoś zgodę wycofał.',
+      },
+    },
+    {
+      name: 'language',
+      type: 'select',
+      defaultValue: 'pl',
+      label: 'Język wiadomości',
+      options: LANGUAGE_OPTIONS_FOR_PAYLOAD,
+      admin: {
+        description:
+          'Ustawiany z przeglądarki przy zapisie. Osoby z angielskim dostaną angielską wersję wysyłki, jeśli ją dopiszesz.',
+      },
+    },
+    {
+      name: 'token',
+      type: 'text',
+      index: true,
+      admin: { hidden: true },
+    },
+    {
+      name: 'confirmationSentAt',
+      type: 'date',
+      label: 'Link potwierdzający wysłany',
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+        date: { pickerAppearance: 'dayAndTime', displayFormat: 'd.MM.yyyy, HH:mm' },
+      },
+    },
+    {
+      name: 'confirmedAt',
+      type: 'date',
+      label: 'Potwierdzony',
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+        date: { pickerAppearance: 'dayAndTime', displayFormat: 'd.MM.yyyy, HH:mm' },
+      },
+    },
+    {
+      name: 'unsubscribedAt',
+      type: 'date',
+      label: 'Wypisany',
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+        date: { pickerAppearance: 'dayAndTime', displayFormat: 'd.MM.yyyy, HH:mm' },
       },
     },
     {

@@ -7,22 +7,10 @@ import { pl } from '@payloadcms/translations/languages/pl'
 import { buildConfig } from 'payload'
 import sharp from 'sharp'
 
+import { collections } from './collections'
 import { Users } from './collections/Users'
-import { Media } from './collections/Media'
-import { GalleryPhotos } from './collections/GalleryPhotos'
-import { Courses } from './collections/Courses'
-import { Camps } from './collections/Camps'
-import { Sessions } from './collections/Sessions'
-import { Posts } from './collections/Posts'
-import { Testimonials } from './collections/Testimonials'
-import { Instructors } from './collections/Instructors'
-import { Messages } from './collections/Messages'
-import { Newsletter } from './collections/Newsletter'
-import { SiteConfig } from './globals/SiteConfig'
-import { HomePage } from './globals/HomePage'
-import { AboutPage } from './globals/AboutPage'
-import { EnglishPage } from './globals/EnglishPage'
-import { CampsPage } from './globals/CampsPage'
+import { globals } from './globals'
+import { brevoAdapter } from './lib/email/brevo'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -53,11 +41,38 @@ function requireSecret(): string {
   )
 }
 
+/**
+ * Outgoing email through Brevo — or nowhere, deliberately, when no key is set.
+ *
+ * Without `BREVO_API_KEY` Payload falls back to printing emails to the console
+ * and says so at startup. That is what we want locally and in CI (no one gets
+ * mailed from a laptop by accident), and on a server it is the loud signal that
+ * the key is missing.
+ *
+ * The sender must be an address on a domain authenticated in Brevo (SPF and
+ * DKIM) — anything else is refused by Brevo or lands in spam. Switching from
+ * the test domain to the school's is a change of these variables, not of code.
+ */
+function emailAdapter() {
+  const apiKey = process.env.BREVO_API_KEY
+  const email = process.env.EMAIL_FROM
+  if (!apiKey || !email) return undefined
+  return brevoAdapter({
+    apiKey,
+    sender: { email, name: process.env.EMAIL_FROM_NAME || 'ABC Wspinania' },
+  })
+}
+
 export default buildConfig({
   admin: {
     user: Users.slug,
     importMap: {
       baseDir: path.resolve(dirname),
+    },
+    // "Do zrobienia" above the collections: new bookings, waiting list,
+    // occupancy of the next sessions — see the component.
+    components: {
+      beforeDashboard: ['/components/admin/SchoolDashboard#SchoolDashboard'],
     },
     meta: {
       titleSuffix: '— ABC Wspinania',
@@ -74,24 +89,13 @@ export default buildConfig({
     supportedLanguages: { pl },
     fallbackLanguage: 'pl',
   },
-  collections: [
-    Courses,
-    Camps,
-    Sessions,
-    Posts,
-    Testimonials,
-    Instructors,
-    Media,
-    GalleryPhotos,
-    Messages,
-    Newsletter,
-    Users,
-  ],
+  collections,
   // Globals are content that occurs exactly once (contact details, page copy).
   // A collection holding a single entry would force someone to keep track of
   // which entry is "the real one" — a global makes that mistake impossible.
-  globals: [SiteConfig, HomePage, AboutPage, CampsPage, EnglishPage],
+  globals,
   editor: lexicalEditor(),
+  email: emailAdapter(),
   secret: requireSecret(),
   typescript: {
     // Types generated from the config and shared with the site. CI makes sure

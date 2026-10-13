@@ -91,6 +91,14 @@
   --color-available-bg: #e6ece2;
   --color-available-text: #4a6640;
 
+  /* Form errors: a field that does not pass its rule (since 02.10.2026, the
+     account forms). Red, NOT `rope`: the error messages used the accent blue,
+     and a blue frame reads as "focused", not "wrong". #b42318 on white is
+     about 6.5:1 — readable as text too. A status colour like `available`,
+     not a second accent: nothing decorative uses it. */
+  --color-error: #b42318;
+  --color-error-soft: #fef3f2;
+
   /* Text on the dark footer and on `rock-900` sections. */
   --color-rock-fg: #cfc5b7;
   --color-rock-fg-strong: #e4ddd2;

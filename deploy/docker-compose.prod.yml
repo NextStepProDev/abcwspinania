@@ -15,6 +15,16 @@
 # Dzielisz limit Ampere na dwie instancje (1 OCPU / 6 GB)? Odkomentuj profil
 # "pół maszyny" w .env.example — limity I strojenie Postgresa/Node'a razem.
 
+# Log rotation for every container. Docker's default json-file driver keeps
+# logs without limit: the disk fills slowly, and nginx's access log keeps
+# every visitor's IP address forever, which the privacy policy cannot promise.
+# 3 files × 10 MB per container; the oldest entries are overwritten.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: '10m'
+    max-file: '3'
+
 services:
   postgres:
     # WERSJA GŁÓWNA musi się zgadzać z docker-compose.yml w korzeniu repo.
@@ -22,6 +32,7 @@ services:
     # Podbicie majora to MIGRACJA DANYCH, nie podmiana obrazu (patrz CLAUDE.md).
     image: postgres:18-alpine
     container_name: abcwspinania-postgres-prod
+    logging: *logging
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
@@ -63,12 +74,22 @@ services:
   app:
     image: ghcr.io/${GHCR_OWNER}/abcwspinania:${VERSION:-latest}
     container_name: abcwspinania-app-prod
+    logging: *logging
     restart: unless-stopped
     environment:
       NODE_ENV: production
       DATABASE_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       # Podpisuje tokeny sesji panelu. MUSI być inny niż lokalnie.
       PAYLOAD_SECRET: ${PAYLOAD_SECRET}
+      # Maile przez Brevo. Puste = maile tylko w logu kontenera (Payload
+      # ostrzega o tym przy starcie). Opis zmiennych: deploy/.env.example.
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-ABC Wspinania}
+      ADMIN_NOTIFY_EMAIL: ${ADMIN_NOTIFY_EMAIL:-}
+      # Adres, pod którym strona FAKTYCZNIE działa — z niego idą linki
+      # w mailach (potwierdzenie konta, nowe hasło). Opis: deploy/.env.example.
+      PUBLIC_URL: ${PUBLIC_URL:-}
       # Musi się zgadzać z APP_MEM_LIMIT z tego samego powodu co strojenie
       # Postgresa wyżej — sam limit kontenera Node'owi nic nie mówi.
       NODE_OPTIONS: "--max-old-space-size=${NODE_MAX_OLD_SPACE_SIZE:-1536}"
@@ -88,6 +109,7 @@ services:
   nginx:
     image: nginx:1.31-alpine
     container_name: abcwspinania-nginx-prod
+    logging: *logging
     restart: unless-stopped
     ports:
       - "80:80"

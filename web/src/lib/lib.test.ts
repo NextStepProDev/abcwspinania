@@ -310,7 +310,7 @@ const VALID: ContactFormData = {
   name: 'Krzysiek',
   email: 'krzysiek@example.com',
   phone: '600 100 200',
-  topic: 'rock-course',
+  topic: 'course',
   preferredDate: 'pierwsza połowa czerwca',
   message: 'Chciałbym zapisać syna na kurs skalny.',
   consent: true,
@@ -641,4 +641,13 @@ test('text with no sentence break is all head', () => {
     head: 'Zbiórka o 10.30 pod skałą',
     rest: '',
   })
+})
+
+test('the topics are general — the course itself comes from the panel', () => {
+  // Until 10.10.2026 the topics were course names copied from the mockup,
+  // two courses missing and three named differently from the offer.
+  for (const topic of ['course', 'camp', 'other'])
+    assert.ok(isValid(validateContact({ ...VALID, topic })), topic)
+  for (const old of ['rock-course', 'bolted-routes', 'trad', 'indoor-wall', 'private-lesson'])
+    assert.ok(!isValid(validateContact({ ...VALID, topic: old })), old)
 })

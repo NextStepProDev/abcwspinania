@@ -2,6 +2,8 @@ import path from 'path'
 
 import type { CollectionConfig } from 'payload'
 
+import { anyone, isAdmin } from '../lib/access'
+
 /**
  * Photos for the /galeria page — a collection of its own, not a flag on Media.
  *
@@ -43,7 +45,10 @@ export const GalleryPhotos: CollectionConfig = {
   defaultSort: '-createdAt',
   access: {
     // Public, like the media library — the only way the site can show them.
-    read: () => true,
+    read: anyone,
+    create: isAdmin,
+    update: isAdmin,
+    delete: isAdmin,
   },
   upload: {
     // A subdirectory of whatever UPLOAD_DIR points at — NOT a second variable

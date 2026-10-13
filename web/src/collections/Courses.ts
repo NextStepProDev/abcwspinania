@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
+import { isAdmin, publishedOrAdmin } from '../lib/access'
+
 /**
  * Course and training offer.
  *
@@ -23,9 +25,14 @@ export const Courses: CollectionConfig = {
     group: 'Treść',
   },
   access: {
-    // Public read — one line instead of clicking find/findOne permissions
-    // through the panel, separately in every environment.
-    read: () => true,
+    // Declared in code instead of clicking permissions through the panel,
+    // separately in every environment. Published entries are public, drafts
+    // stay with the school (lib/access.ts).
+    read: publishedOrAdmin,
+    readVersions: isAdmin,
+    create: isAdmin,
+    update: isAdmin,
+    delete: isAdmin,
   },
   versions: {
     drafts: true,

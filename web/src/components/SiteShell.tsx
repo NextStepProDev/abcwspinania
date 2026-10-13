@@ -32,10 +32,9 @@ export function SiteShell({
 
   return (
     <html lang="pl" className={`${inter.variable} ${bricolage.variable}`}>
-      {/* `pb-[68px]` makes room for the pinned mobile bar so it does not cover
-          the end of the footer. From `lg` up there is no bar, so the padding
-          disappears. */}
-      <body className="flex min-h-dvh flex-col pb-[68px] font-sans antialiased lg:pb-0">
+      {/* The pinned mobile bar brings its own spacer (`MobileActionBar`) —
+          it is not on every page. */}
+      <body className="flex min-h-dvh flex-col font-sans antialiased">
         {/* Skip link — the first thing under Tab. Without it someone navigating
             by keyboard walks through the entire menu on every page before
             reaching the content. */}

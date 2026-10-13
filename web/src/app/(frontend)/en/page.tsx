@@ -1,8 +1,16 @@
 import type { Metadata } from 'next'
+import Image from 'next/image'
 import Link from 'next/link'
 
-import { getCourses, getEnglishPage, getSiteConfig, telHref } from '@/lib/content'
-import { formatPriceLabel, formatLevel } from '@/lib/format'
+import {
+  asImage,
+  getCourses,
+  getEnglishPage,
+  getHomePage,
+  getSiteConfig,
+  telHref,
+} from '@/lib/content'
+import { focalPosition, formatPriceLabel, formatLevel } from '@/lib/format'
 import { pageMetadata } from '@/lib/seo'
 import { Button, Badge, Container } from '@/components/Ui'
 import { MountainBackdrop } from '@/components/MountainBackdrop'
@@ -15,24 +23,29 @@ import { MountainBackdrop } from '@/components/MountainBackdrop'
  * and a search engine would take the page for Polish with odd content.
  */
 export function generateMetadata(): Metadata {
-  return {
-    ...pageMetadata({
-      title: 'Climbing courses on the Polish Jura',
-      description:
-        'Rock climbing courses in English on the Kraków-Częstochowa Upland, led by PZA-licensed instructors. Four climbers per instructor, own base in Rzędkowice.',
-      path: '/en',
-    }),
-    openGraph: { locale: 'en_GB' },
-  }
+  const base = pageMetadata({
+    title: 'Climbing courses on the Polish Jura',
+    description:
+      'Rock climbing courses in English on the Kraków-Częstochowa Upland, led by PZA-licensed instructors. Four climbers per instructor, own base in Rzędkowice.',
+    path: '/en',
+  })
+  // Spread, not replaced: `openGraph: { locale }` alone dropped the title,
+  // description and image from the shared preview (fixed 10.10.2026).
+  return { ...base, openGraph: { ...base.openGraph, locale: 'en_GB' } }
 }
 
 export default async function EnglishPage() {
-  const [content, courses, siteConfig] = await Promise.all([
+  const [content, courses, siteConfig, home] = await Promise.all([
     getEnglishPage(),
     getCourses(),
     getSiteConfig(),
+    getHomePage(),
   ])
   const tel = telHref(siteConfig)
+  // The homepage's hero photo (reported 10.10.2026: the English page had only
+  // the drawn backdrop and looked unfinished next to the Polish one). The
+  // logo behind the rock stays a homepage feature (`HeroSign`, rule 27).
+  const heroImage = asImage(home?.heroImage)
 
   // With no price there is nothing to show in the table — individually quoted
   // training stays out of it, so no row consists of a lone dash.
@@ -47,8 +60,26 @@ export default async function EnglishPage() {
   return (
     <main lang="en">
       <section className="relative isolate overflow-hidden bg-rock-950">
-        <MountainBackdrop />
-        <div className="absolute inset-0 bg-rock-950/60" />
+        {heroImage?.url ? (
+          <>
+            <Image
+              src={heroImage.url}
+              alt={heroImage.alt ?? ''}
+              fill
+              loading="eager"
+              sizes="100vw"
+              className="object-cover"
+              style={{ objectPosition: focalPosition(heroImage) }}
+            />
+            {/* The homepage's gradient: dark where the text sits, clear over the rock. */}
+            <div className="absolute inset-0 bg-linear-to-r from-rock-950/80 via-rock-950/55 via-45% to-rock-950/10" />
+          </>
+        ) : (
+          <>
+            <MountainBackdrop />
+            <div className="absolute inset-0 bg-rock-950/60" />
+          </>
+        )}
         <Container className="relative flex min-h-[420px] flex-col justify-center gap-5 py-14 lg:min-h-[520px]">
           {content?.badge && (
             <span className="self-start">

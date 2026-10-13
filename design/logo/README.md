@@ -7,6 +7,7 @@ and they should not ship inside the application image.
 |---|---|
 | `logo-abc-wspinania.pdf` | **The original logo, as a vector** (CorelDRAW 9). Supplied by the client on 30.09.2026. The single source of every shape in `web/src/lib/mark.ts` and of the accent colour, RGB 0/72/146 = `#004892`. |
 | `extract.py` | Turns that PDF into the path data in `mark.ts`. Usage is in its docstring. |
+| `email_logo.py` | Renders the PDF, unchanged, to `web/public/logo/email-logo.png` for email headers (emails show no SVG). Usage in its docstring. |
 | `ABC_logo.png` | The old site's banner, 360×180, with the mark at roughly 90×84 px — served there as `images/modules/ABC_logo.png`. What the first, hand-drawn tracing was made from. Kept for the record; keep that path too, it is the only note in the repository of where the file came from. |
 | `ABCWSPINANIA.jpg` | The mark photographed on a signpost, 980×300. The second reference for the tracing — the one the old navy accent (`#1b2c71`) was sampled from. The photo reads darker and more violet than the real logo. |
 
@@ -26,6 +27,9 @@ and they should not ship inside the application image.
 - **404 page:** the sign above the message.
 - **Footer:** the full logo, with the ABCWSPINANIA.INFO plate, beside the
   school's description.
+- **Emails:** the full ORIGINAL logo (decided 12.10.2026: “oryginalne, a nie
+  przerobione”), rendered straight from the PDF by `email_logo.py`, beside the
+  name set as text — `header()` in `web/src/lib/email/layout.ts`.
 - **Browser tab, iPhone and Android home screen, social card:** the sign,
   generated from code — see `web/src/lib/sign-icon.tsx` and `og/route.tsx`.
 

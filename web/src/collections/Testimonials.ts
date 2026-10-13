@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
+import { isAdmin, publishedFlagOrAdmin } from '../lib/access'
+
 /**
  * Testimonials from course participants and parents.
  *
@@ -21,7 +23,11 @@ export const Testimonials: CollectionConfig = {
     description: 'Wypowiedzi kursantów i rodziców. Publikujemy w całości, także krytyczne.',
   },
   access: {
-    read: () => true,
+    // Unpublished opinions wait for their author's consent — not public.
+    read: publishedFlagOrAdmin,
+    create: isAdmin,
+    update: isAdmin,
+    delete: isAdmin,
   },
   defaultSort: 'order',
   fields: [

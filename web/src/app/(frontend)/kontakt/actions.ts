@@ -1,11 +1,14 @@
 'use server'
 
+import { headers } from 'next/headers'
 import { getPayload } from 'payload'
 import config from '@payload-config'
 
-import { consentForStorage, newsletterConsentForStorage } from '@/lib/consent'
+import { pickLanguage } from '@/lib/email/language'
+import { consentForStorage } from '@/lib/consent'
+import { subscribe } from '@/lib/newsletter'
 import { validateContact, validateNewsletter, isValid, looksLikeBot } from '@/lib/validation'
-import type { ValidationErrors, NewsletterErrors } from '@/lib/validation'
+import type { ContactFormData, ValidationErrors, NewsletterErrors } from '@/lib/validation'
 import type { Message } from '@/payload-types'
 
 type Topic = Message['topic']
@@ -30,6 +33,27 @@ export interface ContactFormState {
   status: 'idle' | 'sent' | 'error'
   errors?: ValidationErrors
   message?: string
+  /**
+   * What the visitor typed, sent back with an error. React 19 resets a form
+   * after every action, failed ones included, so without this one wrong field
+   * wiped the whole message (found 02.10.2026 on the registration form,
+   * which shares the pattern).
+   */
+  values?: Record<string, string>
+}
+
+/** The form's fields as typed, for sending back with an error. */
+function valuesOf(data: ContactFormData, course: string): Record<string, string> {
+  return {
+    course,
+    name: data.name,
+    email: data.email,
+    phone: data.phone,
+    message: data.message,
+    topic: data.topic,
+    preferredDate: data.preferredDate,
+    consent: data.consent ? 'on' : '',
+  }
 }
 
 export async function sendMessage(
@@ -46,12 +70,15 @@ export async function sendMessage(
     consent: formData.get('consent') === 'on',
   }
 
-  // The id of the course whose page the enquiry came from. The `course` field
-  // in the collection exists for exactly this. We parse cautiously: the value
-  // comes from the form, so it can be anything, and a `NaN` in a relationship
-  // would break the save.
-  const rawCourse = Number(formData.get('course'))
-  const courseId = Number.isInteger(rawCourse) && rawCourse > 0 ? rawCourse : undefined
+  // Which course, chosen in the second field when the topic is "Kurs" (or
+  // preselected from a course page). Only kept with that topic — a course left
+  // selected before switching to "Inna sprawa" is not the enquiry's subject.
+  // We parse cautiously: the value comes from the form, so it can be anything,
+  // and a `NaN` in a relationship would break the save.
+  const courseValue = String(formData.get('course') ?? '')
+  const rawCourse = Number(courseValue)
+  const courseId =
+    data.topic === 'course' && Number.isInteger(rawCourse) && rawCourse > 0 ? rawCourse : undefined
 
   // The bot honeypot — we fake success and store nothing.
   if (looksLikeBot(String(formData.get('website') ?? ''))) {
@@ -63,7 +90,12 @@ export async function sendMessage(
   // without the form.
   const errors = validateContact(data)
   if (!isValid(errors)) {
-    return { status: 'error', errors, message: 'Popraw zaznaczone pola.' }
+    return {
+      status: 'error',
+      errors,
+      values: valuesOf(data, courseValue),
+      message: 'Popraw zaznaczone pola.',
+    }
   }
 
   try {
@@ -90,6 +122,7 @@ export async function sendMessage(
         preferredDate: data.preferredDate.trim() || undefined,
         course,
         status: 'new',
+        language: pickLanguage((await headers()).get('accept-language')),
         consentText: consentForStorage(),
         consentDate: new Date().toISOString(),
       },
@@ -106,6 +139,7 @@ export async function sendMessage(
     console.error('Failed to store a message from the contact form:', error)
     return {
       status: 'error',
+      values: valuesOf(data, courseValue),
       message: 'Nie udało się wysłać wiadomości. Spróbuj ponownie za chwilę albo zadzwoń.',
     }
   }
@@ -117,14 +151,14 @@ export interface NewsletterState {
   status: 'idle' | 'subscribed' | 'error'
   errors?: NewsletterErrors
   message?: string
+  /** The typed address, kept after an error — see `ContactFormState.values`. */
+  values?: { email: string; consent: string }
 }
 
 /**
- * Newsletter sign-up.
- *
- * Sending is not wired up yet (Brevo is a separate stage) — the address lands in
- * the database and waits there. That is deliberate: a field that stores nothing
- * loses the addresses of interested people, and those cannot be recovered.
+ * Newsletter sign-up: stores the address as `pending` and emails a
+ * confirmation link (`lib/newsletter.ts`). Broadcasts go only to confirmed
+ * addresses.
  */
 export async function subscribeToNewsletter(
   _previous: NewsletterState,
@@ -141,65 +175,26 @@ export async function subscribeToNewsletter(
 
   const errors = validateNewsletter(data)
   if (!isValid(errors)) {
-    return { status: 'error', errors }
+    return {
+      status: 'error',
+      errors,
+      values: { email: data.email, consent: data.consent ? 'on' : '' },
+    }
   }
 
   const email = data.email.trim().toLowerCase()
 
   try {
     const payload = await getPayload({ config })
-
-    // The address is unique in the collection, so a repeat sign-up would fail on
-    // a database constraint. For the person on the other side a repeat sign-up
-    // is not an error but a confirmation — and that is how we report it. It also
-    // revives someone who unsubscribed earlier and is now coming back.
-    // ⚠️ `overrideAccess: true` — the only place in the code where an access
-    // rule is bypassed. Reading this collection requires authentication (a list
-    // of addresses is personal data), and here the request comes from an
-    // anonymous visitor. It is safe because we check ONLY the address that this
-    // person supplied a moment ago, and we answer identically regardless of the
-    // result — so no way of probing who is on the list comes into being.
-    const { docs } = await payload.find({
-      collection: 'newsletter',
-      where: { email: { equals: email } },
-      limit: 1,
-      overrideAccess: true,
-    })
-
-    if (docs[0]) {
-      if (docs[0].status === 'unsubscribed') {
-        await payload.update({
-          collection: 'newsletter',
-          id: docs[0].id,
-          data: {
-            status: 'subscribed',
-            consentText: newsletterConsentForStorage(),
-            consentDate: new Date().toISOString(),
-          },
-          overrideAccess: true,
-        })
-      }
-      return { status: 'subscribed' }
-    }
-
-    await payload.create({
-      collection: 'newsletter',
-      data: {
-        email,
-        status: 'subscribed',
-        consentText: newsletterConsentForStorage(),
-        consentDate: new Date().toISOString(),
-      },
-      // Creation goes through the collection's `create` rule, exactly as with
-      // the contact form — tightening it must break the form LOUDLY.
-      overrideAccess: false,
-    })
-
+    // Double opt-in, and the same answer whether the address was new, waiting
+    // or already subscribed — see `lib/newsletter.ts`.
+    await subscribe(payload, email, pickLanguage((await headers()).get('accept-language')))
     return { status: 'subscribed' }
   } catch (error) {
     console.error('Failed to store a newsletter subscription:', error)
     return {
       status: 'error',
+      values: { email: data.email, consent: data.consent ? 'on' : '' },
       message: 'Nie udało się zapisać. Spróbuj ponownie za chwilę.',
     }
   }

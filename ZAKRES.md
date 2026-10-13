@@ -36,15 +36,15 @@ Numeracja jak w wiadomości do Krzyśka.
 | 1 | Strona z panelem, przeniesienie treści | 13 tras, panel po polsku, treść ze starej strony | **gotowe** |
 | 1b | Przekierowania 301 ze **starych adresów Joomli** | każdy adres starej strony kieruje na odpowiednik; sprawdzone w Search Console | **częściowo** — od 05.10.2026 (czeka na wdrożenie) wszystkie znalezione stare adresy przekierowane i sprawdzone testem; zostaje sprawdzenie w Search Console po przełączeniu domeny |
 | 2 | System zarządzania obozami | formularz zapisu + obsługa zgłoszeń w panelu (rozbicie niżej) | **do zrobienia** |
-| 3 | Powiadomienia mailowe | mail wychodzi przy nowym zgłoszeniu i zapisie na obóz | **do zrobienia** |
-| 4 | Newsletter | zapis działa, zgoda wersjonowana | **gotowe** |
-| 4b | Zapis na kurs „w 10 sekund" | skrócona ścieżka zapisu z podstrony kursu | **do zrobienia** |
+| 3 | Powiadomienia mailowe | mail wychodzi przy nowym zgłoszeniu i zapisie na obóz | **częściowo** — od 01.10.2026 mail do szkoły przy wiadomości z formularza (Brevo, PL/EN); zapis na obóz dojdzie z pozycją 2 |
+| 4 | Newsletter | zapis działa, zgoda wersjonowana | **gotowe** — od 03.10.2026 (czeka na wdrożenie): potwierdzenie zapisu mailem, wysyłka z panelu („Wysyłki”), wypisanie jednym kliknięciem; poza obietnicą: wiadomości do zapisanych na termin i do wszystkich z nadchodzącymi zapisami |
+| 4b | Zapis na kurs „w 10 sekund" | skrócona ścieżka zapisu z podstrony kursu | **gotowe** (03.10.2026, czeka na wdrożenie) — zalogowany: termin + zgoda; bez konta: dane + opcja „załóż konto” |
 | 5 | RODO i polityka prywatności | rozbicie niżej | **częściowo** |
-| 6 | Bez banera ciasteczek, bez przekazywania danych | brak trackerów, brak ciasteczek innych niż sesyjne | **gotowe** |
+| 6 | Bez banera ciasteczek, bez przekazywania danych | brak trackerów, brak ciasteczek innych niż sesyjne | **gotowe — z zastrzeżeniem o mailach (niżej)** |
 | 7 | Backupy szyfrowane dwupoziomowo | skrypt na serwerze + wysyłka na Drive + **odtworzenie przetestowane** | **gotowe** (06.10.2026) — co noc: serwer 7 dni + zaszyfrowany Google Drive 40 dni (od 09.10.2026; wcześniej 90), archiwum zdjęć tylko gdy się zmieniły (alarm healthchecks.io gotowy w skrypcie, adres do podpięcia); odtworzenie z kopii pobranej z Drive przećwiczone, zgodne z produkcją (`deploy/RESTORE.md`) |
 | 8 | Testy automatyczne | jednostkowe **i integracyjne** | **częściowo** |
 | 9 | Testy wydajnościowe i na wycieki pamięci | raport z liczbami | **do zrobienia** |
-| 10 | Testy manualne | spisany scenariusz + wynik przejścia | **do zrobienia** |
+| 10 | Testy manualne | spisany scenariusz + wynik przejścia | **częściowo** — scenariusz spisany 06.10.2026 (`docs/testy-reczne.html`, 69 kroków, dane testowe `npm run seed:test`); czeka na wynik przejścia |
 | 11 | Security | rozbicie niżej | **częściowo** |
 | 12 | Szybkość działania | zmierzone Core Web Vitals, wynik zielony na telefonie | **do zrobienia** |
 | 13 | Analityka bez ciasteczek | Plausible albo Umami na własnym serwerze | **do zrobienia** |
@@ -52,6 +52,18 @@ Numeracja jak w wiadomości do Krzyśka.
 | 15 | Szkolenie i instrukcja | przejście przez panel + instrukcja na piśmie | **do zrobienia** |
 | 16 | Poprawki do końca grudnia w cenie | zobowiązanie terminowe, patrz wyżej | **w toku** |
 | 17 | **Galeria zdjęć** (poza pierwotną wyceną) | podstrona `/galeria`, własna zakładka „Galeria" w panelu, powiększanie na pełny ekran | **gotowe, czeka na zdjęcia** |
+
+### ⚠️ Zastrzeżenie do pozycji 6 — maile przez Brevo
+
+Od 01.10.2026 maile wychodzą przez **Brevo** (firma z UE, podmiot
+przetwarzający: adres odbiorcy i treść maila). Brevo **nie pozwala samemu wyłączyć**
+śledzenia w mailach transakcyjnych — wstawia piksel otwarcia i przepisuje
+linki. Śledzenie jest **zanonimizowane** (liczone tylko łącznie, bez
+przypisania do osoby), ale technicznie istnieje. Strona sama w sobie nadal
+nie ma trackerów ani ciasteczek innych niż sesyjne.
+
+Do zrobienia: **powiedzieć o tym Krzyśkowi** (to dopisek do obietnicy „bez
+przekazywania danych”). Brevo jest ujęty w polityce prywatności (06.10.2026).
 
 ### Rozbicie pozycji 2 — system obozów
 
@@ -62,7 +74,10 @@ Obiecane wprost w wiadomości, więc żadnego z tych punktów nie da się pomin�
 - [ ] system składa **gotową kartę kwalifikacyjną uczestnika** z danych wpisanych przez rodzica
 - [ ] statusy zgłoszenia: zgłoszony → potwierdzony → zaliczka → opłacony → rezygnacja
 - [ ] obsługa rezygnacji i **listy rezerwowej** (kto dostaje zwolnione miejsce)
-- [ ] w panelu: statystyki, powiadomienia, lista rzeczy do zrobienia
+- [ ] w panelu: statystyki, powiadomienia, lista rzeczy do zrobienia —
+  **częściowo** (03.10.2026, dla kursów): pulpit „Do zrobienia” z obłożeniem
+  terminów, maile o zapisach i zwolnionych miejscach, eksport listy do
+  Excela; obozowa część dojdzie z formularzem obozów
 
 Płatności **przelewem na konto**, bez operatora online — patrz „Poza zakresem".
 
@@ -81,11 +96,12 @@ adresy przechodzą na nowe, bez błędów 404).
 |---|---|
 | Zgody zapisywane treścią i wersją, nie znacznikiem „tak" | gotowe |
 | Osobna klauzula marketingowa dla newslettera | gotowe |
-| Strona z polityką prywatności | **do zrobienia** |
-| Okresy przechowywania (zgłoszenia, zapisy, dane zdrowotne) | **do zrobienia** |
+| Newsletter: potwierdzenie zapisu (double opt-in), wypisanie jednym kliknięciem, niepotwierdzone usuwane po 7 dniach | gotowe (03.10.2026) |
+| Strona z polityką prywatności | **wersja robocza** (06.10.2026, czeka na wdrożenie) — `/polityka-prywatnosci` i tłumaczenie `/en/privacy-policy`, link w stopce i przy każdej zgodzie; dane administratora z rejestrów (`lib/legal.ts`) do potwierdzenia przez Krzyśka |
+| Okresy przechowywania (zgłoszenia, zapisy, dane zdrowotne) | **częściowo** — wpisane w politykę; automatycznie: wiadomości z formularza po 12 miesiącach, niepotwierdzone konta i zapisy do newslettera po 7 dniach, zapisy na kursy anonimizowane po 5 latach od końca roku kursu (zostaje ślad do statystyk), poza przypiętymi do istniejącego konta (od 10.10.2026), logi kontenerów rotowane (3 × 10 MB); ręcznie (na razie): wypisani z newslettera; dane zdrowotne — z obozami |
 | Podwyższone wymagania przy danych dzieci i danych o zdrowiu | **do zrobienia** |
 | Umowa powierzenia przetwarzania między Krzyśkiem a wykonawcą | **do zrobienia** |
-| Mechanizm usunięcia danych na żądanie | **do zrobienia** |
+| Mechanizm usunięcia danych na żądanie | **gotowe** — „Usuń konto” samodzielnie w Moim koncie (04.10.2026); w panelu (Uczestnicy) po adresie e-mail: kopia danych do pobrania i „Usuń wszystkie dane osoby” z podglądem i potwierdzeniem przepisanym adresem (10.10.2026) |
 
 ### Rozbicie pozycji 11 — security
 
@@ -104,8 +120,12 @@ adresy przechodzą na nowe, bez błędów 404).
 
 - **gotowe:** 41 testów jednostkowych (`web/src/lib/lib.test.ts`), uruchamiane
   w CI, przechodzą pod czterema strefami czasowymi
-- **do zrobienia:** testy integracyjne — przejście formularza od wysyłki do
-  zapisu w bazie, zapis na obóz, logowanie do panelu
+- **gotowe (05.10.2026):** testy integracyjne `npm run test:integration` —
+  prawdziwa baza i serwer: uprawnienia (kursant nie czyta cudzych danych
+  przez API), zapis na kurs (wyścig o miejsce, podwójne kliknięcie),
+  newsletter, wysyłki, niedostarczone maile, usunięcie konta
+  — uruchamiane w CI przy każdym PR-ze, na bazie postawionej z samych migracji
+- **do zrobienia:** zapis na obóz (etap obozów)
 
 ---
 
@@ -155,6 +175,14 @@ Blokują dowiezienie albo mogą wymusić przeróbkę:
     firmy czyta się jako „partner PZA”. Potrzebna zgoda Związku (albo zapis
     w regulaminie, że licencjonowany instruktor może go używać). Bez niej —
     usunąć obrazek z `kursy/page.tsx`.
+11. **Angielska ścieżka zapisu (wariant B)** — decyzja Mateusza z 10.10.2026,
+    **do zrobienia po wdrożeniu zapisów**, po akceptacji Krzyśka (nowa pozycja,
+    poza wyceną; pełne tłumaczenie zostaje w „Poza zakresem”). Po angielsku:
+    menu i stopka, lista kursów, strona kursu, zapis, logowanie, rejestracja,
+    Moje konto (maile już są dwujęzyczne). Treść z panelu: przy kursie
+    opcjonalne pola EN; puste → opis polski. Aktualności, galeria, „O nas”
+    zostają po polsku. Przełącznik PL/EN prowadzi na tę samą stronę w drugim
+    języku (mechanizm `TRANSLATED_PAGES` już jest).
 
 ---
 

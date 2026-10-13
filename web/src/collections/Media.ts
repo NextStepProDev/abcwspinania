@@ -2,6 +2,8 @@ import path from 'path'
 
 import type { CollectionConfig } from 'payload'
 
+import { anyone, isAdmin } from '../lib/access'
+
 /**
  * Media library — the equivalent of Strapi's Media Library.
  *
@@ -45,7 +47,10 @@ export const Media: CollectionConfig = {
     // Images are public — the only way the site can display them. In Strapi
     // this same setting lived in the DATABASE and had to be clicked through
     // separately in every environment. Here it ships with the code.
-    read: () => true,
+    read: anyone,
+    create: isAdmin,
+    update: isAdmin,
+    delete: isAdmin,
   },
   upload: {
     // Upload directory resolved from the process working directory, NOT from

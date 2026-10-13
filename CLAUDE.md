@@ -36,16 +36,20 @@ subdomeny `api.*`.
 
 | Kolekcja | Slug | Publiczny odczyt | Po co |
 |---|---|---|---|
-| `Courses` | `courses` | tak | oferta kursów, z podstroną każdego |
-| `Camps` | `camps` | tak | obozy, wyjazdy i zajęcia cykliczne |
+| `Courses` | `courses` | opublikowane | oferta kursów, z podstroną każdego |
+| `Camps` | `camps` | opublikowane | obozy, wyjazdy i zajęcia cykliczne |
 | `Sessions` | `sessions` | tak | terminy kursów i obozów |
-| `Posts` | `posts` | tak | aktualności |
-| `Testimonials` | `testimonials` | tak | opinie kursantów |
+| `Posts` | `posts` | opublikowane | aktualności |
+| `Testimonials` | `testimonials` | opublikowane | opinie kursantów |
 | `Instructors` | `instructors` | tak | kadra |
 | `Media` | `media` | tak | okładki, portrety, zdjęcia w treści; `alt` nieobowiązkowy |
 | `GalleryPhotos` | `gallery-photos` | tak | zdjęcia na `/galeria` — osobna zakładka, nie znacznik w Mediach |
 | `Messages` | `messages` | **nie** | zgłoszenia z formularza — dane osobowe |
 | `Newsletter` | `newsletter` | **nie** | zapisy na newsletter — dane osobowe |
+| `Customers` | `customers` | **tylko własne konto** | konta uczestników (logowanie na stronie) |
+| `Bookings` | `bookings` | **tylko własne zapisy** | zapisy na kursy — dane osobowe |
+| `Broadcasts` | `broadcasts` | **nie** | „Wysyłki” — wiadomości do grup |
+| `BroadcastDeliveries` | `broadcast-deliveries` | **nie** | odbiorcy każdej wysyłki i stan kolejki; ukryte w menu |
 | `Users` | `users` | **nie** | konta do panelu |
 
 | Global | Slug | Po co |
@@ -56,9 +60,13 @@ subdomeny `api.*`.
 | `CampsPage` | `camps-page` | wstęp podstrony „Obozy i wyjazdy" |
 | `EnglishPage` | `english-page` | jedyna podstrona po angielsku |
 
-`Messages` i `Newsletter` przyjmują zapis od **każdego** (to formularze
-publiczne), ale odczyt, zmiana i kasowanie wymagają zalogowania. Publiczny
-odczyt byłby wyciekiem danych osobowych, nie udogodnieniem.
+`Messages` przyjmuje zapis od **każdego poza szkołą** (formularz publiczny;
+konto panelu nie dodaje wiadomości — bez „Stwórz nowy”, `visitorsOnly`, od
+10.10.2026), ale odczyt, zmiana i kasowanie wymagają **konta szkoły** — nie „dowolnego
+zalogowania” (zasada 28). `Newsletter` ma REST zamknięty w całości — zapis idzie
+wyłącznie akcją serwerową (patrz „Wysyłki i newsletter”). Publiczny odczyt byłby wyciekiem danych
+osobowych, nie udogodnieniem. Wszystko, czego nie ma w kolumnie „publiczny
+odczyt”, w tym tworzenie i zmiana treści, jest wyłącznie dla konta szkoły.
 
 ⚠️ **Slug globala nie może kończyć się na „s".** Payload wyprowadza nazwę
 generowanego typu ze sluga i obcina końcowe „s": `site-settings` dałoby typ
@@ -203,6 +211,39 @@ bazy wystawionej **wyłącznie na pętli zwrotnej serwera** (`127.0.0.1:5432`).
 schemat zmieniają wyłącznie migracje — żeby start kontenera nie mógł przepisać
 tabeli z danymi klienta.
 
+### ⚠️ Wygenerowanej migracji nie ufaj, dopóki nie przejdzie na bazie z `main`
+
+Zmierzone 05.10.2026 przy migracji zapisów i wysyłek: `migrate:create` wygenerował
+dwa błędy, których nie wyłapał żaden lint, typ ani test na bazie w trybie push.
+
+- **Nowa wartość typu wyliczeniowego użyta w tej samej migracji** (`ADD VALUE
+  'pending'`, potem `SET DEFAULT 'pending'`) → `unsafe use of new value`. Payload
+  wykonuje migrację w jednej transakcji, a Postgres nie pozwala użyć wartości
+  dodanej w niezatwierdzonej transakcji. **`ADD VALUE` idzie do osobnej, ręcznej
+  migracji przed właściwą** (wzór: `20261005_195005_newsletter_pending_status`).
+- **`down` padał**: kasuje tabele z `CASCADE`, a potem ich ograniczenia, których
+  już nie ma. Ręcznie: `DROP CONSTRAINT IF EXISTS`.
+- **Usunięcie wartości z `select`** (10.10.2026, tematy formularza kontaktowego):
+  wygenerowana migracja od razu rzutuje kolumnę na nowy typ, a każdy wiersz ze
+  starą wartością przerywa rzutowanie — na produkcji, z danymi. Ręcznie:
+  kolumna na `text`, `UPDATE` starych wartości, dopiero potem nowy typ
+  (wzór: `20261010_182558_messages_general_topics`). Sprawdzić na bazie, do
+  której przed migracją wstawiono wiersze ze starymi wartościami.
+
+Sprawdzenie bez ruszania lokalnej bazy z treścią — obok, na tym samym serwerze:
+
+```bash
+docker exec abcwspinania-postgres-dev psql -U abcwspinania -d abcwspinania \
+  -c "CREATE DATABASE abc_migration_check;"
+# DATABASE_URI z .env z nazwą bazy podmienioną na abc_migration_check, potem:
+npm run migrate < /dev/null            # w górę: wszystko z repo
+npm run payload -- migrate:down < /dev/null && npm run migrate < /dev/null
+# … i DROP DATABASE abc_migration_check
+```
+
+Job `integration` w CI stawia bazę wyłącznie z migracji, więc błąd w górę
+zatrzyma PR — ale `down` sprawdza tylko ręczna próba.
+
 ---
 
 ### ⚠️ Tryb `push` blokuje migracje — i wiesza je bez terminala
@@ -253,12 +294,12 @@ a Payload zapytałby wtedy o zgodę na utratę danych. Drugą linią obrony jest
   Major którejkolwiek wywala `npm ci`, więc w Dependabocie są zablokowane
   i odblokowuje się je razem z podbiciem Payloada.
 - **Node 26** (`node:26-alpine`). **Ta sama liczba musi stać w `node-version:`
-  w `ci.yml`.** Dependabot podbijałby ją wyłącznie w Dockerfile (ekosystem
+  w `ci.yml` — w OBU jobach** (`lint-typecheck-build` i `integration`). Dependabot podbijałby ją wyłącznie w Dockerfile (ekosystem
   `docker` czyta tylko Dockerfile'e) — w anovastudio po bumpie 24 → 26 CI został
   na 24 i przez jakiś czas testował kod na innym silniku niż produkcja. Dlatego
   major Node jest w Dependabocie **zablokowany**: łatki przychodzą same (tag
   pływający), a nieparzyste majory nigdy nie dostają LTS. **Przejście na 28 to
-  ręczna zmiana obu miejsc naraz.**
+  ręczna zmiana wszystkich trzech miejsc naraz.**
 - **Łatki bezpieczeństwa idą poza harmonogramem** — to nie zasługa
   `dependabot.yml` (ten działa raz w miesiącu), tylko ustawień repozytorium:
   *Dependabot alerts* i *Dependabot security updates*. Włączone 28.09.2026;
@@ -323,6 +364,9 @@ a Payload zapytałby wtedy o zgodę na utratę danych. Drugą linią obrony jest
     z Payloada (zasada 19), alert jest `low`, nie blokuje CI. Na produkcję
     nie wpływa; zniknie przy podbiciu Payloada.
 - **PostgreSQL 18** (`postgres:18-alpine`). 19 istnieje tylko jako beta.
+  Ta sama wersja stoi w `services:` joba `integration` w `ci.yml` —
+  Dependabot jej tam nie widzi, więc przy podbiciu majora zmienić ręcznie,
+  żeby testy biegły na tym samym Postgresie co produkcja.
 
 ---
 
@@ -426,7 +470,8 @@ pipeline'u SCSS dla jednego pustego arkusza.
 4. **Funkcje formatujące trzymamy w `src/lib/format.ts`, osobno od `content.ts`.**
    `content.ts` ciągnie cały silnik Payloada, więc testy odpalane gołym
    `node --test` nie mogłyby go zaimportować.
-5. **Uprawnienia publiczne deklarujemy w kodzie** (`access: { read: () => true }`).
+5. **Uprawnienia deklarujemy w kodzie** (`src/lib/access.ts`, komplet operacji
+   w każdej kolekcji — zasada 28).
    W poprzednim CMS-ie siedziały w bazie i trzeba je było wyklikać osobno
    w każdym środowisku — to była stała pozycja na liście pierwszego uruchomienia
    i stałe źródło „u mnie działa".
@@ -619,6 +664,504 @@ pipeline'u SCSS dla jednego pustego arkusza.
     głównej”. Instrukcja i powód, dla którego nowy plik, a nie nadpisanie
     starego: `design/hero/README.md`.
 
+28. **⚠️ Uprawnienia: każda kolekcja deklaruje WSZYSTKIE operacje, nigdy
+    `Boolean(req.user)`.** Ustalone 01.10.2026, przed kontami uczestników.
+    Payload dla operacji, której kolekcja nie zadeklaruje, przyjmuje „każdy
+    zalogowany” (`payload/dist/auth/defaultAccess.js`; to samo dla
+    niezadeklarowanego `readVersions`). Dopóki konta były tylko szkoły, nic to
+    nie znaczyło. Z drugą kolekcją `auth: true` zalogowany kursant mógłby przez
+    REST API zmieniać i kasować kursy, wpisy i zdjęcia oraz czytać wiadomości
+    z formularza. Reguły siedzą w `src/lib/access.ts` (`isAdmin` = konto
+    z kolekcji `users`, nie „ktokolwiek zalogowany”), a `src/lib/access.test.ts`
+    przechodzi przez **wszystkie** kolekcje i globale z `collections/index.ts`
+    i `globals/index.ts` — nowa kolekcja bez kompletu reguł nie przejdzie CI.
+    **Nową kolekcję dopisz do `collections/index.ts`**, nie wprost do
+    `payload.config.ts` — inaczej test jej nie zobaczy.
+
+    Reguły dotyczą **tylko API**. Strona czyta przez Local API, które reguły
+    pomija, więc o tym, co widać na stronie, decyduje `lib/content.ts`.
+
+29. **Strona pokazuje tylko OPUBLIKOWANE kursy, obozy i wpisy** — filtr
+    `PUBLISHED` w `lib/content.ts`, przy każdym zapytaniu o te kolekcje.
+    Ustalone 02.10.2026: wszystkie wpisy z seeda były szkicami (domyślny
+    status Payloada), a strona nie sprawdzała statusu, więc „Zapisz szkic”
+    w panelu publikował od razu. Local API pomija reguły dostępu, więc
+    zasada 28 tego nie załatwia — **każde nowe zapytanie o kolekcję ze
+    szkicami musi mieć ten filtr samo**. Terminy pomijają te, których kurs
+    lub obóz nie jest opublikowany. Zapis szkicu opublikowanego wpisu nie
+    rusza wersji na stronie (Payload zapisuje go tylko do historii wersji).
+    Istniejącą treść opublikowała migracja danych
+    `20261002_090000_publish_existing_content` (pisana ręcznie — **nie kasować
+    jej przy sklejaniu migracji schematu**), a seed publikuje od razu.
+
+---
+
+## Polityka prywatności i administrator danych
+
+**Dwie wersje:** `/polityka-prywatnosci` i tłumaczenie `/en/privacy-policy`
+(od 10.10.2026; wiążąca jest polska, strona angielska to mówi). Zmiana jednej
+= zmiana drugiej w tym samym commicie. Przełącznik PL/EN na stronach z listy
+`TRANSLATED_PAGES` (`components/navigation.ts`) prowadzi do tej samej strony
+w drugim języku, na pozostałych — na stronę główną drugiego języka (serwis
+nie jest tłumaczony, ZAKRES). Wspólny wygląd: `components/PolicyParts.tsx`.
+Serwer w polityce jest kategorią („dostawca serwera w UE”), bez nazwy firmy —
+decyzja 10.10.2026, żeby nie podawać, gdzie stoi.
+
+Od 06.10.2026 (wersja robocza, do potwierdzenia przez Krzyśka).
+
+- **Administrator to osoba, nie marka.** „ABC Wspinania” to nazwa szkoły, nie
+  podmiot prawny — klauzula „Administratorem danych jest ABC Wspinania” nie
+  mówiła, kto nim jest. Dane (Krzysztof Wróbel, IQ SERVICE, adres, NIP, REGON,
+  `biuro@abcwspinania.info`) siedzą w **jednym miejscu**: `src/lib/legal.ts`.
+  Czerpią z niego wszystkie cztery klauzule w `consent.ts` i strona
+  `/polityka-prywatnosci`. Zmiana danych firmy = zmiana tego pliku **i wersji
+  klauzul** (zasada 18), bo zmienia się tekst zapisywany w bazie.
+  `consent.test.ts` pilnuje, że żadna klauzula nie wraca do samej marki.
+- **Słowa „polityce prywatności” w klauzuli są linkiem** (`ConsentText.tsx`,
+  nowa karta) — tekst zapisywany w bazie zostaje zwykłym tekstem.
+- **Polityka opisuje to, co robi kod.** Dokładasz podmiot przetwarzający
+  (nowa usługa widząca dane), nowe dane albo zmieniasz okres przechowywania
+  (`lib/expiry.ts`, kopie w `deploy/abc-backup.sh`) — popraw stronę i podbij
+  `PRIVACY_POLICY_VERSION`. Rozjazd jest niewidoczny dla testów, a wobec
+  UODO liczy się to, co napisane.
+- **Okresy przechowywania automatyczne:** wiadomości z formularza 12 miesięcy
+  (`MESSAGE_RETENTION_MONTHS`, to samo dzienne sprzątanie co konta),
+  niepotwierdzone konta i zapisy do newslettera 7 dni, logi kontenerów
+  3 × 10 MB na usługę (`x-logging` w `docker-compose.prod.yml` — bez tego
+  Docker trzyma je bez końca, razem z adresami IP), kopie 40 dni (od
+  09.10.2026; zmiana retencji w `abc-backup.sh` = zmiana tego zdania na
+  stronie), zapisy na kursy 5 lat od końca roku kursu (`BOOKING_RETENTION_YEARS`,
+  od 10.10.2026): 1 stycznia **anonimizowane, nie kasowane**
+  (`anonymizeExpiredBookings`) — czyścimy imię, nazwisko, e-mail, telefon,
+  uwagi, notatki i zgodę, a zostają termin, status, język i data zapisu, do
+  statystyk. Pole `anonymizedAt` chowa je z listy w panelu (`baseFilter`),
+  z liczników pulpitu i z eksportu do Excela. Zapis przez
+  `payload.db.updateOne` — reguły kolekcji odrzuciłyby puste wymagane pola,
+  a hooki odbudowałyby etykietę z nazwiska i przeliczyły miejsca. Rok liczony
+  w czasie polskim (kurs kończący się 1 stycznia to w bazie 23:00 UTC
+  poprzedniego dnia). Polityka, strona „Usuń konto” i mail po usunięciu
+  biorą liczbę lat z tej samej stałej. **Zapisy przypięte do konta zostają,
+  dopóki konto istnieje** (decyzja 10.10.2026 — historia w „Moim koncie”);
+  usunięcie konta je odpina i wtedy obowiązuje 5 lat. **Ręcznie, na razie:** wypisani
+  z newslettera.
+
+---
+
+## Konta uczestników
+
+Od 02.10.2026 (etap 1b). Druga kolekcja z logowaniem, `customers`, obok
+`users` (panel). Osobna tabela, nie rola: pomyłka w sprawdzaniu roli nie
+zrobi z kursanta administratora. Koszt: zasada 28.
+
+- **Zapis tylko przez akcje serwerowe** (`app/(frontend)/konto/actions.ts`).
+  REST `create`/`update`/`delete` zamknięte dla wszystkich poza szkołą; akcje
+  używają `overrideAccess: true` PO własnej walidacji, zapisie zgody i — przy
+  zmianie danych — sprawdzeniu, że to konto zalogowanej osoby (id z sesji,
+  nigdy z formularza). Odczyt: tylko własne konto (`adminOrSelf`), bo
+  `/api/customers/me` czyta przez regułę dostępu.
+- **Formularze nie zdradzają, czy adres ma konto.** Rejestracja na zajęty
+  adres pokazuje to samo „sprawdź skrzynkę”, a właściciel dowiaduje się
+  MAILEM: konto potwierdzone dostaje „Masz już konto” (przycisk logowania +
+  link do nowego hasła), niepotwierdzone — nowy link potwierdzający. Do
+  02.10.2026 szedł zwykły mail resetu hasła i wyglądał jak błąd. „Nie
+  pamiętam hasła” odpowiada tak samo dla każdego adresu.
+  Logowanie ma **jeden komunikat** dla złego hasła i zablokowanego konta:
+  Payload sprawdza blokadę PRZED hasłem, więc osobne „konto zablokowane”
+  potwierdzałoby istnienie konta po pięciu celowo złych próbach. REST
+  (`/api/customers/login`) zwraca oba błędy osobno — tam chroni tylko limit
+  nginx. Przyjęte ryzyko: pięć złych prób blokuje cudze konto na 15 minut.
+- **Logowanie wymaga potwierdzonego adresu** (`auth.verify`). Token
+  potwierdzający Payloada NIE wygasa sam, więc wygasanie jest NASZE: link
+  działa 48 h (`VERIFY_LINK_HOURS`), sprawdzane na `/konto/potwierdz` wobec
+  pola `verificationSentAt` (ustawianego przy każdej wysyłce). Endpoint
+  `/api/customers/verify/:token` pominąłby tę kontrolę — **zamknięty w nginx**
+  (lokalnie działa). Link do nowego hasła działa 2 h (`RESET_LINK_HOURS`).
+  **Token zostaje po potwierdzeniu** (od 10.10.2026): drugie otwarcie linku
+  (odświeżenie, skaner poczty, podwójny klik) pokazuje „Adres potwierdzony”,
+  a nie „Link nie działa”, choć konto było już potwierdzone (zgłoszone przy
+  testach). `_verified` zapisujemy przez `payload.db.updateOne`, bo hook pola
+  w Payloadzie kasuje token przy każdym `update` ustawiającym `_verified`.
+- **„Wyślij link ponownie”** — w trzech miejscach: po poprawnym haśle na
+  niepotwierdzonym koncie (Payload mówi o tym dopiero PO sprawdzeniu hasła),
+  na stronie wygasłego linku i na `/konto/wyslij-link` (link „Nie dotarł
+  mail z potwierdzeniem?” pod logowaniem i w potwierdzeniu rejestracji —
+  sam przycisk po haśle okazał się niewidoczny). Odpowiedź jest zawsze taka
+  sama, z kontem czy bez. Każda wysyłka nadaje NOWY token, więc działa tylko najnowszy link.
+  Adres JUŻ potwierdzony dostaje zamiast linku mail „Masz już konto” (wariant
+  `reason: 'resend'`) — do 10.10.2026 nie dostawał nic, a strona mówiła
+  „wysłaliśmy” (zgłoszone przy testach).
+  Token zapisujemy przez `payload.db.updateOne`, bo pole
+  `_verificationToken` w Payloadzie odrzuca każdą aktualizację.
+  Przyjęte świadomie: wysyłka działa na sam adres, bez hasła. Link
+  idzie wyłącznie do skrzynki właściciela adresu, więc jedyny skutek to
+  unieważnienie jego starszego linku; zasypywanie mailami tnie limit nginx.
+- **Maile o koncie wysyłamy SAMI** (`lib/accountEmails.ts`), Payload daje
+  tylko token (`disableVerificationEmail`, `disableEmail`). Jego wysyłka idzie
+  bez wersji tekstowej, a pierwszy prawdziwy mail potwierdzający trafił do
+  spamu (02.10.2026). Hooki maili w kolekcji zostają dla REST-owych ścieżek
+  Payloada, których strona nie używa.
+- **Niepotwierdzone konto jest usuwane po 7 dniach** (ustalone 02.10.2026,
+  `UNVERIFIED_ACCOUNT_DAYS` w `lib/expiry.ts`), liczonych od OSTATNIEGO
+  wysłanego linku, nie od założenia — kto prosi o nowy link szóstego dnia,
+  nie straci konta, zanim link wygaśnie. Sprzątanie startuje z
+  `src/instrumentation.ts` (raz przy starcie serwera Next): minutę po
+  starcie, potem co 24 h. **Nie przez kolejkę zadań Payloada**: jej cron
+  rusza dopiero po pierwszym `getPayload({ cron: true })` (np. logowanie do
+  panelu), więc po restarcie czekałby na ruch, a dokłada tabelę, migrację
+  i endpointy. Przy kilku instancjach aplikacji każda sprzątałaby osobno —
+  nieszkodliwie, ale do zmiany, gdyby kiedyś było ich więcej. Ustawienie hasła z maila
+  **oznacza adres jako potwierdzony** — Payload sam tego nie robi
+  (`auth/operations/resetPassword.js`), a bez tego konto założone przy
+  zapisie (etap 2) nigdy by się nie zalogowało.
+- **Linki w mailach z `PUBLIC_URL`**, nie z nagłówka Host (podrobiony Host
+  = obca domena w linku z kodem do zmiany hasła) ani z `SITE_URL` (domena
+  docelowa, do przełączenia prowadzi na starą stronę). Zmienna jest czytana
+  przy uruchomieniu — przełączenie domeny to zmiana w `deploy/.env`.
+- **`/api/customers/first-register` zablokowany w nginx** (404). Payload
+  wystawia go dla każdej kolekcji z logowaniem i dopóki tabela jest pusta,
+  zakłada przez niego konto z pominięciem reguł, od razu potwierdzone.
+  Lokalnie (bez nginx) endpoint działa — nie testuj na nim niczego.
+- **Limity w nginx:** endpointy kursantów przyjmujące sekret — strefa
+  `login`; WYSŁANIA formularzy na `/logowanie`, `/rejestracja`, `/konto/…` —
+  strefa `account_forms` (10/min; GET nie jest liczony). Bez tego rejestracja
+  i reset hasła byłyby darmową wysyłką maili na dowolny adres z naszej domeny.
+- **Panel i strona dzielą ciasteczko** `payload-token` (jeden
+  `cookiePrefix`). Zalogowanie się jako kursant w tej samej przeglądarce
+  wylogowuje z panelu i odwrotnie. Dla strony konto panelu to „nie kursant”
+  (`getCurrentCustomer()` w `lib/auth.ts`). Do testów — dwie przeglądarki
+  albo okno prywatne.
+- **Nagłówek pyta `/api/customers/me` z przeglądarki** (`useAccount.ts`),
+  przy każdej zmianie strony. Odczyt ciasteczka w layoucie zrobiłby każdą
+  stronę dynamiczną i zabił cache (`revalidate = 300`). Bez JS: zawsze
+  „Zaloguj się” — a `/logowanie` przekierowuje zalogowanych dalej.
+- **Wylogowanie przez `/api/customers/logout`**, nie przez skasowanie
+  ciasteczka: endpoint unieważnia też sesję (`auth.useSessions`).
+- **Strony kont mają `noindex`** i nie ma ich w mapie strony.
+- **Telefon obowiązkowy, w formacie Next Step Pro**: `+` kierunkowy i 9 cyfr
+  (`^\+[0-9]{1,4}[0-9]{9}$`, ten sam wzór co tam). Spacje, myślniki
+  i nawiasy usuwamy PRZED sprawdzeniem (`normalizePhone`) i tak zapisujemy.
+  Wzór pilnuje kształtu (10–13 cyfr), nie istnienia numeru.
+- **Formularze odsyłają wpisane wartości przy błędzie** (`values` w stanie
+  akcji, `defaultValue` w polach). React 19 czyści formularz po KAŻDEJ akcji,
+  także nieudanej — bez tego jeden błąd kasował całą rejestrację, a „popraw
+  zaznaczone pola” wskazywało puste pola (zgłoszone 02.10.2026). Dotyczy też
+  formularza kontaktowego i newslettera. Hasła nigdy nie wracają — dlatego
+  rejestracja, zapis na kurs i nowe hasło mają `onSubmit={stopInvalidSubmit}`
+  (`AccountFields.tsx`, od 10.10.2026): błąd, który przeglądarka zna (brak
+  zgody, złe pole wg tych samych reguł — `TextField` przepisuje je do
+  `setCustomValidity`), zatrzymuje wysyłkę, zanim dotrze do serwera. Wcześniej
+  zapomniana zgoda kasowała wpisane hasło. Serwer i tak sprawdza wszystko.
+- **Walidacja na żywo w formularzach kont** (`components/AccountFields.tsx`),
+  ustalone 02.10.2026: pole czerwienieje dopiero po WYJŚCIU z niego z błędem,
+  potem zmienia się przy każdej literze, aż przejdzie (zielony znaczek);
+  hasło ma licznik od pierwszej litery. Reguły to te same funkcje, które
+  sprawdza serwer (`checkName`, `checkEmail`, `checkPhone`,
+  `checkNewPassword` w `lib/validation.ts`) — przeglądarka tylko mówi
+  wcześniej, decyduje serwer. Kolor błędu to token `error` (#b42318,
+  6,5:1 na białym), nie `rope` — niebieska ramka czyta się jak „aktywne
+  pole”. Imię i nazwisko: co najmniej 2 litery, bo istnieją nazwiska Li, Wu.
+- **Hasło: minimum 10 znaków, bez reguł składu** (NIST 800-63B). Podpowiedź
+  pod polem zachęca do hasła, którego nie ma się nigdzie indziej — nie do
+  „kilku zwykłych słów” (to czytało się jak zachęta do słabego hasła). Logowanie
+  sprawdza tylko obecność pól — reguły długości przy logowaniu zdradzałyby,
+  jakich haseł nie ma.
+- **„Usuń konto” w Moim koncie** (`/konto/usun`, od 04.10.2026). Wymaga
+  hasła ponownie — otwarta sesja na cudzym komputerze nie wystarcza. Kasuje
+  konto i jego sesje; **zapisy zostają w szkole**, odpięte od konta (pole
+  `customer` jest opcjonalne, więc klucz obcy ustawia je na null —
+  sprawdzone 04.10.2026). To osobny cel przetwarzania (organizacja kursu,
+  rozliczenia) z własną zgodą; strona mówi o tym przed usunięciem, a
+  nadchodzący zapis wymienia z nazwy — usunięcie konta go NIE odwołuje.
+  Pełne usunięcie zapisów to prośba do szkoły, zależna od okresów
+  przechowywania (do ustalenia z Krzyśkiem). Po usunięciu idzie mail
+  z potwierdzeniem. Założenie konta na ten sam adres później znów
+  podepnie stare zapisy (`claimBookings`) — to ta sama, udowodniona osoba.
+- **„Dane osoby — kopia albo usunięcie”** (nad listą „Uczestnicy”,
+  `ErasePersonPanel`, `lib/personErasure.ts`, od 10.10.2026) — prośby z RODO
+  załatwiane przez szkołę bez programisty. **Kopia** (`/api/customers/person-data`):
+  domyślnie czytelny dokument HTML po polsku (`lib/personDataDocument.ts`, od
+  12.10.2026 — JSON z nazwami pól nie nadawał się do wysłania osobie; otwiera
+  się w przeglądarce, drukuje do PDF), `?format=json` — ten sam zestaw do
+  przeniesienia danych. Oba ze wszystkiego, co mamy pod adresem, z LISTY DOZWOLONYCH pól —
+  konto ma też hash hasła, sól, sesje i tokeny, wpis w newsletterze token
+  wypisania; to klucze, nie dane osoby, i nie mogą wyjść w pliku wysłanym
+  mailem (test to pilnuje). **Usunięcie:** Po adresie e-mail (bez względu na wielkość
+  liter, porównanie dokładne) usuwa konto, zapisy (także bez konta), wiadomości,
+  wpis w newsletterze i wiersze odbiorców wysłanych wiadomości — tej tabeli
+  panel nie pokazuje. Dwa kroki: podgląd (GET), potem usunięcie (POST) dopiero
+  z adresem przepisanym drugi raz — sprawdza to też serwer. W logu jest kto
+  i ile, nigdy czyj adres. Konta panelu (`users`) nie są ruszane. Tekst
+  o kopiach („znikną po 40 dniach”) powtarza retencję z `abc-backup.sh`.
+- **Dzieci (do zapisów na obozy) dojdą w etapie 4**, nie teraz — żeby nie
+  projektować pól pod wymagania, których Krzysiek jeszcze nie podał.
+
+---
+
+## Zapisy na kursy
+
+Od 03.10.2026 (etap 2, ZAKRES 4b). Formularz `/kursy/[slug]/zapis`,
+kolekcja `Bookings`, logika w `lib/bookings.ts` (czyste funkcje)
+i `lib/bookingEffects.ts` (skutki uboczne).
+
+- **Jedna osoba = jeden zapis.** Para zapisuje się dwa razy — Krzysiek ma
+  nazwisko każdego uczestnika (lista, ubezpieczenie).
+- **Wolne miejsca LICZONE, gdy termin ma liczbę miejsc**: pojemność minus
+  zapisy aktywne (`ACTIVE_STATUSES` — bez „lista rezerwowa” i „rezygnacja”).
+  Każda zmiana zapisu i zmiana pojemności przelicza termin, a status
+  `open` ↔ `waitlist` przełącza się sam. **Bez liczby miejsc** nic się nie
+  liczy, decyduje status ustawiony ręcznie. Zapis telefoniczny liczy się,
+  gdy Krzysiek doda go ręcznie w „Zapisach” (bez maili — umówiony osobiście).
+- **E-mail w zapisie opcjonalny — tylko w panelu** (od 12.10.2026): zapis
+  telefoniczny bez adresu. Formularz na stronie wymaga go dalej
+  (`validateBooking`). Puste pole zapisuje się jako `null`. Bez adresu nie
+  idzie nic: mail o statusie (i nie jest to „mail, który nie doszedł”),
+  wysyłki (`dedupeRecipients` pomija pusty adres); w mailu o zwolnionym
+  miejscu osoba stoi z imieniem i telefonem. „Dane osoby” szukają po adresie,
+  więc takiego zapisu nie znajdą — usuwa się go z listy „Zapisy”.
+- **Dane kontaktowe w zapisie to KOPIA** z chwili zapisu, także przy koncie.
+  Adres e-mail zapisuje się małymi literami (hook w `Bookings.ts`), bo
+  przypisanie do konta i kontrola duplikatów porównują dokładnie.
+- **Zapis bez konta trafia na konto dopiero po DOWODZIE adresu**
+  (`claimBookings`: logowanie, potwierdzenie adresu, hasło z maila) — nigdy
+  z formularza. „Załóż mi konto” przy zapisie tworzy konto od razu
+  (zapis do niego przypięty) i wysyła link do ustawienia hasła; konto bez
+  ustawionego hasła znika po 7 dniach jak każde niepotwierdzone.
+- **⚠️ Zapis idzie w TRANSAKCJI z blokadą na termin** (`lib/bookingService.ts`,
+  `pg_advisory_xact_lock`). Zmierzone 03.10.2026 bez blokady: pięć osób
+  naraz na jedno miejsce — wszystkie dostały miejsce; podwójne kliknięcie —
+  dwa zapisy. Z blokadą: jedna osoba dostaje miejsce, cztery listę
+  rezerwową; pięć kliknięć — jeden zapis. Druga blokada (na adres) chroni
+  zakładanie konta, gdy ta sama osoba zapisuje się na dwa terminy naraz.
+  **Nie przenoś liczenia miejsc ani zapisu poza tę transakcję.**
+- **Drugi zapis tej samej osoby na ten sam termin** odpowiada „przyjęte”
+  bez nowego wpisu — inna odpowiedź mówiłaby, kto się zapisał. Z tego
+  samego powodu przy „załóż mi konto” komunikat jest jeden, czy konto było
+  nowe, czy czekało na potwierdzenie (wtedy idzie nowy link potwierdzający).
+- **Miniony termin sam przechodzi na „zakończony”** (od 12.10.2026,
+  `finishPastSessions` w dziennym sprzątaniu, `finishedSessionsWhere`):
+  tylko „zapisy otwarte” i „lista rezerwowa”, „odwołany” zostaje. Granica to
+  początek WCZORAJ w UTC — ostatni dzień bywa zapisany jako północ UTC albo
+  polska (22:00–23:00 UTC dzień wcześniej), więc termin nigdy nie kończy się
+  w swoim ostatnim dniu, najpóźniej dwa dni po. Strona, pulpit i „Moje
+  konto” i tak patrzą na daty — to porządek listy terminów w panelu.
+- **Terminu z zapisami nie da się usunąć** (hook `beforeDelete` w
+  `Sessions.ts`): Postgres i tak odmawia (pole `session` jest wymagane),
+  ale komunikatem „Failed query”; teraz panel mówi, żeby ustawić status
+  „odwołany” / „zakończony”.
+- **Zwolnione miejsce przy liście rezerwowej → mail do Krzyśka** z kolejką
+  (rezygnacja, usunięty zapis, większa pojemność). Nikt nie jest
+  przesuwany automatycznie — Krzysiek może chcieć najpierw zadzwonić.
+- **Sesja wygasła w trakcie wypełniania** (formularz bez pól kontaktowych):
+  akcja odpowiada „zaloguj się ponownie” zamiast żądać niewidocznych pól.
+- **Czego zapis NIE robi (świadomie, na później):** odwołanie albo zmiana
+  dat terminu nie powiadamia zapisanych (to wysyłki, etap 5); podpis
+  zapisu w panelu nie odświeża się po zmianie dat terminu.
+- **Maile**: po zapisie do kursanta (przyjęte / lista rezerwowa, bez kwot —
+  zasady zaliczek są do ustalenia) i do Krzyśka; przy zmianie statusu
+  w panelu na potwierdzony / opłacony / rezygnacja — do kursanta
+  (`statusEmailFor`). Każdy mail osobno po zapisie, błąd nie cofa zapisu.
+- **Mail do kursanta, który nie wyszedł, zostaje odnotowany w zapisie**
+  (`recordEmailIssue`, od 03.10.2026): pola „Mail, który nie doszedł” (co
+  i dlaczego, po ludzku — `emailFailureReason`), data i „Załatwione”; kafelek
+  na pulpicie liczy nieodhaczone. Te maile NIE mają kolejki ani ponowień —
+  Krzysiek odzywa się sam. Kolejny błąd przy nieodhaczonym dopisuje się, po
+  odhaczeniu zaczyna od nowa. Zapis z hooka idzie przez `req` zapisu w toku:
+  wiersz jest zablokowany jego transakcją, zapis innym połączeniem czekałby
+  w nieskończoność. Kontekst `skipRecount` + `skipStatusEmail`.
+- **⚠️ Pole `bookings` (join) w `Sessions` niesie dane osobowe.** Strona czyta
+  terminy przez Local API z pominięciem reguł, więc KAŻDE zapytanie o
+  terminy w kodzie strony ma `joins: false` (`lib/content.ts`, „Moje
+  konto”, `bookingEffects`). Sprawdzone 03.10.2026: REST terminu nie pokazuje
+  zapisów anonimowi ani innemu kursantowi, kod stron ich nie zawiera.
+- Limit nginx `account_forms` obejmuje też POST na `/kursy/*/zapis`.
+
+---
+
+## Panel szkoły — pulpit, szybki status, eksport
+
+Od 03.10.2026 (etap 3). Własne elementy panelu w `src/components/admin/`,
+podpięte ścieżkami w configu — **po dodaniu albo przeniesieniu któregoś:
+`npm run generate:importmap`** (plik `importMap.js` jest generowany,
+zasada 25), inaczej panel nie znajdzie komponentu.
+
+- **Pulpit „Do zrobienia”** (`SchoolDashboard`, `admin.components.
+  beforeDashboard`): nowe zgłoszenia, potwierdzone (czekają na zaliczkę),
+  lista rezerwowa, maile, które nie doszły, nowe wiadomości — każda liczba to link do listy
+  przefiltrowanej przez `?where[...]` w adresie; pod spodem 12 najbliższych
+  terminów z obłożeniem „zajęte / limit” i linkami do zapisanych i Excela.
+- **Status jako lista rozwijana na liście zapisów** (`BookingStatusCell`).
+  Zapisuje przez REST, więc działa wszystko, co idzie za zmianą statusu
+  (mail, przeliczenie miejsc). Status wysyłający kursantowi maila pyta
+  najpierw — klik w zły wiersz nie może wysłać „zapis anulowany”. To samo dla
+  wiadomości z formularza (`MessageStatusCell`, od 10.10.2026: nowa → w toku →
+  załatwiona jednym kliknięciem, bez pytania — nikt nie dostaje maila). Wspólny
+  komponent: `StatusSelectCell`.
+- **Eksport uczestników terminu** — `GET /api/sessions/:id/export`
+  (`lib/sessionExport.ts`), przycisk na stronie terminu. Tylko konto szkoły.
+  CSV pod POLSKIEGO Excela (`lib/csv.ts`): BOM (inaczej „Å»aneta”), średnik,
+  komórki zaczynające się od `= + - @` z apostrofem (formuła wpisana
+  w formularz nie wykona się u Krzyśka), telefon jako `="+48 600 …"` (bez
+  tego Excel robi z niego liczbę bez plusa).
+- **`@payloadcms/ui` tylko jako JAWNA zależność** (od 12.10.2026 w
+  `package.json`, przypięta co do numeru jak reszta Payloada, grupa `payload`
+  w Dependabocie). Do tego dnia była wyłącznie zależnością Payloada i import
+  działałby przypadkiem. Weszła dla `useFormModified` w panelu wysyłek; gdzie
+  wystarcza adres (id terminu w eksporcie), zostaje adres.
+
+---
+
+## Wysyłki i newsletter
+
+Od 03.10.2026 (etap 5). Kolekcja `Broadcasts` („Wysyłki”, grupa „Zapisy”),
+logika w `lib/broadcasts.ts` (czyste funkcje) i `lib/broadcastSender.ts`
+(odbiorcy, kolejka, endpointy), newsletter w `lib/newsletter.ts`.
+
+- **Trzy grupy odbiorców:** zapisani na jeden termin, wszyscy z nadchodzącymi
+  zapisami (termin od dziś, status `open`/`waitlist`), newsletter (tylko
+  `subscribed`). Domyślnie osoby z miejscem (`ACTIVE_STATUSES`); lista
+  rezerwowa po zaznaczeniu „Także lista rezerwowa” (decyzja 03.10.2026).
+  Jeden mail na adres — para z jednym adresem dostaje jeden.
+- **Lista odbiorców USTALANA w chwili „Wyślij”** — wiersz w
+  `broadcast-deliveries` na adres, w transakcji z blokadą na wysyłkę
+  (`pg_advisory_xact_lock(7303, id)`). Zmierzone 03.10.2026: dwa kliknięcia
+  naraz — jedno 200, drugie 409, dwa wiersze, nie cztery.
+- **Wysyła zegar w procesie serwera** (`instrumentation.ts`, co 20 s, 20
+  maili na takt), nie kolejka zadań Payloada — powód jak przy sprzątaniu
+  kont. Każdy wiersz oznaczany jako wysłany dopiero PO przyjęciu przez Brevo;
+  przyjęte ryzyko: awaria dokładnie między tymi krokami wyśle jeden mail
+  dwa razy. **Zegar startuje tylko przy starcie serwera** — po zmianie
+  w `instrumentation.ts` lokalnie trzeba zrestartować `npm run dev`.
+- **Jeden takt kolejki naraz — dwie blokady.** Flaga na `globalThis`
+  (zegar i endpoint „Wyślij” Next pakuje osobno; flaga w module dawała
+  dwie kopie i — zmierzone 04.10.2026 — 20 maili do 10 adresów) oraz
+  `pg_try_advisory_xact_lock(7304)` na cały takt, wspólny dla WSZYSTKICH
+  procesów: drugiej instancji albo testów integracyjnych kolejkujących do
+  bazy, nad którą tyka serwer deweloperski z prawdziwym kluczem Brevo.
+- **Jedna zepsuta wysyłka nie może zatrzymać kolejki.** Znalezione
+  05.10.2026: wysyłka „w trakcie”, której termin usunięto (Postgres
+  wyczyścił pole), nie przechodziła walidacji „Wybierz termin” przy zapisie
+  własnych liczników — każdy takt padał, a z nim wszystkie wysyłki za nią.
+  Teraz termin jest wymagany tylko w szkicu, każda wysyłka w takcie ma
+  własny `catch`, a bez terminu notka pod mailem jest ogólna.
+- **Błędy wysyłki** (`classifySendError`): dzienny limit Brevo (401/402/403/429,
+  „credit/limit/quota”) albo odrzucony klucz WSTRZYMUJĄ wysyłkę na godzinę
+  i wznawiają ją same; odrzucony adres — błąd tylko tego wiersza; sieć i 5xx
+  — ponowienie za 10 min, do 5 prób. Darmowy plan Brevo = 300 maili dziennie
+  łącznie ze wszystkimi innymi mailami strony.
+- **„Wyślij” i „Wyślij próbnie” wyłączone przy niezapisanych zmianach**
+  (od 12.10.2026, `BroadcastPanel`, `useFormModified`): endpointy czytają
+  ZAPISANĄ wersję, więc dopisana i niezapisana wersja angielska wychodziła
+  bez niej (zgłoszone przy testach). Edytor treści zgłasza zmianę dopiero,
+  gdy przeglądarka jest bezczynna (do 500 ms) — dlatego po kliknięciu panel
+  czeka 700 ms i sprawdza jeszcze raz. Sprawdzone w przeglądarce: kliknięcie
+  zaraz po wpisaniu kończy się „Nic nie wysłano”.
+- **Kopia z „Zduplikuj” nie wychodzi bez przejrzenia** (od 12.10.2026,
+  pole `copyUnreviewed`): Payload zapisuje kopię od razu, więc jedno
+  „Wyślij” wysyłało tę samą wiadomość drugi raz (zgłoszone przy testach).
+  Hook `beforeChange` kolekcji rozpoznaje kopię po `originalDoc` przy
+  `create` (Payload podaje tam oryginał — BEZ id, usuwa je przed hookami;
+  przy zwykłym tworzeniu pusty obiekt); pierwszy zapis albo „Sprawdzone”
+  w panelu (bo „Zapisz” Payloada jest wyłączone na formularzu bez zmian)
+  zdejmuje znacznik. `sendHandler` odmawia też sam (409). Próbna wysyłka
+  kopii działa.
+- **Wysłanej wiadomości nie da się zmienić** (pola z `access.update` tylko dla
+  szkicu + hook `beforeChange`) — ma zostać to, co ludzie dostali. „Zduplikuj” (menu ⋮)
+  daje szkic z wyzerowanymi licznikami (`beforeDuplicate`).
+- **Treść z edytora → mail przez NASZ konwerter** (`lib/email/richText.ts`),
+  nie `@payloadcms/richtext-lexical/html`: style inline (Outlook), każdy tekst
+  przez `escapeHtml`, linki tylko `http(s)`/`mailto`/`tel`. Edytor wysyłek ma
+  okrojone funkcje (bez obrazków, tabel, linków do dokumentów panelu).
+  `layout.ts` przyjmuje gotowy `body` WYŁĄCZNIE z tego konwertera.
+- **Wersja angielska opcjonalna** — idzie do osób z `language = en`, gdy ma
+  i temat, i treść; inaczej polska. Panel ostrzega przed „Wyślij”.
+- **Newsletter z potwierdzeniem (double opt-in, 03.10.2026).** Formularz
+  zapisuje `pending` + token i wysyła link; wysyłki dostają tylko
+  `subscribed`. Adresy sprzed tej daty zostały `subscribed` (ta sama zgoda,
+  zapisana treścią). Niepotwierdzone usuwa dzienne sprzątanie po 7 dniach.
+  Ponowny zapis w ciągu 10 min nie wysyła drugiego maila. Odpowiedź
+  formularza jest jedna dla każdego adresu.
+- **Potwierdzenie i wypisanie PRZYCISKIEM, nie samym linkiem**
+  (`/newsletter/potwierdz`, `/newsletter/wypisz`) — skaner poczty otwiera
+  linki za człowieka; przy koncie to tylko dowód adresu, tu byłaby to zgoda
+  albo jej wycofanie w czyimś imieniu.
+- **Wypisanie jednym kliknięciem z poziomu skrzynki** — nagłówki
+  `List-Unsubscribe` + `List-Unsubscribe-Post` (RFC 8058) na newsletterze,
+  POST na `/api/newsletter/unsubscribe?token=` (endpoint kolekcji, zawsze
+  200). Wiadomości do zapisanych na kurs ich nie mają — to informacja
+  o usłudze, nie marketing. Sprawdzone 03.10.2026: Brevo przyjmuje te nagłówki.
+- **Wypisany zostaje w bazie** (`unsubscribed` + data) — dowód wycofania
+  zgody. Wypisany między „Wyślij” a swoją kolejką jest pomijany (`skipped`).
+- **Limit nginx `site_actions`**: wysłania akcji serwerowych (POST
+  z `Next-Action`) z KAŻDEJ strony — newsletter jest w stopce. **Panel
+  `/admin` wyłączony z limitu**: Payload używa akcji serwerowych przy edycji
+  formularzy i 10/min zablokowałoby pracę.
+
+---
+
+## Maile (Brevo)
+
+Od 01.10.2026 aplikacja wysyła maile przez **Brevo, przez jego HTTP API**
+(`src/lib/email/brevo.ts`), a nie przez SMTP.
+
+- **Własny łącznik, nie `@payloadcms/email-nodemailer`.** Zmierzone 01.10.2026:
+  oficjalny adapter ciągnie `nodemailer` 9.1.1 z dwoma zgłoszeniami **high**,
+  a bramka `npm audit --audit-level=high` zatrzymałaby każdy PR. Poprawka jest
+  w nodemailer 10, którego adapter nie przyjmuje. Wrócić do oficjalnego, gdy
+  przejdzie na nodemailer ≥ 10.0.6 — wtedy zmiana dostawcy to konfiguracja.
+- **Bez `BREVO_API_KEY` maile idą do konsoli** (Payload ostrzega przy starcie).
+  Celowo: lokalnie i w CI nikt nie dostanie maila przez przypadek.
+- **Nadawca musi być na domenie uwierzytelnionej w Brevo** (SPF + DKIM +
+  DMARC). Dziś `zapisy@szkolawspinaczkowa.pl` — rekordy w Cloudflare,
+  sprawdzone 01.10.2026: SPF, DKIM i DMARC `PASS` w Gmailu. Adres nadawcy
+  wygrywa zawsze, nawet gdy kod poda inny `from` — obcy adres nie przejdzie
+  SPF/DKIM i trafi do spamu albo zostanie odrzucony.
+  **Przy przełączeniu na `abcwspinania.info`**: uwierzytelnić tę domenę
+  w Brevo i zmienić `EMAIL_FROM` w `deploy/.env` — bez nowego obrazu.
+- **Domena nadawcy nie ma skrzynki** (brak rekordu MX). Odpowiedź na mail
+  „od” `zapisy@` nie dojdzie nigdzie — dlatego każdy mail, na który ktoś może
+  odpisać, MUSI mieć `replyTo` (powiadomienie o wiadomości: osoba pisząca).
+- **⚠️ Śledzenia w Brevo nie da się wyłączyć — jest zanonimizowane.** Brevo
+  wstawia piksel otwarcia i przepisuje każdy link przez swój serwer; w API
+  nie ma przełącznika (pełne wyłączenie według forum Brevo: tylko na prośbę
+  albo w planie Enterprise). Decyzja z 01.10.2026: zostajemy przy
+  anonimizacji — `contactPixelTrackingConsent: false` przy każdym odbiorcy
+  (w kodzie) **i** „Anonymous email tracking: Yes” na ekranie „Tracking”
+  w ustawieniach Brevo. Ustawienie w panelu jest per konto — **nowe konto
+  Brevo trzeba przestawić ręcznie**; kod chroni i bez tego. Musi to znaleźć
+  się w polityce prywatności i w obietnicy z `ZAKRES.md` pkt 6.
+- **Mail po zapisie, nie zamiast zapisu.** Hook `afterChange` wysyła po
+  zapisaniu do bazy; błąd wysyłki jest logowany i nie psuje formularza.
+  Brevo niedostępny = wiadomość czeka w panelu, nie ginie.
+- **Dwa języki maili do odwiedzających (PL/EN).** Język bierzemy z nagłówka
+  `Accept-Language` przy wysłaniu formularza (`pickLanguage()`) i **zapisujemy
+  przy zgłoszeniu** (`language`), żeby późniejsze maile szły tym samym
+  językiem bez zgadywania. Maile do szkoły są po polsku, z dopiskiem
+  „odpowiedz po angielsku”, gdy trzeba.
+- **Nagłówek maili: ORYGINALNE logo + nazwa tekstem** (od 12.10.2026,
+  `header()` w `layout.ts`). Logo to PDF klienta bez zmian, wyrenderowany do
+  `public/logo/email-logo.png` (`design/logo/email_logo.py`) — nie dorysowany
+  znak z nagłówka strony. PNG z naszego serwera (`publicUrl()`), bo poczta nie
+  pokazuje SVG; nazwa zostaje tekstem, bo Outlook blokuje obrazki. Lokalnie
+  obrazka nie widać (Gmail nie sięgnie do localhost). Podmiana pliku = nowa
+  nazwa (zasada 13).
+- **Szablony to czyste funkcje** (`src/lib/email/templates.ts`, wygląd
+  w `layout.ts`) — bez Payloada, testowane gołym `node --test`. Każda wartość
+  od odwiedzającego przechodzi przez `escapeHtml` w `layout.ts`; szablon nie
+  składa HTML-a sam. Kolory z `BRAND_COLORS` (`site.ts`).
+- **`serverURL` w `payload.config.ts` jest CELOWO nieustawiony**, mimo
+  ostrzeżenia Payloada „Request origin "" is not in the CORS/CSRF allowlist”.
+  Payload dopisuje `serverURL` do listy CSRF (`payload/dist/config/sanitize.js`),
+  a od tej chwili odrzuca ciasteczko logowania z żądania, którego `Origin`
+  jest spoza listy (`auth/extractJWT.js`) — czyli każdy zapis w panelu
+  otwartym pod inną domeną. `SITE_URL` to domena DOCELOWA,
+  a panel działa dziś pod tymczasową — ustawienie go wylogowałoby panel na
+  `szkolawspinaczkowa.pl`. Bez niego link w mailu resetu hasła bierze domenę
+  z żądania: sprawdzone 01.10.2026, z przeglądarki przychodzi pełny
+  `http://…/admin/reset/…`. Ostrzeżenie i link bez domeny (`/admin/reset/…`)
+  pojawiają się tylko przy wywołaniu z `payload run`, gdzie żądania nie ma.
+- **Limit darmowego planu: 300 maili dziennie.** Przy newsletterze do decyzji
+  Krzyśka płatny plan.
+
 ---
 
 ## Budżet pamięci (Ampere A1, 2 OCPU / 12 GB)
@@ -683,6 +1226,11 @@ bezpiecznik przy szczytach sharpa. Skrypt jest idempotentny.
    a CI był zielony. Sprawdzenie obrazu przed wdrożeniem:
    `grep -rl "https://<domena>" /app/.next | wc -l` w kontenerze — zero
    znaczy, że adres nie wszedł.
+8. Maile: w `deploy/.env` `BREVO_API_KEY`, `EMAIL_FROM` (adres na domenie
+   uwierzytelnionej w Brevo), `ADMIN_NOTIFY_EMAIL` i `PUBLIC_URL` (adres,
+   pod którym strona działa TERAZ — linki w mailach do kursantów). W Brevo:
+   „Anonymous email tracking: Yes”. Bez klucza strona działa, ale maile
+   lądują w logu kontenera.
 
 **Czego NIE ma już na tej liście:** wyklikiwania uprawnień publicznych w panelu.
 Są w kodzie i jadą z deployem.
@@ -801,8 +1349,8 @@ poczty, więc przejęcie jej niczego nie odcina.
   przebudowywać. Smoke test sprawdza w tym czasie `SMOKE_URL`.
 - **Bloki nginx dla domeny docelowej nie wiedzą o tymczasowej.** W dniu
   przełączenia usuwa się fragment oznaczony w `nginx.conf` (albo zamienia na
-  301 do domeny docelowej) i kasuje zmienną `SMOKE_URL` — bez dotykania
-  reszty.
+  301 do domeny docelowej), kasuje zmienną `SMOKE_URL` i zmienia `PUBLIC_URL`
+  w `deploy/.env` na domenę docelową — bez dotykania reszty.
 - **Certyfikat Origin z Cloudflare musi leżeć w `certs/` PRZED wdrożeniem
   configu**, który go wskazuje. Brak pliku: `nginx -t` pada w deployu, a przy
   najbliższym restarcie kontenera nginx nie wstaje — razem z domeną docelową.
@@ -866,6 +1414,7 @@ npm run dev                           # strona :3000, panel :3000/admin
 
 npm run lint && npx tsc --noEmit && npm test && npm run build
 npm run audit                             # bramka BLOKUJĄCA w CI (npm audit + wyjątki)
+npm run test:integration                  # przy działającym npm run dev (patrz niżej)
 npm run generate:types && git diff --exit-code src/payload-types.ts
 
 # nginx.conf — nazwa `app` nie rozwiązuje się poza siecią compose,
@@ -878,6 +1427,80 @@ docker run --rm -v /tmp/n.conf:/etc/nginx/conf.d/default.conf:ro \
 docker run --rm -v "$PWD/..:/repo" -w /repo rhysd/actionlint:latest -color
 ```
 
+### Testy ręczne
+
+Od 06.10.2026 (ZAKRES pkt 10). Scenariusz: `docs/testy-reczne.html` — źródło
+PDF-a (Chrome headless, `--print-to-pdf --no-pdf-header-footer`; PDF poza
+repo). **Zmieniasz funkcję — zmień jej kroki w tym samym commicie.**
+
+- Dane: `TEST_INBOX=ty@gmail.com npm run seed:test` (`web/scripts/seed-test.ts`).
+  Każdy adres to alias jednej skrzynki (`ty+abctest-ola@gmail.com`), więc
+  konta są osobne, a maile — prawdziwe, przez Brevo — trafiają do testera.
+  Znacznik `+abctest-` w adresie i dopisek „TERMIN TESTOWY — nie zapisuj się”
+  przy terminie to sposób, w jaki skrypt znajduje swoje dane: każde
+  uruchomienie najpierw je kasuje, `-- clean` tylko kasuje. Wysyłki usuwa,
+  gdy WSZYSCY ich odbiorcy mają znacznik.
+- **Na produkcji (od 13.10.2026) — tylko workflow „Dane testowe”**
+  (`test-data.yml`, potwierdzenie słowem `testy`; akcje `wgraj`, `wyczysc`,
+  `wyczysc-wszystko`), tym samym tunelem co Migrate. Repozytorium jest
+  PUBLICZNE, więc logi też: skrzynka i hasło kont to sekrety `TEST_INBOX`
+  i `TEST_PASSWORD`, a skrypt nie wypisuje adresu, tokenu ani danych osoby —
+  same id. **Konta panelu na produkcji nie zakłada** (znane hasło do panelu
+  szkoły w publicznym repo); testerzy używają własnych. Wygasły link Ewy —
+  tylko lokalnie. Job ustawia `NODE_ENV=production`: przy innym Payload
+  przy starcie pchnąłby schemat do bazy klienta (tryb `push`) i zostawił
+  wpis `dev`, na którym staje Migrate. Skrypt bez `TEST_DATA_ON_PRODUCTION=yes`
+  odmawia startu przy `NODE_ENV=production`.
+- **To, co tester wpisze BEZ znacznika** (konto na prawdziwy adres, zapis
+  telefoniczny na prawdziwym terminie), da się odróżnić od prawdziwych danych
+  tylko po CZASIE. Pierwsze wgranie zapisuje początek rundy w `payload.kv`
+  (`seed-test:since`, zostaje przez kolejne wgrania i `clean`); `clean`
+  wypisuje id rzeczy bez znacznika z tego okresu, `clean-all` je usuwa
+  i zamyka okres. Bez ślepego kasowania — na produkcji w tym czasie może
+  przyjść prawdziwa wiadomość.
+- Seed niczego nie wysyła (`payload.sendEmail` podmieniony); maile idą
+  dopiero z kliknięć testera. Konto do rejestracji od zera
+  (`+abctest-nowy`) celowo nie powstaje.
+- Wygasły link potwierdzający (Ewa) — token i `verificationSentAt` sprzed
+  3 dni zapisane przez `payload.db.updateOne`, jak w `sendVerificationLink`.
+- Daty terminów w podsumowaniu przez `formatDateRange` — tak jak na stronie
+  (UTC); inna strefa dawała dzień różnicy wobec Terminarza.
+
+### Testy integracyjne
+
+Od 05.10.2026 `npm run test:integration` (`web/tests/integration/`), także
+w CI (job `integration`: Postgres jako usługa, schemat WYŁĄCZNIE z migracji,
+serwer `.next/standalone/server.js` jak w obrazie; job `docker` czeka na niego):
+prawdziwa baza i działający serwer (`TEST_BASE_URL`, domyślnie
+`http://localhost:3000`). Sprawdza to, czego nie widzą testy jednostkowe:
+kto czyta co przez REST (kursant nie widzi cudzych zapisów ani danych
+szkoły — obietnica ZAKRES pkt 8), wyścig o ostatnie miejsce i podwójne
+kliknięcie, newsletter z potwierdzeniem, kolejkę wysyłek, odnotowane
+maile, usunięcie konta.
+
+- **Własny mały runner, nie `node:test`.** Testy idą przez `payload run`
+  (`.env`, aliasy `@/`, prawdziwy Payload — bez nowej zależności), a ono
+  woła `process.exit(0)`, gdy tylko skrypt się załaduje: `node:test`
+  zostałby ucięty, a błędy kończyłyby się kodem 0. `harness.ts` czeka na
+  każdy test i sam ustawia kod wyjścia; nieudane sprzątanie też go psuje.
+- **Żaden mail nie wychodzi**: skrypt zeruje `BREVO_API_KEY`, a
+  `payload.sendEmail` jest podmieniony na skrzynkę w pamięci, którą testy
+  czytają. Przez HTTP testy czytają, dostają odmowy i wypisują z newslettera
+  — nic, co wysyła maile. Wszystko, co wysyła, wołają w swoim procesie (endpointy wysyłek z kontem szkoły na
+  żądaniu), bo maili serwera nie da się stąd zatrzymać.
+- **Każdy rekord ma znacznik i jest kasowany na końcu** — można je puszczać
+  na bazie deweloperskiej. Kasowanie przez `where` idzie przez `removeWhere`:
+  hurtowe `payload.delete` NIE rzuca, tylko zwraca odmowy w `errors` —
+  wysyłki „w trakcie” zostawały w bazie po cichu i blokowały kolejkę
+  następnego przebiegu.
+- **Zmiana kolekcji = restart `npm run dev` przed testami HTTP.** Serwer
+  deweloperski nie przeładowuje konfiguracji Payloada w locie (zmierzone
+  04–05.10.2026: nowe pola nieznane, zmieniona reguła dostępu nadal stara),
+  więc test dostępu mierzyłby STARĄ konfigurację.
+- Sprawdzone mutacjami 05.10.2026: zdjęta blokada „Wyślij” → czerwony test
+  podwójnego kliknięcia; `read: () => true` w `Bookings` → trzy czerwone
+  testy dostępu.
+
 ---
 
 ## Następne etapy — świadomie poza tym szkieletem
@@ -886,16 +1509,12 @@ docker run --rm -v "$PWD/..:/repo" -w /repo rhysd/actionlint:latest -color
    kolekcji (`auth: true`), więc konta uczestników będą **drugą kolekcją z tym
    samym mechanizmem** — nie osobnym światem, jak wtyczka users-permissions
    w Strapim obok kont administratorów.
-2. **Powiadomienia mailowe i newsletter** (Brevo). Adaptera e-mail jeszcze nie
-   ma — Payload ostrzega o tym przy starcie i pisze maile do konsoli.
-   Co z tego wynika DZIŚ:
-   - formularz kontaktowy działa (wiadomości lądują w bazie i w panelu),
-     ale **nikt nie dostaje powiadomienia** — Krzysiek musi zaglądać do panelu;
-   - **odzyskiwanie hasła do panelu nie zadziała**, bo mail z linkiem nie wyjdzie.
-     Do czasu wpięcia Brevo hasło resetuje się ręcznie, przez bazę.
-   Powiadomienie o nowej wiadomości dojdzie jako hook `afterChange` na kolekcji
-   `Messages`, bez zmiany tego, co już działa. Zgoda marketingowa do newslettera
-   idzie tym samym wzorcem co `src/lib/consent.ts`: treść + wersja, nie samo „tak".
+2. **Zapisy, konta uczestników, wysyłki** — plan etapów z 01.10.2026
+   (maile, uprawnienia, konta, zapis na kurs, panel, obozy, wysyłki, RODO).
+   Maile działają od etapu 0 (patrz „Maile (Brevo)”); formularz kontaktowy
+   powiadamia Krzyśka, a reset hasła do panelu wychodzi mailem.
+   Zgoda marketingowa do newslettera idzie tym samym wzorcem co
+   `src/lib/consent.ts`: treść + wersja, nie samo „tak".
 3. **Panel operacyjny** — kalendarz obozów, wykresy. W Payloadzie
    to **własne widoki w tym samym panelu** (udokumentowana funkcja), a nie
    osobny obszar w Next.js, jak musiałoby być przy Strapim.
