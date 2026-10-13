@@ -591,3 +591,75 @@ export function accountDeletedEmail(
     }),
   }
 }
+
+// --- Panel accounts ----------------------------------------------------------
+
+export interface PanelAccountChangedData {
+  name?: string | null
+  /** What changed — at least one is true. */
+  password: boolean
+  /** The NEW address, when the address changed; null otherwise. */
+  newEmail?: string | null
+  changedAt: Date
+  /**
+   * The address of the panel account that made the change, when it was not
+   * the owner. Every panel account can change every other one (no roles), so
+   * the owner is told who did it.
+   */
+  changedBy?: string | null
+  /** The panel's "forgot password" screen. */
+  forgotUrl: string
+}
+
+/**
+ * To the owner of a panel account, after its password or address changed in
+ * the panel (decided 13.10.2026). Payload changes a password without asking
+ * for the current one, so a session left open on someone else's computer is
+ * enough to take the account over; this email is how the owner finds out —
+ * and the way back is "forgot password", whose link goes to THEIR inbox.
+ * Polish only: panel accounts belong to the school.
+ */
+export function panelAccountChangedEmail(data: PanelAccountChangedData): Email {
+  const what =
+    data.password && data.newEmail
+      ? 'hasło i adres e-mail'
+      : data.password
+        ? 'hasło'
+        : 'adres e-mail'
+  const when = new Intl.DateTimeFormat('pl-PL', {
+    dateStyle: 'long',
+    timeStyle: 'short',
+    timeZone: 'Europe/Warsaw',
+  }).format(data.changedAt)
+
+  const firstName = data.name?.trim().split(/\s+/)[0]
+
+  const details: [string, string][] = [['Kiedy', when]]
+  if (data.newEmail) details.push(['Nowy adres', data.newEmail])
+  if (data.changedBy) details.push(['Zmienione z konta', data.changedBy])
+
+  // After an address change "forgot password" sends its link to the NEW
+  // address — after a takeover, the intruder's. Then the way back is a
+  // person who can put the address right, not the reset screen.
+  const paragraphs = [
+    `W panelu strony ABC Wspinania zmieniono ${what} Twojego konta. Jeśli to Ty — wszystko w porządku, nic nie musisz robić.`,
+    data.newEmail
+      ? 'Jeśli to nie Ty — od razu zadzwoń albo napisz do Mateusza. Nie używaj „Nie pamiętasz hasła?”: po zmianie adresu link do nowego hasła poszedłby na nowy adres, nie do Ciebie.'
+      : 'Jeśli to nie Ty, ustaw od razu nowe hasło: na ekranie logowania do panelu kliknij „Nie pamiętasz hasła?” i wpisz swój adres. Link do ustawienia hasła przyjdzie na Twoją skrzynkę. Potem daj znać Mateuszowi.',
+  ]
+
+  return {
+    subject: `Zmieniono ${what} do panelu — ABC Wspinania`,
+    ...renderEmail({
+      lang: 'pl',
+      // The panel keeps a full name ("Imię i nazwisko"); the greeting needs the first.
+      heading: firstName ? `Cześć ${firstName}!` : 'Cześć!',
+      paragraphs,
+      details,
+      action: data.newEmail
+        ? undefined
+        : { label: 'Nie pamiętasz hasła? Ustaw nowe', href: data.forgotUrl },
+      note: 'Ten mail przychodzi przy każdej zmianie hasła lub adresu konta w panelu — także po Twojej własnej.',
+    }),
+  }
+}

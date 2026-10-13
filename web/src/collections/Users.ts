@@ -1,6 +1,11 @@
 import type { CollectionConfig } from 'payload'
 
 import { isAdmin } from '../lib/access'
+import { publicUrl } from '../lib/email/links'
+import { panelAccountChangedEmail } from '../lib/email/templates'
+
+/** `req.context` key: this account's password is being changed in this update. */
+const passwordChangedKey = (id: number | string) => `panelPasswordChanged:${id}`
 
 /**
  * Admin panel accounts.
@@ -36,6 +41,67 @@ export const Users: CollectionConfig = {
     read: isAdmin,
     update: isAdmin,
     delete: isAdmin,
+  },
+  hooks: {
+    // The owner is emailed after a change of password or address (decided
+    // 13.10.2026). Payload's "Zmień hasło" does not ask for the current
+    // password, so a panel left open on someone else's computer is enough to
+    // take the account over — this is how the owner finds out. The email
+    // points to "forgot password", whose link goes to the owner's inbox.
+    //
+    // The new password is only visible here, before Payload hashes it and
+    // drops it from the data (`collections/operations/utilities/update.js`),
+    // so this hook marks the change and `afterChange` sends. Keyed by id: one
+    // request can update several accounts. A reset through the emailed link
+    // runs no update hooks (`auth/operations/resetPassword.js`) and sends
+    // nothing — that link already proved the inbox.
+    beforeChange: [
+      ({ data, operation, originalDoc, req }) => {
+        if (
+          operation === 'update' &&
+          originalDoc &&
+          typeof data.password === 'string' &&
+          data.password
+        ) {
+          req.context[passwordChangedKey(originalDoc.id)] = true
+        }
+        return data
+      },
+    ],
+    afterChange: [
+      async ({ doc, previousDoc, operation, req }) => {
+        if (operation !== 'update' || !previousDoc) return doc
+        const password = req.context[passwordChangedKey(doc.id)] === true
+        const emailChanged = previousDoc.email !== doc.email
+        if (!password && !emailChanged) return doc
+        const user = req.user
+        const byOwner = user?.collection === 'users' && user.id === doc.id
+        const email = panelAccountChangedEmail({
+          name: doc.name,
+          password,
+          newEmail: emailChanged ? doc.email : null,
+          changedAt: new Date(),
+          changedBy: user && !byOwner ? user.email : null,
+          forgotUrl: `${publicUrl()}/admin/forgot`,
+        })
+        // The OLD address first: after a takeover that changed it, the old
+        // one is the owner's. A failed email is logged; the change stays.
+        const to = [...new Set([previousDoc.email, doc.email])]
+        for (const address of to) {
+          try {
+            await req.payload.sendEmail({
+              to: address,
+              subject: email.subject,
+              html: email.html,
+              text: email.text,
+            })
+          } catch (err) {
+            req.payload.logger.error({ err, user: doc.id }, 'panel account change email failed')
+          }
+        }
+        return doc
+      },
+    ],
   },
   fields: [
     {

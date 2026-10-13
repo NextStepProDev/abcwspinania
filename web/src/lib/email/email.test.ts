@@ -478,3 +478,59 @@ test('the "account deleted" email says how long the bookings stay', async () => 
   assert.match(accountDeletedEmail('pl', {}).text, new RegExp(`do ${BOOKING_RETENTION_YEARS} lat`))
   assert.match(accountDeletedEmail('en', {}).text, new RegExp(`${BOOKING_RETENTION_YEARS} years`))
 })
+
+// --- Panel accounts ----------------------------------------------------------
+
+import { panelAccountChangedEmail } from '@/lib/email/templates'
+
+const panelChange = {
+  name: 'Krzysztof Wróbel',
+  password: true,
+  changedAt: new Date('2026-10-13T10:05:00Z'),
+  forgotUrl: 'https://x.pl/admin/forgot',
+}
+
+test('a panel password change names what changed and when, in Polish time', () => {
+  const email = panelAccountChangedEmail(panelChange)
+  assert.match(email.subject, /Zmieniono hasło do panelu/)
+  assert.match(email.text, /Cześć Krzysztof!/)
+  // 10:05 UTC is 12:05 in Poland in October (summer time).
+  assert.match(email.text, /12:05/)
+})
+
+test('it tells the owner how to get the account back if it was not them', () => {
+  const email = panelAccountChangedEmail(panelChange)
+  assert.match(email.text, /Nie pamiętasz hasła\?/)
+  assert.ok(email.html.includes('href="https://x.pl/admin/forgot"'))
+  assert.match(email.text, /https:\/\/x\.pl\/admin\/forgot/)
+})
+
+test('a change made from another account says from which one', () => {
+  const own = panelAccountChangedEmail(panelChange)
+  const other = panelAccountChangedEmail({ ...panelChange, changedBy: 'mateusz@x.pl' })
+  assert.doesNotMatch(own.text, /Zmienione z konta/)
+  assert.match(other.text, /Zmienione z konta: mateusz@x\.pl/)
+})
+
+test('a changed address is named, with a warning that resets now go there', () => {
+  const both = panelAccountChangedEmail({ ...panelChange, newEmail: 'nowy@x.pl' })
+  const onlyEmail = panelAccountChangedEmail({
+    ...panelChange,
+    password: false,
+    newEmail: 'nowy@x.pl',
+  })
+  assert.match(both.subject, /hasło i adres e-mail/)
+  assert.match(onlyEmail.subject, /Zmieniono adres e-mail do panelu/)
+  assert.match(both.text, /Nowy adres: nowy@x\.pl/)
+  assert.match(both.text, /poszedłby na nowy adres/)
+  assert.doesNotMatch(panelAccountChangedEmail(panelChange).text, /Nowy adres/)
+})
+
+test('after an address change it does not send the owner to "forgot password"', () => {
+  // The reset link now goes to the NEW address — after a takeover, the
+  // intruder's. Pointing the owner there would hand them the account.
+  const email = panelAccountChangedEmail({ ...panelChange, newEmail: 'obcy@x.pl' })
+  assert.ok(!email.html.includes('href="https://x.pl/admin/forgot"'))
+  assert.doesNotMatch(email.text, /ustaw od razu nowe hasło/)
+  assert.match(email.text, /Mateusz/)
+})
