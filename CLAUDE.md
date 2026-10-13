@@ -1466,6 +1466,20 @@ repo). **Zmieniasz funkcję — zmień jej kroki w tym samym commicie.**
 - Daty terminów w podsumowaniu przez `formatDateRange` — tak jak na stronie
   (UTC); inna strefa dawała dzień różnicy wobec Terminarza.
 
+### Instrukcja dla szkoły
+
+Od 13.10.2026 w repo: `docs/instrukcja-zapisy.html` (źródło PDF-a
+„Zapisy na kursy, wysyłki i newsletter” dla Krzyśka), zrzuty obok, w
+`docs/instrukcja-zapisy/`. Wcześniej istniał tylko PDF z 05.10 — źródło
+zaginęło i przy pierwszej aktualizacji trzeba było je odtwarzać z tekstu
+PDF-a. Pisana głosem Mateusza, prostym językiem. **Zmieniasz coś, co szkoła
+widzi w panelu albo w mailach — popraw instrukcję w tym samym commicie.**
+Zrzuty: lokalny serwer, dane z `seed:test` z adresami przestawionymi na
+`@example.com` (żadnych prawdziwych osób ani adresu testera), Chrome
+headless; plakietkę trybu deweloperskiego (`nextjs-portal`) usunąć przed
+zrzutem. Pytania „Zmienić status…?” i „Wysłać do…?” to okienka przeglądarki
+— w trybie headless ich nie widać, opisane są tekstem.
+
 ### Testy integracyjne
 
 Od 05.10.2026 `npm run test:integration` (`web/tests/integration/`), także

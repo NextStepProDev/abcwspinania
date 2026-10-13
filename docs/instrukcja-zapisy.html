@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Zapisy na kursy, wysyłki i newsletter — ABC Wspinania</title>
+<!--
+  The school's manual for the bookings panel, written in Mateusz's voice for
+  Krzysiek (plain Polish, no jargon). Source of the PDF; the PDF itself is not
+  kept in the repo. Screenshots next to it in instrukcja-zapisy/, taken from a
+  local server with seed:test data (example.com addresses, no real people).
+  Change something the school sees in the panel or the emails — change this
+  manual in the same commit.
+  PDF: Chrome headless, `--print-to-pdf --no-pdf-header-footer`.
+-->
+<style>
+  @page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+  :root { --ink: #23201b; --muted: #6b645a; --accent: #0b4a99; --soft: #eef3fa; --warn: #fff6e5; --warn-line: #e3a73a; --line: #ddd6cb; --head: #f4f1ec; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; color: var(--ink); font-size: 10.8pt; line-height: 1.55; margin: 0; }
+  h1 { font-size: 28pt; line-height: 1.12; margin: 0 0 10pt; }
+  h2 { font-size: 15.5pt; margin: 18pt 0 7pt; color: var(--accent); break-after: avoid; }
+  h3 { font-size: 11.5pt; margin: 12pt 0 4pt; break-after: avoid; }
+  p { margin: 0 0 7pt; }
+  ul, ol { margin: 0 0 8pt; padding-left: 18pt; }
+  li { margin-bottom: 3pt; }
+  .toc, .newpage { break-before: page; }
+  .cover { height: 255mm; display: flex; flex-direction: column; justify-content: center; }
+  .cover .brand { color: var(--accent); font-weight: 700; font-size: 13pt; margin-bottom: 18pt; letter-spacing: .02em; }
+  .cover .lead { font-size: 13pt; color: var(--muted); max-width: 150mm; }
+  .cover .meta { margin-top: 28pt; color: var(--muted); font-size: 10pt; }
+  .box { border-radius: 5pt; padding: 7pt 10pt; margin: 8pt 0 10pt; break-inside: avoid; }
+  .do { background: var(--soft); border-left: 4px solid var(--accent); }
+  .warn { background: var(--warn); border-left: 4px solid var(--warn-line); }
+  .box > strong:first-child { display: block; margin-bottom: 2pt; }
+  table { border-collapse: collapse; width: 100%; margin: 5pt 0 10pt; font-size: 9.8pt; }
+  th, td { text-align: left; vertical-align: top; padding: 4pt 6pt; border: 1px solid var(--line); }
+  th { background: var(--head); font-weight: 600; }
+  tr { break-inside: avoid; }
+  figure { margin: 8pt 0 12pt; break-inside: avoid; }
+  figure img { display: block; width: 100%; border: 1px solid var(--line); border-radius: 4pt; }
+  figure.narrow img { width: 78%; margin: 0 auto; }
+  figcaption { font-size: 9pt; color: var(--muted); margin-top: 3pt; text-align: center; }
+  .ui { font-weight: 600; }
+  .muted { color: var(--muted); }
+  .toc ol { padding-left: 0; list-style: none; columns: 2; column-gap: 12mm; }
+  .toc li { margin-bottom: 5pt; }
+  code { font-family: "SF Mono", Menlo, monospace; font-size: 9pt; background: #f4f1ec; padding: 0 2pt; border-radius: 2pt; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="brand">ABC Wspinania</div>
+  <h1>Zapisy na kursy,<br>wysyłki i newsletter</h1>
+  <p class="lead">Instrukcja panelu dla szkoły — co się dzieje, gdy ktoś zapisuje się przez stronę, i co możesz z tym zrobić.</p>
+  <p class="meta">Wersja z 13 października 2026 · przygotował Mateusz</p>
+</div>
+
+<section class="toc">
+  <h2>Spis treści</h2>
+  <ol>
+    <li>1. Najważniejsze w pigułce</li>
+    <li>2. Jak wejść do panelu</li>
+    <li>3. Jak kursant zapisuje się na kurs</li>
+    <li>4. Pulpit „Do zrobienia”</li>
+    <li>5. Nowe zgłoszenie — co z nim zrobić</li>
+    <li>6. Statusy zapisu i maile do kursanta</li>
+    <li>7. Wolne miejsca i lista rezerwowa</li>
+    <li>8. Zapis przez telefon</li>
+    <li>9. Termin: lista uczestników i Excel</li>
+    <li>10. Wysyłki — wiadomość do grupy osób</li>
+    <li>11. Newsletter</li>
+    <li>12. Maile, które nie doszły</li>
+    <li>13. Konta uczestników</li>
+    <li>14. Wiadomości z formularza kontaktowego</li>
+    <li>15. Dane osobowe — prośby z RODO i co znika samo</li>
+    <li>16. Ważne rzeczy o mailach</li>
+    <li>17. Czego jeszcze nie ma</li>
+    <li>Prośba na koniec</li>
+  </ol>
+
+  <h2>1. Najważniejsze w pigułce</h2>
+  <ul>
+    <li><b>Ludzie zapisują się na kursy sami, przez stronę.</b> Ty dostajesz maila o każdym zapisie, a zgłoszenie czeka w panelu.</li>
+    <li><b>Zgłoszenie nie jest wiążące.</b> To Ty decydujesz: potwierdzasz miejsce, przyjmujesz zaliczkę, wpisujesz opłatę — zmieniając <b>status</b> zapisu.</li>
+    <li><b>Część statusów sama wysyła kursantowi maila</b> („potwierdzony”, „opłacony”, „rezygnacja”). Tych maili nie piszesz ręcznie, a panel pyta, zanim jakiś wyśle.</li>
+    <li><b>Wolne miejsca liczą się same.</b> Gdy termin się zapełni, kolejne osoby trafiają na listę rezerwową, a gdy miejsce się zwolni — dostajesz maila z tą listą.</li>
+    <li><b>Możesz napisać do wszystkich zapisanych na termin</b>, do wszystkich z nadchodzącymi kursami albo do newslettera — w zakładce <span class="ui">Wysyłki</span>.</li>
+    <li><b>Jeśli jakiś mail do kursanta nie dojdzie, panel Ci o tym powie</b> — na pulpicie pojawi się kafelek „Maile, które nie doszły”.</li>
+    <li><b>Prośby z RODO</b> („co o mnie macie?”, „usuńcie moje dane”) załatwiasz sam, w kilka kliknięć (rozdział 15).</li>
+  </ul>
+  <div class="box do"><strong>Codziennie wystarczy jedno:</strong>
+  zajrzyj na pulpit panelu. Wszystko, co wymaga Twojej uwagi, jest na samej górze.</div>
+</section>
+
+<section>
+  <h2 style="margin-top:0" class="newpage">2. Jak wejść do panelu</h2>
+  <p>Panel to część strony tylko dla Ciebie. Wchodzisz na adres strony z dopiskiem <code>/admin</code>:</p>
+  <ul>
+    <li>teraz, na stronie testowej: <b>szkolawspinaczkowa.pl/admin</b></li>
+    <li>po przełączeniu na docelowy adres: <b>abcwspinania.info/admin</b></li>
+  </ul>
+  <p>Logujesz się swoim adresem e-mail i hasłem. Jeśli zapomnisz hasła, kliknij na ekranie logowania <span class="ui">Nie pamiętasz hasła?</span> — przyjdzie mail z linkiem do ustawienia nowego.</p>
+  <p>Po lewej stronie (ikona z trzema kreskami) jest menu z zakładkami pogrupowanymi w cztery części:</p>
+  <table>
+    <thead><tr><th>Grupa</th><th>Zakładki</th><th>Do czego</th></tr></thead>
+    <tr><td><b>Treść</b></td><td>Kursy, Obozy i wyjazdy, Terminy, Aktualności, Opinie, Instruktorzy, Media, Galeria</td><td>to, co widać na stronie — tak jak dotychczas</td></tr>
+    <tr><td><b>Zapisy</b></td><td>Zapisy, Wysyłki, Uczestnicy</td><td>zgłoszenia na kursy, wiadomości do grup, konta kursantów</td></tr>
+    <tr><td><b>Kontakt</b></td><td>Wiadomości, Newsletter</td><td>wiadomości z formularza i adresy z newslettera</td></tr>
+    <tr><td><b>System</b></td><td>Konta panelu</td><td>osoby, które mogą logować się do panelu (Ty i ja)</td></tr>
+  </table>
+  <div class="box warn"><strong>Jedna przeglądarka = jedno logowanie.</strong>
+  Panel i strona dzielą logowanie. Jeśli w tej samej przeglądarce zalogujesz się na stronie jako kursant (np. żeby coś sprawdzić), wylogujesz się z panelu — i odwrotnie. Do takich sprawdzeń użyj drugiej przeglądarki albo okna prywatnego.</div>
+
+  <h2>3. Jak kursant zapisuje się na kurs</h2>
+  <p>Na stronie każdego kursu, w ramce z ceną, są najbliższe terminy z liczbą wolnych miejsc i przycisk <span class="ui">Zapisz się na kurs</span>.</p>
+  <figure><img src="instrukcja-zapisy/kurs.jpg" alt=""><figcaption>Strona kursu — z prawej terminy i przycisk zapisu.</figcaption></figure>
+  <p>Przycisk <span class="ui">Zapisz się</span> w nagłówku strony (na telefonie — pasek na dole ekranu) prowadzi do <span class="ui">Terminarza</span>: tam są wszystkie terminy, a przy każdym przycisk zapisu. Na stronie kursu prowadzi prosto do zapisu na ten kurs, a na stronie obozu — do formularza kontaktowego z wybranym tematem „Obóz lub wyjazd” (zapisy na obozy przez osobny formularz dojdą później, rozdział 17).</p>
+</section>
+
+<section>
+  <p>Po kliknięciu kursant widzi formularz: wybiera termin i wpisuje imię, nazwisko, adres e-mail i telefon. Może dopisać uwagi (np. „mam własny sprzęt”). Musi zaznaczyć zgodę na przetwarzanie danych.</p>
+  <ul>
+    <li>Jeśli <b>ma konto i jest zalogowany</b> — nie wpisuje danych, wybiera tylko termin.</li>
+    <li>Jeśli <b>nie ma konta</b> — może zaznaczyć „Załóż mi konto z tych danych”. Dostanie wtedy maila z linkiem do ustawienia hasła.</li>
+    <li>Na terminie bez wolnych miejsc formularz od razu mówi „brak miejsc — lista rezerwowa”.</li>
+  </ul>
+  <figure class="narrow"><img src="instrukcja-zapisy/zapis.jpg" alt=""><figcaption>Formularz zapisu (widok bez logowania).</figcaption></figure>
+
+  <h3>Co dzieje się po kliknięciu „Zapisz się”</h3>
+  <ol>
+    <li>Zapis pojawia się w panelu w zakładce <span class="ui">Zapisy</span> ze statusem „zgłoszony” (albo „lista rezerwowa”, gdy brak miejsc).</li>
+    <li>Kursant dostaje maila „Przyjęliśmy zgłoszenie” (albo „Lista rezerwowa”) z nazwą kursu i terminem.</li>
+    <li>Ty dostajesz maila „Nowy zapis” z danymi osoby i jej uwagami. Odpowiedź na tego maila trafi wprost do kursanta.</li>
+  </ol>
+</section>
+
+<section>
+  <p>Kursant z kontem widzi swoje zapisy i ich stan na stronie, w zakładce <span class="ui">Moje konto</span>. Tam też wybiera, w jakim języku dostaje maile, i może sam usunąć konto.</p>
+  <figure class="narrow"><img src="instrukcja-zapisy/konto.jpg" alt=""><figcaption>Moje konto — tak kursant widzi swoje zapisy i ich stan.</figcaption></figure>
+
+  <h2>4. Pulpit „Do zrobienia”</h2>
+  <p>Pierwszy ekran po zalogowaniu. Na górze pięć kafelków — każda liczba to link do listy właśnie tych spraw:</p>
+  <figure><img src="instrukcja-zapisy/pulpit.jpg" alt=""><figcaption>Pulpit panelu.</figcaption></figure>
+</section>
+
+<section>
+  <table>
+    <thead><tr><th style="width:42mm">Kafelek</th><th>Co znaczy</th></tr></thead>
+    <tr><td>Nowe zgłoszenia</td><td>zapisy, których jeszcze nie potwierdziłeś</td></tr>
+    <tr><td>Potwierdzone</td><td>osoby z potwierdzonym miejscem, które nie wpłaciły jeszcze zaliczki</td></tr>
+    <tr><td>Lista rezerwowa</td><td>osoby czekające na zwolnienie miejsca</td></tr>
+    <tr><td>Maile, które nie doszły</td><td>kursanci, do których mail nie dotarł — trzeba się odezwać samemu (rozdział 12)</td></tr>
+    <tr><td>Nowe wiadomości</td><td>wiadomości z formularza kontaktowego, których jeszcze nie ruszyłeś</td></tr>
+  </table>
+  <p>Pod kafelkami jest tabela <b>Najbliższe terminy</b> — 12 najbliższych kursów i obozów: ile miejsc zajętych na ile („5 / 6”), ile osób na liście rezerwowej i dwa linki — <span class="ui">zapisani</span> (lista osób tylko z tego terminu) i <span class="ui">Excel</span> (lista do pobrania). Link <span class="ui">zapisani</span> to najszybsza droga do uczestników jednego kursu.</p>
+  <p>„0 (bez limitu)” oznacza termin, w którym nie wpisano liczby miejsc — patrz rozdział 7. Terminy, które już minęły, same zmieniają status na „zakończony” (w ciągu dwóch dni po kursie) i znikają z tabeli.</p>
+
+  <h2>5. Nowe zgłoszenie — co z nim zrobić</h2>
+  <ol>
+    <li>Kliknij kafelek <span class="ui">Nowe zgłoszenia</span> albo wejdź w <span class="ui">Zapisy</span>.</li>
+    <li>Sprawdź osobę i jej uwagi. Jeśli trzeba — zadzwoń (telefon jest na liście).</li>
+    <li>Zmień status na „potwierdzony”. Kursant dostanie maila, że ma miejsce.</li>
+    <li>Szczegóły płatności wyślij kursantowi sam (mailem albo SMS-em) — mail o potwierdzeniu mówi tylko, że szczegóły płatności przyjdą osobno.</li>
+    <li>Gdy wpłynie zaliczka — status „zaliczka wpłacona”. Gdy całość — „opłacony” (kursant dostanie maila z podziękowaniem).</li>
+  </ol>
+  <h3>Najszybciej: status prosto z listy</h3>
+  <p>Na liście <span class="ui">Zapisy</span> status każdej osoby to rozwijana lista. Wybierasz nowy i gotowe — nie trzeba wchodzić w zapis ani nic zapisywać.</p>
+  <figure><img src="instrukcja-zapisy/zapisy-lista.jpg" alt=""><figcaption>Lista zapisów — status zmienisz bezpośrednio w kolumnie „Status”.</figcaption></figure>
+  <div class="box warn"><strong>Panel pyta, zanim wyśle maila.</strong>
+  Przy zmianie na status, który wysyła kursantowi maila, pojawia się okienko „Zmienić status na „potwierdzony”? Kursant dostanie maila.” — to zabezpieczenie przed kliknięciem w zły wiersz. Kliknij <span class="ui">OK</span>, żeby zmienić, albo <span class="ui">Anuluj</span>, żeby nic się nie stało. Jeśli wybierzesz status, który zapis już ma, okienka nie będzie — nic się nie zmienia, więc i mail nie wychodzi.</div>
+</section>
+
+<section>
+  <h3>Albo w samym zapisie</h3>
+  <p>Kliknięcie w nazwisko otwiera cały zapis: dane kontaktowe, uwagi kursanta i pole <b>Notatki szkoły</b> — tam możesz zapisać cokolwiek dla siebie (kursant tego nie widzi). Po zmianach kliknij <span class="ui">Zapisz</span> w prawym górnym rogu.</p>
+  <figure><img src="instrukcja-zapisy/zapis-otwarty.jpg" alt=""><figcaption>Zapis otwarty w panelu.</figcaption></figure>
+  <div class="box warn"><strong>Uwaga:</strong>
+  w otwartym zapisie panel nie pyta o potwierdzenie — jeśli zmienisz tam status na „potwierdzony”, „opłacony” albo „rezygnacja”, mail wyjdzie po kliknięciu <span class="ui">Zapisz</span>.</div>
+
+  <h2>6. Statusy zapisu i maile do kursanta</h2>
+  <table>
+    <thead><tr><th>Status</th><th>Kiedy go ustawić</th><th>Zajmuje miejsce?</th><th>Mail do kursanta</th></tr></thead>
+    <tr><td><b>zgłoszony</b></td><td>ustawia się sam po zapisie przez stronę</td><td>tak</td><td>— (dostał już „Przyjęliśmy zgłoszenie”)</td></tr>
+    <tr><td><b>potwierdzony</b></td><td>gdy potwierdzasz miejsce</td><td>tak</td><td>tak — „Miejsce potwierdzone”</td></tr>
+    <tr><td><b>zaliczka wpłacona</b></td><td>po wpłacie zaliczki</td><td>tak</td><td>nie</td></tr>
+    <tr><td><b>opłacony</b></td><td>po wpłacie całości</td><td>tak</td><td>tak — „Płatność zaksięgowana”</td></tr>
+    <tr><td><b>lista rezerwowa</b></td><td>ustawia się sam, gdy brak miejsc</td><td>nie</td><td>— (dostał już „Lista rezerwowa”)</td></tr>
+    <tr><td><b>rezygnacja</b></td><td>gdy ktoś rezygnuje albo odwołujesz zapis</td><td>nie — zwalnia miejsce</td><td>tak — „Zapis anulowany”</td></tr>
+  </table>
+  <p>Maile idą w języku kursanta — po polsku albo po angielsku (rozdział 16). Na każdego z nich kursant może po prostu odpowiedzieć, a odpowiedź trafi do Ciebie.</p>
+  <div class="box do"><strong>Rezygnacja zamiast usuwania.</strong>
+  Gdy ktoś się wycofa, ustaw „rezygnacja” zamiast kasować zapis — zostaje ślad w historii, a miejsce i tak się zwalnia.</div>
+</section>
+
+<section>
+  <h2>7. Wolne miejsca i lista rezerwowa</h2>
+  <p>W każdym terminie (zakładka <span class="ui">Terminy</span>) jest pole <b>Liczba miejsc</b>.</p>
+  <ul>
+    <li><b>Gdy je wpiszesz</b> (np. 6) — panel sam liczy wolne miejsca: liczba miejsc minus zapisy, które zajmują miejsce (tabela w rozdziale 6). Gdy wolnych zabraknie, termin sam przełącza się na „brak miejsc — lista rezerwowa”, a nowe osoby trafiają na listę rezerwową. Gdy miejsce się zwolni — wraca na „zapisy otwarte”.</li>
+    <li><b>Gdy je zostawisz puste</b> — nic się nie liczy, a na stronie widać „zapytaj o miejsca”. Status terminu ustawiasz wtedy ręcznie.</li>
+  </ul>
+  <h3>Gdy zwolni się miejsce</h3>
+  <p>Jeśli na terminie jest lista rezerwowa, a miejsce się zwolni (rezygnacja, usunięty zapis albo większa liczba miejsc), dostaniesz maila „Zwolniło się miejsce” z całą listą rezerwową — w kolejności zapisu, z telefonem i adresem każdej osoby.</p>
+  <ol>
+    <li>Zdecyduj, kogo przyjmujesz (zwykle pierwszą osobę z listy) — możesz najpierw zadzwonić.</li>
+    <li>Zmień jej status z „lista rezerwowa” na „potwierdzony”. Dostanie maila, że ma miejsce.</li>
+  </ol>
+  <div class="box do"><strong>Nikt nie jest przesuwany z listy rezerwowej automatycznie</strong> — zawsze decydujesz Ty.</div>
+
+  <h2>8. Zapis przez telefon</h2>
+  <p>Jeśli ktoś zapisał się u Ciebie przez telefon, dopisz go w panelu — wtedy liczy się do wolnych miejsc i nikt nie „zajmie” jego miejsca przez stronę.</p>
+  <ol>
+    <li>Wejdź w <span class="ui">Zapisy</span> i kliknij <span class="ui">Stwórz nowy</span> (przycisk obok tytułu listy).</li>
+    <li>Wybierz <b>Termin</b>, ustaw <b>Status</b> (np. „potwierdzony”) i wpisz imię, nazwisko i telefon.</li>
+    <li><b>E-mail możesz zostawić pusty</b> — wiele osób dzwoni i nie podaje adresu.</li>
+    <li>Pole <b>Konto uczestnika</b> zostaw tak, jak jest — szary napis „Wybierz wartość” znaczy, że pole jest puste, i tak ma być.</li>
+    <li>Kliknij <span class="ui">Zapisz</span>.</li>
+  </ol>
+  <figure><img src="instrukcja-zapisy/telefon.jpg" alt=""><figcaption>Zapis telefoniczny bez adresu e-mail.</figcaption></figure>
+  <ul>
+    <li><b>Przy dodawaniu ręcznym nie wychodzą żadne maile</b> — ani do kursanta, ani do Ciebie. Umówiliście się osobiście, więc oboje już wiecie.</li>
+    <li><b>Bez adresu e-mail ta osoba nie dostaje nic, nigdy</b>: ani maili o zmianie statusu, ani wysyłek. Panel nie pyta wtedy przy zmianie statusu, bo nie ma do kogo pisać.</li>
+    <li><b>Jeśli adres wpiszesz</b>, późniejsze zmiany statusu (np. na „opłacony”) wysyłają maila jak przy każdym zapisie.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>9. Termin: lista uczestników i Excel</h2>
+  <p>Otwórz termin w zakładce <span class="ui">Terminy</span> (albo kliknij datę na pulpicie). Widzisz tam liczbę miejsc i wolne miejsca, a niżej tabelę <b>Zapisani</b> — wszyscy zapisani na ten termin, także rezerwowi i rezygnacje — ze zmianą statusu prosto z tabeli.</p>
+  <p>Z prawej przycisk <span class="ui">Pobierz listę uczestników (Excel)</span> — plik z kolumnami: Lp., imię, nazwisko, telefon, e-mail, status, uwagi od kursanta i data zapisu. Otwiera się w Excelu z polskimi znakami, a telefon zostaje z plusem. Przydaje się do ubezpieczenia albo jako wydruk na skały.</p>
+  <figure><img src="instrukcja-zapisy/termin-zapisani.jpg" alt=""><figcaption>Termin w panelu: liczba miejsc, wolne miejsca, lista zapisanych i przycisk Excela.</figcaption></figure>
+  <h3>Po kursie i przy odwołaniu</h3>
+  <ul>
+    <li><b>Po kursie nic nie musisz robić</b> — termin sam zmieni status na „zakończony” (w ciągu dwóch dni) i zniknie ze strony. Zapisy zostają w historii, a kursanci widzą kurs w archiwum w Moim koncie.</li>
+    <li><b>Odwołanie:</b> terminu, na który są zapisy, nie da się usunąć — panel to zablokuje i podpowie, co zrobić. Ustaw jego status na „odwołany”: zniknie ze strony, a zapisy zostaną.</li>
+  </ul>
+  <div class="box warn"><strong>Odwołanie terminu nie powiadamia zapisanych.</strong>
+  Napisz do nich przez <span class="ui">Wysyłki</span> (rozdział 10) — wybierz ten termin i zaznacz „Także lista rezerwowa”.</div>
+</section>
+
+<section>
+  <h2>10. Wysyłki — wiadomość do grupy osób</h2>
+  <p>Zakładka <span class="ui">Wysyłki</span> służy do napisania jednej wiadomości do wielu osób naraz. Przykłady: godzina zbiórki dla grupy, zmiana miejsca, prognoza pogody, informacja o nowych terminach dla newslettera.</p>
+  <h3>Krok po kroku</h3>
+  <ol>
+    <li>Wejdź w <span class="ui">Wysyłki</span> i kliknij <span class="ui">Stwórz nowy</span>.</li>
+    <li>Wpisz <b>Temat</b> i <b>Treść</b>. Nad treścią są przyciski: pogrubienie (B), kursywa (I), podkreślenie (U) i link. Pod literą „T” są nagłówki i listy.</li>
+    <li>W polu <b>Do kogo</b> wybierz: <i>zapisani na jeden termin</i> — potem wybierz termin; <i>wszyscy z nadchodzącymi zapisami</i> — każdy, kto ma zapis na kurs, który jeszcze się nie odbył; albo <i>newsletter (potwierdzone adresy)</i>.</li>
+    <li>Domyślnie wiadomość dostają tylko osoby z miejscem. Zaznacz <b>„Także lista rezerwowa”</b>, jeśli ma ją dostać też lista rezerwowa (np. przy odwołaniu terminu).</li>
+    <li><b>Kliknij <span class="ui">Zapisz</span>.</b> Dopiero wtedy z prawej pojawi się, do ilu osób pójdzie wiadomość, i przyciski wysyłki. Nic jeszcze nie wychodzi — to szkic, możesz go dokończyć później.</li>
+    <li>Kliknij <span class="ui">Wyślij próbnie do mnie</span> i sprawdź w swojej skrzynce, jak mail wygląda (w temacie będzie dopisek „[PRÓBA]”).</li>
+    <li>Kliknij <span class="ui">Wyślij</span>. Panel jeszcze raz zapyta, do ilu osób wysłać — potwierdź.</li>
+  </ol>
+  <figure><img src="instrukcja-zapisy/wysylka-szkic.jpg" alt=""><figcaption>Zapisana wysyłka — z prawej liczba odbiorców i przyciski.</figcaption></figure>
+</section>
+
+<section>
+  <div class="box warn"><strong>Najpierw „Zapisz”, potem „Wyślij” — panel tego pilnuje.</strong>
+  Wysyła się zawsze ostatnia ZAPISANA wersja. Jeśli coś zmienisz i nie zapiszesz (np. dopiszesz wersję angielską), przyciski wysyłki zrobią się szare, a nad nimi pojawi się czerwony napis „Masz niezapisane zmiany”. Kliknij <span class="ui">Zapisz</span> — przyciski wrócą, a liczba odbiorców się odświeży.</div>
+  <figure><img src="instrukcja-zapisy/wysylka-niezapisane.jpg" alt=""><figcaption>Zmieniony temat, jeszcze niezapisany — wysyłka zablokowana.</figcaption></figure>
+  <h3>Wersja angielska</h3>
+  <p>Pod treścią jest rozwijane pole <b>Wersja angielska (opcjonalnie)</b>. Jeśli wpiszesz w nim temat i treść po angielsku, osoby z ustawionym językiem angielskim dostaną tę wersję. Jeśli jej nie wpiszesz — dostaną polską. Panel przed wysłaniem powie, ile jest takich osób.</p>
+</section>
+
+<section>
+  <h3>Po wysłaniu</h3>
+  <p>Maile wychodzą partiami — przy kilkunastu osobach to kilka sekund. Z prawej widać postęp: „Wysłana: 12 z 12”. Na dole tabela <b>Odbiorcy</b>: kto dostał, a do kogo mail nie doszedł i dlaczego.</p>
+  <figure><img src="instrukcja-zapisy/wysylka-wyslana.jpg" alt=""><figcaption>Wysyłka po wysłaniu — postęp z prawej, tabela odbiorców na dole.</figcaption></figure>
+  <p>Kto odpowie na wysyłkę — odpowiedź trafi do Ciebie. Lista odbiorców ustala się w momencie kliknięcia „Wyślij”: ktoś, kto zapisze się minutę później, tej wiadomości już nie dostanie.</p>
+  <h3>Podobna wiadomość jeszcze raz — „Zduplikuj”</h3>
+  <p>Wysłanej wiadomości nie da się już zmienić — zostaje taka, jaką ludzie dostali. Żeby wysłać podobną, otwórz menu z trzema kropkami (obok „Zapisz”) i wybierz <span class="ui">Zduplikuj</span> — powstanie kopia do edycji.</p>
+  <p>Kopia <b>nie wyjdzie od razu</b>: „Wyślij” jest zablokowane, a panel prosi, żebyś najpierw sprawdził treść i odbiorców. Zmień, co trzeba, i kliknij <span class="ui">Zapisz</span> — albo, jeśli wszystko się zgadza, <span class="ui">Sprawdzone — odblokuj wysyłkę</span>. To zabezpieczenie przed wysłaniem tej samej wiadomości drugi raz jednym kliknięciem. „Wyślij próbnie do mnie” działa od razu.</p>
+  <figure><img src="instrukcja-zapisy/wysylka-kopia.jpg" alt=""><figcaption>Kopia wysyłki czeka na sprawdzenie.</figcaption></figure>
+</section>
+
+<section>
+  <h2>11. Newsletter</h2>
+  <p>Na dole każdej strony jest pole zapisu na newsletter. Po wpisaniu adresu osoba dostaje maila z prośbą o potwierdzenie i dopiero po kliknięciu w link (i przycisk „Potwierdzam zapis”) jest zapisana. To chroni przed wpisaniem cudzego adresu albo zasypaniem listy fałszywymi adresami przez boty.</p>
+  <p>Adresy są w zakładce <span class="ui">Newsletter</span> (grupa „Kontakt”):</p>
+  <figure><img src="instrukcja-zapisy/newsletter.jpg" alt=""><figcaption>Lista adresów newslettera.</figcaption></figure>
+  <table>
+    <thead><tr><th style="width:42mm">Status</th><th>Co znaczy</th></tr></thead>
+    <tr><td>czeka na potwierdzenie</td><td>osoba się zapisała, ale nie kliknęła jeszcze w link. Nie dostaje wysyłek. Po 7 dniach adres znika sam.</td></tr>
+    <tr><td>zapisany</td><td>potwierdzony — dostaje wysyłki do newslettera</td></tr>
+    <tr><td>wypisany</td><td>osoba się wypisała. Adres zostaje jako dowód, że i kiedy wycofała zgodę — nie usuwaj go.</td></tr>
+  </table>
+  <p>W każdym newsletterze na dole jest link „Wypisz się z newslettera”, a w Gmailu i innych skrzynkach — przycisk „Wypisz się” obok nadawcy. Wypisanie działa od razu.</p>
+  <div class="box warn"><strong>Adresów do newslettera nie dodaje się ręcznie</strong> — każdy musi zapisać się sam i potwierdzić. Inaczej nie mamy dowodu zgody.</div>
+  <p>Newsletter wysyłasz przez <span class="ui">Wysyłki</span> (rozdział 10), wybierając „newsletter (potwierdzone adresy)”.</p>
+
+  <h2>12. Maile, które nie doszły</h2>
+  <p>Czasem mail do kursanta nie wyjdzie — najczęściej przez literówkę w adresie albo dlatego, że skończył się dzienny limit maili (rozdział 16). Zapis i tak jest w panelu, ale kursant nie wie, że np. ma potwierdzone miejsce.</p>
+  <p>Takie zapisy liczy kafelek <b>„Maile, które nie doszły”</b> na pulpicie. W samym zapisie, z prawej, zobaczysz, który mail i dlaczego:</p>
+</section>
+
+<section>
+  <figure><img src="instrukcja-zapisy/mail-nie-doszedl.jpg" alt=""><figcaption>Zapis z mailem, który nie doszedł — przyczyna i pole „Załatwione” z prawej.</figcaption></figure>
+  <p><b>Co zrobić:</b></p>
+  <ol>
+    <li>Zadzwoń albo napisz do tej osoby sam. Jeśli w adresie jest literówka — popraw go w zapisie.</li>
+    <li>Zaznacz <b>„Załatwione”</b> i kliknij <span class="ui">Zapisz</span>. Zapis zniknie z kafelka.</li>
+  </ol>
+  <div class="box do"><strong>Dlaczego nie ma przycisku „wyślij ponownie”?</strong>
+  Bo najczęstszą przyczyną jest literówka w adresie (np. <code>gmial.com</code>) — drugi mail na ten sam zły adres też nie dojdzie. Telefon jest w każdym zapisie, więc najpewniej jest zadzwonić i przy okazji poprawić adres. Gdyby przyczyną był limit maili, treść i tak przekażesz szybciej sam.</div>
+  <p>Dotyczy to maili: potwierdzenie zapisu, lista rezerwowa, zmiana statusu (potwierdzony, opłacony, rezygnacja) i link do ustawienia hasła przy zakładaniu konta. Wysyłki z zakładki <span class="ui">Wysyłki</span> mają własną tabelę „Odbiorcy” z błędami (rozdział 10). Gdy skończy się dzienny limit, wysyłka sama się wstrzyma i dokończy, gdy limit się odnowi.</p>
+
+  <h2>13. Konta uczestników</h2>
+  <p>Kursanci mogą założyć konto na stronie (ikonka osoby w nagłówku albo przy zapisie). Konto daje im szybszy zapis — bez wpisywania danych — i podgląd swoich zapisów w Moim koncie.</p>
+  <ul>
+    <li>Konta są w zakładce <span class="ui">Uczestnicy</span>. To podgląd — kursanci zakładają je i zmieniają sami.</li>
+    <li><b>Konto trzeba potwierdzić linkiem z maila.</b> Kto nie dostał maila, klika pod logowaniem „Nie dotarł mail z potwierdzeniem?” i dostaje nowy link. Niepotwierdzone konto znika samo po 7 dniach.</li>
+    <li><b>Hasła nie widzisz i nie musisz go znać.</b> Kursant, który zapomniał hasła, klika na stronie logowania „Nie pamiętam hasła” i dostaje link.</li>
+    <li><b>Kursant może sam usunąć swoje konto</b> w Moim koncie. Jego zapisy na kursy zostają u Ciebie (już bez konta) — usunięcie konta nie odwołuje zapisu.</li>
+    <li>Zapis zrobiony bez konta sam „przypnie się” do konta, gdy ta osoba założy je na ten sam adres i go potwierdzi.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>14. Wiadomości z formularza kontaktowego</h2>
+  <p>Gdy ktoś napisze przez formularz na stronie <span class="ui">Kontakt</span>, dostajesz maila „Nowa wiadomość”. Wystarczy na niego odpowiedzieć — odpowiedź trafi wprost do tej osoby.</p>
+  <p>W formularzu osoba wybiera temat: <b>Kurs</b> (wtedy wybiera też, który — z listy kursów na stronie), <b>Obóz lub wyjazd</b> albo <b>Inna sprawa</b>. Temat widzisz w mailu i w panelu.</p>
+  <p>Wszystkie wiadomości są też w zakładce <span class="ui">Wiadomości</span> (grupa „Kontakt”). Status — „nowa”, „w toku”, „załatwiona” — zmieniasz prosto z listy, jednym kliknięciem, bez pytania (nikt nie dostaje wtedy maila). Nowe liczy kafelek na pulpicie.</p>
+  <figure><img src="instrukcja-zapisy/wiadomosci.jpg" alt=""><figcaption>Wiadomości — status zmienisz w kolumnie „Status”.</figcaption></figure>
+  <p>Wiadomości nie dodaje się w panelu ręcznie — przychodzą tylko z formularza. Po 12 miesiącach znikają same (rozdział 15). Jeśli osoba ma przeglądarkę po angielsku, w mailu do Ciebie jest dopisek, żeby odpowiedzieć po angielsku.</p>
+
+  <h2>15. Dane osobowe — prośby z RODO i co znika samo</h2>
+  <p>Każdy może poprosić o <b>kopię swoich danych</b> albo o ich <b>usunięcie</b>. Oba załatwisz sam, w zakładce <span class="ui">Uczestnicy</span> — nad listą jest rozwijane pole <b>„Dane osoby — kopia albo usunięcie (prośby z RODO)”</b>.</p>
+  <ol>
+    <li>Rozwiń je, wpisz adres e-mail osoby i kliknij <span class="ui">Sprawdź, co mamy</span>. Zobaczysz, co jest pod tym adresem: konto, zapisy, wiadomości, newsletter. Nic się jeszcze nie usuwa.</li>
+    <li><b>Kopia:</b> <span class="ui">Pobierz kopię danych do wysłania osobie</span>. Pobierze się plik, który otwiera się w przeglądarce jako czytelna strona „Twoje dane w ABC Wspinania” — po polsku, z datami. Ten plik wysyłasz osobie w odpowiedzi na jej prośbę (albo drukujesz do PDF). Link „Wersja JSON” obok jest tylko na rzadką prośbę o przeniesienie danych do innej firmy.</li>
+    <li><b>Usunięcie:</b> przepisz adres jeszcze raz w polu niżej i kliknij <span class="ui">Usuń wszystkie dane tej osoby na zawsze</span>. Znika wszystko pod tym adresem — także nadchodzący zapis (bez maila do tej osoby; miejsce się zwalnia). Tego nie da się cofnąć.</li>
+  </ol>
+  <figure><img src="instrukcja-zapisy/dane-osoby.jpg" alt=""><figcaption>Dane osoby — najpierw sprawdzenie, potem kopia albo usunięcie.</figcaption></figure>
+</section>
+
+<section>
+  <div class="box warn"><strong>Zapis telefoniczny bez adresu</strong> nie znajdzie się po adresie e-mail. Taki zapis usuwasz z listy <span class="ui">Zapisy</span>: otwórz go → menu z trzema kropkami → <span class="ui">Usuń</span>.</div>
+  <h3>Co znika samo — nic nie musisz pilnować</h3>
+  <table>
+    <thead><tr><th>Co</th><th>Kiedy</th></tr></thead>
+    <tr><td>Niepotwierdzone konto</td><td>po 7 dniach od wysłania linku</td></tr>
+    <tr><td>Niepotwierdzony zapis na newsletter</td><td>po 7 dniach</td></tr>
+    <tr><td>Wiadomości z formularza kontaktowego</td><td>po 12 miesiącach</td></tr>
+    <tr><td>Dane osobowe w zapisach na kursy</td><td>5 lat po końcu roku, w którym był kurs (1 stycznia). Zapis zostaje w statystykach — termin i status — ale bez imienia, nazwiska, adresu i telefonu. Zapisy osób, które mają konto, zostają, dopóki konto istnieje.</td></tr>
+    <tr><td>Kopie zapasowe strony</td><td>po 40 dniach</td></tr>
+  </table>
+  <p>Wypisani z newslettera zostają celowo — to dowód wycofania zgody (rozdział 11). Wszystko to opisuje polityka prywatności na stronie (link na dole każdej strony).</p>
+
+  <h2>16. Ważne rzeczy o mailach</h2>
+  <ul>
+    <li><b>Maile wychodzą automatycznie z adresu szkoły przeznaczonego tylko do wysyłki.</b> Na ten adres nikt nie odpisuje — każdy mail jest tak ustawiony, że odpowiedź trafia do Ciebie.</li>
+    <li><b>Na górze każdego maila jest logo szkoły</b> (to samo, co na Twoich materiałach) i nazwa ABC Wspinania.</li>
+    <li><b>Język:</b> kursanci z kontem dostają maile w języku ustawionym w Moim koncie. Pozostali — w języku swojej przeglądarki (polski albo angielski). Maile do Ciebie są zawsze po polsku.</li>
+    <li><b>Limit: 300 maili dziennie</b> — razem wszystkie maile strony (zapisy, potwierdzenia, wysyłki). Przy obecnej liczbie kursantów to bardzo dużo. Gdyby kiedyś się skończył: wysyłka z zakładki „Wysyłki” wstrzyma się sama i dokończy po odnowieniu limitu — bez Twojego udziału; pojedyncze maile do kursantów (np. potwierdzenia) trafią do kafelka „Maile, które nie doszły”.</li>
+    <li><b>Maile mogą czasem trafić do spamu</b>, zwłaszcza na początku. Jeśli kursant mówi, że nic nie dostał — poproś, żeby zajrzał do folderu Spam.</li>
+  </ul>
+
+  <h2>17. Czego jeszcze nie ma</h2>
+  <ul>
+    <li><b>Zapisy na obozy</b> — dojdą, gdy odpowiesz na pytania o zaliczki, rezygnacje i kartę uczestnika. Na razie obozy działają przez formularz kontaktowy.</li>
+    <li><b>Płatności przez stronę</b> — strona nie przyjmuje płatności. Dane do przelewu podajesz kursantowi sam, a wpłatę zaznaczasz statusem.</li>
+    <li><b>Cała strona po angielsku</b> — po angielsku jest strona główna <code>/en</code> i polityka prywatności. Reszta strony jest po polsku; tłumaczenie całości to osobny temat do ustalenia.</li>
+  </ul>
+
+  <h2>Prośba na koniec</h2>
+  <p>Zanim strona ruszy pod docelowym adresem, chciałbym, żebyś przeszedł wszystko sam, na prawdziwej stronie. Przygotowałem do tego osobny <b>scenariusz testów</b> (PDF) — krok po kroku, z tym, co ma się stać. Konta i terminy testowe wgrywam ja; poznasz je po dopisku „TERMIN TESTOWY — nie zapisuj się”, a po Twoich testach wszystko posprzątam jednym przyciskiem.</p>
+  <p>Wszystko, co chciałbyś mieć inaczej — nazwy, teksty maili, kolejność, czegoś brakuje — zapisz i daj mi znać.</p>
+  <p style="margin-top:14pt">Mateusz</p>
+</section>
+
+</body>
+</html>
