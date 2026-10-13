@@ -1436,16 +1436,35 @@ repo). **Zmieniasz funkcję — zmień jej kroki w tym samym commicie.**
 - Dane: `TEST_INBOX=ty@gmail.com npm run seed:test` (`web/scripts/seed-test.ts`).
   Każdy adres to alias jednej skrzynki (`ty+abctest-ola@gmail.com`), więc
   konta są osobne, a maile — prawdziwe, przez Brevo — trafiają do testera.
-  Znacznik `+abctest-` w adresie i dopisek „termin testowy (seed:test)” przy
-  terminie to sposób, w jaki skrypt znajduje swoje dane: każde uruchomienie
-  najpierw je kasuje, `-- clean` tylko kasuje. Wysyłki utworzone w teście
-  zostają (nie da się ich rozpoznać).
+  Znacznik `+abctest-` w adresie i dopisek „TERMIN TESTOWY — nie zapisuj się”
+  przy terminie to sposób, w jaki skrypt znajduje swoje dane: każde
+  uruchomienie najpierw je kasuje, `-- clean` tylko kasuje. Wysyłki usuwa,
+  gdy WSZYSCY ich odbiorcy mają znacznik.
+- **Na produkcji (od 13.10.2026) — tylko workflow „Dane testowe”**
+  (`test-data.yml`, potwierdzenie słowem `testy`; akcje `wgraj`, `wyczysc`,
+  `wyczysc-wszystko`), tym samym tunelem co Migrate. Repozytorium jest
+  PUBLICZNE, więc logi też: skrzynka i hasło kont to sekrety `TEST_INBOX`
+  i `TEST_PASSWORD`, a skrypt nie wypisuje adresu, tokenu ani danych osoby —
+  same id. **Konta panelu na produkcji nie zakłada** (znane hasło do panelu
+  szkoły w publicznym repo); testerzy używają własnych. Wygasły link Ewy —
+  tylko lokalnie. Job ustawia `NODE_ENV=production`: przy innym Payload
+  przy starcie pchnąłby schemat do bazy klienta (tryb `push`) i zostawił
+  wpis `dev`, na którym staje Migrate. Skrypt bez `TEST_DATA_ON_PRODUCTION=yes`
+  odmawia startu przy `NODE_ENV=production`.
+- **To, co tester wpisze BEZ znacznika** (konto na prawdziwy adres, zapis
+  telefoniczny na prawdziwym terminie), da się odróżnić od prawdziwych danych
+  tylko po CZASIE. Pierwsze wgranie zapisuje początek rundy w `payload.kv`
+  (`seed-test:since`, zostaje przez kolejne wgrania i `clean`); `clean`
+  wypisuje id rzeczy bez znacznika z tego okresu, `clean-all` je usuwa
+  i zamyka okres. Bez ślepego kasowania — na produkcji w tym czasie może
+  przyjść prawdziwa wiadomość.
 - Seed niczego nie wysyła (`payload.sendEmail` podmieniony); maile idą
   dopiero z kliknięć testera. Konto do rejestracji od zera
   (`+abctest-nowy`) celowo nie powstaje.
 - Wygasły link potwierdzający (Ewa) — token i `verificationSentAt` sprzed
   3 dni zapisane przez `payload.db.updateOne`, jak w `sendVerificationLink`.
-- Strażnik produkcji jak w `seed.ts`: konta mają znane hasło.
+- Daty terminów w podsumowaniu przez `formatDateRange` — tak jak na stronie
+  (UTC); inna strefa dawała dzień różnicy wobec Terminarza.
 
 ### Testy integracyjne
 

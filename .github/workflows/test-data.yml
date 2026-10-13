@@ -1,0 +1,101 @@
+name: Dane testowe
+
+# Dane do testów ręcznych NA PRODUKCJI (docs/testy-reczne.html), od 13.10.2026.
+# Ręczny workflow, jak Migrate — i tym samym tunelem SSH do bazy, z tego samego
+# powodu: obraz produkcyjny nie ma skryptów ani CLI Payloada.
+#
+#   wgraj             — usuwa poprzednie dane testowe i zakłada je od nowa
+#   wyczysc           — tylko usuwa; wypisuje (same id), co przybyło BEZ znacznika
+#   wyczysc-wszystko  — usuwa też to, co przybyło bez znacznika od początku testów
+#
+# Repozytorium jest PUBLICZNE, więc logi tego joba widzi każdy. Skrzynka
+# testera i hasło kont testowych są dlatego sekretami (TEST_INBOX,
+# TEST_PASSWORD), a skrypt nie wypisuje ani adresu, ani tokenu, ani danych
+# osoby — tylko id. Konta do panelu na produkcji NIE zakłada (znane hasło do
+# panelu szkoły). Szczegóły: nagłówek web/scripts/seed-test.ts.
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Co zrobić
+        type: choice
+        options: [wgraj, wyczysc, wyczysc-wszystko]
+        default: wgraj
+      confirm:
+        description: Wpisz "testy", żeby potwierdzić zmianę danych na produkcji
+        required: true
+        default: ''
+
+# Dwa przebiegi naraz kasowałyby sobie nawzajem dane w połowie.
+concurrency:
+  group: test-data
+  cancel-in-progress: false
+
+jobs:
+  test-data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - name: Sprawdź potwierdzenie
+        if: inputs.confirm != 'testy'
+        run: |
+          echo "BŁĄD: nie potwierdzono. Wpisz dokładnie: testy" >&2
+          exit 1
+
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+
+      - name: Otwórz tunel SSH do bazy produkcyjnej
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+          # Jak w Migrate: baza słucha na serwerze tylko na 127.0.0.1:5432.
+          ssh -f -N -L 55432:127.0.0.1:5432 \
+            -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
+          for _ in $(seq 1 15); do
+            if nc -z 127.0.0.1 55432; then echo "tunel gotowy"; exit 0; fi
+            sleep 2
+          done
+          echo "BŁĄD: tunel nie wstał w 30 s." >&2
+          exit 1
+
+      - name: Dane testowe — ${{ inputs.action }}
+        env:
+          DATABASE_URI: postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@127.0.0.1:55432/${{ secrets.POSTGRES_DB }}
+          PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
+          # production = Payload bez trybu `push`: przy innym NODE_ENV start
+          # Payloada przepisałby schemat bazy produkcyjnej i zostawił wpis
+          # `dev`, na którym potem staje workflow Migrate.
+          NODE_ENV: production
+          TEST_DATA_ON_PRODUCTION: 'yes'
+          TEST_INBOX: ${{ secrets.TEST_INBOX }}
+          TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+          # Tylko do linku do kursu w podsumowaniu.
+          PUBLIC_URL: ${{ vars.SMOKE_URL || vars.SITE_URL }}
+          ACTION: ${{ inputs.action }}
+        run: |
+          case "$ACTION" in
+            wgraj) ARG="" ;;
+            wyczysc) ARG="clean" ;;
+            wyczysc-wszystko) ARG="clean-all" ;;
+            *) echo "BŁĄD: nieznana akcja $ACTION" >&2; exit 1 ;;
+          esac
+          # shellcheck disable=SC2086 # puste ARG ma zniknąć, nie być pustym słowem
+          timeout 300 npm run seed:test -- $ARG < /dev/null
+
+      - name: Zamknij tunel
+        if: always()
+        run: pkill -f "ssh -f -N -L 55432" || true
