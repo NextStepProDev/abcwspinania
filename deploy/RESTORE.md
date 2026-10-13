@@ -184,9 +184,10 @@ echo "psql zakończył się kodem: $?"   # musi być 0
 docker compose -f docker-compose.prod.yml start app
 ```
 
-⚠️ **Nie uruchamiaj workflow Migrate po odtworzeniu**, chyba że kopia jest sprzed
-migracji, którą chcesz ponowić. Zrzut zawiera tabelę `payload_migrations` — odtworzona baza
-„pamięta”, które migracje przeszły.
+Zrzut zawiera tabelę `payload_migrations` — odtworzona baza „pamięta”, które migracje
+przeszły. Następny **Deploy uruchamia migracje sam** (od 13.10.2026) i wykona tylko te, których
+w zrzucie nie ma — czyli dołoży schemat nowszy niż kopia. Kopia ma zostać w swoim schemacie,
+bo wracasz też do starszej wersji aplikacji? Deploy z **jawnie podaną wersją** migracji nie puszcza.
 
 ---
 
@@ -298,7 +299,8 @@ najpierw `sudo rclone copy "abc-crypt:db/${DATE}.sql.gz" /tmp/drill/` i wlej tam
 
 ## 6. Zrzut ręczny przed ryzykowną operacją
 
-Przed workflow **Migrate** na bazie z prawdziwymi danymi i przed podbiciem majora Postgresa:
+Przed **Deployem z nową migracją** (albo samym workflow Migrate) na bazie z prawdziwymi danymi
+i przed podbiciem majora Postgresa:
 
 ```bash
 F="/backups/milestones/PRZED-$(date +%F-%H%M).sql.gz"
@@ -361,7 +363,8 @@ Potrzebne z menedżera haseł: **`rclone.conf`** (0.1) i **`deploy/.env`** (0.3)
    `PAYLOAD_SECRET` są nowe — podmień też `POSTGRES_PASSWORD` i `PAYLOAD_SECRET`.
 2. Workflow **Deploy**. Stawia kontenery i instaluje kopie zapasowe (`rclone`, skrypt,
    harmonogram). Smoke test może się nie udać, dopóki DNS wskazuje stary adres — to nic.
-   **Nie uruchamiaj Migrate** — schemat przyjdzie razem ze zrzutem.
+   Deploy założy przy tym schemat na pustej bazie (migracje są jego częścią) — nic nie
+   szkodzi: krok 2.3 w 8.4 kasuje tę bazę przed wlaniem zrzutu.
 
 ### 8.3 Klucz do kopii i pobranie z Drive
 

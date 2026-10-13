@@ -188,16 +188,41 @@ Major Postgresa jest zablokowany w `.github/dependabot.yml` — w **obu** wpisac
 
 ---
 
-## Migracje schematu — osobny, ręczny workflow
+## Migracje schematu — uruchamia je Deploy
 
-**Zmiana modelu treści nie jedzie z deployem.** Kolejność:
+Kolejność:
 
 1. Zmieniasz kolekcję w `web/src/collections/`.
 2. `npm run generate:types` — typy są **commitowane**, CI pilnuje ich zgodności.
 3. `npm run migrate:create <nazwa>` — migracja trafia do repo.
 4. Merge do `main` → CI buduje obraz.
-5. Workflow **Migrate** (ręczny, z potwierdzeniem słowem `migruj`).
-6. Workflow **Deploy**.
+5. Workflow **Deploy** (pole wersji puste): pobiera nowy obraz, puszcza
+   migracje, dopiero potem podmienia aplikację.
+
+**Od 13.10.2026 migracje są częścią Deploya.** Wcześniej był to osobny
+przycisk przed nim („zmiana schematu ma być decyzją”). 13.10.2026 wdrożono
+0.7.0 bez niego: nowa wersja pytała o tabele, których nie było
+(`relation "broadcasts" does not exist`), i panel nie wpuszczał nikogo.
+Deploy i tak jest tylko ręczny, więc decyzją jest samo wdrożenie — drugi
+przycisk niczego nie chronił, dawał się tylko pominąć.
+
+- **Kolejność w `deploy.yml`: `prepare` (pull) → `migrate` → `release`
+  (`up -d`).** Pull przed migracją: Deploy kliknięty, zanim CI zbudował
+  obraz, pada na pullu, zanim ruszy bazę. Migracja padnie — `release` się
+  nie odpala i działa stara wersja na starym schemacie. Nowa wersja trafia
+  do `deploy/.env` dopiero w `release`, więc ręczne `up -d` po nieudanej
+  migracji też postawi starą.
+- **Migracje biorą kod z commita, z którego uruchomiono Deploy** — tego
+  samego, z którego Deploy czyta `VERSION`. Z jawnie podaną wersją (powrót
+  do starszej, tag `sha-…`) migracje są **pomijane**, bo kod z `main` nie
+  musi pasować do wskazanego obrazu.
+- **Migracje w dół nie idą same nigdy.** Po powrocie do starszej wersji baza
+  zostaje w nowszym schemacie. Dla zmian, które tylko dodają tabele
+  i kolumny, stara aplikacja działa; przy usuwaniu albo zmianie kolumny —
+  najpierw sprawdzić, czy stara wersja na nowym schemacie wstaje.
+- **Workflow Migrate zostaje** (`workflow_dispatch` z `migruj`) do puszczenia
+  migracji bez wdrażania. Deploy woła ten sam plik (`workflow_call`), więc
+  bramka na wpis `dev` i `timeout 300` działają w obu drogach.
 
 **Dlaczego przez tunel SSH, a nie `docker compose run` na serwerze:** obraz
 produkcyjny to `output: standalone` i waży ~80 MB, bo Turbopack wbudowuje
@@ -1207,7 +1232,8 @@ bezpiecznik przy szczytach sharpa. Skrypt jest idempotentny.
    26.09.2026 na produkcji: Docker przy pierwszym montowaniu pustego nazwanego
    wolumenu kopiuje właściciela z obrazu, więc `/app/uploads` od razu należy
    do `node` i zapis działa. Punkt został, żeby nikt go nie „przywracał".
-5. Workflow **Migrate** — założenie schematu na czystej bazie.
+5. Workflow **Deploy** — stawia kontenery i zakłada schemat na czystej bazie
+   (migracje są jego częścią).
 6. Konto administratora: wejść na `https://abcwspinania.info/admin`, ekran
    „utwórz pierwszego użytkownika".
    ⚠️ Zrobić to **od razu po pierwszym deployu**. Dopóki nie ma żadnego konta,
@@ -1297,8 +1323,8 @@ tam od 09.2026 — powody każdego kroku przeniesione razem z kodem.
   Sprawdzone 06.10.2026: zrzut ucięty w połowie zostaje `.part` i kończy przebieg błędem.
 - **`rclone copy`, nigdy `sync`** — inaczej lokalne sprzątanie po 7 dniach
   kasowałoby też kopie na Drive.
-- **`/backups/milestones`** — zrzuty ręczne przed ryzykowną operacją (Migrate na
-  prawdziwych danych, major Postgresa). Nie czyści ich nic, ani lokalnie, ani na Drive.
+- **`/backups/milestones`** — zrzuty ręczne przed ryzykowną operacją (Deploy z nową
+  migracją na prawdziwych danych, major Postgresa). Nie czyści ich nic, ani lokalnie, ani na Drive.
 - **Alarm przez healthchecks.io** (`/etc/abc-backup.env`, `HEALTHCHECK_URL`):
   start, sukces albo `/fail`. Cisza = awaria. Bez skonfigurowanego Drive przebieg
   robi kopie lokalne i **kończy się błędem** — brak kopii poza serwerem ma być widać.
@@ -1380,7 +1406,8 @@ poczty, więc przejęcie jej niczego nie odcina.
   wersji tego projektu jest plik `VERSION`.
 - **Deploy nie jest automatyczny.** Tylko `workflow_dispatch`. Wdrożenie na
   maszynę klienta to decyzja, nie skutek uboczny merge'a.
-- **Migracje nie są częścią deployu** — patrz wyżej.
+- **Migracje są częścią deployu, ale tylko w górę** — patrz „Migracje
+  schematu”.
 - **Nie ma drugiego obrazu z narzędziami.** Świadomie, z powodu dysku.
 
 ---
