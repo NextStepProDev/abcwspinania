@@ -1412,6 +1412,12 @@ poczty, więc przejęcie jej niczego nie odcina.
 - **Migracje są częścią deployu, ale tylko w górę** — patrz „Migracje
   schematu”.
 - **Nie ma drugiego obrazu z narzędziami.** Świadomie, z powodu dysku.
+- **Nie ma szablonu PR-a** (`.github/pull_request_template.md`, usunięty
+  13.10.2026). GitHub wklejał go do każdego opisu, a opis i tak przychodzi
+  gotowy, więc szablon był tylko do kasowania. Jego lista kontrolna niczego
+  nie wymuszała: lint, format, typy, testy, build i audyt to bramki CI,
+  a reszta (typy i migracje, obraz arm64, Node w `ci.yml`, wpis tutaj) jest
+  opisana w tym pliku.
 
 ---
 
