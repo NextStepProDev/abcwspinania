@@ -15,11 +15,9 @@ and they should not ship inside the application image.
 
 - **Header:** the sign alone (lozenge + climber) next to the name set in the
   site's type. The full logo would be too small to read at that height.
-- **Home page hero:** the full logo standing BEHIND the rock in the photo,
-  from `xl` up (`web/src/components/HeroSign.tsx`, masked by a sky map of that
-  one photo in `web/public/images/hero/`). Below `xl` the rock is out of frame
-  and the logo stands at the section's bottom edge instead. With a different
-  hero photo the scene switches itself off — rule 27 in `CLAUDE.md`.
+- **Home page hero:** below `xl` only, the full logo at the section's bottom
+  edge (`web/src/components/HeroSign.tsx`). From `xl` up the hero has no logo
+  (13.10.2026) — rule 27 in `CLAUDE.md`.
 - **About page:** the full logo as a seal beside the school's age and licence.
 - **Watermark:** the sign, large and pale, behind "Dlaczego instruktor z
   licencją" (home) and "Dlaczego licencja PZA ma znaczenie" (about) —
@@ -64,8 +62,7 @@ has the rights to it is to be confirmed (`ZAKRES.md`).
 ## The "Instruktor PZA" badge
 
 `web/public/images/pza/instruktor-pza.png`, used in the footer beside the
-logo and in the home page hero beside the logo, behind the rock with it
-(`HeroSign.tsx`, `PZA_BADGE`). Added 30.09.2026 at the
+logo (until 13.10.2026 also in the home page hero). Added 30.09.2026 at the
 client's request; whether PZA's rules allow it on the school's site is still
 to be confirmed (`ZAKRES.md`).
 
@@ -73,10 +70,8 @@ Cut from `FB_IMG_1577089284290.jpg` (1762 × 1756, the badge on white), not
 from the 500 px remove.bg preview that came with it: the badge is a clean
 circle, so the background was removed with a circular alpha (supersampled
 edge, 2 px inside the rim to drop the white fringe) and the result scaled to
-800 × 800. `instruktor-pza-440.webp` is a 440 px copy for the hero's SVG
-scene, which bypasses Next's image optimizer (see `PZA_BADGE_SCENE`). If a
-better photo of the badge turns up, redo it the same way, regenerate the copy,
-and give both files new names (rule 13 in `CLAUDE.md`).
+800 × 800. If a better photo of the badge turns up, redo it the same way and
+give the file a new name (rule 13 in `CLAUDE.md`).
 
 ## The Polish Mountaineering Association (PZA) logo
 

@@ -43,8 +43,7 @@ export default async function EnglishPage() {
   ])
   const tel = telHref(siteConfig)
   // The homepage's hero photo (reported 10.10.2026: the English page had only
-  // the drawn backdrop and looked unfinished next to the Polish one). The
-  // logo behind the rock stays a homepage feature (`HeroSign`, rule 27).
+  // the drawn backdrop and looked unfinished next to the Polish one).
   const heroImage = asImage(home?.heroImage)
 
   // With no price there is nothing to show in the table — individually quoted

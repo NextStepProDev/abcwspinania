@@ -161,11 +161,11 @@ Blokują dowiezienie albo mogą wymusić przeróbkę:
    z obozów zgoda rodziców. **Dopóki to nie jest potwierdzone, do galerii wolno
    zaznaczać wyłącznie zdjęcia bez rozpoznawalnych twarzy** (skały, sprzęt,
    ujęcia z daleka). To ta sama sprawa co zgoda autorów opinii z punktu 3.
-8. **Odznaka „Instruktor PZA” na stronie** (od 30.09.2026: stopka i strona
-   główna). To znak Związku; Krzysiek ma licencję instruktorską, ale trzeba
-   potwierdzić, że regulamin PZA pozwala instruktorowi umieścić odznakę na
-   stronie swojej szkoły. Jeśli nie — usunąć ją z `Footer.tsx`
-   i `HeroSign.tsx` (`PZA_BADGE`).
+8. **Odznaka „Instruktor PZA” na stronie** (od 30.09.2026 stopka; ze strony
+   głównej zdjęta 13.10.2026). To znak Związku; Krzysiek ma licencję
+   instruktorską, ale trzeba potwierdzić, że regulamin PZA pozwala
+   instruktorowi umieścić odznakę na stronie swojej szkoły. Jeśli nie —
+   usunąć ją z `Footer.tsx`.
 9. **Zdjęcie w okrągłym logo „Abc 2024”** (góry, wygląda na stockowe) — od
    30.09.2026 prześwituje w nagłówku `/obozy`. Potrzebne potwierdzenie, skąd
    jest i czy szkoła ma do niego prawa. Jeśli nie — usunąć obrazek
