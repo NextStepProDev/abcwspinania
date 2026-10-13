@@ -1,13 +1,14 @@
 name: Migrate
 
-# ŚWIADOMIE OSOBNY, RĘCZNY WORKFLOW — nie część deployu.
+# Migracje schematu na bazie produkcyjnej. Od 13.10.2026 uruchamia je SAM
+# workflow „Deploy" (przez `workflow_call`), przed podmianą aplikacji — ten
+# przycisk zostaje do puszczenia migracji bez wdrażania.
 #
-# Zmiana schematu w bazie z danymi klienta ma być decyzją, a nie skutkiem
-# ubocznym wdrożenia. Kolejność przy zmianie modelu treści:
-#   1. `npm run migrate:create <nazwa>` lokalnie, migracja trafia do repo
-#   2. merge do main → CI buduje obraz
-#   3. TEN workflow → migracja na produkcji
-#   4. workflow „Deploy" → nowy obraz
+# Do 13.10.2026 był to wyłącznie osobny przycisk, żeby zmiana schematu była
+# decyzją, a nie skutkiem ubocznym wdrożenia. Ale Deploy też jest tylko ręczny,
+# więc decyzją jest już samo wdrożenie — a drugi przycisk dało się pominąć:
+# 13.10.2026 wdrożono 0.7.0 bez migracji i panel padał na
+# `relation "broadcasts" does not exist`.
 #
 # DLACZEGO TUNEL SSH, a nie `docker compose run` na serwerze:
 # obraz produkcyjny to `output: standalone` i waży ~80 MB, bo Turbopack wbudował
@@ -24,6 +25,14 @@ on:
         description: Wpisz "migruj", żeby potwierdzić zmianę schematu bazy produkcyjnej
         required: true
         default: ''
+  # Wołany przez Deploy. Sekrety przychodzą przez `secrets: inherit`, a kod
+  # z tego samego commita co wywołujący Deploy — czyli z tego, z którego
+  # Deploy czyta VERSION.
+  workflow_call:
+    inputs:
+      confirm:
+        type: string
+        required: true
 
 jobs:
   migrate:

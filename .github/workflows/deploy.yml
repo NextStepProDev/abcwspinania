@@ -2,8 +2,19 @@ name: Deploy
 
 # Wyłącznie ręcznie. Wdrożenie na maszynę klienta nie ma się dziać samo przy
 # każdym merge'u — to decyzja, a nie skutek uboczny.
-# UWAGA: gdy zmienił się model treści, NAJPIERW uruchom workflow „Migrate",
-# dopiero potem ten. Deploy świadomie nie dotyka schematu bazy.
+#
+# Trzy joby, w tej kolejności (od 13.10.2026):
+#   1. prepare — konfiguracja na serwer i `pull` NOWEGO obrazu, bez podmiany.
+#      Pull idzie przed migracją, bo migracja bez obrazu (Deploy kliknięty,
+#      zanim CI go zbudował) zostawiłaby nowy schemat pod starą aplikacją.
+#   2. migrate — workflow „Migrate" (migrate.yml), z tego samego commita.
+#      Padnie — `release` się nie odpala, stara wersja działa dalej.
+#   3. release — `up -d`, przeładowanie nginx, zdrowie, smoke test.
+#
+# Z jawnie podaną wersją (np. powrót do starszej) migracje są POMIJANE: kod
+# z tego commita nie musi pasować do wskazanego obrazu. Migracje w dół nie
+# idą nigdy same — po powrocie baza zostaje w nowszym schemacie (CLAUDE.md,
+# „Migracje schematu").
 on:
   workflow_dispatch:
     inputs:
@@ -13,8 +24,10 @@ on:
         default: ''
 
 jobs:
-  deploy:
+  prepare:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -34,6 +47,9 @@ jobs:
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Wdrażam wersję: $VERSION"
+          if [ -n "${{ inputs.version }}" ]; then
+            echo "Wersja podana ręcznie — migracje POMINIĘTE. Potrzebne? Workflow Migrate."
+          fi
 
       - name: Encode config files
         id: cfg
@@ -47,7 +63,7 @@ jobs:
             echo "backupsetup=$(base64 -w 0 deploy/setup-backups.sh)"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Deploy to production VM
+      - name: Upload config and pull image
         uses: appleboy/ssh-action@v1
         env:
           COMPOSE_B64: ${{ steps.cfg.outputs.compose }}
@@ -84,13 +100,6 @@ jobs:
             sudo -n bash "$DEPLOY_PATH/backup/setup-backups.sh" "$DEPLOY_PATH/backup" \
               || echo "UWAGA: instalacja kopii zapasowych nie powiodła się — sprawdź log powyżej"
             cd "$DEPLOY_PATH"
-            # Utrwal rozwiązaną wersję w .env na serwerze, żeby późniejsze RĘCZNE
-            # `docker compose pull/up -d` użyło tego samego taga, a nie starego pinu.
-            if grep -q '^VERSION=' .env; then
-              sed -i "s/^VERSION=.*/VERSION=${VERSION}/" .env
-            else
-              echo "VERSION=${VERSION}" >> .env
-            fi
 
             # ⚠️ SPRZĄTANIE MUSI IŚĆ PRZED PULLEM. Nowe obrazy nie mieszczą się
             # na dysku obok wszystkich poprzednich, a pull przerwany na braku
@@ -120,7 +129,48 @@ jobs:
             docker image prune -f || true
             df -h / | tail -1
 
-            docker compose -f docker-compose.prod.yml pull
+            # Tag z ZMIENNEJ, nie z .env: zmienna powłoki wygrywa z .env,
+            # a .env dostaje nową wersję dopiero w `release`, po migracji.
+            # Padnie migracja — ręczne `up -d` nadal postawi starą wersję.
+            VERSION="$VERSION" docker compose -f docker-compose.prod.yml pull
+
+  migrate:
+    needs: prepare
+    if: inputs.version == ''
+    uses: ./.github/workflows/migrate.yml
+    with:
+      confirm: migruj
+    secrets: inherit
+
+  release:
+    needs: [prepare, migrate]
+    # `!cancelled()`, bo pominięty `migrate` (wersja podana ręcznie) bez tego
+    # pominąłby też ten job. Błąd migracji nadal go zatrzymuje.
+    if: >-
+      !cancelled() && needs.prepare.result == 'success'
+      && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start new version
+        uses: appleboy/ssh-action@v1
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: VERSION,DEPLOY_PATH
+          script: |
+            set -euo pipefail
+            cd "$DEPLOY_PATH"
+            # Utrwal rozwiązaną wersję w .env na serwerze, żeby późniejsze RĘCZNE
+            # `docker compose pull/up -d` użyło tego samego taga, a nie starego pinu.
+            if grep -q '^VERSION=' .env; then
+              sed -i "s/^VERSION=.*/VERSION=${VERSION}/" .env
+            else
+              echo "VERSION=${VERSION}" >> .env
+            fi
             docker compose -f docker-compose.prod.yml up -d
             # nginx.conf jest montowany z hosta, więc samo `up -d` go nie
             # przeładuje, gdy tag obrazu się nie zmienił. Sprawdź i przeładuj jawnie.
