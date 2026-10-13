@@ -1483,6 +1483,19 @@ Od 06.10.2026 (ZAKRES pkt 10). Scenariusz: `docs/testy-reczne.html` — źródł
 PDF-a (Chrome headless, `--print-to-pdf --no-pdf-header-footer`; PDF poza
 repo). **Zmieniasz funkcję — zmień jej kroki w tym samym commicie.**
 
+- **Pisany głosem Mateusza, dla Krzyśka** (od 13.10.2026): bez kratek do
+  zaznaczania — błąd od razu na WhatsApp, blokujący zatrzymuje test do
+  naprawy. Część techniczna (P, Z) to dodatek na końcu.
+- **Hasło kont testowych i skrzynka testera są w PDF-ie, NIE w pliku.**
+  W HTML-u stoją `{{HASLO_TESTOWE}}` i `{{SKRZYNKA}}` (część `TEST_INBOX`
+  przed @); PDF robi się z kopii w scratchpadzie z podstawionymi wartościami
+  (repo jest publiczne, to wartości sekretów `TEST_PASSWORD` i `TEST_INBOX`).
+  **`TEST_PASSWORD` musi być INNE niż `LOCAL_PASSWORD` w `seed-test.ts`** —
+  tamto jest jawne. Konto panelu Krzyśka startuje z hasłem spoza repo
+  i zmienia je przy pierwszym logowaniu.
+- **Maile w rundzie Krzyśka idą do obu**: `TEST_INBOX` i `ADMIN_NOTIFY_EMAIL`
+  zostają Gmailem Mateusza, a filtr Gmaila przekazuje wszystko od
+  `zapisy@szkolawspinaczkowa.pl` na `biuro@abcwspinania.info` (krok Z4).
 - Dane: `TEST_INBOX=ty@gmail.com npm run seed:test` (`web/scripts/seed-test.ts`).
   Każdy adres to alias jednej skrzynki (`ty+abctest-ola@gmail.com`), więc
   konta są osobne, a maile — prawdziwe, przez Brevo — trafiają do testera.

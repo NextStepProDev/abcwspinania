@@ -27,7 +27,7 @@
  *   - creates NO panel account — a known password to the school's panel in a
  *     public repo would be an open door; testers use their own panel accounts;
  *   - takes the password from `TEST_PASSWORD` (a repository secret), never
- *     the constant below;
+ *     the constant below — and refuses a secret EQUAL to it (it is public);
  *   - prints no address and no token: the repository is public, and so are
  *     the workflow's logs. Ewa's expired link is therefore local only.
  *
@@ -60,11 +60,19 @@ if (at < 1 || inbox.includes('+')) {
 }
 
 const TAG = '+abctest-'
-/** The local test password — printed in the scenario. Production takes `TEST_PASSWORD`. */
+/** The local test password — PUBLIC, it is in this file. Production takes `TEST_PASSWORD`. */
 const LOCAL_PASSWORD = 'Testy-ABC-2026'
 const PASSWORD = onProduction ? (process.env.TEST_PASSWORD ?? '') : LOCAL_PASSWORD
 if (PASSWORD.length < 10) {
   throw new Error('Set TEST_PASSWORD (at least 10 characters) — the password of the test accounts.')
+}
+// The repository is public: this password on production means test accounts
+// anyone can log into — and Krzysiek's panel account starts with the same
+// password as the test accounts (docs/testy-reczne.html, step Z5).
+if (onProduction && PASSWORD === LOCAL_PASSWORD) {
+  throw new Error(
+    'TEST_PASSWORD must differ from the local password in seed-test.ts — that one is public.',
+  )
 }
 /** Shown on the public schedule next to the date — on production real visitors see it too. */
 const SESSION_NOTE = 'TERMIN TESTOWY — nie zapisuj się'
