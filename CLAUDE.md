@@ -208,10 +208,13 @@ przycisk niczego nie chronił, dawał się tylko pominąć.
 
 - **Kolejność w `deploy.yml`: `prepare` (pull) → `migrate` → `release`
   (`up -d`).** Pull przed migracją: Deploy kliknięty, zanim CI zbudował
-  obraz, pada na pullu, zanim ruszy bazę. Migracja padnie — `release` się
-  nie odpala i działa stara wersja na starym schemacie. Nowa wersja trafia
-  do `deploy/.env` dopiero w `release`, więc ręczne `up -d` po nieudanej
-  migracji też postawi starą.
+  obraz, pada na pullu, zanim ruszy bazę — o ile `VERSION` jest podbite
+  (inaczej pull znajdzie stary obraz pod tym samym tagiem). Po pullu
+  `prepare` stawia sam kontener bazy (`up -d --wait postgres`): na nowym
+  serwerze nie działa nic, a migracja idzie tunelem do bazy. Migracja
+  padnie — `release` się nie odpala i działa stara wersja na starym
+  schemacie. Nowa wersja trafia do `deploy/.env` dopiero w `release`, więc
+  ręczne `up -d` po nieudanej migracji też postawi starą.
 - **Migracje biorą kod z commita, z którego uruchomiono Deploy** — tego
   samego, z którego Deploy czyta `VERSION`. Z jawnie podaną wersją (powrót
   do starszej, tag `sha-…`) migracje są **pomijane**, bo kod z `main` nie

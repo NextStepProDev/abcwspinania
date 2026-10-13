@@ -7,6 +7,8 @@ name: Deploy
 #   1. prepare — konfiguracja na serwer i `pull` NOWEGO obrazu, bez podmiany.
 #      Pull idzie przed migracją, bo migracja bez obrazu (Deploy kliknięty,
 #      zanim CI go zbudował) zostawiłaby nowy schemat pod starą aplikacją.
+#      Chroni to tylko przy PODBITYM `VERSION`: bez podbicia pull znajdzie
+#      stary obraz pod tym samym tagiem. Na końcu joba startuje sama baza.
 #   2. migrate — workflow „Migrate" (migrate.yml), z tego samego commita.
 #      Padnie — `release` się nie odpala, stara wersja działa dalej.
 #   3. release — `up -d`, przeładowanie nginx, zdrowie, smoke test.
@@ -133,6 +135,15 @@ jobs:
             # a .env dostaje nową wersję dopiero w `release`, po migracji.
             # Padnie migracja — ręczne `up -d` nadal postawi starą wersję.
             VERSION="$VERSION" docker compose -f docker-compose.prod.yml pull
+            # Migracja idzie tunelem do bazy, więc baza musi działać, zanim ruszy
+            # `migrate`. Na nowym serwerze (pierwsze uruchomienie, RESTORE.md
+            # sekcja 8) nie działa nic — bez tej linii migracja padałaby, a z nią
+            # `release`, który dopiero stawia kontenery. Na działającym serwerze
+            # nic nie robi — chyba że nowy compose zmienił usługę bazy albo pull
+            # przyniósł nowszy `postgres:18-alpine` (tag pływający, łatki): wtedy
+            # baza restartuje się już tutaj (kilka sekund), a nie w `release`.
+            # Aplikacji nie rusza (to ona zależy od bazy, nie odwrotnie).
+            docker compose -f docker-compose.prod.yml up -d --wait postgres
 
   migrate:
     needs: prepare
