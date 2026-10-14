@@ -505,7 +505,7 @@ export interface Booking {
   label?: string | null;
   session: number | Session;
   /**
-   * „Lista rezerwowa” i „rezygnacja” nie zajmują miejsca. Zmiana na „potwierdzony”, „opłacony” lub „rezygnacja” wysyła kursantowi maila.
+   * „Lista rezerwowa” i „rezygnacja” nie zajmują miejsca. Zmiana na „potwierdzony” lub „rezygnacja” wysyła kursantowi maila; na „opłacony” — tylko przed pierwszym dniem kursu.
    */
   status: 'new' | 'confirmed' | 'deposit' | 'paid' | 'waitlist' | 'cancelled';
   firstName: string;

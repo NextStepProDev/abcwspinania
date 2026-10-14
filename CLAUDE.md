@@ -1002,6 +1002,13 @@ i `lib/bookingEffects.ts` (skutki uboczne).
   zasady zaliczek są do ustalenia) i do Krzyśka; przy zmianie statusu
   w panelu na potwierdzony / opłacony / rezygnacja — do kursanta
   (`statusEmailFor`). Każdy mail osobno po zapisie, błąd nie cofa zapisu.
+- **„Opłacony” wysyła maila tylko PRZED pierwszym dniem kursu** (od
+  14.10.2026, `courseStarted` — dzień w czasie polskim). Większość płaci
+  gotówką pierwszego dnia, a Krzysiek zaznacza to w trakcie albo po kursie —
+  „Płatność zaksięgowana” po kursie dziwiła. Status kursant widzi w „Moim
+  koncie”. Hook zapisu doczytuje termin (`joins: false`); nieudany odczyt =
+  mail jak dawniej. Lista w panelu ładuje wiersze bez terminu (`depth: 0`),
+  więc jej pytanie przy „opłacony” mówi „jeśli kurs jeszcze się nie zaczął”.
 - **Mail do kursanta, który nie wyszedł, zostaje odnotowany w zapisie**
   (`recordEmailIssue`, od 03.10.2026): pola „Mail, który nie doszedł” (co
   i dlaczego, po ludzku — `emailFailureReason`), data i „Załatwione”; kafelek

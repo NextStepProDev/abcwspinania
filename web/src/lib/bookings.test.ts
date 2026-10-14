@@ -79,6 +79,34 @@ test('the participant is told about confirmation, payment and cancellation only'
   assert.equal(statusEmailFor('cancelled', 'cancelled'), null)
 })
 
+test('"paid" emails only before the course starts — cash on the first day gets no email', () => {
+  // A session from 20 October, stored the way the panel stores Polish
+  // midnight (22:00 UTC the day before) and as plain UTC midnight.
+  for (const start of ['2026-10-19T22:00:00.000Z', '2026-10-20T00:00:00.000Z']) {
+    // The evening before (Polish time): still before the course.
+    assert.equal(
+      statusEmailFor('confirmed', 'paid', start, new Date('2026-10-19T19:00:00Z')),
+      'paid',
+    )
+    // 00:30 on the first day in Poland (22:30 UTC the day before): started.
+    assert.equal(statusEmailFor('confirmed', 'paid', start, new Date('2026-10-19T22:30:00Z')), null)
+    // During and after the course: started.
+    assert.equal(statusEmailFor('deposit', 'paid', start, new Date('2026-10-21T10:00:00Z')), null)
+    assert.equal(statusEmailFor('deposit', 'paid', start, new Date('2026-11-05T10:00:00Z')), null)
+  }
+})
+
+test('only "paid" depends on the start — confirmation and cancellation always email', () => {
+  const started = { start: '2026-10-20T00:00:00.000Z', now: new Date('2026-10-21T10:00:00Z') }
+  assert.equal(statusEmailFor('new', 'confirmed', started.start, started.now), 'confirmed')
+  assert.equal(statusEmailFor('confirmed', 'cancelled', started.start, started.now), 'cancelled')
+})
+
+test('without a known start, "paid" still counts as emailing — the safe side for the question', () => {
+  assert.equal(statusEmailFor('confirmed', 'paid', null), 'paid')
+  assert.equal(statusEmailFor('confirmed', 'paid', 'not a date'), 'paid')
+})
+
 // --- dates in emails ---------------------------------------------------------
 
 test('session dates read naturally in both languages', () => {

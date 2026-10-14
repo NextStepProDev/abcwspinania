@@ -83,7 +83,7 @@
   <ul>
     <li><b>Ludzie zapisują się na kursy sami, przez stronę.</b> Ty dostajesz maila o każdym zapisie, a zgłoszenie czeka w panelu.</li>
     <li><b>Zgłoszenie nie jest wiążące.</b> To Ty decydujesz: potwierdzasz miejsce, przyjmujesz zaliczkę, wpisujesz opłatę — zmieniając <b>status</b> zapisu.</li>
-    <li><b>Część statusów sama wysyła kursantowi maila</b> („potwierdzony”, „opłacony”, „rezygnacja”). Tych maili nie piszesz ręcznie, a panel pyta, zanim jakiś wyśle.</li>
+    <li><b>Część statusów sama wysyła kursantowi maila</b> („potwierdzony”, „rezygnacja”, a „opłacony” tylko przed pierwszym dniem kursu — rozdział 6) — nie piszesz go ręcznie, wychodzi w chwili zmiany statusu. Zmieniasz status z listy „Zapisy” — panel najpierw zapyta, czy na pewno. W otwartym zapisie nie pyta: mail wyjdzie po „Zapisz”. Zapis bez adresu e-mail (np. telefoniczny) nie dostaje maila nigdy — wtedy panel też nie pyta.</li>
     <li><b>Wolne miejsca liczą się same.</b> Gdy termin się zapełni, kolejne osoby trafiają na listę rezerwową, a gdy miejsce się zwolni — dostajesz maila z tą listą.</li>
     <li><b>Możesz napisać do wszystkich zapisanych na termin</b>, do wszystkich z nadchodzącymi kursami albo do newslettera — w zakładce <span class="ui">Wysyłki</span>.</li>
     <li><b>Jeśli jakiś mail do kursanta nie dojdzie, panel Ci o tym powie</b> — na pulpicie pojawi się kafelek „Maile, które nie doszły”.</li>
@@ -126,6 +126,8 @@
     <li>Jeśli <b>nie ma konta</b> — może zaznaczyć „Załóż mi konto z tych danych”. Dostanie wtedy maila z linkiem do ustawienia hasła.</li>
     <li>Na terminie bez wolnych miejsc formularz od razu mówi „brak miejsc — lista rezerwowa”.</li>
   </ul>
+  <div class="box do"><strong>Zapisy bez konta nie przepadają.</strong>
+  Jeśli ktoś zapisze się raz czy kilka razy bez konta, a kiedyś założy konto na <b>ten sam adres e-mail</b>, wszystkie te zapisy same przypną się do jego konta — zobaczy je w „Moich zapisach”, także te z minionych kursów. Dzieje się to dopiero, gdy potwierdzi adres (kliknie link z maila), więc nikt nie zobaczy cudzych zapisów, wpisując cudzy adres. Wielkie i małe litery w adresie nie mają znaczenia, ale literówka tak — zapis z błędnym adresem się nie przypnie.</div>
   <figure class="narrow"><img src="instrukcja-zapisy/zapis.jpg" alt=""><figcaption>Formularz zapisu (widok bez logowania).</figcaption></figure>
 
   <h3>Co dzieje się po kliknięciu „Zapisz się”</h3>
@@ -163,13 +165,13 @@
     <li>Sprawdź osobę i jej uwagi. Jeśli trzeba — zadzwoń (telefon jest na liście).</li>
     <li>Zmień status na „potwierdzony”. Kursant dostanie maila, że ma miejsce.</li>
     <li>Szczegóły płatności wyślij kursantowi sam (mailem albo SMS-em) — mail o potwierdzeniu mówi tylko, że szczegóły płatności przyjdą osobno.</li>
-    <li>Gdy wpłynie zaliczka — status „zaliczka wpłacona”. Gdy całość — „opłacony” (kursant dostanie maila z podziękowaniem).</li>
+    <li>Gdy wpłynie zaliczka — status „zaliczka wpłacona”. Gdy całość — „opłacony”. Przed kursem kursant dostanie maila „Płatność zaksięgowana”; od pierwszego dnia kursu mail już nie wychodzi (rozdział 6).</li>
   </ol>
   <h3>Najszybciej: status prosto z listy</h3>
   <p>Na liście <span class="ui">Zapisy</span> status każdej osoby to rozwijana lista. Wybierasz nowy i gotowe — nie trzeba wchodzić w zapis ani nic zapisywać.</p>
   <figure><img src="instrukcja-zapisy/zapisy-lista.jpg" alt=""><figcaption>Lista zapisów — status zmienisz bezpośrednio w kolumnie „Status”.</figcaption></figure>
   <div class="box warn"><strong>Panel pyta, zanim wyśle maila.</strong>
-  Przy zmianie na status, który wysyła kursantowi maila, pojawia się okienko „Zmienić status na „potwierdzony”? Kursant dostanie maila.” — to zabezpieczenie przed kliknięciem w zły wiersz. Kliknij <span class="ui">OK</span>, żeby zmienić, albo <span class="ui">Anuluj</span>, żeby nic się nie stało. Jeśli wybierzesz status, który zapis już ma, okienka nie będzie — nic się nie zmienia, więc i mail nie wychodzi.</div>
+  Przy zmianie na status, który wysyła kursantowi maila, pojawia się okienko „Zmienić status na „potwierdzony”? Kursant dostanie maila.” — to zabezpieczenie przed kliknięciem w zły wiersz. Przy „opłacony” pytanie brzmi „…Jeśli kurs jeszcze się nie zaczął, kursant dostanie maila.” — lista nie wie, czy kurs już trwa; panel sprawdzi to sam po kliknięciu <span class="ui">OK</span>. Kliknij <span class="ui">OK</span>, żeby zmienić, albo <span class="ui">Anuluj</span>, żeby nic się nie stało. Jeśli wybierzesz status, który zapis już ma, okienka nie będzie — nic się nie zmienia, więc i mail nie wychodzi.</div>
 </section>
 
 <section>
@@ -177,7 +179,7 @@
   <p>Kliknięcie w nazwisko otwiera cały zapis: dane kontaktowe, uwagi kursanta i pole <b>Notatki szkoły</b> — tam możesz zapisać cokolwiek dla siebie (kursant tego nie widzi). Po zmianach kliknij <span class="ui">Zapisz</span> w prawym górnym rogu.</p>
   <figure><img src="instrukcja-zapisy/zapis-otwarty.jpg" alt=""><figcaption>Zapis otwarty w panelu.</figcaption></figure>
   <div class="box warn"><strong>Uwaga:</strong>
-  w otwartym zapisie panel nie pyta o potwierdzenie — jeśli zmienisz tam status na „potwierdzony”, „opłacony” albo „rezygnacja”, mail wyjdzie po kliknięciu <span class="ui">Zapisz</span>.</div>
+  w otwartym zapisie panel nie pyta o potwierdzenie — jeśli zmienisz tam status na „potwierdzony”, „opłacony” (przed kursem) albo „rezygnacja”, mail wyjdzie po kliknięciu <span class="ui">Zapisz</span>.</div>
 
   <h2>6. Statusy zapisu i maile do kursanta</h2>
   <table>
@@ -185,11 +187,18 @@
     <tr><td><b>zgłoszony</b></td><td>ustawia się sam po zapisie przez stronę</td><td>tak</td><td>— (dostał już „Przyjęliśmy zgłoszenie”)</td></tr>
     <tr><td><b>potwierdzony</b></td><td>gdy potwierdzasz miejsce</td><td>tak</td><td>tak — „Miejsce potwierdzone”</td></tr>
     <tr><td><b>zaliczka wpłacona</b></td><td>po wpłacie zaliczki</td><td>tak</td><td>nie</td></tr>
-    <tr><td><b>opłacony</b></td><td>po wpłacie całości</td><td>tak</td><td>tak — „Płatność zaksięgowana”</td></tr>
+    <tr><td><b>opłacony</b></td><td>po wpłacie całości</td><td>tak</td><td><b>tylko przed kursem</b> — „Płatność zaksięgowana”; od pierwszego dnia kursu bez maila</td></tr>
     <tr><td><b>lista rezerwowa</b></td><td>ustawia się sam, gdy brak miejsc</td><td>nie</td><td>— (dostał już „Lista rezerwowa”)</td></tr>
     <tr><td><b>rezygnacja</b></td><td>gdy ktoś rezygnuje albo odwołujesz zapis</td><td>nie — zwalnia miejsce</td><td>tak — „Zapis anulowany”</td></tr>
   </table>
   <p>Maile idą w języku kursanta — po polsku albo po angielsku (rozdział 16). Na każdego z nich kursant może po prostu odpowiedzieć, a odpowiedź trafi do Ciebie.</p>
+  <div class="box do"><strong>„Opłacony” w dniu kursu albo po nim — bez maila.</strong>
+  Większość osób płaci na miejscu, pierwszego dnia kursu, a status zmieniasz w trakcie albo po kursie. Mail „Płatność zaksięgowana” przyszedłby wtedy, gdy kurs już trwa albo się skończył — a ta osoba dała Ci pieniądze do ręki, więc taki mail tylko by ją zdziwił. Dlatego:
+  <ul style="margin:4pt 0 4pt">
+    <li><b>przed pierwszym dniem kursu</b> (np. ktoś zapłacił przelewem) — „opłacony” wysyła maila: kursant ma potwierdzenie, że pieniądze doszły;</li>
+    <li><b>od pierwszego dnia kursu</b> — status się zmienia, ale <b>mail nie wychodzi</b>. Nic nie musisz zaznaczać ani pamiętać — panel sprawdza datę sam.</li>
+  </ul>
+  Kursant z kontem i tak widzi status swojego zapisu w „Moim koncie” — także „opłacone”. Liczy się dzień w Polsce: od północy pierwszego dnia kursu mail już nie wyjdzie.</div>
   <div class="box do"><strong>Rezygnacja zamiast usuwania.</strong>
   Gdy ktoś się wycofa, ustaw „rezygnacja” zamiast kasować zapis — zostaje ślad w historii, a miejsce i tak się zwalnia.</div>
 </section>
@@ -222,7 +231,7 @@
   <ul>
     <li><b>Przy dodawaniu ręcznym nie wychodzą żadne maile</b> — ani do kursanta, ani do Ciebie. Umówiliście się osobiście, więc oboje już wiecie.</li>
     <li><b>Bez adresu e-mail ta osoba nie dostaje nic, nigdy</b>: ani maili o zmianie statusu, ani wysyłek. Panel nie pyta wtedy przy zmianie statusu, bo nie ma do kogo pisać.</li>
-    <li><b>Jeśli adres wpiszesz</b>, późniejsze zmiany statusu (np. na „opłacony”) wysyłają maila jak przy każdym zapisie.</li>
+    <li><b>Jeśli adres wpiszesz</b>, późniejsze zmiany statusu (np. na „potwierdzony”) wysyłają maila jak przy każdym zapisie — „opłacony” tylko przed kursem (rozdział 6).</li>
   </ul>
 </section>
 
@@ -304,7 +313,7 @@
   </ol>
   <div class="box do"><strong>Dlaczego nie ma przycisku „wyślij ponownie”?</strong>
   Bo najczęstszą przyczyną jest literówka w adresie (np. <code>gmial.com</code>) — drugi mail na ten sam zły adres też nie dojdzie. Telefon jest w każdym zapisie, więc najpewniej jest zadzwonić i przy okazji poprawić adres. Gdyby przyczyną był limit maili, treść i tak przekażesz szybciej sam.</div>
-  <p>Dotyczy to maili: potwierdzenie zapisu, lista rezerwowa, zmiana statusu (potwierdzony, opłacony, rezygnacja) i link do ustawienia hasła przy zakładaniu konta. Wysyłki z zakładki <span class="ui">Wysyłki</span> mają własną tabelę „Odbiorcy” z błędami (rozdział 10). Gdy skończy się dzienny limit, wysyłka sama się wstrzyma i dokończy, gdy limit się odnowi.</p>
+  <p>Dotyczy to maili: potwierdzenie zapisu, lista rezerwowa, zmiana statusu (potwierdzony, opłacony przed kursem, rezygnacja) i link do ustawienia hasła przy zakładaniu konta. Wysyłki z zakładki <span class="ui">Wysyłki</span> mają własną tabelę „Odbiorcy” z błędami (rozdział 10). Gdy skończy się dzienny limit, wysyłka sama się wstrzyma i dokończy, gdy limit się odnowi.</p>
 
   <h2>13. Konta uczestników</h2>
   <p>Kursanci mogą założyć konto na stronie (ikonka osoby w nagłówku albo przy zapisie). Konto daje im szybszy zapis — bez wpisywania danych — i podgląd swoich zapisów w Moim koncie.</p>

@@ -116,10 +116,27 @@ export const Bookings: CollectionConfig = {
         }
 
         if (operation !== 'update' || context.skipStatusEmail) return doc
-        const status = statusEmailFor(
-          previousDoc?.status as BookingStatus | undefined,
-          doc.status as BookingStatus,
-        )
+        const previousStatus = previousDoc?.status as BookingStatus | undefined
+        let status = statusEmailFor(previousStatus, doc.status as BookingStatus)
+        // "Paid" emails only before the course starts (`statusEmailFor`), so
+        // that one needs the session's first day. `joins: false` — the
+        // session's join carries every participant's data.
+        if (status === 'paid' && sessionId) {
+          // A failed read must not fail the save: without the start the
+          // email goes, as it did before this rule.
+          const session = await req.payload
+            .findByID({
+              collection: 'sessions',
+              id: sessionId,
+              depth: 0,
+              joins: false,
+              overrideAccess: true,
+              disableErrors: true,
+              req,
+            })
+            .catch(() => null)
+          status = statusEmailFor(previousStatus, doc.status as BookingStatus, session?.startDate)
+        }
         if (!status) return doc
         try {
           await sendStatusEmail(req.payload, doc, status, req)
@@ -173,7 +190,7 @@ export const Bookings: CollectionConfig = {
         // A select in the list itself — see the component.
         components: { Cell: '/components/admin/BookingStatusCell#BookingStatusCell' },
         description:
-          '„Lista rezerwowa” i „rezygnacja” nie zajmują miejsca. Zmiana na „potwierdzony”, „opłacony” lub „rezygnacja” wysyła kursantowi maila.',
+          '„Lista rezerwowa” i „rezygnacja” nie zajmują miejsca. Zmiana na „potwierdzony” lub „rezygnacja” wysyła kursantowi maila; na „opłacony” — tylko przed pierwszym dniem kursu.',
       },
     },
     {

@@ -103,14 +103,39 @@ export type StatusEmail = 'confirmed' | 'paid' | 'cancelled'
  * participant (they have a place, they are paid up, they are out). A deposit
  * gets no email of its own: it is followed by the payment, and the payment
  * by an email.
+ *
+ * "Paid" emails only BEFORE the course starts (decided 14.10.2026). Most
+ * people pay cash on the first day, and Krzysiek marks it during or after
+ * the course — a "thank you, paid" arriving then reads like a mistake. Paid
+ * by transfer before the course, it confirms the money arrived. The
+ * participant sees the status in "Moje konto" either way. Without a known
+ * start (`sessionStart` missing — the panel's list does not have it) "paid"
+ * counts as emailing: the question before the change stays on the safe side.
  */
 export function statusEmailFor(
   previous: BookingStatus | null | undefined,
   next: BookingStatus,
+  sessionStart?: string | null,
+  now: Date = new Date(),
 ): StatusEmail | null {
   if (previous === next) return null
+  if (next === 'paid' && sessionStart && courseStarted(sessionStart, now)) return null
   if (next === 'confirmed' || next === 'paid' || next === 'cancelled') return next
   return null
+}
+
+const polishDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw' })
+
+/**
+ * Whether the course's first day has come, as a calendar day IN POLAND. The
+ * panel stores a date as Polish midnight (22:00 or 23:00 UTC the day before)
+ * or as UTC midnight; both fall on the right day in Polish time, so comparing
+ * Polish dates (`YYYY-MM-DD`, which sorts as text) covers either.
+ */
+export function courseStarted(sessionStart: string, now: Date): boolean {
+  const start = Date.parse(sessionStart)
+  if (Number.isNaN(start)) return false
+  return polishDay.format(now) >= polishDay.format(start)
 }
 
 const MONTHS_EN = [
