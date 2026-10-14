@@ -34,13 +34,6 @@ function oneLine(value: string): string {
   return value.replace(/\s*[\r\n]+\s*/g, ' ').trim()
 }
 
-/** Krzysiek's note on the person's language, empty for Polish. */
-function languageNote(lang: EmailLanguage | null | undefined): string | undefined {
-  return lang === 'en'
-    ? 'Ta osoba ma przeglądarkę po angielsku — odpowiedz po angielsku.'
-    : undefined
-}
-
 export interface NewMessageData {
   name: string
   email: string
@@ -49,7 +42,6 @@ export interface NewMessageData {
   topic?: string | null
   preferredDate?: string | null
   courseTitle?: string | null
-  language?: EmailLanguage | null
   /** Where the message opens in the panel. */
   adminUrl: string
 }
@@ -69,15 +61,13 @@ export function newMessageNotification(data: NewMessageData): Email {
 
   const intro =
     'Ktoś napisał przez formularz kontaktowy na stronie. Odpowiedź na ten mail trafi wprost do tej osoby.'
-  const note = languageNote(data.language)
-
   return {
     subject: oneLine(`Nowa wiadomość: ${data.name}${topic ? ` — ${topic}` : ''}`),
     ...renderEmail({
       lang: 'pl',
       preheader: data.message.slice(0, 120),
       heading: 'Nowa wiadomość z formularza',
-      paragraphs: note ? [intro, note] : [intro],
+      paragraphs: [intro],
       details,
       action: { label: 'Otwórz w panelu', href: data.adminUrl },
     }),
@@ -397,7 +387,6 @@ export interface NewBookingData {
   notes?: string | null
   waitlist: boolean
   hasAccount: boolean
-  language?: EmailLanguage | null
   adminUrl: string
 }
 
@@ -415,7 +404,6 @@ export function newBookingNotification(data: NewBookingData): Email {
   const intro = data.waitlist
     ? 'Nowe zgłoszenie na LISTĘ REZERWOWĄ — termin jest pełny.'
     : 'Nowy zapis na kurs. Potwierdź miejsce w panelu — zmiana statusu wyśle kursantowi maila.'
-  const note = languageNote(data.language)
   return {
     subject: oneLine(
       `${data.waitlist ? 'Lista rezerwowa' : 'Nowy zapis'}: ${data.name} — ${data.courseTitle}`,
@@ -423,7 +411,7 @@ export function newBookingNotification(data: NewBookingData): Email {
     ...renderEmail({
       lang: 'pl',
       heading: data.waitlist ? 'Zgłoszenie na listę rezerwową' : 'Nowy zapis na kurs',
-      paragraphs: note ? [intro, note] : [intro],
+      paragraphs: [intro],
       details,
       action: { label: 'Otwórz w panelu', href: data.adminUrl },
     }),

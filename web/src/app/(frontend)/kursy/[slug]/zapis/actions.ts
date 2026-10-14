@@ -227,7 +227,6 @@ export async function bookCourse(
               notes: data.notes.trim() || null,
               waitlist,
               hasAccount: Boolean(booking.customer),
-              language,
               adminUrl: `${publicUrl()}/admin/collections/bookings/${booking.id}`,
             }),
           ),

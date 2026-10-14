@@ -1184,8 +1184,9 @@ Od 01.10.2026 aplikacja wysyła maile przez **Brevo, przez jego HTTP API**
 - **Dwa języki maili do odwiedzających (PL/EN).** Język bierzemy z nagłówka
   `Accept-Language` przy wysłaniu formularza (`pickLanguage()`) i **zapisujemy
   przy zgłoszeniu** (`language`), żeby późniejsze maile szły tym samym
-  językiem bez zgadywania. Maile do szkoły są po polsku, z dopiskiem
-  „odpowiedz po angielsku”, gdy trzeba.
+  językiem bez zgadywania. Maile do szkoły są po polsku, **bez dopisku
+  o języku** (do 14.10.2026 był „odpowiedz po angielsku” — przeglądarka po
+  angielsku to w Polsce częste ustawienie, nie język osoby).
 - **Nagłówek maili: ORYGINALNE logo + nazwa tekstem** (od 12.10.2026,
   `header()` w `layout.ts`). Logo to PDF klienta bez zmian, wyrenderowany do
   `public/logo/email-logo.png` (`design/logo/email_logo.py`) — nie dorysowany
@@ -1494,12 +1495,14 @@ repo). **Zmieniasz funkcję — zmień jej kroki w tym samym commicie.**
   zaznaczania — błąd od razu na WhatsApp, blokujący zatrzymuje test do
   naprawy. Część techniczna (P, Z) to dodatek na końcu.
 - **Hasło kont testowych i skrzynka testera są w PDF-ie, NIE w pliku.**
-  W HTML-u stoją `{{HASLO_TESTOWE}}` i `{{SKRZYNKA}}` (część `TEST_INBOX`
-  przed @); PDF robi się z kopii w scratchpadzie z podstawionymi wartościami
-  (repo jest publiczne, to wartości sekretów `TEST_PASSWORD` i `TEST_INBOX`).
-  **`TEST_PASSWORD` musi być INNE niż `LOCAL_PASSWORD` w `seed-test.ts`** —
-  tamto jest jawne. Konto panelu Krzyśka startuje z hasłem spoza repo
-  i zmienia je przy pierwszym logowaniu.
+  W HTML-u stoją `{{HASLO_TESTOWE}}`, `{{HASLO_PANELU}}` (tymczasowe hasło
+  panelu Krzyśka) i `{{SKRZYNKA}}` (część `TEST_INBOX` przed @); PDF robi
+  się z kopii w scratchpadzie z podstawionymi wartościami (repo jest
+  publiczne, to wartości sekretów `TEST_PASSWORD` i `TEST_INBOX`).
+  `TEST_PASSWORD` może być równe jawnemu `LOCAL_PASSWORD` (decyzja
+  14.10.2026: konta testowe są zmyślone, a skrypt nie zakłada kont panelu).
+  Hasło tymczasowe panelu Krzyśka ma osobny znacznik — zmienia je przy
+  pierwszym logowaniu.
 - **Maile w rundzie Krzyśka idą do obu**: `TEST_INBOX` i `ADMIN_NOTIFY_EMAIL`
   zostają Gmailem Mateusza, a filtr Gmaila przekazuje wszystko od
   `zapisy@szkolawspinaczkowa.pl` na `biuro@abcwspinania.info` (krok Z4).
