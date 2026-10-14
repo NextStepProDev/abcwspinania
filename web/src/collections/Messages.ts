@@ -3,8 +3,8 @@ import type { CollectionConfig } from 'payload'
 import { isAdmin, visitorsOnly } from '../lib/access'
 import { TOPICS_FOR_PAYLOAD } from '../lib/topics'
 import { LANGUAGE_OPTIONS_FOR_PAYLOAD } from '../lib/email/language'
+import { publicUrl } from '../lib/email/links'
 import { newMessageNotification } from '../lib/email/templates'
-import { SITE_URL } from '../lib/site'
 import { MESSAGE_STATUS_OPTIONS } from '../lib/messages'
 
 /**
@@ -65,7 +65,7 @@ export const Messages: CollectionConfig = {
           const email = newMessageNotification({
             ...doc,
             courseTitle,
-            adminUrl: `${SITE_URL}/admin/collections/messages/${doc.id}`,
+            adminUrl: `${publicUrl()}/admin/collections/messages/${doc.id}`,
           })
           await req.payload.sendEmail({
             to,

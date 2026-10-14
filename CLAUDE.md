@@ -843,6 +843,9 @@ zrobi z kursanta administratora. Koszt: zasada 28.
   = obca domena w linku z kodem do zmiany hasła) ani z `SITE_URL` (domena
   docelowa, do przełączenia prowadzi na starą stronę). Zmienna jest czytana
   przy uruchomieniu — przełączenie domeny to zmiana w `deploy/.env`.
+  „Otwórz w panelu” w mailu o wiadomości z formularza brał `SITE_URL`
+  i prowadził na 404 starej strony (14.10.2026) — `email/links.test.ts`
+  pilnuje, że żaden link do `/admin` nie powstaje z `SITE_URL`.
 - **`/api/customers/first-register` zablokowany w nginx** (404). Payload
   wystawia go dla każdej kolekcji z logowaniem i dopóki tabela jest pusta,
   zakłada przez niego konto z pominięciem reguł, od razu potwierdzone.
