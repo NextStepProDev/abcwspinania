@@ -132,9 +132,12 @@ test('an unknown or empty topic leaves the subject bare', () => {
   )
 })
 
-test('the school is told when to answer in English — and only then', () => {
-  assert.match(newMessageNotification({ ...message, language: 'en' }).text, /po angielsku/)
-  assert.doesNotMatch(newMessageNotification({ ...message, language: 'pl' }).text, /po angielsku/)
+test('the school is never told to answer in English — a browser language says nothing', () => {
+  // Messages.ts passes the whole saved row, and that row still has `language`.
+  const savedRow = { ...message, language: 'en' }
+  const email = newMessageNotification(savedRow)
+  assert.doesNotMatch(email.text, /angielsk/)
+  assert.doesNotMatch(email.html, /angielsk/)
 })
 
 test('optional fields appear only when filled in', () => {
@@ -401,13 +404,12 @@ test('the school hears about every booking, with the waiting list flagged', () =
     dates: '4–9 maja 2027',
     notes: 'Mam własną uprząż.',
     adminUrl: 'https://x.pl/admin/collections/bookings/3',
-    language: 'en' as const,
     hasAccount: true,
   }
   const normal = newBookingNotification({ ...base, waitlist: false })
   assert.match(normal.subject, /Nowy zapis: Ola Nowak — Kurs PZA/)
   assert.match(normal.text, /Mam własną uprząż\./)
-  assert.match(normal.text, /po angielsku/)
+  assert.doesNotMatch(normal.text, /angielsk/)
   assert.match(newBookingNotification({ ...base, waitlist: true }).subject, /rezerwow/)
 })
 
@@ -420,7 +422,6 @@ test('a line break in the name cannot reach the booking subject either', () => {
     dates: 'd',
     notes: '',
     adminUrl: 'u',
-    language: 'pl',
     hasAccount: false,
     waitlist: false,
   })
