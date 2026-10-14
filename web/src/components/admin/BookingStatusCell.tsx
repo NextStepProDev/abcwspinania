@@ -27,9 +27,13 @@ export function BookingStatusCell(props: {
       options={BOOKING_STATUS_OPTIONS}
       fallback="new"
       label="Status zapisu"
+      // The list loads rows without their session, so the cell cannot tell
+      // whether the course has started: for "paid" it says when the email goes.
       confirmFor={(from, to) =>
         !noAddress && statusEmailFor(from as BookingStatus, to as BookingStatus)
-          ? `Zmienić status na „${labelOf(to)}”? Kursant dostanie maila.`
+          ? to === 'paid'
+            ? `Zmienić status na „${labelOf(to)}”? Jeśli kurs jeszcze się nie zaczął, kursant dostanie maila.`
+            : `Zmienić status na „${labelOf(to)}”? Kursant dostanie maila.`
           : null
       }
     />
