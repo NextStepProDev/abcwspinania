@@ -1,13 +1,13 @@
 /**
- * Most między aliasem `@/` z tsconfig.json a `node --test`.
+ * A bridge between the `@/` alias from tsconfig.json and `node --test`.
  *
- * Testy odpalamy gołym Node-em (od 24 sam usuwa adnotacje typów z plików .ts),
- * więc nie ma tu bundlera, który rozwiązywałby `@/lib/...`. Ten hook robi jedno:
- * zamienia `@/x` na ścieżkę do `src/x` i dokleja `.ts`, gdy import jest bez
- * rozszerzenia. Dzięki temu testy importują dokładnie te same moduły, które widzi
- * aplikacja — bez lustrzanych kopii ścieżek i bez nowej zależności w package.json.
+ * Tests run on bare Node (since 24 it strips type annotations from .ts files
+ * itself), so there is no bundler to resolve `@/lib/...`. This hook does one
+ * thing: it turns `@/x` into a path to `src/x` and appends `.ts` when the
+ * import has no extension. Tests thus import exactly the modules the app
+ * sees — no mirrored path copies and no new dependency in package.json.
  *
- * Rejestrowany przez `npm test` (patrz package.json).
+ * Registered by `npm test` (see package.json).
  *
  * Relative imports without an extension (`../lib/topics`) from a `.ts` file
  * get `.ts` too: collections are written that way, and the access test loads

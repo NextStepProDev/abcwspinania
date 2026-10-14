@@ -92,6 +92,7 @@ wyjątków:
 | nazwy pól (= kolumny w bazie) i wartości `select` | klauzule RODO w `src/lib/consent.ts` |
 | nazwy pól formularzy HTTP, parametry zapytań | **adresy podstron** (`/kursy`, `/obozy`, `/terminarz`) |
 | komunikaty commitów, logi dla programisty | tekst w `scripts/seed.ts` (to treść, nie kod) |
+| **workflowy GitHub** — nazwy, pola, kroki, komunikaty, komentarze (do 14.10.2026 część była po polsku, np. „Dane testowe”) | dane testowe widoczne na stronie i w panelu (`scripts/seed-test.ts`) |
 
 **Adresy zostają polskie celowo.** To element strony widziany przez
 użytkownika i indeksowany przez wyszukiwarkę, a nie szczegół implementacji —
@@ -223,7 +224,7 @@ przycisk niczego nie chronił, dawał się tylko pominąć.
   zostaje w nowszym schemacie. Dla zmian, które tylko dodają tabele
   i kolumny, stara aplikacja działa; przy usuwaniu albo zmianie kolumny —
   najpierw sprawdzić, czy stara wersja na nowym schemacie wstaje.
-- **Workflow Migrate zostaje** (`workflow_dispatch` z `migruj`) do puszczenia
+- **Workflow Migrate zostaje** (`workflow_dispatch` z `migrate`) do puszczenia
   migracji bez wdrażania. Deploy woła ten sam plik (`workflow_call`), więc
   bramka na wpis `dev` i `timeout 300` działają w obu drogach.
 
@@ -1513,9 +1514,9 @@ repo). **Zmieniasz funkcję — zmień jej kroki w tym samym commicie.**
   przy terminie to sposób, w jaki skrypt znajduje swoje dane: każde
   uruchomienie najpierw je kasuje, `-- clean` tylko kasuje. Wysyłki usuwa,
   gdy WSZYSCY ich odbiorcy mają znacznik.
-- **Na produkcji (od 13.10.2026) — tylko workflow „Dane testowe”**
-  (`test-data.yml`, potwierdzenie słowem `testy`; akcje `wgraj`, `wyczysc`,
-  `wyczysc-wszystko`), tym samym tunelem co Migrate. Repozytorium jest
+- **Na produkcji (od 13.10.2026) — tylko workflow „Test data”**
+  (`test-data.yml`, potwierdzenie słowem `test-data`; akcje `seed`, `clean`,
+  `clean-all`), tym samym tunelem co Migrate. Repozytorium jest
   PUBLICZNE, więc logi też: skrzynka i hasło kont to sekrety `TEST_INBOX`
   i `TEST_PASSWORD`, a skrypt nie wypisuje adresu, tokenu ani danych osoby —
   same id. **Konta panelu na produkcji nie zakłada** (znane hasło do panelu

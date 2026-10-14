@@ -22,7 +22,7 @@
  * deliberately not created here.
  *
  * PRODUCTION (decided 13.10.2026 — testing on the live server before launch):
- * only through the "Dane testowe" workflow, which sets
+ * only through the "Test data" workflow, which sets
  * `TEST_DATA_ON_PRODUCTION=yes`. There the script
  *   - creates NO panel account — a known password to the school's panel in a
  *     public repo would be an open door; testers use their own panel accounts;
@@ -50,7 +50,7 @@ import { newToken } from '@/lib/newsletter'
 const onProduction = process.env.NODE_ENV === 'production'
 if (onProduction && process.env.TEST_DATA_ON_PRODUCTION !== 'yes') {
   throw new Error(
-    'seed:test on production runs only from the "Dane testowe" workflow (TEST_DATA_ON_PRODUCTION=yes).',
+    'seed:test on production runs only from the "Test data" workflow (TEST_DATA_ON_PRODUCTION=yes).',
   )
 }
 
@@ -165,16 +165,17 @@ async function leftovers(since: string, testSessions: number[], testBroadcasts: 
   return found
 }
 
+/** Collection, with its name in the (Polish) panel — where to look the ids up. */
 const LABELS: Partial<Record<CollectionSlug, string>> = {
-  customers: 'Uczestnicy (konta)',
-  bookings: 'Zapisy',
-  messages: 'Wiadomości',
-  newsletter: 'Newsletter',
-  broadcasts: 'Wysyłki',
+  customers: 'participant accounts (panel: Uczestnicy)',
+  bookings: 'bookings (panel: Zapisy)',
+  messages: 'messages (panel: Wiadomości)',
+  newsletter: 'newsletter (panel: Newsletter)',
+  broadcasts: 'broadcasts (panel: Wysyłki)',
 }
 
 const polishTime = (value: string) =>
-  new Intl.DateTimeFormat('pl-PL', {
+  new Intl.DateTimeFormat('en-GB', {
     dateStyle: 'long',
     timeStyle: 'short',
     timeZone: 'Europe/Warsaw',
@@ -211,7 +212,7 @@ async function clean(all: boolean) {
     `Removed test data: ${testSessions.length} test sessions, ${testBroadcasts.length} test broadcasts.`,
   )
   say(
-    `Usunięte dane testowe: wszystko z \`${TAG}\` w adresie i terminy testowe (${testSessions.length}).`,
+    `Removed test data: everything with \`${TAG}\` in the address, and the test sessions (${testSessions.length}).`,
   )
 
   const began = since ? polishTime(since) : ''
@@ -220,15 +221,15 @@ async function clean(all: boolean) {
     number[],
   ][]
   if (!since) {
-    say('Brak zapisanego początku testów — nie ma czego sprawdzać poza znacznikiem.')
+    say('No stored start of testing — nothing to check beyond the tag.')
   } else if (rows.length === 0) {
-    say(`Od początku testów (${began}) nie przybyło nic bez znacznika.`)
+    say(`Since testing began (${began}) nothing has appeared without the tag.`)
   } else if (!all) {
-    say(`Od początku testów (${began}) przybyło BEZ znacznika:`)
+    say(`Since testing began (${began}) this appeared WITHOUT the tag:`)
     for (const [collection, ids] of rows) {
       say(`- ${LABELS[collection]}: ${ids.length} (id: ${ids.join(', ')})`)
     }
-    say('Sprawdź je w panelu. Jeśli to wszystko testy — uruchom jeszcze raz z „wyczysc-wszystko”.')
+    say('Check them in the panel. If they are all tests, run again with `clean-all`.')
   } else {
     for (const [collection, ids] of rows) {
       for (const id of ids) {
@@ -238,12 +239,12 @@ async function clean(all: boolean) {
           await payload.delete({ collection, id, overrideAccess: true })
         }
       }
-      say(`- usunięte ${LABELS[collection]}: ${ids.length} (id: ${ids.join(', ')})`)
+      say(`- removed ${LABELS[collection]}: ${ids.length} (id: ${ids.join(', ')})`)
     }
   }
   if (all) {
     await payload.kv.delete(SINCE_KEY)
-    say('Okres testów zamknięty — następne wgranie zaczyna nowy.')
+    say('Testing window closed — the next seed starts a new one.')
   }
 }
 
@@ -416,30 +417,30 @@ const realSubscribers = (await findAll('newsletter', { status: { equals: 'subscr
 
 const base = (process.env.PUBLIC_URL || 'http://localhost:3000').replace(/\/$/, '')
 say()
-say('## Dane testowe gotowe')
+say('## Test data ready')
 say()
 say(
   onProduction
-    ? 'Hasło każdego konta testowego: to z sekretu `TEST_PASSWORD` (nie pokazujemy go tutaj).'
-    : `Hasło każdego konta testowego: \`${PASSWORD}\``,
+    ? 'Password of every test account: the one in the `TEST_PASSWORD` secret (not shown here).'
+    : `Password of every test account: \`${PASSWORD}\``,
 )
 say()
-say('| Kto | Adres | Do czego |')
+say('| Who | Address | For |')
 say('|---|---|---|')
 const rows: [string, string, string][] = [
-  ['Ola', 'ola', 'konto PL: zapis nadchodzący + archiwum'],
-  ['Tom', 'tom', 'konto EN: maile po angielsku'],
-  ['Ewa', 'ewa', 'konto niepotwierdzone'],
-  ['Gość', 'gosc', 'zapis BEZ konta — zarejestruj ten adres'],
-  ['Nowy', 'nowy', 'NIE istnieje — rejestracja od zera'],
+  ['Ola', 'ola', 'PL account: upcoming booking + history'],
+  ['Tom', 'tom', 'EN account: emails in English'],
+  ['Ewa', 'ewa', 'unconfirmed account'],
+  ['Gość', 'gosc', 'booking WITHOUT an account — register this address'],
+  ['Nowy', 'nowy', 'does NOT exist — registration from scratch'],
 ]
-if (!onProduction) rows.unshift(['Panel szkoły', 'szkola', 'logowanie na /admin'])
+if (!onProduction) rows.unshift(['School panel', 'szkola', 'login at /admin'])
 for (const [who, name, what] of rows) say(`| ${who} | \`${shown(name)}\` | ${what} |`)
 say()
-say(`Kurs z terminami testowymi: ${base}/kursy/${course.slug}`)
+say(`Course with the test sessions: ${base}/kursy/${course.slug}`)
 say(
-  `Termin otwarty: ${formatDateRange(open.startDate, open.endDate)} · termin pełny: ${formatDateRange(full.startDate, full.endDate)}`,
+  `Open session: ${formatDateRange(open.startDate, open.endDate)} · full session: ${formatDateRange(full.startDate, full.endDate)}`,
 )
-say(`Prawdziwi potwierdzeni subskrybenci newslettera: ${realSubscribers}`)
-if (!onProduction) say(`Wygasły link Ewy: ${base}/konto/potwierdz?token=${ewaToken}`)
+say(`Real confirmed newsletter subscribers: ${realSubscribers}`)
+if (!onProduction) say(`Ewa's expired link: ${base}/konto/potwierdz?token=${ewaToken}`)
 finish()

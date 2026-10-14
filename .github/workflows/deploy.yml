@@ -1,27 +1,28 @@
 name: Deploy
 
-# Wyłącznie ręcznie. Wdrożenie na maszynę klienta nie ma się dziać samo przy
-# każdym merge'u — to decyzja, a nie skutek uboczny.
+# Manual only. Deploying to the client's machine must not happen by itself on
+# every merge — it is a decision, not a side effect.
 #
-# Trzy joby, w tej kolejności (od 13.10.2026):
-#   1. prepare — konfiguracja na serwer i `pull` NOWEGO obrazu, bez podmiany.
-#      Pull idzie przed migracją, bo migracja bez obrazu (Deploy kliknięty,
-#      zanim CI go zbudował) zostawiłaby nowy schemat pod starą aplikacją.
-#      Chroni to tylko przy PODBITYM `VERSION`: bez podbicia pull znajdzie
-#      stary obraz pod tym samym tagiem. Na końcu joba startuje sama baza.
-#   2. migrate — workflow „Migrate" (migrate.yml), z tego samego commita.
-#      Padnie — `release` się nie odpala, stara wersja działa dalej.
-#   3. release — `up -d`, przeładowanie nginx, zdrowie, smoke test.
+# Three jobs, in this order (since 13.10.2026):
+#   1. prepare — config to the server and `pull` of the NEW image, no swap yet.
+#      Pull goes before the migration, because a migration without the image
+#      (Deploy clicked before CI built it) would leave a new schema under the
+#      old app. This only protects with a BUMPED `VERSION`: without a bump the
+#      pull finds the old image under the same tag. The job ends by starting
+#      the database alone.
+#   2. migrate — the "Migrate" workflow (migrate.yml), from the same commit.
+#      If it fails, `release` does not run and the old version keeps running.
+#   3. release — `up -d`, nginx reload, health, smoke test.
 #
-# Z jawnie podaną wersją (np. powrót do starszej) migracje są POMIJANE: kod
-# z tego commita nie musi pasować do wskazanego obrazu. Migracje w dół nie
-# idą nigdy same — po powrocie baza zostaje w nowszym schemacie (CLAUDE.md,
-# „Migracje schematu").
+# With an explicit version (e.g. going back to an older one) migrations are
+# SKIPPED: the code of this commit need not match the chosen image. Down
+# migrations never run by themselves — after going back the database stays on
+# the newer schema (CLAUDE.md, "Migracje schematu").
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: Opcjonalny tag obrazu (np. main, sha-abc1234). Puste = wersja z pliku VERSION.
+        description: Optional image tag (e.g. main, sha-abc1234). Empty = the version from the VERSION file.
         required: false
         default: ''
 
@@ -37,20 +38,20 @@ jobs:
       - name: Resolve deploy version
         id: version
         run: |
-          # Jedno źródło prawdy: plik VERSION w repo. Pole wejściowe nadpisuje je
-          # tylko na doraźne wdrożenia (np. konkretnego taga sha-).
+          # One source of truth: the VERSION file in the repo. The input field
+          # overrides it only for one-off deploys (e.g. a specific sha- tag).
           if [ -n "${{ inputs.version }}" ]; then
             VERSION="${{ inputs.version }}"
           elif [ -f VERSION ]; then
             VERSION=$(cat VERSION)
           else
-            echo "BŁĄD: brak pola wejściowego i brak pliku VERSION." >&2
+            echo "ERROR: no input field and no VERSION file." >&2
             exit 1
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Wdrażam wersję: $VERSION"
+          echo "Deploying version: $VERSION"
           if [ -n "${{ inputs.version }}" ]; then
-            echo "Wersja podana ręcznie — migracje POMINIĘTE. Potrzebne? Workflow Migrate."
+            echo "Version given by hand — migrations SKIPPED. Needed? The Migrate workflow."
           fi
 
       - name: Encode config files
@@ -83,36 +84,37 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           envs: COMPOSE_B64,NGINX_B64,SWAP_B64,BACKUP_B64,BACKUPLOG_B64,BACKUPSETUP_B64,VERSION,DEPLOY_PATH,GHCR_OWNER
           script: |
-            # Przerwij (czerwony deploy) przy PIERWSZYM błędzie — np. gdy
-            # `docker compose pull` trafi na nieistniejący tag. Bez tego skrypt
-            # leciał dalej, zostawiał stare kontenery i raportował sukces.
+            # Stop (red deploy) at the FIRST error — e.g. when `docker compose
+            # pull` hits a tag that does not exist. Without it the script went
+            # on, left the old containers and reported success.
             set -euo pipefail
             echo "$COMPOSE_B64" | base64 -d > "$DEPLOY_PATH/docker-compose.prod.yml"
             echo "$NGINX_B64"   | base64 -d > "$DEPLOY_PATH/nginx.conf"
-            # Swap musi istnieć, zanim wstaną kontenery (skrypt idempotentny).
+            # Swap must exist before the containers start (idempotent script).
             echo "$SWAP_B64"    | base64 -d > "$DEPLOY_PATH/setup-swap.sh"
-            sudo -n bash "$DEPLOY_PATH/setup-swap.sh" || echo "UWAGA: konfiguracja swapu pominięta (sprawdź sudo bez hasła)"
-            # Kopie zapasowe: skrypt, harmonogram i rotacja logu jadą z każdym
-            # deployem (deploy/RESTORE.md). Idempotentne; sekretów nie rusza.
-            # Błąd tu nie blokuje wdrożenia strony — ale widać go w logu joba.
+            sudo -n bash "$DEPLOY_PATH/setup-swap.sh" || echo "WARNING: swap setup skipped (check passwordless sudo)"
+            # Backups: the script, the schedule and log rotation go out with
+            # every deploy (deploy/RESTORE.md). Idempotent; secrets untouched.
+            # A failure here does not block the site deploy — but it shows in
+            # the job log.
             mkdir -p "$DEPLOY_PATH/backup"
             echo "$BACKUP_B64"      | base64 -d > "$DEPLOY_PATH/backup/abc-backup.sh"
             echo "$BACKUPLOG_B64"   | base64 -d > "$DEPLOY_PATH/backup/abc-backup.logrotate"
             echo "$BACKUPSETUP_B64" | base64 -d > "$DEPLOY_PATH/backup/setup-backups.sh"
             sudo -n bash "$DEPLOY_PATH/backup/setup-backups.sh" "$DEPLOY_PATH/backup" \
-              || echo "UWAGA: instalacja kopii zapasowych nie powiodła się — sprawdź log powyżej"
+              || echo "WARNING: installing backups failed — see the log above"
             cd "$DEPLOY_PATH"
 
-            # ⚠️ SPRZĄTANIE MUSI IŚĆ PRZED PULLEM. Nowe obrazy nie mieszczą się
-            # na dysku obok wszystkich poprzednich, a pull przerwany na braku
-            # miejsca kończy deploy na czerwono — w anovie dokładnie tak padło,
-            # przy dysku zapchanym w 99% przez 58 nieużywanych obrazów.
-            # Nie ma tu `docker image prune -af --filter until=...`: przy magazynie
-            # containerd filtr przepuszcza obrazy OTAGOWANE i uzbierały się
-            # wszystkie wersje od początku projektu. Kasujemy jawnie, po tagach:
-            # zostają obrazy trzymane przez kontenery i KEEP najnowszych z każdego
-            # repozytorium — tyle zapasu, żeby ręczny rollback nie wymagał GHCR.
-            # `|| true` — sprzątanie nie ma prawa ubić deployu.
+            # ⚠️ CLEANUP MUST GO BEFORE THE PULL. New images do not fit on the
+            # disk next to all the previous ones, and a pull stopped by a full
+            # disk ends the deploy red — exactly how anovastudio failed, with
+            # the disk 99% full of 58 unused images.
+            # No `docker image prune -af --filter until=...` here: with the
+            # containerd store the filter lets TAGGED images through, and every
+            # version since the start of the project piled up. We delete
+            # explicitly, by tag: images held by containers stay, plus the KEEP
+            # newest of each repository — enough for a manual rollback without
+            # GHCR. `|| true` — cleanup must never kill the deploy.
             KEEP=2
             IN_USE=$(docker ps -a --format '{{.Image}}' | sort -u)
             for REPO in abcwspinania; do
@@ -122,27 +124,30 @@ jobs:
                 | sort -r | tail -n +$((KEEP + 1)) | cut -f2 \
                 | while read -r IMG; do
                     if ! printf '%s\n' "$IN_USE" | grep -qxF "$IMG"; then
-                      echo "sprzątanie: usuwam $IMG"
+                      echo "cleanup: removing $IMG"
                       docker rmi "$IMG" || true
                     fi
                   done
             done
-            # Warstwy osierocone po usuniętych tagach (ten wariant, bez filtra, działa).
+            # Layers orphaned by the removed tags (this variant, without a filter, works).
             docker image prune -f || true
             df -h / | tail -1
 
-            # Tag z ZMIENNEJ, nie z .env: zmienna powłoki wygrywa z .env,
-            # a .env dostaje nową wersję dopiero w `release`, po migracji.
-            # Padnie migracja — ręczne `up -d` nadal postawi starą wersję.
+            # The tag from the VARIABLE, not from .env: a shell variable wins
+            # over .env, and .env gets the new version only in `release`, after
+            # the migration. If the migration fails, a manual `up -d` still
+            # starts the old version.
             VERSION="$VERSION" docker compose -f docker-compose.prod.yml pull
-            # Migracja idzie tunelem do bazy, więc baza musi działać, zanim ruszy
-            # `migrate`. Na nowym serwerze (pierwsze uruchomienie, RESTORE.md
-            # sekcja 8) nie działa nic — bez tej linii migracja padałaby, a z nią
-            # `release`, który dopiero stawia kontenery. Na działającym serwerze
-            # nic nie robi — chyba że nowy compose zmienił usługę bazy albo pull
-            # przyniósł nowszy `postgres:18-alpine` (tag pływający, łatki): wtedy
-            # baza restartuje się już tutaj (kilka sekund), a nie w `release`.
-            # Aplikacji nie rusza (to ona zależy od bazy, nie odwrotnie).
+            # The migration goes through a tunnel to the database, so the
+            # database must be running before `migrate`. On a new server (first
+            # run, RESTORE.md section 8) nothing runs — without this line the
+            # migration would fail, and with it `release`, which is what starts
+            # the containers. On a running server it does nothing — unless the
+            # new compose changed the database service or the pull brought a
+            # newer `postgres:18-alpine` (floating tag, patches): then the
+            # database restarts here (a few seconds) rather than in `release`.
+            # It does not touch the app (the app depends on the database, not
+            # the other way round).
             docker compose -f docker-compose.prod.yml up -d --wait postgres
 
   migrate:
@@ -150,13 +155,13 @@ jobs:
     if: inputs.version == ''
     uses: ./.github/workflows/migrate.yml
     with:
-      confirm: migruj
+      confirm: migrate
     secrets: inherit
 
   release:
     needs: [prepare, migrate]
-    # `!cancelled()`, bo pominięty `migrate` (wersja podana ręcznie) bez tego
-    # pominąłby też ten job. Błąd migracji nadal go zatrzymuje.
+    # `!cancelled()`, because a skipped `migrate` (version given by hand)
+    # would otherwise skip this job too. A failed migration still stops it.
     if: >-
       !cancelled() && needs.prepare.result == 'success'
       && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped')
@@ -175,16 +180,16 @@ jobs:
           script: |
             set -euo pipefail
             cd "$DEPLOY_PATH"
-            # Utrwal rozwiązaną wersję w .env na serwerze, żeby późniejsze RĘCZNE
-            # `docker compose pull/up -d` użyło tego samego taga, a nie starego pinu.
+            # Store the resolved version in the server's .env, so a later MANUAL
+            # `docker compose pull/up -d` uses the same tag, not an old pin.
             if grep -q '^VERSION=' .env; then
               sed -i "s/^VERSION=.*/VERSION=${VERSION}/" .env
             else
               echo "VERSION=${VERSION}" >> .env
             fi
             docker compose -f docker-compose.prod.yml up -d
-            # nginx.conf jest montowany z hosta, więc samo `up -d` go nie
-            # przeładuje, gdy tag obrazu się nie zmienił. Sprawdź i przeładuj jawnie.
+            # nginx.conf is mounted from the host, so `up -d` alone does not
+            # reload it when the image tag is unchanged. Test and reload explicitly.
             docker compose -f docker-compose.prod.yml exec -T nginx nginx -t
             docker compose -f docker-compose.prod.yml exec -T nginx nginx -s reload
 
@@ -195,36 +200,36 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
-            echo "Czekam, aż aplikacja zgłosi się jako zdrowa..."
+            echo "Waiting for the app to report healthy..."
             for i in $(seq 1 16); do
-              APP=$(docker inspect --format='{{.State.Health.Status}}' abcwspinania-app-prod 2>/dev/null || echo "brak")
-              echo "Próba $i/16: app = $APP"
+              APP=$(docker inspect --format='{{.State.Health.Status}}' abcwspinania-app-prod 2>/dev/null || echo "missing")
+              echo "Attempt $i/16: app = $APP"
               if [ "$APP" = "healthy" ]; then
-                echo "Wdrożenie potwierdzone."
+                echo "Deployment confirmed."
                 exit 0
               fi
               sleep 15
             done
-            echo "BŁĄD: aplikacja nie stała się zdrowa w ciągu 4 minut."
+            echo "ERROR: the app did not become healthy within 4 minutes."
             docker logs --tail 80 abcwspinania-app-prod || true
             exit 1
 
       - name: Smoke test public endpoints
-        # Sprawdza SMOKE_URL, a gdy jej nie ma — SITE_URL. Dwie zmienne, bo
-        # dopóki strona stoi na domenie tymczasowej, SITE_URL wskazuje już
-        # domenę DOCELOWĄ (wbudowaną w obraz: mapa strony, adresy kanoniczne),
-        # a pod nią wciąż działa stara strona klienta — test na niej padałby
-        # przy każdym wdrożeniu. Po przełączeniu domeny SMOKE_URL się kasuje.
-        # Bez obu zmiennych krok jest pomijany.
+        # Checks SMOKE_URL, or SITE_URL when it is not set. Two variables,
+        # because while the site runs on the temporary domain, SITE_URL already
+        # points at the TARGET domain (baked into the image: sitemap, canonical
+        # URLs), where the client's old site still runs — the test would fail
+        # there on every deploy. SMOKE_URL is deleted after the domain switch.
+        # Without either variable the step is skipped.
         if: vars.SMOKE_URL != '' || vars.SITE_URL != ''
         env:
           BASE_URL: ${{ vars.SMOKE_URL || vars.SITE_URL }}
         run: |
-          # Wartość to lista akceptowalnych kodów HTTP rozdzielona spacjami.
-          # /api/courses ma zwracać 200 nawet przy pustej kolekcji — publiczny
-          # odczyt jest zadeklarowany w KODZIE (access.read w src/collections),
-          # więc w odróżnieniu od poprzedniego CMS-a nie ma tu stanu „403 do
-          # czasu wyklikania uprawnień".
+          # The value is a space-separated list of accepted HTTP codes.
+          # /api/courses must return 200 even with an empty collection — public
+          # read access is declared in CODE (access.read in src/collections),
+          # so unlike the previous CMS there is no "403 until someone clicks
+          # the permissions" state.
           declare -A CHECKS=(
             ["${BASE_URL}/"]=200
             ["${BASE_URL}/robots.txt"]=200
@@ -239,16 +244,16 @@ jobs:
             for attempt in 1 2 3; do
               CODE=$(curl -sS -m 15 -o /dev/null -w "%{http_code}" "$url" || echo "000")
               case " $WANT " in *" $CODE "*) break;; esac
-              echo "  ${url} -> HTTP ${CODE} (próba ${attempt}/3), ponawiam za 5 s..."
+              echo "  ${url} -> HTTP ${CODE} (attempt ${attempt}/3), retrying in 5 s..."
               sleep 5
             done
             case " $WANT " in
               *" $CODE "*) echo "OK   HTTP ${CODE}  ${url}" ;;
-              *) echo "PADŁ HTTP ${CODE} (oczekiwano ${WANT})  ${url}"; FAILED=1 ;;
+              *) echo "FAIL HTTP ${CODE} (expected ${WANT})  ${url}"; FAILED=1 ;;
             esac
           done
           if [ "$FAILED" -ne 0 ]; then
-            echo "BŁĄD: co najmniej jeden publiczny adres nie odpowiada poprawnie."
+            echo "ERROR: at least one public URL did not respond correctly."
             exit 1
           fi
-          echo "Smoke test zdany."
+          echo "Smoke test passed."
