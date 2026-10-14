@@ -1,33 +1,34 @@
-name: Dane testowe
+name: Test data
 
-# Dane do testów ręcznych NA PRODUKCJI (docs/testy-reczne.html), od 13.10.2026.
-# Ręczny workflow, jak Migrate — i tym samym tunelem SSH do bazy, z tego samego
-# powodu: obraz produkcyjny nie ma skryptów ani CLI Payloada.
+# Data for the manual tests ON PRODUCTION (docs/testy-reczne.html), since
+# 13.10.2026. A manual workflow, like Migrate — and through the same SSH
+# tunnel to the database, for the same reason: the production image has
+# neither the scripts nor Payload's CLI.
 #
-#   wgraj             — usuwa poprzednie dane testowe i zakłada je od nowa
-#   wyczysc           — tylko usuwa; wypisuje (same id), co przybyło BEZ znacznika
-#   wyczysc-wszystko  — usuwa też to, co przybyło bez znacznika od początku testów
+#   seed       — removes the previous test data and creates it afresh
+#   clean      — removes it only; lists (ids only) what appeared WITHOUT the tag
+#   clean-all  — also removes what appeared without the tag since testing began
 #
-# Repozytorium jest PUBLICZNE, więc logi tego joba widzi każdy. Skrzynka
-# testera i hasło kont testowych są dlatego sekretami (TEST_INBOX,
-# TEST_PASSWORD), a skrypt nie wypisuje ani adresu, ani tokenu, ani danych
-# osoby — tylko id. Konta do panelu na produkcji NIE zakłada (znane hasło do
-# panelu szkoły). Szczegóły: nagłówek web/scripts/seed-test.ts.
+# The repository is PUBLIC, so this job's logs are public too. The tester's
+# inbox and the test accounts' password are therefore secrets (TEST_INBOX,
+# TEST_PASSWORD), and the script prints no address, no token and no personal
+# data — only ids. It creates NO panel account on production (a known password
+# to the school's panel). Details: the header of web/scripts/seed-test.ts.
 
 on:
   workflow_dispatch:
     inputs:
       action:
-        description: Co zrobić
+        description: What to do
         type: choice
-        options: [wgraj, wyczysc, wyczysc-wszystko]
-        default: wgraj
+        options: [seed, clean, clean-all]
+        default: seed
       confirm:
-        description: Wpisz "testy", żeby potwierdzić zmianę danych na produkcji
+        description: Type "test-data" to confirm changing data on production
         required: true
         default: ''
 
-# Dwa przebiegi naraz kasowałyby sobie nawzajem dane w połowie.
+# Two runs at once would delete each other's data halfway through.
 concurrency:
   group: test-data
   cancel-in-progress: false
@@ -40,10 +41,10 @@ jobs:
       run:
         working-directory: web
     steps:
-      - name: Sprawdź potwierdzenie
-        if: inputs.confirm != 'testy'
+      - name: Check confirmation
+        if: inputs.confirm != 'test-data'
         run: |
-          echo "BŁĄD: nie potwierdzono. Wpisz dokładnie: testy" >&2
+          echo "ERROR: not confirmed. Type exactly: test-data" >&2
           exit 1
 
       - uses: actions/checkout@v7
@@ -54,48 +55,48 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - run: npm ci
 
-      - name: Otwórz tunel SSH do bazy produkcyjnej
+      - name: Open SSH tunnel to the production database
         run: |
           set -euo pipefail
           mkdir -p ~/.ssh
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
-          # Jak w Migrate: baza słucha na serwerze tylko na 127.0.0.1:5432.
+          # As in Migrate: the database listens on the server on 127.0.0.1:5432 only.
           ssh -f -N -L 55432:127.0.0.1:5432 \
             -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
             "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
           for _ in $(seq 1 15); do
-            if nc -z 127.0.0.1 55432; then echo "tunel gotowy"; exit 0; fi
+            if nc -z 127.0.0.1 55432; then echo "tunnel ready"; exit 0; fi
             sleep 2
           done
-          echo "BŁĄD: tunel nie wstał w 30 s." >&2
+          echo "ERROR: the tunnel did not come up within 30 s." >&2
           exit 1
 
-      - name: Dane testowe — ${{ inputs.action }}
+      - name: Test data — ${{ inputs.action }}
         env:
           DATABASE_URI: postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@127.0.0.1:55432/${{ secrets.POSTGRES_DB }}
           PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
-          # production = Payload bez trybu `push`: przy innym NODE_ENV start
-          # Payloada przepisałby schemat bazy produkcyjnej i zostawił wpis
-          # `dev`, na którym potem staje workflow Migrate.
+          # production = Payload without `push` mode: with any other NODE_ENV,
+          # starting Payload would rewrite the production schema and leave the
+          # `dev` entry that Migrate then stops on.
           NODE_ENV: production
           TEST_DATA_ON_PRODUCTION: 'yes'
           TEST_INBOX: ${{ secrets.TEST_INBOX }}
           TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
-          # Tylko do linku do kursu w podsumowaniu.
+          # Only for the course link in the summary.
           PUBLIC_URL: ${{ vars.SMOKE_URL || vars.SITE_URL }}
           ACTION: ${{ inputs.action }}
         run: |
           case "$ACTION" in
-            wgraj) ARG="" ;;
-            wyczysc) ARG="clean" ;;
-            wyczysc-wszystko) ARG="clean-all" ;;
-            *) echo "BŁĄD: nieznana akcja $ACTION" >&2; exit 1 ;;
+            seed) ARG="" ;;
+            clean) ARG="clean" ;;
+            clean-all) ARG="clean-all" ;;
+            *) echo "ERROR: unknown action $ACTION" >&2; exit 1 ;;
           esac
-          # shellcheck disable=SC2086 # puste ARG ma zniknąć, nie być pustym słowem
+          # shellcheck disable=SC2086 # an empty ARG must vanish, not be an empty word
           timeout 300 npm run seed:test -- $ARG < /dev/null
 
-      - name: Zamknij tunel
+      - name: Close the tunnel
         if: always()
         run: pkill -f "ssh -f -N -L 55432" || true

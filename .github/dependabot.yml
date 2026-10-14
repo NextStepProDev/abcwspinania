@@ -1,64 +1,64 @@
 version: 2
 updates:
-  # --- Aplikacja (Next.js + Payload) ---
+  # --- The app (Next.js + Payload) ---
   - package-ecosystem: npm
     directory: /web
     schedule:
       interval: monthly
     open-pull-requests-limit: 5
     ignore:
-      # ESLint musi zostać na 9.x. `eslint-config-next` deklaruje peer
-      # `eslint >=9`, więc npm wpuszcza 10 bez ostrzeżenia, ale dociągnięty
-      # razem z nim `eslint-plugin-react` woła `context.getFilename()` —
-      # API usunięte w ESLint 10. Lint pada wtedy od razu na
+      # ESLint must stay on 9.x. `eslint-config-next` declares the peer
+      # `eslint >=9`, so npm lets 10 in without a warning, but the
+      # `eslint-plugin-react` that comes with it calls `context.getFilename()` —
+      # an API removed in ESLint 10. Lint then fails at once on
       # "Error while loading rule 'react/display-name'".
       - dependency-name: eslint
         update-types: ["version-update:semver-major"]
-      # TypeScript stoi na 6.x — to NAJNOWSZA wersja, która tu działa, nie zaległość.
-      # Zmierzone 19.09.2026:
-      #   • TS 6.0.3 → tsc, lint, test i build przechodzą KOMPLETEM. Stąd "^6".
-      #   • TS 7.0.2 → `npx tsc --noEmit` przechodzi czysto, ale `npm run lint`
-      #     pada twardo na "typescript-eslint does not support TS 7.0."
-      #     (typescript-eslint siedzi w drzewie eslint-config-next; wsparcie
-      #     śledzone dla TS >= 7.1 — typescript-eslint/typescript-eslint#10940).
-      # Blokada dotyczy WYŁĄCZNIE majora 7; wydania 6.x mają wchodzić normalnie.
-      # Odblokować, gdy typescript-eslint wypuści obsługę 7 — i wtedy ponowić
-      # te same cztery bramki przed scaleniem.
+      # TypeScript is on 6.x — the NEWEST version that works here, not a backlog.
+      # Measured 19.09.2026:
+      #   • TS 6.0.3 → tsc, lint, test and build ALL pass. Hence "^6".
+      #   • TS 7.0.2 → `npx tsc --noEmit` passes cleanly, but `npm run lint`
+      #     fails hard on "typescript-eslint does not support TS 7.0."
+      #     (typescript-eslint sits in eslint-config-next's tree; support is
+      #     tracked for TS >= 7.1 — typescript-eslint/typescript-eslint#10940).
+      # The block covers ONLY major 7; 6.x releases come in as usual.
+      # Unblock when typescript-eslint ships support for 7 — and then rerun
+      # the same four gates before merging.
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
-      # Next 17 czeka na Payloada: `@payloadcms/next` deklaruje peer
-      # `next >=16.3.3 <17.0.0`, więc major Next wywala `npm ci` na ERESOLVE.
-      # Odblokować, gdy Payload poszerzy ten zakres.
+      # Next 17 waits for Payload: `@payloadcms/next` declares the peer
+      # `next >=16.3.3 <17.0.0`, so a Next major breaks `npm ci` with ERESOLVE.
+      # Unblock when Payload widens that range.
       - dependency-name: next
         update-types: ["version-update:semver-major"]
       - dependency-name: eslint-config-next
         update-types: ["version-update:semver-major"]
-      # graphql 17 tak samo: `payload` i `@payloadcms/next` mają peer
-      # `graphql ^16.8.1`. Ten major idzie razem z majorem Payloada, nie osobno.
+      # graphql 17 likewise: `payload` and `@payloadcms/next` have the peer
+      # `graphql ^16.8.1`. This major goes with a Payload major, not alone.
       - dependency-name: graphql
         update-types: ["version-update:semver-major"]
     groups:
-      # WSZYSTKIE pakiety Payloada MUSZĄ iść w jednej wersji — `@payloadcms/next`
-      # deklaruje peer `payload` co do numeru, więc rozjazd wywala `npm ci`.
-      # Dlatego są przypięte dokładnie w package.json i podbijane jednym PR-em,
-      # nigdy osobno.
+      # ALL Payload packages MUST be on one version — `@payloadcms/next`
+      # declares the peer `payload` to the exact number, so a mismatch breaks
+      # `npm ci`. That is why they are pinned exactly in package.json and
+      # bumped in one PR, never separately.
       payload:
         patterns:
           - "payload"
           - "@payloadcms/*"
-      # Next i jego konfiguracja ESLinta też chodzą parą.
+      # Next and its ESLint config go as a pair too.
       next:
         patterns:
           - "next"
           - "eslint-config-next"
-      # Zbiorcza grupa nie łapie pakietów z dwóch powyższych. 28.09.2026, bez
-      # `exclude-patterns`, Dependabot rozdzielił Payloada: `payload` 3.90.2
-      # w grupie `payload` (#24), `@payloadcms/*` 3.90.2 w tej (#26) — oba
-      # czerwone na ERESOLVE, bo każdy z osobna łamie peer „co do numeru".
-      # Wykluczenie usuwa jedyne miejsce, do którego mogły uciec; czy to
-      # wystarcza, pokaże dopiero następne wydanie Payloada. Gdyby grupa
-      # `payload` znów przyszła niepełna (albo nie przyszła wcale), podbić
-      # ręcznie: wszystkie numery w package.json naraz, potem `npm install`.
+      # The catch-all group does not take packages from the two above. On
+      # 28.09.2026, without `exclude-patterns`, Dependabot split Payload:
+      # `payload` 3.90.2 in the `payload` group (#24), `@payloadcms/*` 3.90.2
+      # in this one (#26) — both red on ERESOLVE, because each alone breaks
+      # the exact-number peer. The exclusion removes the only place they could
+      # escape to; whether that is enough, the next Payload release will show.
+      # If the `payload` group again comes incomplete (or not at all), bump by
+      # hand: every number in package.json at once, then `npm install`.
       minor-and-patch:
         update-types:
           - minor
@@ -69,7 +69,7 @@ updates:
           - "next"
           - "eslint-config-next"
 
-  # --- Akcje GitHub w workflowach CI/CD ---
+  # --- GitHub Actions in the CI/CD workflows ---
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -79,13 +79,13 @@ updates:
         patterns:
           - "*"
 
-  # --- Obraz bazowy w Dockerfile ---
-  # Łatki Node przychodzą same: `node:26-alpine` to tag pływający, który przy
-  # każdym buildzie wskazuje najnowsze 26.x — Dependabot nie ma tu czego podbijać.
-  # Jedyny PR, jaki by otworzył, to skok na kolejny major, a nieparzyste majory
-  # Node (27, 29) NIGDY nie dostają LTS i umierają po ok. siedmiu miesiącach.
-  # Do tego podbiłby wyłącznie Dockerfile, a `node-version:` w ci.yml zostałby
-  # na starej liczbie. Zmiana linii Node to decyzja: Dockerfile i ci.yml razem.
+  # --- The base image in the Dockerfile ---
+  # Node patches come by themselves: `node:26-alpine` is a floating tag that
+  # points at the newest 26.x on every build — Dependabot has nothing to bump.
+  # The only PR it would open is a jump to the next major, and odd Node majors
+  # (27, 29) NEVER get LTS and die after about seven months. It would also
+  # bump only the Dockerfile, leaving `node-version:` in ci.yml on the old
+  # number. Changing the Node line is a decision: Dockerfile and ci.yml together.
   - package-ecosystem: docker
     directory: /web
     schedule:
@@ -94,18 +94,18 @@ updates:
       - dependency-name: node
         update-types: ["version-update:semver-major"]
 
-  # --- Obrazy w plikach compose (postgres, nginx) ---
-  # To ŚWIADOMIE osobne wpisy: ekosystem `docker` powyżej czyta wyłącznie
-  # Dockerfile'e, a pliki compose obsługuje u Dependabota inny ekosystem,
-  # `docker-compose`. Bez tych dwóch pozycji postgres i nginx nie dostają
-  # ŻADNYCH aktualizacji — w anovastudio nginx stał na 1.27, gdy było już 1.31.
+  # --- Images in the compose files (postgres, nginx) ---
+  # These are DELIBERATELY separate entries: the `docker` ecosystem above reads
+  # only Dockerfiles, and Dependabot handles compose files in another
+  # ecosystem, `docker-compose`. Without these two, postgres and nginx get NO
+  # updates at all — in anovastudio nginx sat on 1.27 when 1.31 was out.
   #
-  # Blokada majorów Postgresa musi być w OBU wpisach. Oba compose montują trwały
-  # wolumen z danymi, a Postgres odmawia startu, gdy katalog założyła inna wersja
-  # główna ("database files are incompatible with server"). Podbicie majora to
-  # MIGRACJA DANYCH, więc sam merge PR-a kończy się bazą, która nie wstaje.
-  # Dev trzyma przy tym tę samą wersję co produkcja; rozjazd to testowanie
-  # na innym silniku bazy.
+  # The Postgres major block must be in BOTH entries. Both compose files mount
+  # a persistent data volume, and Postgres refuses to start when another major
+  # created the directory ("database files are incompatible with server"). A
+  # major bump is a DATA MIGRATION, so merging the PR alone ends with a
+  # database that does not start. Dev keeps the same version as production;
+  # a mismatch means testing on a different database engine.
   - package-ecosystem: docker-compose
     directory: /
     schedule:

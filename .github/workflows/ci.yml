@@ -14,9 +14,9 @@ on:
       - VERSION
       - .github/workflows/ci.yml
 
-# Anuluj nieaktualne biegi PR-ów, ale NIGDY biegu na main: każdy push może
-# podbić VERSION, a jego job docker musi zbudować i wypchnąć ten obraz —
-# inaczej deploy pobiera tag, którego nie ma. Pushe na main stają w kolejce.
+# Cancel outdated PR runs, but NEVER a run on main: every push may bump
+# VERSION, and its docker job must build and push that image — otherwise
+# deploy pulls a tag that does not exist. Pushes to main queue up.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -27,16 +27,16 @@ permissions:
 
 jobs:
   lint-typecheck-build:
-    # Architektura nie ma tu znaczenia — runnery x86 są tańsze i szybciej dostępne.
+    # Architecture does not matter here — x86 runners are cheaper and quicker to get.
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      # NIE JEST TO SEKRET. Payload odmawia startu bez PAYLOAD_SECRET (patrz
-      # requireSecret w web/src/payload.config.ts), a generowanie typów i build
-      # muszą wczytać konfigurację. Żaden z tych kroków nie wydaje tokenów sesji
-      # ani nie dotyka bazy, więc wartość nie ma znaczenia — istotne jest tylko,
-      # żeby PRAWDZIWY sekret nigdy nie musiał tu trafić.
-      PAYLOAD_SECRET: nie-jest-sekretem-tylko-placeholder-dla-ci
+      # NOT A SECRET. Payload refuses to start without PAYLOAD_SECRET (see
+      # requireSecret in web/src/payload.config.ts), and type generation and
+      # the build must load the config. None of these steps issues session
+      # tokens or touches a database, so the value does not matter — what
+      # matters is that the REAL secret never has to come here.
+      PAYLOAD_SECRET: not-a-secret-just-a-ci-placeholder
     defaults:
       run:
         working-directory: web
@@ -44,53 +44,54 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          # MUSI się zgadzać z `FROM node:<wersja>-alpine` w web/Dockerfile.
-          # Dependabot podbija tylko tam (ekosystem docker czyta Dockerfile'e),
-          # tej liczby nie rusza nikt. Przy następnym majorze zmienić OBA miejsca.
+          # MUST match `FROM node:<version>-alpine` in web/Dockerfile.
+          # Dependabot bumps only there (the docker ecosystem reads Dockerfiles);
+          # nobody touches this number. On the next major change BOTH places.
           node-version: 26
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci
-      # BLOKUJE. `--omit=dev` jest tu istotą rzeczy, a nie zawężeniem: obraz
-      # produkcyjny to `output: standalone`, więc trafiają do niego wyłącznie
-      # zależności produkcyjne. Bez tej flagi audyt zgłasza podatności w narzędziach
-      # deweloperskich (drizzle-kit, eslint), które nigdy nie opuszczają CI —
-      # i bramka musiałaby stać na `continue-on-error`, czyli nie pilnować niczego.
-      # `npm run audit` = `npm audit --omit=dev` + high/critical + lista wyjątków
-      # po identyfikatorze, każdy z powodem (web/scripts/audit-gate.mjs).
-      - name: npm audit (produkcyjne, high+)
+      # BLOCKING. `--omit=dev` is the point here, not a narrowing: the
+      # production image is `output: standalone`, so only production
+      # dependencies reach it. Without the flag the audit reports
+      # vulnerabilities in development tools (drizzle-kit, eslint) that never
+      # leave CI — and the gate would need `continue-on-error`, i.e. guard nothing.
+      # `npm run audit` = `npm audit --omit=dev` + high/critical + a list of
+      # exceptions by id, each with its reason (web/scripts/audit-gate.mjs).
+      - name: npm audit (production, high+)
         run: npm run audit
-      # Typy Payloada są generowane z konfiguracji kolekcji i COMMITOWANE.
-      # Ten krok pilnuje, żeby nie rozjechały się z konfiguracją: jeśli ktoś
-      # zmienił pole i nie przegenerował typów, `git diff` to wyłapie tutaj,
-      # a nie na produkcji.
-      - name: Typy Payloada są aktualne
+      # Payload's types are generated from the collection config and COMMITTED.
+      # This step keeps them in step with the config: if someone changed a
+      # field and did not regenerate the types, `git diff` catches it here,
+      # not on production.
+      - name: Payload types are up to date
         run: |
           npm run generate:types
           if ! git diff --quiet -- src/payload-types.ts; then
-            echo "BŁĄD: src/payload-types.ts nie odpowiada konfiguracji kolekcji."
-            echo "Uruchom 'npm run generate:types' i dołącz zmieniony plik do commita."
+            echo "ERROR: src/payload-types.ts does not match the collection config."
+            echo "Run 'npm run generate:types' and add the changed file to the commit."
             git diff -- src/payload-types.ts
             exit 1
           fi
       - run: npm run lint
-      # Formatowanie jest maszynowe, więc nie ma o czym dyskutować w przeglądzie.
-      # `--check` nie zmienia plików, tylko wskazuje rozjazd.
+      # Formatting is mechanical, so there is nothing to discuss in review.
+      # `--check` changes no files, it only points at the drift.
       - run: npm run format:check
       - run: npx tsc --noEmit
       - run: npm test
-      # Build celowo leci BEZ bazy danych — src/lib/content.ts łapie błąd
-      # połączenia i renderuje pusto. Gdyby to przestało działać, build padnie
-      # tutaj, a nie przy budowaniu obrazu na runnerze ARM.
+      # The build deliberately runs WITHOUT a database — src/lib/content.ts
+      # catches the connection error and renders empty. If that stopped
+      # working, the build would fail here, not while building the image on
+      # the ARM runner.
       - run: npm run build
 
-  # Testy integracyjne (web/tests/integration): prawdziwy Postgres i działający
-  # serwer — uprawnienia API, zapisy, newsletter, wysyłki. Baza powstaje WYŁĄCZNIE
-  # z migracji w repo, więc ten job przy okazji sprawdza, że migracje dają
-  # kompletny schemat (a nie tylko to, co lokalnie „dopchnął" tryb push).
-  # Serwer to `.next/standalone/server.js` — ten sam, który startuje w obrazie.
-  # Bez BREVO_API_KEY: Payload pisze maile do konsoli, testy i tak podmieniają
-  # wysyłkę na skrzynkę w pamięci. Nic stąd nie wychodzi.
+  # Integration tests (web/tests/integration): a real Postgres and a running
+  # server — API permissions, bookings, newsletter, broadcasts. The database
+  # is built ONLY from the migrations in the repo, so this job also checks
+  # that migrations give a complete schema (not just what `push` mode added
+  # locally). The server is `.next/standalone/server.js` — the one the image
+  # starts. No BREVO_API_KEY: Payload writes emails to the console, and the
+  # tests swap sending for an in-memory inbox anyway. Nothing leaves from here.
   integration:
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -109,8 +110,8 @@ jobs:
           --health-timeout 5s
           --health-retries 12
     env:
-      # Jak w jobie wyżej — wartość bez znaczenia, to nie jest sekret.
-      PAYLOAD_SECRET: nie-jest-sekretem-tylko-placeholder-dla-ci
+      # As in the job above — the value does not matter, it is not a secret.
+      PAYLOAD_SECRET: not-a-secret-just-a-ci-placeholder
       DATABASE_URI: postgresql://ci:ci@127.0.0.1:5432/ci
       TEST_BASE_URL: http://127.0.0.1:3000
     defaults:
@@ -120,39 +121,39 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          # MUSI się zgadzać z `FROM node:<wersja>-alpine` w web/Dockerfile.
+          # MUST match `FROM node:<version>-alpine` in web/Dockerfile.
           node-version: 26
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci
-      # `< /dev/null` i `timeout`: pytanie interaktywne Payloada wisiałoby
-      # bez końca (CLAUDE.md, „Tryb push blokuje migracje”).
-      - name: Schemat z migracji
+      # `< /dev/null` and `timeout`: Payload's interactive question would hang
+      # forever (CLAUDE.md, "Tryb push blokuje migracje").
+      - name: Schema from migrations
         run: timeout 300 npm run migrate < /dev/null
       - run: npm run build
-      - name: Start serwera
+      - name: Start the server
         run: |
           PORT=3000 HOSTNAME=127.0.0.1 node .next/standalone/server.js > server.log 2>&1 &
           for _ in $(seq 60); do
             curl -sf -o /dev/null "$TEST_BASE_URL/api/users/me" && exit 0
             sleep 2
           done
-          echo "Serwer nie wstał w 2 minuty:"; cat server.log; exit 1
+          echo "The server did not come up within 2 minutes:"; cat server.log; exit 1
       - run: npm run test:integration
-      - name: Log serwera
+      - name: Server log
         if: failure()
         run: tail -n 200 server.log
 
   docker:
     needs: [lint-typecheck-build, integration]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    # ⚠️ RUNNER ARM. Produkcja stoi na Oracle Ampere A1, czyli aarch64. Obraz
-    # zbudowany na zwykłym ubuntu-latest jest amd64 i wstaje tam z
-    # "exec format error" — widocznym dopiero na serwerze, po deployu.
-    # Natywny runner ARM jest wielokrotnie szybszy niż emulacja QEMU.
-    # Gdyby runnery ARM były niedostępne dla tego repo: wróć na ubuntu-latest,
-    # dodaj `uses: docker/setup-qemu-action@v3` przed buildx i zostaw
-    # `platforms: linux/arm64` — zadziała, tylko dużo wolniej.
+    # ⚠️ ARM RUNNER. Production runs on Oracle Ampere A1, i.e. aarch64. An
+    # image built on plain ubuntu-latest is amd64 and starts there with
+    # "exec format error" — visible only on the server, after the deploy.
+    # A native ARM runner is many times faster than QEMU emulation.
+    # If ARM runners were unavailable for this repo: go back to ubuntu-latest,
+    # add `uses: docker/setup-qemu-action@v3` before buildx and keep
+    # `platforms: linux/arm64` — it works, only much slower.
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 40
     steps:
@@ -160,9 +161,9 @@ jobs:
       - name: Read version
         id: version
         run: echo "version=$(cat VERSION)" >> "$GITHUB_OUTPUT"
-      # Referencja OCI musi być pisana małymi literami, a nazwa właściciela konta
-      # zawiera wielkie. metadata-action radzi sobie sama, ale Trivy dostaje
-      # nazwę wprost — liczymy ją raz, zamiast wpisywać na sztywno.
+      # An OCI reference must be lowercase, and the account owner's name has
+      # capitals. metadata-action copes by itself, but Trivy gets the name
+      # directly — we compute it once instead of hard-coding it.
       - name: Lowercase owner
         id: owner
         run: echo "lc=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
@@ -184,9 +185,10 @@ jobs:
         with:
           context: web
           platforms: linux/arm64
-          # SITE_URL to zmienna repozytorium z domeną DOCELOWĄ — także wtedy,
-          # gdy strona chwilowo stoi pod inną (patrz „Domena tymczasowa"
-          # w CLAUDE.md); wpieka adres bazowy dla sitemap, robots i canonicali.
+          # SITE_URL is the repository variable with the TARGET domain — also
+          # while the site temporarily runs under another (see "Domena
+          # tymczasowa" in CLAUDE.md); it bakes in the base URL for the
+          # sitemap, robots and canonical URLs.
           build-args: |
             NEXT_PUBLIC_SITE_URL=${{ vars.SITE_URL || 'http://localhost:3000' }}
           push: true
@@ -194,10 +196,10 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      # Skan CVE w warstwie systemowej obrazu — tego npm audit nie widzi.
-      # Na razie informacyjnie (exit-code 0 nie blokuje deployu). `ignore-unfixed`
-      # ucina szum z podatności bez łatki. Gdy wyniki będą czyste, ustaw
-      # exit-code na 1, żeby high/critical wywalały build.
+      # CVE scan of the image's OS layer — npm audit cannot see it.
+      # Informational for now (exit-code 0 does not block the deploy).
+      # `ignore-unfixed` cuts the noise of vulnerabilities without a patch. Once
+      # the results are clean, set exit-code to 1 so high/critical fail the build.
       - name: Trivy image scan (high+)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
@@ -209,9 +211,9 @@ jobs:
         env:
           TRIVY_USERNAME: ${{ github.actor }}
           TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-          # ⚠️ BEZ TEGO KROK PADA. Trivy domyślnie szuka w indeksie obrazu
-          # wariantu linux/amd64, a my publikujemy WYŁĄCZNIE arm64 (produkcja
-          # to Oracle Ampere). Kończy się to błędem krytycznym:
+          # ⚠️ WITHOUT THIS THE STEP FAILS. By default Trivy looks for a
+          # linux/amd64 variant in the image index, and we publish ONLY arm64
+          # (production is Oracle Ampere). It ends in a fatal error:
           #   "no child with platform linux/amd64 in index ..."
-          # `exit-code: 0` tego nie łagodzi — to awaria narzędzia, nie znalezisko.
+          # `exit-code: 0` does not soften it — it is a tool failure, not a finding.
           TRIVY_PLATFORM: linux/arm64

@@ -1,33 +1,34 @@
 name: Migrate
 
-# Migracje schematu na bazie produkcyjnej. Od 13.10.2026 uruchamia je SAM
-# workflow „Deploy" (przez `workflow_call`), przed podmianą aplikacji — ten
-# przycisk zostaje do puszczenia migracji bez wdrażania.
+# Schema migrations on the production database. Since 13.10.2026 the Deploy
+# workflow runs them ITSELF (through `workflow_call`), before swapping the app —
+# this button stays for running migrations without deploying.
 #
-# Do 13.10.2026 był to wyłącznie osobny przycisk, żeby zmiana schematu była
-# decyzją, a nie skutkiem ubocznym wdrożenia. Ale Deploy też jest tylko ręczny,
-# więc decyzją jest już samo wdrożenie — a drugi przycisk dało się pominąć:
-# 13.10.2026 wdrożono 0.7.0 bez migracji i panel padał na
-# `relation "broadcasts" does not exist`.
+# Until 13.10.2026 this was only a separate button, so that a schema change
+# would be a decision and not a side effect of deploying. But Deploy is manual
+# too, so deploying already is the decision — and the second button could be
+# skipped: on 13.10.2026 0.7.0 went out without migrations and the panel failed
+# on `relation "broadcasts" does not exist`.
 #
-# DLACZEGO TUNEL SSH, a nie `docker compose run` na serwerze:
-# obraz produkcyjny to `output: standalone` i waży ~80 MB, bo Turbopack wbudował
-# zależności w chunki serwera — nie ma w nim ani CLI Payloada, ani jego modułów.
-# Drugi obraz z pełnym node_modules ważyłby ~1 GB przy każdej wersji, a zapchany
-# dysk to dokładnie to, co kiedyś położyło deploy w anovastudio. Zamiast tego
-# migracje odpala runner, który i tak ma komplet zależności, przez tunel do bazy
-# wystawionej WYŁĄCZNIE na pętli zwrotnej serwera.
+# WHY AN SSH TUNNEL, and not `docker compose run` on the server:
+# the production image is `output: standalone` and weighs ~80 MB, because
+# Turbopack bundled the dependencies into server chunks — it has neither
+# Payload's CLI nor its modules. A second image with a full node_modules would
+# weigh ~1 GB for every version, and a full disk is exactly what once took the
+# deploy down in anovastudio. Instead the runner, which has every dependency
+# anyway, runs the migrations through a tunnel to a database exposed ONLY on
+# the server's loopback.
 
 on:
   workflow_dispatch:
     inputs:
       confirm:
-        description: Wpisz "migruj", żeby potwierdzić zmianę schematu bazy produkcyjnej
+        description: Type "migrate" to confirm changing the production database schema
         required: true
         default: ''
-  # Wołany przez Deploy. Sekrety przychodzą przez `secrets: inherit`, a kod
-  # z tego samego commita co wywołujący Deploy — czyli z tego, z którego
-  # Deploy czyta VERSION.
+  # Called by Deploy. Secrets come through `secrets: inherit`, and the code
+  # from the same commit as the calling Deploy — the one Deploy reads VERSION
+  # from.
   workflow_call:
     inputs:
       confirm:
@@ -42,10 +43,10 @@ jobs:
       run:
         working-directory: web
     steps:
-      - name: Sprawdź potwierdzenie
-        if: inputs.confirm != 'migruj'
+      - name: Check confirmation
+        if: inputs.confirm != 'migrate'
         run: |
-          echo "BŁĄD: nie potwierdzono. Wpisz dokładnie: migruj" >&2
+          echo "ERROR: not confirmed. Type exactly: migrate" >&2
           exit 1
 
       - uses: actions/checkout@v7
@@ -56,42 +57,43 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - run: npm ci
 
-      - name: Otwórz tunel SSH do bazy produkcyjnej
+      - name: Open SSH tunnel to the production database
         run: |
           set -euo pipefail
           mkdir -p ~/.ssh
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
-          # -f w tle, -N bez zdalnego polecenia. Baza słucha na serwerze tylko
-          # na 127.0.0.1:5432 (patrz deploy/docker-compose.prod.yml).
+          # -f in the background, -N without a remote command. The database
+          # listens on the server on 127.0.0.1:5432 only (see
+          # deploy/docker-compose.prod.yml).
           ssh -f -N -L 55432:127.0.0.1:5432 \
             -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
             "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
-          # Poczekaj, aż port lokalny faktycznie przyjmuje połączenia.
-          # `_` zamiast `i` — zmienna pętli jest tu nieużywana, a shellcheck
-          # słusznie to zgłasza (SC2034).
+          # Wait until the local port actually accepts connections.
+          # `_` instead of `i` — the loop variable is unused here, which
+          # would rightly be reported by shellcheck (SC2034).
           for _ in $(seq 1 15); do
-            if nc -z 127.0.0.1 55432; then echo "tunel gotowy"; exit 0; fi
+            if nc -z 127.0.0.1 55432; then echo "tunnel ready"; exit 0; fi
             sleep 2
           done
-          echo "BŁĄD: tunel nie wstał w 30 s." >&2
+          echo "ERROR: the tunnel did not come up within 30 s." >&2
           exit 1
 
-      # ⚠️ BRAMKA PRZED ZAWIESZENIEM. `payload migrate` zadaje PYTANIE INTERAKTYWNE,
-      # jeśli w tabeli `payload_migrations` jest wpis `dev` (zostawia go tryb
-      # `push`, czyli `npm run dev`):
+      # ⚠️ GATE BEFORE A HANG. `payload migrate` asks an INTERACTIVE QUESTION
+      # when `payload_migrations` holds a `dev` entry (left by `push` mode,
+      # i.e. `npm run dev`):
       #   "It looks like you've run Payload in dev mode... data loss will occur.
       #    Would you like to proceed? (y/N)"
-      # Zmierzone 19.09.2026: bez terminala to pytanie WISI, i to nawet przy
-      # zamkniętym stdin (`< /dev/null`) — job stałby do timeoutu i padł
-      # z komunikatem, z którego nic nie wynika.
+      # Measured 19.09.2026: without a terminal that question HANGS, even with
+      # stdin closed (`< /dev/null`) — the job would sit until the timeout and
+      # fail with a message that says nothing.
       #
-      # Produkcja ma `push: false`, więc wpisu `dev` nie powinno tam być nigdy.
-      # Jeśli jednak jest, znaczy to, że ktoś uruchomił aplikację w trybie
-      # deweloperskim przeciw bazie klienta — i wtedy chcemy ZATRZYMAĆ się
-      # z jasnym komunikatem, a nie odpowiedzieć „tak" na pytanie o utratę danych.
-      - name: Bramka — czy baza nie jest w stanie „dev"
+      # Production has `push: false`, so a `dev` entry should never be there.
+      # If it is, someone ran the app in development mode against the client's
+      # database — and then we want to STOP with a clear message, not answer
+      # "yes" to a question about losing data.
+      - name: Gate — the database is not in "dev" state
         env:
           DATABASE_URI: postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@127.0.0.1:55432/${{ secrets.POSTGRES_DB }}
         run: |
@@ -104,23 +106,23 @@ jobs:
             ).catch(() => ({ rows: [] }))
             await c.end()
             if (rows.length) {
-              console.error('PRZERYWAM: baza produkcyjna ma wpis migracji \'dev\'.')
-              console.error('Ktoś uruchomił aplikację w trybie deweloperskim (push) przeciw tej bazie.')
-              console.error('Payload zapytałby tu o zgodę na UTRATĘ DANYCH. Rozwiąż to ręcznie.')
+              console.error('STOPPING: the production database has a \'dev\' migration entry.')
+              console.error('Someone ran the app in development mode (push) against this database.')
+              console.error('Payload would ask here for consent to LOSING DATA. Resolve it by hand.')
               process.exit(1)
             }
-            console.log('OK: brak wpisu \'dev\', migracje mogą iść bez pytania.')
+            console.log('OK: no \'dev\' entry, migrations can run without a question.')
           "
 
-      - name: Zastosuj migracje
+      - name: Apply migrations
         env:
           DATABASE_URI: postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@127.0.0.1:55432/${{ secrets.POSTGRES_DB }}
-          # Payload wymaga sekretu przy starcie, choć migracje go nie używają.
+          # Payload needs the secret to start, though migrations do not use it.
           PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
-        # `timeout` jako druga linia obrony: gdyby mimo bramki coś zapytało,
-        # job pada po 5 minutach zamiast stać do limitu.
+        # `timeout` as the second line of defence: if something asked despite
+        # the gate, the job fails after 5 minutes instead of sitting until the limit.
         run: timeout 300 npm run migrate < /dev/null
 
-      - name: Zamknij tunel
+      - name: Close the tunnel
         if: always()
         run: pkill -f "ssh -f -N -L 55432" || true
