@@ -883,6 +883,10 @@ zrobi z kursanta administratora. Koszt: zasada 28.
 - **Walidacja na żywo w formularzach kont** (`components/AccountFields.tsx`),
   ustalone 02.10.2026: pole czerwienieje dopiero po WYJŚCIU z niego z błędem,
   potem zmienia się przy każdej literze, aż przejdzie (zielony znaczek);
+  **puste pole po wyjściu NIE czerwienieje** (od 16.10.2026) — dopiero przy
+  wysłaniu albo gdy coś w nim było. Komunikat pod polem przesuwał linki
+  niżej o linię: Safari ustawia kursor w polu e-mail logowania, a klik
+  w „Nie pamiętam hasła” trafiał w puste miejsce (zgłoszone przy testach);
   hasło ma licznik od pierwszej litery. Reguły to te same funkcje, które
   sprawdza serwer (`checkName`, `checkEmail`, `checkPhone`,
   `checkNewPassword` w `lib/validation.ts`) — przeglądarka tylko mówi

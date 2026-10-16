@@ -16,8 +16,9 @@ import { ConsentText } from '@/components/ConsentText'
  * When a field turns red (decided 02.10.2026): not while someone types it
  * for the first time — a half-typed email is not a mistake — but once they
  * LEAVE the field with an error, and from then on live, letter by letter,
- * until it passes (then a green tick). A server error after submit puts the
- * field into the same live mode.
+ * until it passes (then a green tick). A field left EMPTY stays calm until
+ * submit (since 16.10.2026, see `onBlur`). A server error after submit puts
+ * the field into the same live mode.
  *
  * The same look as the contact form — its field class is repeated here
  * rather than imported, because that form keeps its own local `Field`. If
@@ -166,7 +167,15 @@ export function TextField({
             setValue(e.target.value)
             setServerError(undefined)
           }}
-          onBlur={() => setTouched(true)}
+          // Leaving an EMPTY field is not a mistake yet — "Podaj adres e-mail"
+          // under it pushed the links below down by a line, so a click on
+          // "Nie pamiętam hasła" right after Safari's autofocus landed on
+          // nothing (reported 16.10.2026). Empty counts on submit — `onInvalid`
+          // where the form uses `stopInvalidSubmit`, the server's `error`
+          // elsewhere (login) — or once something was typed.
+          onBlur={(e) => {
+            if (e.target.value !== '') setTouched(true)
+          }}
           onInvalid={() => setTouched(true)}
           aria-describedby={describedBy || undefined}
           aria-invalid={shownError ? true : undefined}
