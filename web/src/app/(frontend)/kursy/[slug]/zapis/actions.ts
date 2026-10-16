@@ -1,6 +1,5 @@
 'use server'
 
-import { headers } from 'next/headers'
 import { getPayload } from 'payload'
 import config from '@payload-config'
 
@@ -10,7 +9,7 @@ import { getCurrentCustomer } from '@/lib/auth'
 import { formatSessionDates } from '@/lib/bookings'
 import { recordEmailIssue, sessionSummary } from '@/lib/bookingEffects'
 import { createBooking } from '@/lib/bookingService'
-import { pickLanguage } from '@/lib/email/language'
+import { DEFAULT_LANGUAGE } from '@/lib/email/language'
 import { publicUrl, tokenLink } from '@/lib/email/links'
 import {
   bookingReceivedEmail,
@@ -126,7 +125,7 @@ export async function bookCourse(
           email: data.email.trim().toLowerCase(),
           phone: normalizePhone(data.phone),
         }
-    const language = customer?.language ?? pickLanguage((await headers()).get('accept-language'))
+    const language = customer?.language ?? DEFAULT_LANGUAGE
 
     const result = await createBooking(payload, {
       sessionId: Number(data.sessionId),

@@ -4,9 +4,10 @@
  * The site is Polish with one English page, but people from abroad sign up for
  * courses too, and an email they cannot read is an email that did not arrive.
  * Two languages, no more: a third would need every template written again, and
- * English is what a visitor who is not Polish can be assumed to read.
+ * English is what a visitor who is not Polish can be assumed to read. Who
+ * gets English is a choice, never a guess (see `DEFAULT_LANGUAGE`).
  *
- * Pure functions, no imports from Payload or Next — tested under `node --test`.
+ * No imports from Payload or Next — collections and `node --test` both load it.
  */
 export const EMAIL_LANGUAGES = ['pl', 'en'] as const
 
@@ -19,36 +20,14 @@ export const LANGUAGE_OPTIONS_FOR_PAYLOAD = [
 ] satisfies { label: string; value: EmailLanguage }[]
 
 /**
- * Picks the language from the browser's `Accept-Language` header.
+ * The language of everyone who has not chosen one: a booking without an
+ * account, a new account, a newsletter sign-up.
  *
- * The browser's FIRST preference decides — the one with the highest weight,
- * ties going to whichever comes first. Polish in any regional form means
- * Polish; anything else means English. A missing or unreadable header means
- * Polish: this is a Polish school, and that is who most visitors are.
- *
- * Deliberately not "Polish appears anywhere in the list": a German browser
- * routinely carries `pl` far down the list after a holiday in Poland, and that
- * person still reads English better than Polish.
+ * Until 15.10.2026 the browser's `Accept-Language` picked it, and any first
+ * choice other than Polish meant English. But a browser set to English is a
+ * common setting in Poland and says nothing about the person — Polish
+ * participants were getting English emails. English is now a choice — the
+ * participant's in "Moje konto", or the school's in the panel (the only way
+ * for a newsletter address, which has no account) — never a guess.
  */
-export function pickLanguage(acceptLanguage: string | null | undefined): EmailLanguage {
-  if (!acceptLanguage) return 'pl'
-
-  let best: { tag: string; weight: number } | null = null
-  for (const part of acceptLanguage.split(',')) {
-    const [rawTag, ...params] = part.trim().split(';')
-    const tag = rawTag.trim().toLowerCase()
-    if (!tag || tag === '*') continue
-
-    let weight = 1
-    for (const param of params) {
-      const [key, value] = param.trim().split('=')
-      if (key === 'q') weight = Number(value)
-    }
-    if (!Number.isFinite(weight) || weight <= 0) continue
-
-    if (!best || weight > best.weight) best = { tag, weight }
-  }
-
-  if (!best) return 'pl'
-  return best.tag === 'pl' || best.tag.startsWith('pl-') ? 'pl' : 'en'
-}
+export const DEFAULT_LANGUAGE: EmailLanguage = 'pl'

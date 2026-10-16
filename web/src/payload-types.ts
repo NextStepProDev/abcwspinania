@@ -696,7 +696,7 @@ export interface Newsletter {
    */
   status: 'pending' | 'subscribed' | 'unsubscribed';
   /**
-   * Ustawiany z przeglądarki przy zapisie. Osoby z angielskim dostaną angielską wersję wysyłki, jeśli ją dopiszesz.
+   * Nowy zapis dostaje polski. Ustaw angielski, a ta osoba dostanie angielską wersję wysyłki, jeśli ją dopiszesz.
    */
   language?: ('pl' | 'en') | null;
   token?: string | null;
@@ -867,9 +867,6 @@ export interface Message {
    * Wybrany przez osobę piszącą (lista kursów ze strony) albo wypełniony sam, gdy pisze z podstrony kursu.
    */
   course?: (number | null) | Course;
-  /**
-   * Z ustawień przeglądarki osoby piszącej — w tym języku warto odpisać.
-   */
   language?: ('pl' | 'en') | null;
   status?: ('new' | 'in-progress' | 'resolved') | null;
   /**

@@ -144,9 +144,12 @@ export const Messages: CollectionConfig = {
       defaultValue: 'pl',
       label: 'Język odpowiedzi',
       options: LANGUAGE_OPTIONS_FOR_PAYLOAD,
+      // Since 15.10.2026 always Polish (`DEFAULT_LANGUAGE`): the browser no
+      // longer picks it, so the panel has nothing to show. The column stays —
+      // older messages carry the browser's guess, and dropping it is a migration.
       admin: {
         readOnly: true,
-        description: 'Z ustawień przeglądarki osoby piszącej — w tym języku warto odpisać.',
+        hidden: true,
       },
     },
     {

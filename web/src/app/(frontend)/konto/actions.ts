@@ -1,6 +1,5 @@
 'use server'
 
-import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { getPayload, AuthenticationError, LockedAuth, UnverifiedEmail, type Where } from 'payload'
 import config from '@payload-config'
@@ -10,7 +9,7 @@ import { sendAccountExistsEmail, sendPasswordLink, sendVerificationLink } from '
 import { clearLoginCookie, getCurrentCustomer, setLoginCookie } from '@/lib/auth'
 import { claimBookings } from '@/lib/bookingEffects'
 import { accountConsentForStorage } from '@/lib/consent'
-import { pickLanguage } from '@/lib/email/language'
+import { DEFAULT_LANGUAGE } from '@/lib/email/language'
 import { accountDeletedEmail } from '@/lib/email/templates'
 import {
   isValid,
@@ -137,7 +136,7 @@ export async function registerAccount(
         firstName: data.firstName.trim(),
         lastName: data.lastName.trim(),
         phone: normalizePhone(data.phone),
-        language: pickLanguage((await headers()).get('accept-language')),
+        language: DEFAULT_LANGUAGE,
         consentText: accountConsentForStorage(),
         consentDate: new Date().toISOString(),
       },

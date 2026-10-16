@@ -1185,12 +1185,18 @@ Od 01.10.2026 aplikacja wysyła maile przez **Brevo, przez jego HTTP API**
 - **Mail po zapisie, nie zamiast zapisu.** Hook `afterChange` wysyła po
   zapisaniu do bazy; błąd wysyłki jest logowany i nie psuje formularza.
   Brevo niedostępny = wiadomość czeka w panelu, nie ginie.
-- **Dwa języki maili do odwiedzających (PL/EN).** Język bierzemy z nagłówka
-  `Accept-Language` przy wysłaniu formularza (`pickLanguage()`) i **zapisujemy
-  przy zgłoszeniu** (`language`), żeby późniejsze maile szły tym samym
-  językiem bez zgadywania. Maile do szkoły są po polsku, **bez dopisku
-  o języku** (do 14.10.2026 był „odpowiedz po angielsku” — przeglądarka po
-  angielsku to w Polsce częste ustawienie, nie język osoby).
+- **Dwa języki maili do odwiedzających (PL/EN), domyślnie polski.** Od
+  15.10.2026 każdy, kto języka nie wybrał (zapis bez konta, nowe konto,
+  newsletter), dostaje `DEFAULT_LANGUAGE` = polski; angielski tylko po
+  przestawieniu w „Moim koncie” (albo przez szkołę w panelu). Do tego dnia
+  decydował nagłówek `Accept-Language` (`pickLanguage()`): przeglądarka po
+  angielsku to w Polsce częste ustawienie, nie język osoby, i Polacy dostawali
+  maile po angielsku. `email.test.ts` pilnuje, że żaden kod nie czyta już
+  `accept-language`. Język **zapisujemy przy zgłoszeniu** (`language`), żeby
+  późniejsze maile szły tym samym językiem. Pole w Wiadomościach jest ukryte
+  w panelu (zawsze polski; kolumna zostaje — starsze wiersze mają dawne
+  zgadywanie, a jej usunięcie to migracja). Maile do szkoły są po polsku,
+  **bez dopisku o języku** (do 14.10.2026 był „odpowiedz po angielsku”).
 - **Nagłówek maili: ORYGINALNE logo + nazwa tekstem** (od 12.10.2026,
   `header()` w `layout.ts`). Logo to PDF klienta bez zmian, wyrenderowany do
   `public/logo/email-logo.png` (`design/logo/email_logo.py`) — nie dorysowany
@@ -1429,6 +1435,13 @@ poczty, więc przejęcie jej niczego nie odcina.
   etykietę** i „wdróż wersję 0.1.0" przestaje znaczyć cokolwiek konkretnego.
   Od pierwszego wdrożenia u Krzyśka oznacza to brak możliwości cofnięcia się
   do wcześniejszego stanu.
+  **Wyjątek (od 15.10.2026): PR, który nie rusza niczego ze ścieżek CI**
+  (`web/**`, `.github/workflows/ci.yml` — lista `paths` w `ci.yml`), czyli
+  np. sam `docs/` albo `CLAUDE.md`, **nie podbija `VERSION`**. Taki merge
+  nie buduje obrazu, więc nie ma czego etykietować — a podbicie samo
+  uruchomiłoby CI (`VERSION` jest na tej liście) i zbudowało obraz identyczny
+  z poprzednim pod nowym numerem. Przy dziesiątkach poprawek scenariusza
+  w czasie testów numer rósłby bez żadnej zmiany na produkcji.
 - **`version` w `web/package.json` NIE jest synchronizowany z `VERSION`** i nie
   ma być. Nic go nie czyta — pakiet jest prywatny, nie trafia do npm — a w
   anovastudio stoi na `0.1.0` przy `VERSION` równym `1.8.6`. Jedynym numerem

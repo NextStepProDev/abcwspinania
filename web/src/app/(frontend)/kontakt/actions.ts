@@ -1,10 +1,9 @@
 'use server'
 
-import { headers } from 'next/headers'
 import { getPayload } from 'payload'
 import config from '@payload-config'
 
-import { pickLanguage } from '@/lib/email/language'
+import { DEFAULT_LANGUAGE } from '@/lib/email/language'
 import { consentForStorage } from '@/lib/consent'
 import { subscribe } from '@/lib/newsletter'
 import { validateContact, validateNewsletter, isValid, looksLikeBot } from '@/lib/validation'
@@ -122,7 +121,7 @@ export async function sendMessage(
         preferredDate: data.preferredDate.trim() || undefined,
         course,
         status: 'new',
-        language: pickLanguage((await headers()).get('accept-language')),
+        language: DEFAULT_LANGUAGE,
         consentText: consentForStorage(),
         consentDate: new Date().toISOString(),
       },
@@ -188,7 +187,7 @@ export async function subscribeToNewsletter(
     const payload = await getPayload({ config })
     // Double opt-in, and the same answer whether the address was new, waiting
     // or already subscribed — see `lib/newsletter.ts`.
-    await subscribe(payload, email, pickLanguage((await headers()).get('accept-language')))
+    await subscribe(payload, email, DEFAULT_LANGUAGE)
     return { status: 'subscribed' }
   } catch (error) {
     console.error('Failed to store a newsletter subscription:', error)
