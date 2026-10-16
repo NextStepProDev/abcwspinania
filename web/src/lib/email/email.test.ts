@@ -1,45 +1,36 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
-import { pickLanguage } from '@/lib/email/language'
+import { DEFAULT_LANGUAGE } from '@/lib/email/language'
 import { escapeHtml, renderEmail } from '@/lib/email/layout'
 import { newMessageNotification } from '@/lib/email/templates'
 import { toBrevoAddresses, toBrevoBody } from '@/lib/email/brevo'
 
 // --- language ---------------------------------------------------------------
 
-test('a Polish browser gets Polish, in any regional form', () => {
-  assert.equal(pickLanguage('pl'), 'pl')
-  assert.equal(pickLanguage('pl-PL,pl;q=0.9,en;q=0.8'), 'pl')
-  assert.equal(pickLanguage('PL-pl'), 'pl')
-})
+const SRC = new URL('../../', import.meta.url).pathname
 
-test('any other first choice gets English', () => {
-  assert.equal(pickLanguage('de-DE,de;q=0.9'), 'en')
-  assert.equal(pickLanguage('en-GB,en;q=0.9'), 'en')
-  assert.equal(pickLanguage('uk'), 'en')
-})
+function sourceFiles(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name)
+    if (entry.isDirectory()) return sourceFiles(path)
+    return /\.tsx?$/.test(entry.name) && !entry.name.endsWith('.test.ts') ? [path] : []
+  })
+}
 
-test('Polish far down the list does not outrank the first choice', () => {
-  assert.equal(pickLanguage('de-DE,de;q=0.9,en;q=0.8,pl;q=0.3'), 'en')
-})
-
-test('weights decide, not the order of the header', () => {
-  assert.equal(pickLanguage('en;q=0.5,pl;q=0.9'), 'pl')
-  assert.equal(pickLanguage('pl;q=0.2,fr'), 'en')
-})
-
-test('a missing or unreadable header means Polish', () => {
-  assert.equal(pickLanguage(null), 'pl')
-  assert.equal(pickLanguage(''), 'pl')
-  assert.equal(pickLanguage('*'), 'pl')
-  assert.equal(pickLanguage('en;q=0'), 'pl')
-  assert.equal(pickLanguage(';;,,'), 'pl')
-})
-
-test('a "pl" prefix that is not Polish does not count as Polish', () => {
-  // `plt` is Plateau Malagasy — a real tag, and not Polish.
-  assert.equal(pickLanguage('plt'), 'en')
+// Decided 15.10.2026: a browser set to English is common in Poland and says
+// nothing about the person, so it no longer picks the email language. Polish
+// unless the participant switches their account to English.
+test('no email language comes from the browser — Polish unless the account says otherwise', () => {
+  assert.equal(DEFAULT_LANGUAGE, 'pl')
+  // The header read as a string (`headers().get('accept-language')`), not
+  // a mention of it in a comment.
+  const offenders = sourceFiles(SRC).filter((file) =>
+    /['"]accept-language['"]/i.test(readFileSync(file, 'utf8')),
+  )
+  assert.deepEqual(offenders, [])
 })
 
 // --- layout -----------------------------------------------------------------

@@ -92,7 +92,7 @@ export const Newsletter: CollectionConfig = {
       options: LANGUAGE_OPTIONS_FOR_PAYLOAD,
       admin: {
         description:
-          'Ustawiany z przeglądarki przy zapisie. Osoby z angielskim dostaną angielską wersję wysyłki, jeśli ją dopiszesz.',
+          'Nowy zapis dostaje polski. Ustaw angielski, a ta osoba dostanie angielską wersję wysyłki, jeśli ją dopiszesz.',
       },
     },
     {
