@@ -863,6 +863,15 @@ zrobi z kursanta administratora. Koszt: zasada 28.
   przy każdej zmianie strony. Odczyt ciasteczka w layoucie zrobiłby każdą
   stronę dynamiczną i zabił cache (`revalidate = 300`). Bez JS: zawsze
   „Zaloguj się” — a `/logowanie` przekierowuje zalogowanych dalej.
+- **⚠️ Błędy Payloada rozpoznajemy po `status`, nigdy przez `instanceof`**
+  (`lib/authErrors.ts`, od 18.10.2026). W zbudowanej aplikacji formularz
+  wysłany ZANIM załaduje się JavaScript strony trafia do innego fragmentu
+  serwera, z własną kopią klas błędów — `instanceof AuthenticationError`
+  dawało `false` dla złego hasła: logowanie mówiło „Nie udało się
+  zalogować”, a „Usuń konto” ogólny błąd zamiast „Nieprawidłowe hasło”.
+  W `next dev` i po załadowaniu JS jest jedna kopia, więc zwykłe klikanie
+  tego nie pokazuje. Sprawdzanie: `next build`, serwer z `.next/standalone`
+  i formularz wysłany bez JS (albo przed jego załadowaniem).
 - **Wylogowanie przez `/api/customers/logout`**, nie przez skasowanie
   ciasteczka: endpoint unieważnia też sesję (`auth.useSessions`).
 - **Strony kont mają `noindex`** i nie ma ich w mapie strony.
