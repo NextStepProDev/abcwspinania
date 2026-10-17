@@ -43,10 +43,12 @@ export function LanguageForm({ current }: { current: 'pl' | 'en' }) {
           <option value="en">English</option>
         </SelectBox>
       </div>
+      {/* Disabled while the saved language is chosen — nothing to save
+          (as in DetailsForm; asked for 18.10.2026). */}
       <button
         type="submit"
-        disabled={pending}
-        className="rounded-lg border border-rock-200 px-5 py-2.5 font-semibold transition-colors hover:border-rope disabled:opacity-60"
+        disabled={pending || !changed}
+        className="rounded-lg border border-rock-200 px-5 py-2.5 font-semibold transition-colors enabled:hover:border-rope disabled:opacity-60"
       >
         {pending ? 'Zapisuję…' : 'Zapisz'}
       </button>

@@ -2,7 +2,7 @@
 
 import { refresh } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { getPayload, AuthenticationError, LockedAuth, UnverifiedEmail, type Where } from 'payload'
+import { getPayload, type Where } from 'payload'
 import config from '@payload-config'
 
 import { VERIFY_LINK_HOURS } from '@/collections/Customers'
@@ -10,6 +10,7 @@ import { sendAccountExistsEmail, sendPasswordLink, sendVerificationLink } from '
 import { clearLoginCookie, getCurrentCustomer, setLoginCookie } from '@/lib/auth'
 import { claimBookings } from '@/lib/bookingEffects'
 import { saveAccountDetails } from '@/lib/accountDetails'
+import { loginFailure } from '@/lib/authErrors'
 import { accountConsentForStorage } from '@/lib/consent'
 import { DEFAULT_LANGUAGE } from '@/lib/email/language'
 import { accountDeletedEmail } from '@/lib/email/templates'
@@ -184,7 +185,9 @@ export async function logIn(
     if (user) await claimBookings(payload, user).catch((e) => console.error('claim failed:', e))
     target = safeNextPath(formData.get('next'))
   } catch (error) {
-    if (error instanceof UnverifiedEmail) {
+    // By status, not `instanceof` — see `lib/authErrors.ts`.
+    const failure = loginFailure(error)
+    if (failure === 'unverified') {
       return {
         status: 'error',
         values,
@@ -199,7 +202,7 @@ export async function logIn(
     // anyone confirm an address has an account: five wrong guesses, then
     // see whether the sixth says "locked". The lock is mentioned every time
     // instead, so a real participant still learns why it stopped working.
-    if (error instanceof LockedAuth || error instanceof AuthenticationError) {
+    if (failure === 'rejected') {
       return { status: 'error', values, message: LOGIN_FAILED_MESSAGE }
     }
     console.error('Failed to log a participant in:', error)
@@ -451,16 +454,25 @@ export async function deleteAccount(
     try {
       await payload.login({ collection: 'customers', data: { email: customer.email, password } })
     } catch (error) {
-      if (error instanceof LockedAuth) {
+      // By status, not `instanceof` — see `lib/authErrors.ts`. A wrong
+      // password and a locked account share it; the account's own lock
+      // tells them apart (the owner is logged in, nothing is revealed).
+      if (loginFailure(error) !== 'rejected') throw error
+      const { lockUntil } = await payload.findByID({
+        collection: 'customers',
+        id: customer.id,
+        depth: 0,
+        overrideAccess: true,
+        // `lockUntil` is a hidden field of Payload's — a plain read leaves it out.
+        showHiddenFields: true,
+      })
+      if (lockUntil && Date.parse(lockUntil) > Date.now()) {
         return {
           status: 'error',
           message: 'Zbyt wiele nieudanych prób — spróbuj ponownie za 15 minut.',
         }
       }
-      if (error instanceof AuthenticationError) {
-        return { status: 'error', errors: { password: 'Nieprawidłowe hasło.' } }
-      }
-      throw error
+      return { status: 'error', errors: { password: 'Nieprawidłowe hasło.' } }
     }
 
     await payload.delete({ collection: 'customers', id: customer.id, overrideAccess: true })
