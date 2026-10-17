@@ -900,7 +900,9 @@ zrobi z kursanta administratora. Koszt: zasada 28.
   jakich haseł nie ma.
 - **„Twoje dane” w Moim koncie** (od 18.10.2026, `DetailsForm`,
   `updateAccountDetails`, `lib/accountDetails.ts`): imię, nazwisko, telefon —
-  te same reguły co przy rejestracji. Zmiana idzie też do NADCHODZĄCYCH,
+  te same reguły co przy rejestracji. „Zapisz” nieaktywny, dopóki pola nie
+  różnią się od zapisanych (`sameAccountDetails` — jak serwer: bez spacji
+  w telefonie). Zmiana idzie też do NADCHODZĄCYCH,
   nieodwołanych zapisów osoby (decyzja Mateusza: szkoła ma dzwonić pod
   działający numer); minione i odwołane zostają kopią z dnia zapisu. Bez
   przeliczania miejsc i bez maili (`skipRecount`, `skipStatusEmail`).
