@@ -62,9 +62,25 @@ export interface BookingInput {
   wantsAccount: boolean
 }
 
+/** What "create an account for me" did — see `accountFor`. */
+interface AccountOutcome {
+  accountId: number | null
+  /** Set when this booking created an account (it needs its set-password email). */
+  newAccount: Customer | null
+  /** An account already existed for the address but is not confirmed yet. */
+  unconfirmedAccount: Customer | null
+}
+
 export type BookingResult =
   | { kind: 'unavailable' }
-  | { kind: 'duplicate' }
+  | {
+      kind: 'duplicate'
+      /** The person's first booking for the session — the one that stays. */
+      booking: Booking
+      /** As in `created`; the account is made from `booking`'s details. */
+      newAccount: Customer | null
+      unconfirmedAccount: Customer | null
+    }
   | {
       kind: 'created'
       booking: Booking
@@ -76,6 +92,57 @@ export type BookingResult =
       /** An account already existed for the address but is not confirmed yet. */
       unconfirmedAccount: Customer | null
     }
+
+/**
+ * "Create an account for me": an account for the address when none exists.
+ * Runs inside the booking's transaction, under a lock on the address.
+ */
+async function accountFor(
+  payload: Payload,
+  req: Partial<PayloadRequest>,
+  tx: Tx,
+  contact: BookingInput['contact'],
+  language: EmailLanguage,
+): Promise<AccountOutcome> {
+  // The same address booking two sessions at once must not try to create
+  // two accounts — the second would hit the unique email and fail.
+  await tx.execute(sql`SELECT pg_advisory_xact_lock(${LOCK_EMAIL}, hashtext(${contact.email}))`)
+  const { docs } = await payload.find({
+    collection: 'customers',
+    where: { email: { equals: contact.email } },
+    limit: 1,
+    depth: 0,
+    req,
+    overrideAccess: true,
+  })
+  if (!docs[0]) {
+    const newAccount = await payload.create({
+      collection: 'customers',
+      data: {
+        ...contact,
+        // Never used to log in: the person sets their own from the email,
+        // which also confirms the address.
+        password: crypto.randomBytes(32).toString('hex'),
+        language,
+        consentText: accountConsentForStorage(),
+        consentDate: new Date().toISOString(),
+      },
+      req,
+      overrideAccess: true,
+      disableVerificationEmail: true,
+    })
+    return { accountId: newAccount.id, newAccount, unconfirmedAccount: null }
+  }
+  // An account waits for confirmation: its owner gets a fresh link (sent by
+  // the action). It is NOT attached here — a form proves nothing;
+  // confirming the address will claim the booking.
+  if (!docs[0]._verified) return { accountId: null, newAccount: null, unconfirmedAccount: docs[0] }
+  // A confirmed account: nothing here — its owner's next login claims the
+  // booking (`claimBookings`).
+  return { accountId: null, newAccount: null, unconfirmedAccount: null }
+}
+
+const NO_ACCOUNT: AccountOutcome = { accountId: null, newAccount: null, unconfirmedAccount: null }
 
 function startOfTodayUtc(): number {
   const d = new Date()
@@ -115,7 +182,7 @@ export async function createBooking(payload: Payload, input: BookingInput): Prom
     }
 
     // --- one person, one booking per session (a double click included) ---
-    const duplicate = await payload.count({
+    const { docs: earlier } = await payload.find({
       collection: 'bookings',
       where: {
         and: [
@@ -124,12 +191,43 @@ export async function createBooking(payload: Payload, input: BookingInput): Prom
           { status: { not_equals: 'cancelled' } },
         ],
       },
+      sort: 'createdAt',
+      limit: 1,
+      depth: 0,
       req,
       overrideAccess: true,
     })
-    if (duplicate.totalDocs > 0) {
+    if (earlier[0]) {
+      const first = earlier[0]
+      // Booked before without an account, now again WITH "create an account":
+      // still one booking, but the account is made — from the FIRST booking's
+      // details, not this form's (decided 17.10.2026; until then the tick was
+      // dropped and the page promised an email that never came). Not attached
+      // here: setting the password claims the booking (`claimBookings`).
+      // A first booking that already HAS an account (a double click on a
+      // form with the tick) is left alone — its email went out with it.
+      const accounts =
+        !input.customerId && input.wantsAccount && !first.customer
+          ? await accountFor(
+              payload,
+              req,
+              tx,
+              {
+                firstName: first.firstName,
+                lastName: first.lastName,
+                email: input.contact.email,
+                phone: first.phone,
+              },
+              first.language ?? input.language,
+            )
+          : NO_ACCOUNT
       await commitTransaction(req)
-      return { kind: 'duplicate' }
+      return {
+        kind: 'duplicate',
+        booking: first,
+        newAccount: accounts.newAccount,
+        unconfirmedAccount: accounts.unconfirmedAccount,
+      }
     }
 
     // --- the waiting list when the session is full: counted UNDER the lock ---
@@ -147,49 +245,14 @@ export async function createBooking(payload: Payload, input: BookingInput): Prom
     )
 
     // --- an account, when asked for and none exists ---
-    let accountId = input.customerId
-    let newAccount: Customer | null = null
-    let unconfirmedAccount: Customer | null = null
-    if (!input.customerId && input.wantsAccount) {
-      // The same address booking two sessions at once must not try to create
-      // two accounts — the second would hit the unique email and fail.
-      await tx.execute(
-        sql`SELECT pg_advisory_xact_lock(${LOCK_EMAIL}, hashtext(${input.contact.email}))`,
-      )
-      const { docs } = await payload.find({
-        collection: 'customers',
-        where: { email: { equals: input.contact.email } },
-        limit: 1,
-        depth: 0,
-        req,
-        overrideAccess: true,
-      })
-      if (!docs[0]) {
-        newAccount = await payload.create({
-          collection: 'customers',
-          data: {
-            ...input.contact,
-            // Never used to log in: the person sets their own from the email,
-            // which also confirms the address.
-            password: crypto.randomBytes(32).toString('hex'),
-            language: input.language,
-            consentText: accountConsentForStorage(),
-            consentDate: new Date().toISOString(),
-          },
-          req,
-          overrideAccess: true,
-          disableVerificationEmail: true,
-        })
-        accountId = newAccount.id
-      } else if (!docs[0]._verified) {
-        // An account waits for confirmation: its owner gets a fresh link (sent
-        // by the action). It is NOT attached here — a form proves nothing;
-        // confirming the address will claim the booking.
-        unconfirmedAccount = docs[0]
-      }
-      // A confirmed account: nothing here — its owner's next login claims
-      // the booking (`claimBookings`).
-    }
+    const {
+      accountId: newAccountId,
+      newAccount,
+      unconfirmedAccount,
+    } = !input.customerId && input.wantsAccount
+      ? await accountFor(payload, req, tx, input.contact, input.language)
+      : NO_ACCOUNT
+    const accountId = input.customerId ?? newAccountId
 
     const booking = await payload.create({
       collection: 'bookings',

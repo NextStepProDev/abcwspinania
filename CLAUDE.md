@@ -987,6 +987,12 @@ i `lib/bookingEffects.ts` (skutki uboczne).
   bez nowego wpisu — inna odpowiedź mówiłaby, kto się zapisał. Z tego
   samego powodu przy „załóż mi konto” komunikat jest jeden, czy konto było
   nowe, czy czekało na potwierdzenie (wtedy idzie nowy link potwierdzający).
+  **Powtórzony zapis z „Załóż mi konto”** (od 17.10.2026; wcześniej zaznaczenie
+  ginęło, a strona obiecywała mail): zapis zostaje jeden, ale konto powstaje —
+  z danych PIERWSZEGO zapisu, nie z nowego formularza (decyzja Mateusza) —
+  i idzie link do hasła; zapis przypina ustawienie hasła (`claimBookings`).
+  Pierwszy zapis już z kontem (podwójne kliknięcie z zaznaczeniem) — nic,
+  żeby nie poszedł drugi mail.
 - **Miniony termin sam przechodzi na „zakończony”** (od 12.10.2026,
   `finishPastSessions` w dziennym sprzątaniu, `finishedSessionsWhere`):
   tylko „zapisy otwarte” i „lista rezerwowa”, „odwołany” zostaje. Granica to

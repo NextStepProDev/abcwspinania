@@ -1,6 +1,6 @@
 'use server'
 
-import { getPayload } from 'payload'
+import { getPayload, type Payload } from 'payload'
 import config from '@payload-config'
 
 import { RESET_LINK_HOURS } from '@/collections/Customers'
@@ -9,7 +9,7 @@ import { getCurrentCustomer } from '@/lib/auth'
 import { formatSessionDates } from '@/lib/bookings'
 import { recordEmailIssue, sessionSummary } from '@/lib/bookingEffects'
 import { createBooking } from '@/lib/bookingService'
-import { DEFAULT_LANGUAGE } from '@/lib/email/language'
+import { DEFAULT_LANGUAGE, type EmailLanguage } from '@/lib/email/language'
 import { publicUrl, tokenLink } from '@/lib/email/links'
 import {
   bookingReceivedEmail,
@@ -23,6 +23,7 @@ import {
   validateBooking,
   type BookingErrors,
 } from '@/lib/validation'
+import type { Customer } from '@/payload-types'
 
 /**
  * Course booking — from `/kursy/[slug]/zapis`.
@@ -62,6 +63,45 @@ function field(formData: FormData, name: string): string {
 
 function pick(email: { subject: string; html: string; text: string }) {
   return { subject: email.subject, html: email.html, text: email.text }
+}
+
+/** "Create an account for me": the set-password link, or a fresh confirmation link. */
+async function sendAccountEmails(
+  payload: Payload,
+  bookingId: number,
+  language: EmailLanguage,
+  newAccount: Customer | null,
+  unconfirmedAccount: Customer | null,
+) {
+  if (newAccount) {
+    try {
+      const token = await payload.forgotPassword({
+        collection: 'customers',
+        data: { email: newAccount.email },
+        disableEmail: true,
+      })
+      if (token) {
+        await payload.sendEmail({
+          to: newAccount.email,
+          ...pick(
+            newAccountFromBookingEmail(language, {
+              firstName: newAccount.firstName,
+              url: tokenLink('/konto/ustaw-haslo', token),
+              validHours: RESET_LINK_HOURS,
+            }),
+          ),
+        })
+      }
+    } catch (error) {
+      // Without it the person never learns an account was made for them.
+      await recordEmailIssue(payload, bookingId, 'Link do ustawienia hasła (nowe konto)', error)
+    }
+  }
+  if (unconfirmedAccount) {
+    await sendVerificationLink(payload, unconfirmedAccount).catch((error) =>
+      console.error('Failed to resend a confirmation link from a booking:', error),
+    )
+  }
 }
 
 export async function bookCourse(
@@ -147,7 +187,18 @@ export async function bookCourse(
     // The same person on the same session again: answered as a success —
     // they ARE booked, and a different answer would tell anyone typing an
     // address whether that person signed up for this course.
-    if (result.kind === 'duplicate') return { status: 'done', accountEmail: wantsAccount }
+    // "Create an account" still counts: the account comes from the first
+    // booking's details (see `createBooking`).
+    if (result.kind === 'duplicate') {
+      await sendAccountEmails(
+        payload,
+        result.booking.id,
+        result.booking.language ?? language,
+        result.newAccount,
+        result.unconfirmedAccount,
+      )
+      return { status: 'done', accountEmail: !customer && wantsAccount }
+    }
 
     // --- emails, each on its own: the booking is committed ---
     const { booking, session, course, newAccount, unconfirmedAccount } = result
@@ -180,35 +231,7 @@ export async function bookCourse(
         ),
       )
 
-    if (newAccount) {
-      try {
-        const token = await payload.forgotPassword({
-          collection: 'customers',
-          data: { email: newAccount.email },
-          disableEmail: true,
-        })
-        if (token) {
-          await payload.sendEmail({
-            to: newAccount.email,
-            ...pick(
-              newAccountFromBookingEmail(language, {
-                firstName: newAccount.firstName,
-                url: tokenLink('/konto/ustaw-haslo', token),
-                validHours: RESET_LINK_HOURS,
-              }),
-            ),
-          })
-        }
-      } catch (error) {
-        // Without it the person never learns an account was made for them.
-        await recordEmailIssue(payload, booking.id, 'Link do ustawienia hasła (nowe konto)', error)
-      }
-    }
-    if (unconfirmedAccount) {
-      await sendVerificationLink(payload, unconfirmedAccount).catch((error) =>
-        console.error('Failed to resend a confirmation link from a booking:', error),
-      )
-    }
+    await sendAccountEmails(payload, booking.id, language, newAccount, unconfirmedAccount)
 
     const notify = process.env.ADMIN_NOTIFY_EMAIL
     if (notify) {

@@ -6,6 +6,7 @@ import { anonymizeExpiredBookings } from '@/lib/accountCleanup'
 import { idOf } from '@/lib/bookingEffects'
 
 import {
+  cleanup,
   email,
   failEmails,
   makeBooking,
@@ -14,6 +15,7 @@ import {
   makeSession,
   outbox,
   payload,
+  removeWhere,
   test,
 } from './harness'
 
@@ -66,6 +68,44 @@ test('a double click books once', async () => {
     overrideAccess: true,
   })
   assert.equal(totalDocs, 1)
+})
+
+test('booked without an account, then again with "create an account": the account comes from the first booking', async () => {
+  const course = await makeCourse()
+  const session = await makeSession(course.id)
+  const first = input(session.id, course.id, 'reaccount')
+  cleanup(() => removeWhere('customers', { email: { equals: first.contact.email } }))
+  assert.equal((await createBooking(payload, first)).kind, 'created')
+
+  const again = await createBooking(payload, {
+    ...first,
+    contact: { ...first.contact, firstName: 'Inna', lastName: 'Osoba', phone: '+48600999999' },
+    wantsAccount: true,
+  })
+  assert.equal(again.kind, 'duplicate')
+  assert.ok(again.kind === 'duplicate' && again.newAccount, 'an account was made')
+  assert.equal(again.newAccount.firstName, 'reaccount')
+  assert.equal(again.newAccount.lastName, 'Test')
+  assert.equal(again.newAccount.phone, '+48600100200')
+  const { totalDocs } = await payload.count({
+    collection: 'bookings',
+    where: { email: { equals: first.contact.email } },
+    overrideAccess: true,
+  })
+  assert.equal(totalDocs, 1)
+})
+
+test('a double click with "create an account": one account, one email', async () => {
+  const course = await makeCourse()
+  const session = await makeSession(course.id)
+  const same = { ...input(session.id, course.id, 'doubleaccount'), wantsAccount: true }
+  cleanup(() => removeWhere('customers', { email: { equals: same.contact.email } }))
+  const first = await createBooking(payload, same)
+  assert.ok(first.kind === 'created' && first.newAccount)
+  const second = await createBooking(payload, same)
+  assert.equal(second.kind, 'duplicate')
+  // Neither a second account nor a confirmation link on top of the set-password one.
+  assert.ok(second.kind === 'duplicate' && !second.newAccount && !second.unconfirmedAccount)
 })
 
 test('no booking on a draft course, a past date or another course’s session', async () => {
