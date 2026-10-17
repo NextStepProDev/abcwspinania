@@ -248,6 +248,27 @@ export function validateRegistration(data: RegistrationData): RegistrationErrors
   return errors
 }
 
+/** "Twoje dane" in Moje konto — the address is not among them (see `updateAccountDetails`). */
+export interface AccountDetailsData {
+  firstName: string
+  lastName: string
+  phone: string
+}
+
+export type AccountDetailsErrors = Partial<Record<keyof AccountDetailsData, string>>
+
+/** The same rules and messages as registration — one person, one standard. */
+export function validateAccountDetails(data: AccountDetailsData): AccountDetailsErrors {
+  const errors: AccountDetailsErrors = {}
+  const firstName = checkName(data.firstName, 'Podaj imię.')
+  if (firstName) errors.firstName = firstName
+  const lastName = checkName(data.lastName, 'Podaj nazwisko.')
+  if (lastName) errors.lastName = lastName
+  const phone = checkPhone(data.phone)
+  if (phone) errors.phone = phone
+  return errors
+}
+
 export interface LoginData {
   email: string
   password: string

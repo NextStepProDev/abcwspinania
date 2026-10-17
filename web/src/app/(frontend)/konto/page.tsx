@@ -5,6 +5,7 @@ import { Container } from '@/components/Ui'
 import { accountPageMetadata, getCurrentCustomer } from '@/lib/auth'
 import { STATUS_FOR_PARTICIPANT } from '@/lib/bookings'
 import { bookingsOf, type BookingRow } from '@/lib/participantBookings'
+import { DetailsForm } from './DetailsForm'
 import { LanguageForm } from './LanguageForm'
 import { LogoutButton } from './LogoutButton'
 
@@ -62,6 +63,23 @@ export default async function AccountPage({ searchParams }: Props) {
                 {archive.length > 0 && <BookingList title="Archiwum" items={archive} />}
               </>
             )}
+          </section>
+
+          <section
+            aria-labelledby="dane"
+            className="rounded-2xl border border-rock-200 bg-white p-6 lg:p-8"
+          >
+            <h2 id="dane" className="text-[22px] leading-tight">
+              Twoje dane
+            </h2>
+            <DetailsForm
+              current={{
+                firstName: customer.firstName,
+                lastName: customer.lastName,
+                phone: customer.phone,
+                email: customer.email,
+              }}
+            />
           </section>
 
           <section

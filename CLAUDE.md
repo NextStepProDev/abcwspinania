@@ -898,6 +898,14 @@ zrobi z kursanta administratora. Koszt: zasada 28.
   „kilku zwykłych słów” (to czytało się jak zachęta do słabego hasła). Logowanie
   sprawdza tylko obecność pól — reguły długości przy logowaniu zdradzałyby,
   jakich haseł nie ma.
+- **„Twoje dane” w Moim koncie** (od 18.10.2026, `DetailsForm`,
+  `updateAccountDetails`, `lib/accountDetails.ts`): imię, nazwisko, telefon —
+  te same reguły co przy rejestracji. Zmiana idzie też do NADCHODZĄCYCH,
+  nieodwołanych zapisów osoby (decyzja Mateusza: szkoła ma dzwonić pod
+  działający numer); minione i odwołane zostają kopią z dnia zapisu. Bez
+  przeliczania miejsc i bez maili (`skipRecount`, `skipStatusEmail`).
+  **Adresu e-mail tu nie ma** — zmiana wymaga potwierdzenia NOWEGO adresu
+  mailem, inaczej literówka odcina od konta; na razie przez szkołę.
 - **„Usuń konto” w Moim koncie** (`/konto/usun`, od 04.10.2026). Wymaga
   hasła ponownie — otwarta sesja na cudzym komputerze nie wystarcza. Kasuje
   konto i jego sesje; **zapisy zostają w szkole**, odpięte od konta (pole
