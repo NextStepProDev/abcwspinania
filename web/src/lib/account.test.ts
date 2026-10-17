@@ -5,6 +5,7 @@ import {
   PASSWORD_MIN,
   isValid,
   normalizePhone,
+  validateAccountDetails,
   validateEmailOnly,
   validateLogin,
   validateNewPassword,
@@ -192,4 +193,14 @@ test('the stale-account query skips confirmed accounts and counts from the lates
       },
     ],
   })
+})
+
+test('account details: the registration rules for name and phone, nothing else asked', () => {
+  const details = { firstName: 'Ola', lastName: 'Nowak', phone: '+48 600 100 200' }
+  assert.ok(isValid(validateAccountDetails(details)))
+  assert.equal(validateAccountDetails({ ...details, firstName: '' }).firstName, 'Podaj imię.')
+  assert.equal(validateAccountDetails({ ...details, lastName: ' ' }).lastName, 'Podaj nazwisko.')
+  assert.ok(validateAccountDetails({ ...details, lastName: 'N0wak' }).lastName)
+  assert.ok(validateAccountDetails({ ...details, phone: '600100200' }).phone, 'no country code')
+  assert.ok(isValid(validateAccountDetails({ ...details, lastName: 'Li' })), 'two-letter surname')
 })

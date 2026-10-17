@@ -19,6 +19,7 @@ import {
   test,
 } from './harness'
 import { newToken } from '@/lib/newsletter'
+import { saveAccountDetails } from '@/lib/accountDetails'
 
 /**
  * Participant accounts over HTTP — what a person sees on the pages the
@@ -263,4 +264,59 @@ test('the school downloads a copy of one person’s data — no secrets in it', 
   // Passwords, tokens and sessions are not the person's data — they are keys.
   assert.doesNotMatch(text, /"(hash|salt|token|_verificationToken|resetPasswordToken|sessions)"/)
   assert.doesNotMatch(text, new RegExp(subscription.token as string))
+})
+
+test('"Twoje dane": the account and its upcoming bookings change; cancelled and past ones stay', async () => {
+  const customer = await makeCustomer('details')
+  const course = await makeCourse()
+  const ahead = await makeSession(course.id)
+  const later = await makeSession(course.id)
+  const past = await makeSession(course.id, { daysAhead: -40 })
+  const mine = { customer: customer.id, email: customer.email }
+  const upcoming = await makeBooking(ahead.id, 'details', mine)
+  const cancelled = await makeBooking(later.id, 'details', { ...mine, status: 'cancelled' })
+  const old = await makeBooking(past.id, 'details', mine)
+  const spotsBefore = (
+    await payload.findByID({
+      collection: 'sessions',
+      id: ahead.id,
+      joins: false,
+      overrideAccess: true,
+    })
+  ).spotsLeft
+  outbox.length = 0
+
+  const details = { firstName: 'Aleksandra', lastName: 'Nowak-Kowalska', phone: '+48700200300' }
+  assert.equal(await saveAccountDetails(payload, customer.id, details), 1)
+
+  const account = await payload.findByID({
+    collection: 'customers',
+    id: customer.id,
+    overrideAccess: true,
+  })
+  assert.deepEqual(
+    { firstName: account.firstName, lastName: account.lastName, phone: account.phone },
+    details,
+  )
+  const read = (id: number) =>
+    payload.findByID({ collection: 'bookings', id, depth: 0, overrideAccess: true })
+  const now = await read(upcoming.id)
+  assert.deepEqual({ firstName: now.firstName, lastName: now.lastName, phone: now.phone }, details)
+  assert.match(now.label ?? '', /^Aleksandra Nowak-Kowalska/, 'the panel label follows the name')
+  assert.equal(now.status, upcoming.status, 'the status is untouched')
+  for (const kept of [cancelled, old]) {
+    const doc = await read(kept.id)
+    assert.equal(doc.firstName, 'details')
+    assert.equal(doc.phone, '+48600100200')
+  }
+  const spotsAfter = (
+    await payload.findByID({
+      collection: 'sessions',
+      id: ahead.id,
+      joins: false,
+      overrideAccess: true,
+    })
+  ).spotsLeft
+  assert.equal(spotsAfter, spotsBefore)
+  assert.equal(outbox.length, 0, 'nobody is emailed')
 })

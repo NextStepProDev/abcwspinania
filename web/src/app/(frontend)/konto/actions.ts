@@ -1,5 +1,6 @@
 'use server'
 
+import { refresh } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getPayload, AuthenticationError, LockedAuth, UnverifiedEmail, type Where } from 'payload'
 import config from '@payload-config'
@@ -8,6 +9,7 @@ import { VERIFY_LINK_HOURS } from '@/collections/Customers'
 import { sendAccountExistsEmail, sendPasswordLink, sendVerificationLink } from '@/lib/accountEmails'
 import { clearLoginCookie, getCurrentCustomer, setLoginCookie } from '@/lib/auth'
 import { claimBookings } from '@/lib/bookingEffects'
+import { saveAccountDetails } from '@/lib/accountDetails'
 import { accountConsentForStorage } from '@/lib/consent'
 import { DEFAULT_LANGUAGE } from '@/lib/email/language'
 import { accountDeletedEmail } from '@/lib/email/templates'
@@ -16,10 +18,12 @@ import {
   normalizePhone,
   looksLikeBot,
   safeNextPath,
+  validateAccountDetails,
   validateEmailOnly,
   validateLogin,
   validateNewPassword,
   validateRegistration,
+  type AccountDetailsErrors,
   type LoginErrors,
   type RegistrationErrors,
 } from '@/lib/validation'
@@ -368,6 +372,51 @@ export async function updateLanguage(
   } catch (error) {
     console.error('Failed to update a participant language:', error)
     return { status: 'error', message: 'Nie udało się zapisać. Spróbuj ponownie.' }
+  }
+}
+
+/**
+ * "Twoje dane" — name and phone, by the person themselves (decided
+ * 18.10.2026; until then only the school could change them in the panel).
+ *
+ * The address is not here on purpose: changing it needs the NEW address
+ * confirmed by email first, or a typo would lock the person out of their
+ * own account — a separate piece of work.
+ *
+ * Upcoming bookings take the new details too — see `saveAccountDetails`.
+ */
+export async function updateAccountDetails(
+  _previous: FormState<AccountDetailsErrors>,
+  formData: FormData,
+): Promise<FormState<AccountDetailsErrors>> {
+  const customer = await getCurrentCustomer()
+  if (!customer) redirect('/logowanie?next=/konto')
+
+  const data = {
+    firstName: field(formData, 'firstName'),
+    lastName: field(formData, 'lastName'),
+    phone: field(formData, 'phone'),
+  }
+  const values = { ...data }
+  const errors = validateAccountDetails(data)
+  if (!isValid(errors))
+    return { status: 'error', errors, values, message: 'Popraw zaznaczone pola.' }
+
+  const details = {
+    firstName: data.firstName.trim(),
+    lastName: data.lastName.trim(),
+    phone: normalizePhone(data.phone),
+  }
+  try {
+    const payload = await getPayload({ config })
+    // The id comes from the login, never from the form.
+    await saveAccountDetails(payload, customer.id, details)
+    // The heading of the page shows the name — drawn again from the database.
+    refresh()
+    return { status: 'done', message: 'Zapisane.', values: details }
+  } catch (error) {
+    console.error('Failed to update participant details:', error)
+    return { status: 'error', values, message: 'Nie udało się zapisać. Spróbuj ponownie.' }
   }
 }
 
