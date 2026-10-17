@@ -58,8 +58,12 @@ export function BookingForm({
           Potwierdzenie wysłaliśmy mailem.
         </p>
         {state.accountEmail && (
+          // Read as an aside ("a link to the account"), it got skipped — yet
+          // without that email the account never works (reported 17.10.2026).
           <p className="mt-2">
-            Osobny mail przyniesie link do konta — po nim zobaczysz zapis w Moim koncie.
+            <strong className="text-rock-900">Ważne: sprawdź skrzynkę.</strong> W osobnym mailu
+            wyślemy link do ustawienia hasła. Dopiero po ustawieniu hasła konto zacznie działać i
+            zobaczysz w nim ten zapis — nie odkładaj tego, link działa krótko.
           </p>
         )}
         {customer && (
