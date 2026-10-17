@@ -4,7 +4,13 @@ import { useActionState, useId, useState } from 'react'
 
 import { FormAlert, TextLink } from '@/components/AccountForm'
 import { TextField, stopInvalidSubmit } from '@/components/AccountFields'
-import { checkName, checkPhone, type AccountDetailsErrors } from '@/lib/validation'
+import {
+  checkName,
+  checkPhone,
+  sameAccountDetails,
+  type AccountDetailsData,
+  type AccountDetailsErrors,
+} from '@/lib/validation'
 import { updateAccountDetails, type FormState } from './actions'
 
 // The same rules and messages the server applies (lib/validation.ts).
@@ -12,6 +18,15 @@ const firstNameRule = (v: string) => checkName(v, 'Podaj imię.')
 const lastNameRule = (v: string) => checkName(v, 'Podaj nazwisko.')
 
 const INITIAL: FormState<AccountDetailsErrors> = { status: 'idle' }
+
+/** The three fields out of the form's values (an action answer or the live form). */
+function detailsOf(values: Record<string, string>): AccountDetailsData {
+  return {
+    firstName: values.firstName ?? '',
+    lastName: values.lastName ?? '',
+    phone: values.phone ?? '',
+  }
+}
 
 /** "Twoje dane" — name and phone; the address is shown, not editable (see the action). */
 export function DetailsForm({
@@ -23,10 +38,22 @@ export function DetailsForm({
   const id = useId()
   // "Zapisane." hides once something is typed again — as in LanguageForm.
   const [changed, setChanged] = useState(false)
+  // What the database holds, to keep "Zapisz" disabled until the fields
+  // differ from it (asked for 18.10.2026: saving nothing looked like a save).
+  const [saved, setSaved] = useState<AccountDetailsData>(current)
+  const [modified, setModified] = useState(false)
   const [answered, setAnswered] = useState(state)
   if (answered !== state) {
     setAnswered(state)
     setChanged(false)
+    // A save: the fields now show what is stored. An error: they show what
+    // was typed, still unsaved.
+    if (state.status === 'done' && state.values) {
+      setSaved(detailsOf(state.values))
+      setModified(false)
+    } else if (state.values) {
+      setModified(!sameAccountDetails(saved, detailsOf(state.values)))
+    }
   }
   const shown = state.values ?? current
 
@@ -34,7 +61,11 @@ export function DetailsForm({
     <form
       action={action}
       onSubmit={stopInvalidSubmit}
-      onChange={() => setChanged(true)}
+      onChange={(e) => {
+        setChanged(true)
+        const form = Object.fromEntries(new FormData(e.currentTarget)) as Record<string, string>
+        setModified(!sameAccountDetails(saved, detailsOf(form)))
+      }}
       noValidate
       className="mt-4 flex flex-col gap-5"
     >
@@ -91,8 +122,8 @@ export function DetailsForm({
       <div className="flex flex-wrap items-center gap-4">
         <button
           type="submit"
-          disabled={pending}
-          className="rounded-lg border border-rock-200 px-5 py-2.5 font-semibold transition-colors hover:border-rope disabled:opacity-60"
+          disabled={pending || !modified}
+          className="rounded-lg border border-rock-200 px-5 py-2.5 font-semibold transition-colors enabled:hover:border-rope disabled:opacity-60"
         >
           {pending ? 'Zapisuję…' : 'Zapisz'}
         </button>

@@ -5,6 +5,7 @@ import {
   PASSWORD_MIN,
   isValid,
   normalizePhone,
+  sameAccountDetails,
   validateAccountDetails,
   validateEmailOnly,
   validateLogin,
@@ -203,4 +204,19 @@ test('account details: the registration rules for name and phone, nothing else a
   assert.ok(validateAccountDetails({ ...details, lastName: 'N0wak' }).lastName)
   assert.ok(validateAccountDetails({ ...details, phone: '600100200' }).phone, 'no country code')
   assert.ok(isValid(validateAccountDetails({ ...details, lastName: 'Li' })), 'two-letter surname')
+})
+
+test('account details count as unchanged when only spacing differs', () => {
+  const saved = { firstName: 'Ola', lastName: 'Nowak', phone: '+48600100200' }
+  assert.ok(sameAccountDetails(saved, { ...saved }))
+  assert.ok(
+    sameAccountDetails(saved, {
+      firstName: ' Ola ',
+      lastName: 'Nowak',
+      phone: '+48 600-100 (200)',
+    }),
+  )
+  assert.ok(!sameAccountDetails(saved, { ...saved, lastName: 'Kowalska' }))
+  assert.ok(!sameAccountDetails(saved, { ...saved, phone: '+48600100201' }))
+  assert.ok(!sameAccountDetails(saved, { ...saved, firstName: 'ola' }), 'letter case is a change')
 })

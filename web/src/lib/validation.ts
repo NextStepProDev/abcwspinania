@@ -269,6 +269,20 @@ export function validateAccountDetails(data: AccountDetailsData): AccountDetails
   return errors
 }
 
+/**
+ * Whether the form still holds what is saved — then "Zapisz" has nothing to
+ * do and stays disabled. Compared the way the server stores it (trimmed, the
+ * phone without spaces), so retyping the same number with spaces is no
+ * change; letter case is.
+ */
+export function sameAccountDetails(saved: AccountDetailsData, typed: AccountDetailsData): boolean {
+  return (
+    saved.firstName.trim() === typed.firstName.trim() &&
+    saved.lastName.trim() === typed.lastName.trim() &&
+    normalizePhone(saved.phone) === normalizePhone(typed.phone)
+  )
+}
+
 export interface LoginData {
   email: string
   password: string
