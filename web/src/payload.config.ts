@@ -70,9 +70,11 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
     // "Do zrobienia" above the collections: new bookings, waiting list,
-    // occupancy of the next sessions — see the component.
+    // occupancy of the next sessions — see the component. "Pulpit" in the
+    // menu: Payload's only way back to it is a small logo.
     components: {
       beforeDashboard: ['/components/admin/SchoolDashboard#SchoolDashboard'],
+      beforeNavLinks: ['/components/admin/DashboardNavLink#DashboardNavLink'],
     },
     meta: {
       titleSuffix: '— ABC Wspinania',

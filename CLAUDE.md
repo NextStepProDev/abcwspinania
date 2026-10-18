@@ -1071,6 +1071,14 @@ zasada 25), inaczej panel nie znajdzie komponentu.
   lista rezerwowa, maile, które nie doszły, nowe wiadomości — każda liczba to link do listy
   przefiltrowanej przez `?where[...]` w adresie; pod spodem 12 najbliższych
   terminów z obłożeniem „zajęte / limit” i linkami do zapisanych i Excela.
+- **„Pulpit” na górze menu panelu** (`DashboardNavLink`,
+  `admin.components.beforeNavLinks`, od 18.10.2026). Payload wraca na pulpit
+  tylko przez małe logo nad tytułem strony (dymek „Panel”), a jego menu nie
+  ma takiej pozycji — kto pierwszy raz otworzył „Zapisy”, nie wiedział, jak
+  wrócić do „Do zrobienia”. Znaczniki i klasy jak w linkach Payloada
+  (`nav__link`), więc przy jego podbiciu sprawdzić, czy menu ich nie zmieniło.
+  Logo w rogu zostaje Payloada: własne `graphics.Icon` rysuje też obrazek
+  podglądu `/api/og`, gdzie obrazek z adresu względnego się nie wczyta.
 - **Status jako lista rozwijana na liście zapisów** (`BookingStatusCell`).
   Zapisuje przez REST, więc działa wszystko, co idzie za zmianą statusu
   (mail, przeliczenie miejsc). Status wysyłający kursantowi maila pyta
