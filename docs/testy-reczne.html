@@ -293,9 +293,45 @@
       <li>Otwórz pobrany plik w Excelu albo Numbers.</li>
     </ol></td><td>Kolumny rozdzielone, polskie litery w porządku (Wiśniewski, Zieliński, Lewandowska), telefon z plusem (<code>+48 600 …</code>), nie zamieniony na liczbę.</td></tr>
     <tr><td>G8</td><td>Wróć na stronę tego terminu (z G7). W prawym górnym rogu kliknij <span class="ui">⋮</span> (trzy kropki) → <span class="ui">Usuń</span> i potwierdź.</td><td>Panel odmawia: termin ma zapisy — zamiast usuwać, ustaw status „odwołany” albo „zakończony”. Termin zostaje.</td></tr>
-    <tr><td>G9</td><td><b>Zapis telefoniczny.</b> <span class="ui">Zapisy</span> → <span class="ui">Stwórz nowy</span>. Termin: <b>otwarty testowy</b>. Imię, nazwisko, telefon — dowolne. <b>E-mail: puste.</b> „Konto uczestnika”: zostaw „Wybierz wartość”. Status: potwierdzony. <span class="ui">Zapisz</span>. Potem na liście zapisów zmień mu status na „opłacony”.</td><td>Zapis się zapisuje, jest na liście, w terminie ubywa miejsce (termin robi się pełny). <b>Żaden mail</b> nie wychodzi — ani przy dodaniu (umówione przez telefon), ani przy zmianie statusu (nie ma dokąd; lista nie pyta) — i nie pojawia się „Mail, który nie doszedł”.</td></tr>
-    <tr><td>G10</td><td><span class="ui">Zapisy</span> → <span class="ui">Uczestnicy</span> → nad listą rozwiń <span class="ui">Dane osoby — kopia albo usunięcie</span>. Wpisz <code>{{SKRZYNKA}}+abctest-zapis2@gmail.com</code> → <span class="ui">Sprawdź, co mamy</span> → <span class="ui">Pobierz kopię danych do wysłania osobie</span>, otwórz plik podwójnym kliknięciem. Potem link <span class="ui">Wersja JSON</span>.</td><td>Lista: konto, zapis (nadchodzący, z nazwy), wiadomości, newsletter — nic się nie usunęło. Plik <code>dane-….html</code> otwiera się w przeglądarce jako czytelna strona „Twoje dane w ABC Wspinania”: administrator, konto, zapis — po polsku, z datami, bez hasła. Ten plik szkoła wysyła osobie. „Wersja JSON” to te same dane w tekście technicznym (do przeniesienia gdzie indziej).</td></tr>
-    <tr><td>G11</td><td>Dalej tam: <span class="ui">Usuń wszystkie dane tej osoby na zawsze</span> — najpierw przepisz adres z literówką, potem poprawnie.</td><td>Z literówką przycisk jest nieaktywny. Poprawnie: „Usunięto wszystkie dane…”; konta <code>{{SKRZYNKA}}+abctest-zapis2@gmail.com</code> nie ma na liście Uczestników, jego zapis zniknął z Zapisów, a w otwartym terminie przybyło 1 wolne miejsce.</td></tr>
+    <tr><td>G9</td><td><b>Zapis przyjęty przez telefon</b> — ktoś dzwoni, a Ty wpisujesz go sam.<ol style="margin:4px 0 0">
+      <li>W menu po lewej, w grupie „Zapisy”, kliknij <span class="ui">Zapisy</span>.</li>
+      <li>Na górze, zaraz obok tytułu „Zapisy”, kliknij <span class="ui">Stwórz nowy</span>. Otworzy się pusty formularz zapisu.</li>
+      <li><b>Termin</b>: rozwiń listę i wybierz termin z datą z C1 (otwarty termin testowy, Kurs wspinaczki skalnej PZA).</li>
+      <li><b>Status</b>: potwierdzony.</li>
+      <li><b>Imię</b>, <b>Nazwisko</b>: dowolne. <b>Telefon</b>: dowolny, z <code>+48</code>. Pole <b>E-mail zostaw puste</b> — przez telefon nie zawsze dostaniesz adres.</li>
+      <li>Pole „Konto uczestnika” zostaw puste („Wybierz wartość”).</li>
+      <li>Kliknij <span class="ui">Zapisz</span> w prawym górnym rogu.</li>
+      <li>Wróć do listy <span class="ui">Zapisy</span> (menu po lewej). W wierszu tej osoby, w kolumnie „Status”, wybierz z listy rozwijanej <b>opłacony</b>.</li>
+    </ol></td><td><ul style="margin:0">
+      <li>Po kroku 7 zapis jest zapisany i widać go na liście „Zapisy”.</li>
+      <li>Na pulpicie, w wierszu otwartego terminu, „Zajęte” rośnie o 1 — termin robi się pełny.</li>
+      <li>W kroku 8 status zmienia się od razu, <b>bez pytania</b> (nie ma komu wysłać maila).</li>
+      <li><b>Nie przychodzi żaden mail</b> — ani przy dodaniu (umówione przez telefon), ani przy zmianie statusu. Na pulpicie licznik „Maile, które nie doszły” zostaje na zerze.</li>
+    </ul></td></tr>
+    <tr><td>G10</td><td><b>Kopia danych osoby.</b> Prawo (RODO) pozwala każdemu napisać do szkoły „przyślijcie mi, jakie macie moje dane”. Tu przygotowujesz taki plik.<ol style="margin:4px 0 0">
+      <li>W menu po lewej, w grupie „Zapisy”, kliknij <span class="ui">Uczestnicy</span>.</li>
+      <li>Nad listą kont jest ramka z tytułem <span class="ui">Dane osoby — kopia albo usunięcie (prośby z RODO)</span>. Kliknij jej tytuł — rozwinie się.</li>
+      <li>W pole z napisem „adres@przyklad.pl” wpisz <code>{{SKRZYNKA}}+abctest-zapis2@gmail.com</code> i kliknij <span class="ui">Sprawdź, co mamy</span>. Na tym etapie nic się nie usuwa.</li>
+      <li>Pod spodem pojawi się lista „Dla … mamy:”. Kliknij przycisk <span class="ui">Pobierz kopię danych do wysłania osobie</span>.</li>
+      <li>Otwórz pobrany plik (<code>dane-….html</code>, w folderze Pobrane) podwójnym kliknięciem.</li>
+      <li>Wróć do panelu i kliknij link <span class="ui">Wersja JSON</span> (zaraz pod przyciskiem).</li>
+    </ol></td><td><ul style="margin:0">
+      <li>Po kroku 3 lista: konto (z imieniem), zapisy na kursy: 1 — w tym nadchodzący, wypisany z nazwy kursu i datą; wiadomości z formularza, newsletter.</li>
+      <li>Plik z kroku 5 otwiera się w przeglądarce jako czytelna strona „Twoje dane w ABC Wspinania”: kto jest administratorem danych, konto, zapis — po polsku, z datami, <b>bez hasła</b>. To ten plik wysyłasz osobie, która o niego prosi.</li>
+      <li>„Wersja JSON” pobiera te same dane jako tekst techniczny — potrzebny tylko, gdy ktoś prosi o przeniesienie danych do innej firmy.</li>
+      <li>Nic się nie usunęło: konto dalej jest na liście „Uczestnicy”.</li>
+    </ul></td></tr>
+    <tr><td>G11</td><td><b>Usunięcie danych osoby.</b> Druga prośba z RODO: „usuńcie wszystko, co macie o mnie”. Robisz to w tej samej ramce, na tej samej osobie co w G10.<ol style="margin:4px 0 0">
+      <li>Zostań w ramce z G10 (jeśli się zwinęła — rozwiń, wpisz adres jeszcze raz, <span class="ui">Sprawdź, co mamy</span>).</li>
+      <li>Zjedź niżej, do części „Usunięcie wszystkich danych”. W pole „Żeby potwierdzić, wpisz adres jeszcze raz” wpisz adres <b>z literówką</b> (np. bez jednej litery). Spójrz na przycisk <span class="ui">Usuń wszystkie dane tej osoby na zawsze</span>.</li>
+      <li>Popraw adres na dokładnie <code>{{SKRZYNKA}}+abctest-zapis2@gmail.com</code>. Przycisk zrobi się czerwony — kliknij go.</li>
+      <li>Odśwież stronę (⌘R) i obejrzyj listę „Uczestnicy”. Potem otwórz <span class="ui">Zapisy</span> i na koniec <span class="ui">Pulpit</span>.</li>
+    </ol></td><td><ul style="margin:0">
+      <li>W kroku 2 (literówka) przycisk jest wyblakły i nie da się go kliknąć — tak panel chroni przed usunięciem kogoś innego.</li>
+      <li>Po kroku 3 komunikat „Usunięto wszystkie dane…”.</li>
+      <li>W kroku 4: konta <code>{{SKRZYNKA}}+abctest-zapis2@gmail.com</code> nie ma na liście „Uczestnicy”, jego zapisu nie ma w „Zapisach”, a na pulpicie w wierszu otwartego terminu „Zajęte” spadło o 1 (zwolniło się miejsce po nim).</li>
+      <li>Ta osoba <b>nie dostaje maila</b> o usunięciu zapisu.</li>
+    </ul></td></tr>
     <tr><td>G12</td><td><b>„Opłacony” przed kursem.</b> Pulpit → przy <b>pełnym</b> terminie testowym <span class="ui">zapisani</span>. Katarzynie (<code>{{SKRZYNKA}}+abctest-kasia@gmail.com</code>, „zaliczka wpłacona”) wybierz z listy <b>opłacony</b>.</td><td>Pytanie: „Zmienić status na „opłacony”? Jeśli kurs jeszcze się nie zaczął, kursant dostanie maila.” Po zgodzie: status „opłacony” i mail „Płatność zaksięgowana” do <code>{{SKRZYNKA}}+abctest-kasia@gmail.com</code> — termin jest w przyszłości.</td></tr>
     <tr><td>G13</td><td><b>„Opłacony” po kursie — bez maila.</b> <span class="ui">Treść</span> → <span class="ui">Terminy</span> → <b>zakończony</b> termin testowy (sprzed ok. 40 dni) → w tabeli „Zapisani” kliknij zapis Oli. Status zmień na <b>zaliczka wpłacona</b> → <span class="ui">Zapisz</span>, potem na <b>opłacony</b> → <span class="ui">Zapisz</span>.</td><td>Oba zapisy przechodzą bez pytania (to otwarty zapis). <b>Żaden mail</b> do Oli nie przychodzi — kurs już się odbył. W Moim koncie Oli (przeglądarka kursanta) zapis w Archiwum ma status „opłacone”.</td></tr>
   </table>
