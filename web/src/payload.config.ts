@@ -11,6 +11,7 @@ import { collections } from './collections'
 import { Users } from './collections/Users'
 import { globals } from './globals'
 import { brevoAdapter } from './lib/email/brevo'
+import { restorePublicMessage } from './lib/errorResponse'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -92,6 +93,12 @@ export default buildConfig({
     fallbackLanguage: 'pl',
   },
   collections,
+  hooks: {
+    // A refusal like "Ten termin ma zapisy…" reached the panel as "An unknown
+    // error occurred." — the production minifier can leave Payload's error
+    // class nameless. See the function.
+    afterError: [({ error, result }) => restorePublicMessage(error, result)],
+  },
   // Globals are content that occurs exactly once (contact details, page copy).
   // A collection holding a single entry would force someone to keep track of
   // which entry is "the real one" — a global makes that mistake impossible.

@@ -872,6 +872,15 @@ zrobi z kursanta administratora. Koszt: zasada 28.
   W `next dev` i po załadowaniu JS jest jedna kopia, więc zwykłe klikanie
   tego nie pokazuje. Sprawdzanie: `next build`, serwer z `.next/standalone`
   i formularz wysłany bez JS (albo przed jego załadowaniem).
+  **Druga strona tego samego: nazwa klasy błędu bywa PUSTA** (od 18.10.2026,
+  `lib/errorResponse.ts`, globalny hook `afterError`). Payload zostawia
+  komunikat błędu tylko, gdy błąd ma `name`, a `APIError` bierze ją z nazwy
+  klasy — obraz z CI zminifikował ją do pustej. Usunięcie terminu z zapisami
+  pokazywało „An unknown error occurred.” zamiast naszej odmowy; lokalny
+  build nazwał klasę „k” i działał. Hook przywraca komunikat błędu
+  jawnego (`isPublic` albo status ≠ 500), tylko gdy Payload odpowiedział tym
+  ogólnym tekstem. Nie odtworzysz tego lokalnie buildem — sprawdzenie:
+  błąd z `name = ''` rzucony z hooka kolekcji.
 - **Wylogowanie przez `/api/customers/logout`**, nie przez skasowanie
   ciasteczka: endpoint unieważnia też sesję (`auth.useSessions`).
 - **Strony kont mają `noindex`** i nie ma ich w mapie strony.
