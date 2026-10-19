@@ -1,11 +1,18 @@
 /*
- * Nadpisania wyglądu panelu Payloada.
+ * Overrides of Payload's panel. Kept to the minimum: the panel has its own
+ * consistent look, and every rule here is checked again at each Payload bump.
  *
- * Celowo puste. Panel ma własny, spójny system wizualny i nie warto go
- * rozjeżdżać bez powodu — a gdy przyjdzie moment na kolory ABC Wspinania,
- * to jest miejsce, w którym się je wpisuje.
- *
- * UWAGA: layout.tsx w tym katalogu importuje TEN plik. Szablon Payloada
- * w wersji v3.90.1 dostarcza `custom.scss`; zmieniliśmy import na `.css`,
- * żeby nie dokładać pipeline'u SCSS dla jednego pustego arkusza.
+ * layout.tsx in this directory imports THIS file. Payload's v3.90.1 template
+ * ships `custom.scss`; the import points to `.css` so that one stylesheet does
+ * not pull in a SCSS pipeline.
  */
+
+/*
+ * Payload's own "Zapisy" menu link — replaced by "Zapisy na kursy" and
+ * "Zapisy na obozy" (`components/admin/BookingsNavLinks.tsx`). Hidden here,
+ * not through `admin.hidden`: that would also remove the list's routes.
+ * Payload names the link `nav-<slug>`; check it after every Payload bump.
+ */
+#nav-bookings {
+  display: none;
+}

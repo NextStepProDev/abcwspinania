@@ -257,6 +257,7 @@ export async function createBooking(payload: Payload, input: BookingInput): Prom
     const booking = await payload.create({
       collection: 'bookings',
       data: {
+        kind: 'course',
         session: session.id,
         status,
         ...input.contact,

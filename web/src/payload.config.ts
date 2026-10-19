@@ -79,7 +79,10 @@ export default buildConfig({
     // menu: Payload's only way back to it is a small logo.
     components: {
       beforeDashboard: ['/components/admin/SchoolDashboard#SchoolDashboard'],
-      beforeNavLinks: ['/components/admin/DashboardNavLink#DashboardNavLink'],
+      beforeNavLinks: [
+        '/components/admin/DashboardNavLink#DashboardNavLink',
+        '/components/admin/BookingsNavLinks#BookingsNavLinks',
+      ],
     },
     meta: {
       titleSuffix: '— ABC Wspinania',

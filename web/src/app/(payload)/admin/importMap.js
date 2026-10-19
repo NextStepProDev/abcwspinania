@@ -29,6 +29,7 @@ import { MessageStatusCell as MessageStatusCell_d331ab206ed08f2e8664da7c24f6b3a3
 import { ErasePersonPanel as ErasePersonPanel_4a05e0c55346f0e097652859f6b0a4ce } from '../../../components/admin/ErasePersonPanel'
 import { SchoolDashboard as SchoolDashboard_e244a23061373c24572efb1fc83a2cf1 } from '../../../components/admin/SchoolDashboard'
 import { DashboardNavLink as DashboardNavLink_fc56cb2194b7502b86cb11a3f2f00e19 } from '../../../components/admin/DashboardNavLink'
+import { BookingsNavLinks as BookingsNavLinks_24e9491a3f73c4741d15cf7caa4aef6a } from '../../../components/admin/BookingsNavLinks'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
 /** @type import('payload').ImportMap */
@@ -64,5 +65,6 @@ export const importMap = {
   "/components/admin/ErasePersonPanel#ErasePersonPanel": ErasePersonPanel_4a05e0c55346f0e097652859f6b0a4ce,
   "/components/admin/SchoolDashboard#SchoolDashboard": SchoolDashboard_e244a23061373c24572efb1fc83a2cf1,
   "/components/admin/DashboardNavLink#DashboardNavLink": DashboardNavLink_fc56cb2194b7502b86cb11a3f2f00e19,
+  "/components/admin/BookingsNavLinks#BookingsNavLinks": BookingsNavLinks_24e9491a3f73c4741d15cf7caa4aef6a,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }

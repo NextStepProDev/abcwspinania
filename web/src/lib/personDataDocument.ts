@@ -47,6 +47,16 @@ const date: Format = (value) => {
   }).format(parsed)
 }
 
+/** A calendar day (a birth date) — no time, which would only be midnight. */
+const day: Format = (value) => {
+  if (typeof value !== 'string' || value === '') return null
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return null
+  return new Intl.DateTimeFormat('pl-PL', { dateStyle: 'long', timeZone: 'Europe/Warsaw' }).format(
+    parsed,
+  )
+}
+
 const oneOf =
   (options: readonly { value: string; label: string }[]): Format =>
   (value) =>
@@ -86,6 +96,11 @@ const BOOKING: Field[] = [
   ['Nazwisko', 'lastName', text],
   ['E-mail', 'email', text],
   ['Telefon', 'phone', text],
+  ['Imię dziecka', 'childFirstName', text],
+  ['Nazwisko dziecka', 'childLastName', text],
+  ['Data urodzenia dziecka', 'childBirthDate', day],
+  ['Zgoda na publikację zdjęć dziecka', 'photoConsent', yesNo],
+  ['Treść zgody na zdjęcia', 'photoConsentText', text],
   ['Uwagi', 'notes', text],
   ['Język maili', 'language', language],
   ['Data zapisu', 'createdAt', date],

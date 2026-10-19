@@ -7,11 +7,36 @@ import {
   availability,
   formatSessionDates,
   isUpcoming,
+  kindMismatch,
   newBookingStatus,
+  sessionFilterFor,
   signUpPath,
   statusEmailFor,
 } from '@/lib/bookings'
 import { isValid, validateBooking } from '@/lib/validation'
+
+// --- kind -------------------------------------------------------------------
+
+test('a camp booking may point only at a camp session, a course booking at a course one', () => {
+  assert.deepEqual(sessionFilterFor('camp'), { camp: { exists: true } })
+  assert.deepEqual(sessionFilterFor('course'), { course: { exists: true } })
+})
+
+test('a booking without a kind is a course booking, as every booking before camps', () => {
+  assert.deepEqual(sessionFilterFor(undefined), { course: { exists: true } })
+})
+
+test('a session of the other kind is refused with a message that says what to change', () => {
+  assert.equal(kindMismatch('camp', 'camp'), null)
+  assert.equal(kindMismatch('course', 'course'), null)
+  assert.match(kindMismatch('course', 'camp') ?? '', /termin obozu.*„obóz”/)
+  assert.match(kindMismatch('camp', 'course') ?? '', /termin kursu.*„kurs”/)
+})
+
+test('a session whose course or camp was deleted blocks no save of its bookings', () => {
+  assert.equal(kindMismatch('camp', null), null)
+  assert.equal(kindMismatch('course', null), null)
+})
 
 // --- spots ------------------------------------------------------------------
 

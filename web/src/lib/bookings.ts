@@ -1,3 +1,5 @@
+import type { Where } from 'payload'
+
 import type { EmailLanguage } from '@/lib/email/language'
 import { formatDateRange } from '@/lib/format'
 
@@ -43,6 +45,42 @@ export const STATUS_FOR_PARTICIPANT: Record<BookingStatus, string> = {
  * cancellation gave one back — neither counts against the capacity.
  */
 export const ACTIVE_STATUSES: readonly BookingStatus[] = ['new', 'confirmed', 'deposit', 'paid']
+
+export const BOOKING_KINDS = ['course', 'camp'] as const
+
+export type BookingKind = (typeof BOOKING_KINDS)[number]
+
+export const BOOKING_KIND_OPTIONS = [
+  { label: 'kurs', value: 'course' },
+  { label: 'obóz', value: 'camp' },
+] satisfies { label: string; value: BookingKind }[]
+
+/**
+ * Which sessions a booking of this kind may point at — a session belongs to
+ * EITHER a course OR a camp (`Sessions.ts`). A booking without a kind yet is
+ * a course booking: the field's default, and every booking before camps.
+ */
+export function sessionFilterFor(kind: unknown): Where {
+  return kind === 'camp' ? { camp: { exists: true } } : { course: { exists: true } }
+}
+
+/**
+ * The panel's message when the session and the kind disagree — `null` when
+ * they match. Payload's own refusal of a value outside `filterOptions` reads
+ * "nieprawidłowe wybory: 1", which tells the school nothing.
+ *
+ * A session with neither (its course or camp was deleted — Postgres clears
+ * the field) agrees with any kind: refusing it would block every later save
+ * of its bookings, a status change included.
+ */
+export function kindMismatch(kind: unknown, sessionKind: BookingKind | null): string | null {
+  if (!sessionKind) return null
+  const bookingKind: BookingKind = kind === 'camp' ? 'camp' : 'course'
+  if (bookingKind === sessionKind) return null
+  return sessionKind === 'camp'
+    ? 'To termin obozu — ustaw „Rodzaj zapisu” na „obóz”.'
+    : 'To termin kursu — ustaw „Rodzaj zapisu” na „kurs”.'
+}
 
 export interface Availability {
   /** `null` when the session has no capacity set — the site then says "ask". */

@@ -492,7 +492,7 @@ export interface Session {
   createdAt: string;
 }
 /**
- * Zapisy na kursy. Zmiana statusu na „potwierdzony”, „opłacony” albo „rezygnacja” wysyła kursantowi maila. Zapis telefoniczny dodaj tu ręcznie — wtedy liczy się do wolnych miejsc.
+ * Zapisy na kursy i obozy. Przy obozie imię, nazwisko i kontakt to dane rodzica, a uczestnik to dziecko. Zmiana statusu na „potwierdzony”, „opłacony” albo „rezygnacja” wysyła kursantowi maila. Zapis telefoniczny dodaj tu ręcznie — wtedy liczy się do wolnych miejsc.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "bookings".
@@ -503,6 +503,10 @@ export interface Booking {
    * Składany automatycznie z imienia, nazwiska i terminu.
    */
   label?: string | null;
+  /**
+   * Najpierw wybierz rodzaj — lista terminów pokaże tylko pasujące.
+   */
+  kind: 'course' | 'camp';
   session: number | Session;
   /**
    * „Lista rezerwowa” i „rezygnacja” nie zajmują miejsca. Zmiana na „potwierdzony” lub „rezygnacja” wysyła kursantowi maila; na „opłacony” — tylko przed pierwszym dniem kursu.
@@ -515,6 +519,14 @@ export interface Booking {
    */
   email?: string | null;
   phone: string;
+  childFirstName?: string | null;
+  childLastName?: string | null;
+  childBirthDate?: string | null;
+  /**
+   * Na stronie i w mediach społecznościowych. Bez zaznaczenia — nie publikować zdjęć, na których dziecko da się rozpoznać.
+   */
+  photoConsent?: boolean | null;
+  photoConsentText?: string | null;
   notes?: string | null;
   /**
    * Widoczne tylko w panelu — kursant ich nie widzi.
@@ -1168,12 +1180,18 @@ export interface SessionsSelect<T extends boolean = true> {
  */
 export interface BookingsSelect<T extends boolean = true> {
   label?: T;
+  kind?: T;
   session?: T;
   status?: T;
   firstName?: T;
   lastName?: T;
   email?: T;
   phone?: T;
+  childFirstName?: T;
+  childLastName?: T;
+  childBirthDate?: T;
+  photoConsent?: T;
+  photoConsentText?: T;
   notes?: T;
   adminNotes?: T;
   emailIssue?: T;

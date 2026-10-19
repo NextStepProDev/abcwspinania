@@ -1,14 +1,60 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig, RelationshipFieldSingleValidation } from 'payload'
 
 import { adminOrOwner, isAdmin } from '../lib/access'
-import { BOOKING_STATUS_OPTIONS, statusEmailFor, type BookingStatus } from '../lib/bookings'
+import {
+  BOOKING_KIND_OPTIONS,
+  BOOKING_STATUS_OPTIONS,
+  kindMismatch,
+  sessionFilterFor,
+  statusEmailFor,
+  type BookingStatus,
+} from '../lib/bookings'
 import { idOf, recordEmailIssue, recountSession, sendStatusEmail } from '../lib/bookingEffects'
 import { LANGUAGE_OPTIONS_FOR_PAYLOAD } from '../lib/email/language'
+
+/** A field the camp booking needs and the course booking does not have. */
+function requiredOnCamp(message: string) {
+  return (value: unknown, { data }: { data: Partial<{ kind: unknown }> }) =>
+    data?.kind !== 'camp' || (value !== null && value !== undefined && String(value).trim() !== '')
+      ? true
+      : message
+}
+
+/**
+ * The session must be of the booking's kind — the save-time half of the
+ * panel's `filterOptions`, with a message that says what to change.
+ */
+const sessionMatchesKind: RelationshipFieldSingleValidation = async (value, { data, req }) => {
+  // One collection, no polymorphism: an id, or the session itself when populated.
+  const sessionId = idOf(value as number | { id: number } | null | undefined)
+  if (!sessionId) return 'Wybierz termin.'
+  const session = await req.payload.findByID({
+    collection: 'sessions',
+    id: sessionId,
+    depth: 0,
+    joins: false,
+    overrideAccess: true,
+    disableErrors: true,
+    req,
+  })
+  if (!session) return 'Nie ma takiego terminu.'
+  const sessionKind = session.camp ? 'camp' : session.course ? 'course' : null
+  return kindMismatch((data as { kind?: unknown })?.kind, sessionKind) ?? true
+}
 
 /**
  * Bookings — one person on one session (decided 02.10.2026: a couple books
  * twice, so the school has every participant's name for the list and the
  * insurance).
+ *
+ * Course AND camp bookings, in one collection (decided 19.10.2026): the
+ * spot counting, the waiting list, broadcasts, erasure and the dashboard all
+ * work on this one, and a second collection would mean building and testing
+ * each of them again. `kind` tells them apart; the panel menu has a link to
+ * each half (`BookingsNavLinks`). On a camp booking the person's fields are
+ * the PARENT's (the contact), and the participant is the child in `child*`.
+ * Health data from the qualification card does NOT go here — it has a
+ * shorter retention and gets its own collection.
  *
  * The contact details are a COPY taken at booking time, also when the booking
  * belongs to an account: what the person gave for this course stays as given,
@@ -43,7 +89,7 @@ export const Bookings: CollectionConfig = {
     defaultColumns: ['label', 'status', 'phone', 'createdAt'],
     group: 'Zapisy',
     description:
-      'Zapisy na kursy. Zmiana statusu na „potwierdzony”, „opłacony” albo „rezygnacja” wysyła kursantowi maila. Zapis telefoniczny dodaj tu ręcznie — wtedy liczy się do wolnych miejsc.',
+      'Zapisy na kursy i obozy. Przy obozie imię, nazwisko i kontakt to dane rodzica, a uczestnik to dziecko. Zmiana statusu na „potwierdzony”, „opłacony” albo „rezygnacja” wysyła kursantowi maila. Zapis telefoniczny dodaj tu ręcznie — wtedy liczy się do wolnych miejsc.',
     listSearchableFields: ['label', 'email', 'phone'],
     // Anonymized bookings (five years after the course, `lib/expiry.ts`) are
     // a trace for statistics, not work: rows with no name would only clutter
@@ -90,9 +136,16 @@ export const Bookings: CollectionConfig = {
             // A label is a convenience — never a reason to fail the save.
           }
         }
+        // A camp booking is named after the child — that is who the school
+        // looks for on the list; the parent is the contact.
+        const camp = (data.kind ?? originalDoc?.kind) === 'camp'
         const name = [
-          data.firstName ?? originalDoc?.firstName,
-          data.lastName ?? originalDoc?.lastName,
+          camp
+            ? (data.childFirstName ?? originalDoc?.childFirstName)
+            : (data.firstName ?? originalDoc?.firstName),
+          camp
+            ? (data.childLastName ?? originalDoc?.childLastName)
+            : (data.lastName ?? originalDoc?.lastName),
         ]
           .filter(Boolean)
           .join(' ')
@@ -171,12 +224,29 @@ export const Bookings: CollectionConfig = {
       },
     },
     {
+      name: 'kind',
+      type: 'select',
+      required: true,
+      defaultValue: 'course',
+      index: true,
+      label: 'Rodzaj zapisu',
+      options: BOOKING_KIND_OPTIONS,
+      admin: {
+        description: 'Najpierw wybierz rodzaj — lista terminów pokaże tylko pasujące.',
+      },
+    },
+    {
       name: 'session',
       type: 'relationship',
       relationTo: 'sessions',
       required: true,
       index: true,
       label: 'Termin',
+      // The panel lists only sessions of the chosen kind; `validate` holds
+      // the same rule on save (it replaces Payload's own check of this
+      // filter, whose message would be "nieprawidłowe wybory: 1").
+      filterOptions: ({ data }) => sessionFilterFor(data?.kind),
+      validate: sessionMatchesKind,
     },
     {
       name: 'status',
@@ -239,6 +309,64 @@ export const Bookings: CollectionConfig = {
           maxLength: 30,
           label: 'Telefon',
           admin: { width: '50%' },
+        },
+      ],
+    },
+    {
+      type: 'collapsible',
+      label: 'Uczestnik obozu (dziecko)',
+      admin: { condition: (data) => data?.kind === 'camp' },
+      fields: [
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'childFirstName',
+              type: 'text',
+              maxLength: 120,
+              label: 'Imię dziecka',
+              validate: requiredOnCamp('Podaj imię dziecka.'),
+              admin: { width: '50%' },
+            },
+            {
+              name: 'childLastName',
+              type: 'text',
+              maxLength: 120,
+              label: 'Nazwisko dziecka',
+              validate: requiredOnCamp('Podaj nazwisko dziecka.'),
+              admin: { width: '50%' },
+            },
+          ],
+        },
+        {
+          name: 'childBirthDate',
+          type: 'date',
+          label: 'Data urodzenia',
+          validate: requiredOnCamp('Podaj datę urodzenia dziecka.'),
+          admin: { date: { pickerAppearance: 'dayOnly', displayFormat: 'd.MM.yyyy' } },
+        },
+        {
+          // Optional, its own consent (decided 19.10.2026): the school sees
+          // whom not to show in published photos. Ticked by the parent on the
+          // site (with the clause stored below) or by the school after a
+          // consent given in person; unticking it is the withdrawal.
+          name: 'photoConsent',
+          type: 'checkbox',
+          defaultValue: false,
+          label: 'Zgoda na publikację zdjęć dziecka',
+          admin: {
+            description:
+              'Na stronie i w mediach społecznościowych. Bez zaznaczenia — nie publikować zdjęć, na których dziecko da się rozpoznać.',
+          },
+        },
+        {
+          name: 'photoConsentText',
+          type: 'textarea',
+          label: 'Treść zgody na zdjęcia',
+          admin: {
+            readOnly: true,
+            condition: (data) => Boolean(data?.photoConsentText),
+          },
         },
       ],
     },

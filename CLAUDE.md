@@ -1083,6 +1083,43 @@ i `lib/bookingEffects.ts` (skutki uboczne).
 
 ---
 
+## Zapisy na obozy
+
+Od 19.10.2026 (etap 4, ZAKRES pkt 2), gałąź `feat/camp-bookings`, w budowie.
+Ustalone z Krzyśkiem: zaliczka 500 zł w 7 dni od zapisu, reszta do dnia
+rozpoczęcia, pełny zwrot do 30 dni przed obozem.
+
+- **Jedna kolekcja `bookings` dla kursów i obozów** (decyzja 19.10.2026),
+  rozróżniana polem `kind` (`course` / `camp`). Liczenie miejsc, lista
+  rezerwowa, wysyłki, „Dane osoby”, anonimizacja i pulpit działają na tej
+  jednej — druga kolekcja znaczyłaby zbudowanie i przetestowanie każdej
+  z tych rzeczy drugi raz. W menu panelu dwie pozycje, „Zapisy na kursy”
+  i „Zapisy na obozy” (`BookingsNavLinks`, ta sama lista z `?where[kind]`),
+  bo szkoła sprawdza jedno albo drugie. Własny link Payloada „Zapisy” jest
+  ukryty w `custom.css` (`#nav-bookings`), nie przez `admin.hidden` — to
+  wyłączyłoby też trasy listy. Przy podbiciu Payloada sprawdzić, czy link
+  wciąż ma ten `id`.
+- **Przy obozie imię, nazwisko i kontakt to RODZIC**, uczestnik to dziecko
+  (`childFirstName`, `childLastName`, `childBirthDate`), wymagane tylko przy
+  `kind = camp`. Etykieta zapisu bierze imię dziecka. Jedno dziecko = jeden
+  zapis (jak „jedna osoba = jeden zapis”).
+- **Termin musi pasować do rodzaju**: `filterOptions` pokazuje w panelu tylko
+  terminy danego rodzaju, a `validate` (`sessionMatchesKind`) pilnuje tego przy
+  zapisie — zastępuje sprawdzenie Payloada, którego komunikat brzmiał
+  „nieprawidłowe wybory: 1”. Termin, którego kurs albo obóz usunięto (pole
+  wyczyszczone przez Postgres), pasuje do każdego rodzaju — inaczej żadnego
+  jego zapisu nie dałoby się już zapisać, nawet zmiany statusu. Migracja
+  `bookings_camp_kind` przestawia na
+  `camp` zapisy dodane wcześniej ręcznie na terminach obozów (ręczny `UPDATE`
+  — nie kasować przy sklejaniu migracji).
+- **Zgoda na zdjęcia dziecka — opcjonalna** (`photoConsent` + treść
+  w `photoConsentText`). Odznaczenie w panelu = wycofanie zgody.
+- **Danych o zdrowiu z karty kwalifikacyjnej NIE ma w zapisie** — dojdą
+  w osobnej kolekcji, bo usuwamy je miesiąc po obozie, a zapis po 5 latach.
+- Nowe pola osoby trafiają w trzy miejsca naraz: anonimizacja
+  (`anonymizeExpiredBookings`), kopia danych (`personErasure.ts`, lista
+  dozwolonych pól) i jej dokument (`personDataDocument.ts`).
+
 ## Panel szkoły — pulpit, szybki status, eksport
 
 Od 03.10.2026 (etap 3). Własne elementy panelu w `src/components/admin/`,
