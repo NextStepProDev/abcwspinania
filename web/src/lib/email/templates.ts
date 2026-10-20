@@ -551,6 +551,165 @@ export function newCampBookingNotification(data: NewCampBookingData): Email {
   }
 }
 
+// --- Camp registration form ----------------------------------------------------
+
+export interface RegistrationEmailData {
+  /** The parent's. */
+  firstName?: string | null
+  childName: string
+  campTitle: string
+  dates: string
+  /** The child's registration form. */
+  url: string
+}
+
+/**
+ * Why the parent gets the link again: the school sent it from the panel,
+ * the child moved up from the waiting list, or the form is still empty.
+ */
+export type RegistrationLinkReason = 'again' | 'place' | 'reminder'
+
+const REGISTRATION_LINK = {
+  pl: {
+    subject: (child: string, reason: RegistrationLinkReason) =>
+      reason === 'place'
+        ? `Zwolniło się miejsce: ${child} — formularz rejestracyjny`
+        : reason === 'reminder'
+          ? `Przypomnienie: formularz rejestracyjny — ${child}`
+          : `Formularz rejestracyjny — ${child}`,
+    body: (child: string, reason: RegistrationLinkReason) =>
+      reason === 'place'
+        ? `Dobra wiadomość — zwolniło się miejsce i ${child} jest już na liście uczestników. Następny krok to formularz rejestracyjny: dane potrzebne do umowy i do opieki na obozie.`
+        : reason === 'reminder'
+          ? `Czekamy jeszcze na formularz rejestracyjny dla: ${child}. Bez niego nie przygotujemy umowy. Wypełnienie zajmuje kilka minut.`
+          : `Przesyłamy link do formularza rejestracyjnego dla: ${child}. Wypełnisz w nim dane potrzebne do umowy i do opieki na obozie.`,
+    action: 'Wypełnij formularz rejestracyjny',
+    child: 'Uczestnik',
+    camp: 'Obóz',
+    dates: 'Termin',
+    note: 'Link prowadzi do formularza tego dziecka — nie przekazuj go dalej. Pytania? Odpowiedz na tę wiadomość.',
+  },
+  en: {
+    subject: (child: string, reason: RegistrationLinkReason) =>
+      reason === 'place'
+        ? `A place is free: ${child} — registration form`
+        : reason === 'reminder'
+          ? `Reminder: registration form — ${child}`
+          : `Registration form — ${child}`,
+    body: (child: string, reason: RegistrationLinkReason) =>
+      reason === 'place'
+        ? `Good news — a place has freed up and ${child} is now on the list of participants. The next step is the registration form: the details we need for the contract and for looking after the child at the camp.`
+        : reason === 'reminder'
+          ? `We are still waiting for the registration form for ${child}. Without it we cannot prepare the contract. It takes a few minutes.`
+          : `Here is the link to the registration form for ${child}: the details we need for the contract and for looking after the child at the camp.`,
+    action: 'Fill in the registration form',
+    child: 'Participant',
+    camp: 'Camp',
+    dates: 'Dates',
+    note: 'The link opens this child’s form — do not pass it on. Questions? Reply to this email.',
+  },
+} satisfies Record<EmailLanguage, unknown>
+
+/** To the parent: the registration form's link, outside the first sign-up email. */
+export function registrationLinkEmail(
+  lang: EmailLanguage,
+  reason: RegistrationLinkReason,
+  data: RegistrationEmailData,
+): Email {
+  const copy = REGISTRATION_LINK[lang]
+  return {
+    subject: oneLine(copy.subject(data.childName, reason)),
+    ...renderEmail({
+      lang,
+      heading: greeting(lang, data.firstName),
+      paragraphs: [copy.body(data.childName, reason)],
+      details: [
+        [copy.child, data.childName],
+        [copy.camp, data.campTitle],
+        [copy.dates, data.dates],
+      ],
+      action: { label: copy.action, href: data.url },
+      note: copy.note,
+    }),
+  }
+}
+
+const REGISTRATION_RECEIVED = {
+  pl: {
+    subject: (child: string) => `Formularz rejestracyjny przyjęty — ${child}`,
+    body: (child: string) =>
+      `Dziękujemy — mamy formularz rejestracyjny dla: ${child}. Umowę i dane do przelewu zaliczki prześlemy w osobnym mailu. Gdyby coś się zmieniło przed obozem (np. leki), popraw formularz tym samym linkiem.`,
+    action: 'Popraw formularz',
+    note: 'Pytania? Odpowiedz na tę wiadomość.',
+  },
+  en: {
+    subject: (child: string) => `Registration form received — ${child}`,
+    body: (child: string) =>
+      `Thank you — we have the registration form for ${child}. The contract and the bank details for the deposit will follow in a separate email. If anything changes before the camp (medication, say), correct the form with the same link.`,
+    action: 'Correct the form',
+    note: 'Questions? Reply to this email.',
+  },
+} satisfies Record<EmailLanguage, unknown>
+
+/**
+ * To the parent, after the FIRST save of the form. No health data in it:
+ * an email passes through Brevo and sits in a mailbox for years.
+ */
+export function registrationReceivedEmail(lang: EmailLanguage, data: RegistrationEmailData): Email {
+  const copy = REGISTRATION_RECEIVED[lang]
+  return {
+    subject: oneLine(copy.subject(data.childName)),
+    ...renderEmail({
+      lang,
+      heading: greeting(lang, data.firstName),
+      paragraphs: [copy.body(data.childName)],
+      details: [
+        [REGISTRATION_LINK[lang].camp, data.campTitle],
+        [REGISTRATION_LINK[lang].dates, data.dates],
+      ],
+      action: { label: copy.action, href: data.url },
+      note: copy.note,
+    }),
+  }
+}
+
+export interface RegistrationNotificationData {
+  childName: string
+  parent: string
+  campTitle: string
+  dates: string
+  /** The parent corrected a form sent before. */
+  updated: boolean
+  adminUrl: string
+}
+
+/**
+ * To the school: a registration form came in or changed. Deliberately
+ * without the answers — health data stays in the panel, not in mailboxes.
+ */
+export function registrationNotification(data: RegistrationNotificationData): Email {
+  const intro = data.updated
+    ? 'Rodzic poprawił formularz rejestracyjny (np. leki albo uczulenia). Aktualne dane są w panelu.'
+    : 'Rodzic wypełnił formularz rejestracyjny. Dane (PESEL, wzrost, zdrowie) są w panelu — w mailu ich nie ma.'
+  return {
+    subject: oneLine(
+      `${data.updated ? 'Formularz poprawiony' : 'Formularz rejestracyjny'}: ${data.childName} — ${data.campTitle}`,
+    ),
+    ...renderEmail({
+      lang: 'pl',
+      heading: data.updated ? 'Formularz rejestracyjny poprawiony' : 'Nowy formularz rejestracyjny',
+      paragraphs: [intro],
+      details: [
+        ['Dziecko', data.childName],
+        ['Rodzic', data.parent],
+        ['Obóz', data.campTitle],
+        ['Turnus', data.dates],
+      ],
+      action: { label: 'Otwórz w panelu', href: data.adminUrl },
+    }),
+  }
+}
+
 export interface PlaceFreedData {
   courseTitle: string
   dates: string

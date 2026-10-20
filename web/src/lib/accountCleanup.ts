@@ -2,6 +2,7 @@ import { getPayload } from 'payload'
 import config from '@payload-config'
 
 import { anonymizedLabel } from '@/lib/bookings'
+import { deleteExpiredRegistrations, sendRegistrationReminders } from '@/lib/campRegistration'
 import {
   expiredBookingsWhere,
   expiredMessagesWhere,
@@ -168,6 +169,16 @@ export function scheduleAccountCleanup(): void {
     finishPastSessions().catch((error) => {
       console.warn('Marking past sessions finished failed, will retry tomorrow:', error)
     })
+    getPayload({ config })
+      .then(async (payload) => {
+        await deleteExpiredRegistrations(payload).catch((error) => {
+          console.warn('Registration form cleanup failed, will retry tomorrow:', error)
+        })
+        await sendRegistrationReminders(payload).catch((error) => {
+          console.warn('Registration reminders failed, will retry tomorrow:', error)
+        })
+      })
+      .catch((error) => console.warn('Camp registration sweep failed:', error))
   }
   setTimeout(run, 60_000).unref()
   setInterval(run, DAY_MS).unref()

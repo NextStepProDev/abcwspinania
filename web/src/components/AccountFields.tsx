@@ -215,12 +215,15 @@ export function TextField({
 /** The clause sits next to the box in full, never behind a link (lib/consent.ts). */
 export function ConsentField({
   id,
+  name = 'consent',
   text,
   error,
   missing,
   defaultChecked,
 }: {
   id: string
+  /** The form field — a form with two required consents names the second. */
+  name?: string
   text: string
   error?: string
   /** Shown when a send is stopped in the browser — the server's own message. */
@@ -238,7 +241,7 @@ export function ConsentField({
       <label htmlFor={id} className="flex items-start gap-3 text-sm leading-6 text-rock-600">
         <input
           id={id}
-          name="consent"
+          name={name}
           type="checkbox"
           required
           defaultChecked={defaultChecked}

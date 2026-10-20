@@ -1,4 +1,4 @@
-import type { CollectionConfig, RelationshipFieldSingleValidation } from 'payload'
+import { APIError, type CollectionConfig, type RelationshipFieldSingleValidation } from 'payload'
 
 import { adminOrOwner, isAdmin } from '../lib/access'
 import {
@@ -11,6 +11,11 @@ import {
 } from '../lib/bookings'
 import { idOf, recordEmailIssue, recountSession, sendStatusEmail } from '../lib/bookingEffects'
 import { LANGUAGE_OPTIONS_FOR_PAYLOAD } from '../lib/email/language'
+import {
+  movedUpFromWaitlist,
+  registrationLinkHandler,
+  sendRegistrationLink,
+} from '../lib/campRegistration'
 
 /** A field the camp booking needs and the course booking does not have. */
 function requiredOnCamp(message: string) {
@@ -105,7 +110,33 @@ export const Bookings: CollectionConfig = {
     delete: isAdmin,
   },
   defaultSort: '-createdAt',
+  endpoints: [{ path: '/:id/registration-link', method: 'post', handler: registrationLinkHandler }],
   hooks: {
+    beforeDelete: [
+      // The registration form goes with its booking — its `booking` is
+      // required, so Postgres would refuse the delete otherwise (as with
+      // sessions and their bookings), and the health data must not outlive
+      // it. Covers the panel, the erasure of a person and the test cleanup.
+      async ({ id, req }) => {
+        // A bulk delete reports a refusal in `errors` instead of throwing —
+        // without this the booking's own delete would fail on Postgres with
+        // "Failed query", which says nothing about the form.
+        const { errors } = await req.payload.delete({
+          collection: 'camp-registrations',
+          where: { booking: { equals: id } },
+          overrideAccess: true,
+          req,
+        })
+        if (errors.length) {
+          throw new APIError(
+            'Nie udało się usunąć formularza rejestracyjnego tego zapisu.',
+            500,
+            null,
+            true,
+          )
+        }
+      },
+    ],
     beforeChange: [
       // One spelling of every address: claiming bookings for an account
       // (`claimBookings`) and the duplicate check compare emails exactly, and
@@ -170,6 +201,18 @@ export const Bookings: CollectionConfig = {
         }
 
         if (operation !== 'update' || context.skipStatusEmail) return doc
+
+        // A camp child moved up from the waiting list: the sign-up email had
+        // no form link, so the parent gets it now. Not when the form is in.
+        if (
+          doc.kind === 'camp' &&
+          !doc.registeredAt &&
+          movedUpFromWaitlist(previousDoc?.status, doc.status)
+        ) {
+          await sendRegistrationLink(req.payload, doc.id, 'place', req).catch((error) =>
+            req.payload.logger.error({ err: error }, 'Failed to send the registration link'),
+          )
+        }
         const previousStatus = previousDoc?.status as BookingStatus | undefined
         let status = statusEmailFor(previousStatus, doc.status as BookingStatus)
         // "Paid" emails only before the course starts (`statusEmailFor`), so
@@ -389,6 +432,41 @@ export const Bookings: CollectionConfig = {
       name: 'registrationSentAt',
       type: 'date',
       hidden: true,
+    },
+    {
+      // The reminder (`sendRegistrationReminders`) goes once.
+      name: 'registrationReminderAt',
+      type: 'date',
+      hidden: true,
+    },
+    {
+      name: 'registeredAt',
+      type: 'date',
+      label: 'Formularz rejestracyjny wypełniony',
+      index: true,
+      // Shown by `RegistrationPanel` with its date — a field of its own beside
+      // it said the same thing twice. Kept in the API: the list can filter by it.
+      admin: { hidden: true },
+    },
+    {
+      // The form's status, a link to its data and "Wyślij link" — see the component.
+      name: 'registrationPanel',
+      type: 'ui',
+      admin: {
+        position: 'sidebar',
+        condition: (data) => data?.kind === 'camp',
+        components: { Field: '/components/admin/RegistrationPanel#RegistrationPanel' },
+      },
+    },
+    {
+      // Set by the parent in the registration form; the school issues the
+      // invoice itself (decided 20.10.2026). The details to put on it come
+      // when Krzysiek says which.
+      name: 'invoiceRequested',
+      type: 'checkbox',
+      defaultValue: false,
+      label: 'Rodzic chce fakturę',
+      admin: { condition: (data) => data?.kind === 'camp' },
     },
     {
       name: 'notes',

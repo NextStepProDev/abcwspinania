@@ -1,5 +1,6 @@
 import { childKey } from '@/lib/bookings'
 import { pluralPl } from '@/lib/format'
+import { checkPesel } from '@/lib/pesel'
 import { TOPIC_VALUES } from '@/lib/topics'
 
 /**
@@ -424,5 +425,61 @@ export function validateCampBooking(
   })
   if (children.some(Boolean)) errors.children = children
 
+  return errors
+}
+
+// --- Camp registration form --------------------------------------------------
+
+export interface CampRegistrationData {
+  pesel: string
+  /** Centimetres, as typed. */
+  height: string
+  allergies: string
+  medications: string
+  diet: string
+  conditions: string
+  activitiesConsent: boolean
+  photoConsent: boolean
+  invoiceRequested: boolean
+  consent: boolean
+}
+
+export type CampRegistrationErrors = Partial<Record<keyof CampRegistrationData, string>>
+
+export const HEALTH_TEXT_MAX = 2000
+export const HEIGHT_MIN_CM = 80
+export const HEIGHT_MAX_CM = 210
+
+export const ACTIVITIES_CONSENT_MISSING = 'Bez tej zgody dziecko nie może wziąć udziału w obozie.'
+export const REGISTRATION_CONSENT_MISSING = 'Bez tej zgody nie możemy przyjąć formularza.'
+
+/** The height the T-shirts are ordered by — whole centimetres, a child's range. */
+export function checkHeight(raw: string): string | undefined {
+  const value = raw.trim()
+  if (!value) return 'Podaj wzrost dziecka.'
+  if (!/^\d{2,3}$/.test(value)) return 'Wpisz wzrost w centymetrach, np. 142.'
+  const cm = Number(value)
+  if (cm < HEIGHT_MIN_CM || cm > HEIGHT_MAX_CM)
+    return `Wzrost w centymetrach, od ${HEIGHT_MIN_CM} do ${HEIGHT_MAX_CM}.`
+  return undefined
+}
+
+/**
+ * The registration form (camp step 2). The health questions may stay empty —
+ * "nothing to report" is an answer — but each is bounded; the PESEL, the
+ * height and both consents are required. The PESEL rule is `checkPesel`.
+ */
+export function validateCampRegistration(data: CampRegistrationData): CampRegistrationErrors {
+  const errors: CampRegistrationErrors = {}
+  const pesel = checkPesel(data.pesel)
+  if (pesel) errors.pesel = pesel
+  const height = checkHeight(data.height)
+  if (height) errors.height = height
+  for (const key of ['allergies', 'medications', 'diet', 'conditions'] as const) {
+    if (data[key].trim().length > HEALTH_TEXT_MAX)
+      errors[key] = `To pole może mieć najwyżej ${HEALTH_TEXT_MAX} znaków.`
+  }
+  if (!data.activitiesConsent) errors.activitiesConsent = ACTIVITIES_CONSENT_MISSING
+  if (!data.consent) errors.consent = REGISTRATION_CONSENT_MISSING
   return errors
 }

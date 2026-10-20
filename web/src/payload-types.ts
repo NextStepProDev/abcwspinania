@@ -72,6 +72,7 @@ export interface Config {
     camps: Camp;
     sessions: Session;
     bookings: Booking;
+    'camp-registrations': CampRegistration;
     broadcasts: Broadcast;
     'broadcast-deliveries': BroadcastDelivery;
     posts: Post;
@@ -101,6 +102,7 @@ export interface Config {
     camps: CampsSelect<false> | CampsSelect<true>;
     sessions: SessionsSelect<false> | SessionsSelect<true>;
     bookings: BookingsSelect<false> | BookingsSelect<true>;
+    'camp-registrations': CampRegistrationsSelect<false> | CampRegistrationsSelect<true>;
     broadcasts: BroadcastsSelect<false> | BroadcastsSelect<true>;
     'broadcast-deliveries': BroadcastDeliveriesSelect<false> | BroadcastDeliveriesSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
@@ -532,6 +534,9 @@ export interface Booking {
   photoConsentText?: string | null;
   registrationToken?: string | null;
   registrationSentAt?: string | null;
+  registrationReminderAt?: string | null;
+  registeredAt?: string | null;
+  invoiceRequested?: boolean | null;
   notes?: string | null;
   /**
    * Widoczne tylko w panelu — kursant ich nie widzi.
@@ -608,6 +613,34 @@ export interface Customer {
     | null;
   password?: string | null;
   collection: 'customers';
+}
+/**
+ * Dane z formularza rejestracyjnego obozu — PESEL i zdrowie dziecka. Usuwane same miesiąc po zakończeniu obozu.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-registrations".
+ */
+export interface CampRegistration {
+  id: number;
+  label?: string | null;
+  booking: number | Booking;
+  pesel: string;
+  /**
+   * Do zamówienia koszulek.
+   */
+  heightCm?: number | null;
+  allergies?: string | null;
+  medications?: string | null;
+  diet?: string | null;
+  /**
+   * Co może mieć wpływ na bezpieczeństwo albo zachowanie dziecka na obozie.
+   */
+  conditions?: string | null;
+  activitiesConsentText?: string | null;
+  consentText?: string | null;
+  consentDate?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * Wiadomości do grup: zapisanych na termin, wszystkich z nadchodzącymi zapisami albo newslettera. Zapisz, wyślij próbnie do siebie, potem „Wyślij”.
@@ -962,6 +995,10 @@ export interface PayloadLockedDocument {
         value: number | Booking;
       } | null)
     | ({
+        relationTo: 'camp-registrations';
+        value: number | CampRegistration;
+      } | null)
+    | ({
         relationTo: 'broadcasts';
         value: number | Broadcast;
       } | null)
@@ -1199,6 +1236,9 @@ export interface BookingsSelect<T extends boolean = true> {
   photoConsentText?: T;
   registrationToken?: T;
   registrationSentAt?: T;
+  registrationReminderAt?: T;
+  registeredAt?: T;
+  invoiceRequested?: T;
   notes?: T;
   adminNotes?: T;
   emailIssue?: T;
@@ -1209,6 +1249,25 @@ export interface BookingsSelect<T extends boolean = true> {
   consentText?: T;
   consentDate?: T;
   anonymizedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-registrations_select".
+ */
+export interface CampRegistrationsSelect<T extends boolean = true> {
+  label?: T;
+  booking?: T;
+  pesel?: T;
+  heightCm?: T;
+  allergies?: T;
+  medications?: T;
+  diet?: T;
+  conditions?: T;
+  activitiesConsentText?: T;
+  consentText?: T;
+  consentDate?: T;
   updatedAt?: T;
   createdAt?: T;
 }

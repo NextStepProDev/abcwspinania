@@ -13,6 +13,7 @@ import { Messages } from './Messages'
 import { Newsletter } from './Newsletter'
 import { Customers } from './Customers'
 import { Bookings } from './Bookings'
+import { CampRegistrations } from './CampRegistrations'
 import { Broadcasts } from './Broadcasts'
 import { BroadcastDeliveries } from './BroadcastDeliveries'
 
@@ -28,6 +29,7 @@ export const collections: CollectionConfig[] = [
   Camps,
   Sessions,
   Bookings,
+  CampRegistrations,
   Broadcasts,
   BroadcastDeliveries,
   Posts,

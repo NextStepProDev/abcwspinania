@@ -80,3 +80,41 @@ test('a session without an end date counts by its start', () => {
   assert.match(where, /"endDate":\{"exists":false\}/)
   assert.match(where, /"startDate":\{"less_than"/)
 })
+
+// --- camp registration forms ---------------------------------------------------
+
+import {
+  CAMP_HEALTH_RETENTION_MONTHS,
+  expiredRegistrationsWhere,
+  registrationReminderWhere,
+} from '@/lib/expiry'
+import { CAMP_REGISTRATION_CONSENT_TEXT } from '@/lib/consent'
+
+const registrationCutoff = (now: string) =>
+  JSON.stringify(expiredRegistrationsWhere(new Date(now))).match(/"less_than":"([^"]+)"/)?.[1]
+
+test('a camp’s health data goes a month after its last day, not before', () => {
+  // A camp ending 3 July (stored as Polish midnight, 22:00 UTC on 2 July).
+  const lastDay = Date.parse('2027-07-02T22:00:00.000Z')
+  assert.ok(lastDay >= Date.parse(registrationCutoff('2027-08-03T12:00:00Z')!), 'kept on 3 August')
+  assert.ok(lastDay < Date.parse(registrationCutoff('2027-08-05T12:00:00Z')!), 'gone by 5 August')
+})
+
+test('a camp without an end date counts by its start for the health data too', () => {
+  const where = JSON.stringify(expiredRegistrationsWhere(new Date('2027-08-05T12:00:00Z')))
+  assert.match(where, /"booking.session.endDate":\{"exists":false\}/)
+  assert.match(where, /"booking.session.startDate":\{"less_than"/)
+})
+
+test('the consent clause states the same health-data period as the sweep', () => {
+  assert.equal(CAMP_HEALTH_RETENTION_MONTHS, 1)
+  assert.match(CAMP_REGISTRATION_CONSENT_TEXT, /miesiąc po zakończeniu obozu/)
+})
+
+test('the registration reminder goes once, to a parent with a place and no form yet', () => {
+  const where = JSON.stringify(registrationReminderWhere(new Date('2027-05-10T12:00:00Z')))
+  assert.match(where, /"registrationSentAt":\{"less_than":"2027-05-06T12:00:00.000Z"\}/)
+  assert.match(where, /"registeredAt":\{"exists":false\}/)
+  assert.match(where, /"registrationReminderAt":\{"exists":false\}/)
+  assert.doesNotMatch(where, /waitlist|cancelled/)
+})

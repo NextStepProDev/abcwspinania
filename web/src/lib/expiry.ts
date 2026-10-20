@@ -165,3 +165,64 @@ export function finishedSessionsWhere(now: Date): Where {
     ],
   }
 }
+
+/**
+ * Months after a camp ends that the registration form's data — the PESEL
+ * and the health data — is kept (Krzysiek, 19.10.2026: "miesiąc po obozie").
+ * The rest of the booking follows `BOOKING_RETENTION_YEARS`. The consent
+ * clause (`CAMP_REGISTRATION_CONSENT_TEXT`) and the privacy policy say this
+ * period in words — change them with it.
+ */
+export const CAMP_HEALTH_RETENTION_MONTHS = 1
+
+/**
+ * Which registration forms the daily sweep deletes: their camp's last day is
+ * more than the retention ago. The cutoff is a day earlier than the exact
+ * month, the same allowance as `finishedSessionsWhere`: a last day stored as
+ * Polish midnight is 22:00–23:00 UTC the day before. A camp without an end
+ * counts by its start.
+ */
+export function expiredRegistrationsWhere(now: Date, months = CAMP_HEALTH_RETENTION_MONTHS): Where {
+  const cutoff = new Date(now)
+  cutoff.setUTCHours(0, 0, 0, 0)
+  cutoff.setUTCMonth(cutoff.getUTCMonth() - months)
+  cutoff.setUTCDate(cutoff.getUTCDate() - 1)
+  const before = cutoff.toISOString()
+  return {
+    or: [
+      { 'booking.session.endDate': { less_than: before } },
+      {
+        and: [
+          { 'booking.session.endDate': { exists: false } },
+          { 'booking.session.startDate': { less_than: before } },
+        ],
+      },
+    ],
+  }
+}
+
+/**
+ * Days after the registration link before the parent is reminded once
+ * (decided 20.10.2026: "po kilku dniach"). Then the school calls.
+ */
+export const REGISTRATION_REMINDER_DAYS = 4
+
+/**
+ * Camp bookings whose parent gets the reminder: a place (not the waiting
+ * list, not cancelled), an address to write to, the link sent more than the
+ * grace period ago, no form yet, no reminder yet, and a camp still ahead.
+ */
+export function registrationReminderWhere(now: Date, days = REGISTRATION_REMINDER_DAYS): Where {
+  const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString()
+  return {
+    and: [
+      { kind: { equals: 'camp' } },
+      { status: { in: ['new', 'confirmed', 'deposit', 'paid'] } },
+      { email: { exists: true } },
+      { registeredAt: { exists: false } },
+      { registrationReminderAt: { exists: false } },
+      { registrationSentAt: { less_than: cutoff } },
+      { 'session.startDate': { greater_than: now.toISOString() } },
+    ],
+  }
+}

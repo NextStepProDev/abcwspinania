@@ -48,6 +48,7 @@ subdomeny `api.*`.
 | `Newsletter` | `newsletter` | **nie** | zapisy na newsletter — dane osobowe |
 | `Customers` | `customers` | **tylko własne konto** | konta uczestników (logowanie na stronie) |
 | `Bookings` | `bookings` | **tylko własne zapisy** | zapisy na kursy i obozy — dane osobowe |
+| `CampRegistrations` | `camp-registrations` | **nie** | formularz rejestracyjny obozu — PESEL i zdrowie dziecka |
 | `Broadcasts` | `broadcasts` | **nie** | „Wysyłki” — wiadomości do grup |
 | `BroadcastDeliveries` | `broadcast-deliveries` | **nie** | odbiorcy każdej wysyłki i stan kolejki; ukryte w menu |
 | `Users` | `users` | **nie** | konta do panelu |
@@ -1143,8 +1144,34 @@ do 30 dni przed obozem. Cała ścieżka działa bez konta; konto dla chętnych.
   — nie kasować przy sklejaniu migracji).
 - **Zgoda na zdjęcia dziecka — opcjonalna** (`photoConsent` + treść
   w `photoConsentText`). Odznaczenie w panelu = wycofanie zgody.
-- **Danych o zdrowiu z karty kwalifikacyjnej NIE ma w zapisie** — dojdą
-  w osobnej kolekcji, bo usuwamy je miesiąc po obozie, a zapis po 5 latach.
+- **Formularz rejestracyjny (krok 2): `/obozy/rejestracja?token=…`**, bez
+  konta — kluczem jest `registrationToken` z maila. PESEL (data urodzenia
+  liczona z niego, `lib/pesel.ts`, idzie do zapisu), wzrost, uczulenia, leki,
+  dieta, choroby, zgoda na zajęcia (wymagana), zgoda na zdjęcia
+  (opcjonalna), „chcę fakturę”, zgoda RODO na dane i zdrowie dziecka. Działa
+  do dnia rozpoczęcia obozu — rodzic wraca tym samym linkiem i poprawia
+  (leki w lutym vs w lipcu); zamknięty dla listy rezerwowej i rezygnacji.
+  Logika: `lib/campRegistration.ts`.
+- **PESEL i zdrowie w osobnej kolekcji `camp-registrations`** (czyta tylko
+  szkoła): usuwane same miesiąc po obozie (`CAMP_HEALTH_RETENTION_MONTHS`,
+  dzienne sprzątanie, `expiredRegistrationsWhere`), a zapis zostaje 5 lat.
+  Zdanie o miesiącu stoi też w klauzuli zgody i musi stanąć w polityce
+  prywatności. **Usunięcie zapisu kasuje jego formularz** (hook
+  `beforeDelete` w `Bookings`) — inaczej Postgres odmówi (wymagane `booking`),
+  a zdrowie przeżyłoby zapis; obejmuje to panel i „Dane osoby”. Kopia danych
+  osoby zawiera formularz przy jego zapisie.
+- **Maile formularza bez danych o zdrowiu** — ani do rodzica, ani do szkoły
+  (Brevo i lata w skrzynce). Szkoła dostaje „wypełniony / poprawiony” z
+  linkiem do panelu.
+- **Link do formularza poza pierwszym mailem**: dziecko przeniesione z listy
+  rezerwowej na miejsce dostaje go samo (hook `afterChange`), a „Wyślij
+  rodzicowi link” w panelu zapisu (`RegistrationPanel`, endpoint
+  `/api/bookings/:id/registration-link`) — przy zapisie dodanym ręcznie albo
+  zgubionym mailu. Token zostaje ten sam. Przypomnienie raz, po
+  `REGISTRATION_REMINDER_DAYS` (4) bez formularza.
+- **Testy integracyjne nie wołają przez HTTP niczego, co wysyła mail** —
+  serwer deweloperski ma prawdziwy klucz Brevo. „Wyślij link” sprawdza się
+  w procesie testów (`registrationLinkHandler`), przez HTTP tylko odmowę.
 - Nowe pola osoby trafiają w trzy miejsca naraz: anonimizacja
   (`anonymizeExpiredBookings`), kopia danych (`personErasure.ts`, lista
   dozwolonych pól) i jej dokument (`personDataDocument.ts`).

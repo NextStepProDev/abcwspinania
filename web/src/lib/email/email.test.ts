@@ -605,3 +605,52 @@ test('after an address change it does not send the owner to "forgot password"', 
   assert.doesNotMatch(email.text, /ustaw od razu nowe hasło/)
   assert.match(email.text, /Mateusz/)
 })
+
+// --- camp registration form ----------------------------------------------------
+
+import {
+  registrationLinkEmail,
+  registrationNotification,
+  registrationReceivedEmail,
+} from '@/lib/email/templates'
+
+const registration = {
+  firstName: 'Anna',
+  childName: 'Zosia Nowak',
+  campTitle: 'Obóz wspinaczkowo-przygodowy',
+  dates: '26 czerwca – 3 lipca 2027',
+  url: 'https://x.pl/obozy/rejestracja?token=abc',
+}
+
+test('the registration link says why it comes: again, a freed place, a reminder', () => {
+  for (const lang of ['pl', 'en'] as const) {
+    const subjects = (['again', 'place', 'reminder'] as const).map(
+      (reason) => registrationLinkEmail(lang, reason, registration).subject,
+    )
+    assert.equal(new Set(subjects).size, 3, lang)
+    assert.match(registrationLinkEmail(lang, 'place', registration).text, /token=abc/)
+  }
+  assert.match(registrationLinkEmail('pl', 'reminder', registration).subject, /^Przypomnienie/)
+})
+
+test('the parent’s confirmation leads back to the form to correct it', () => {
+  const email = registrationReceivedEmail('pl', registration)
+  assert.match(email.subject, /przyjęty — Zosia Nowak/)
+  assert.match(email.text, /Popraw formularz: https:\/\/x\.pl\/obozy\/rejestracja\?token=abc/)
+})
+
+test('the school hears a form came in or changed — without the health answers', () => {
+  const data = {
+    childName: 'Zosia Nowak',
+    parent: 'Anna Nowak',
+    campTitle: 'Obóz',
+    dates: 'd',
+    adminUrl: 'https://x.pl/admin/collections/bookings/7',
+  }
+  const first = registrationNotification({ ...data, updated: false })
+  const updated = registrationNotification({ ...data, updated: true })
+  assert.notEqual(first.subject, updated.subject)
+  // The template takes no health data at all; the text says where it is.
+  assert.match(first.text, /w panelu/)
+  assert.doesNotMatch(first.text + updated.text, /PESEL: |Uczulenia: |Leki: /)
+})

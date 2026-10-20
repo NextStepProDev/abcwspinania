@@ -20,6 +20,7 @@ test('"Zapisz się" never leads away from a form the visitor is filling in', () 
   for (const path of [
     '/kursy/kurs-pza/zapis',
     '/obozy/oboz-letni/zapis',
+    '/obozy/rejestracja',
     '/kontakt',
     '/logowanie',
     '/rejestracja',

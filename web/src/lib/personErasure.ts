@@ -182,6 +182,20 @@ export async function personDataCopy(payload: Payload, email: string): Promise<P
     byIds('newsletter'),
     byIds('broadcast-deliveries', 1),
   ])
+  // The camp registration forms of these bookings — the child's PESEL and
+  // health data, kept a month after the camp. Part of the person's data
+  // like the rest; shown with the booking they belong to.
+  const { docs: registrations } = bookings.length
+    ? await payload.find({
+        collection: 'camp-registrations',
+        where: { booking: { in: bookings.map((b) => b.id as number) } },
+        pagination: false,
+        depth: 0,
+        overrideAccess: true,
+      })
+    : { docs: [] }
+  const registrationOf = (bookingId: unknown) =>
+    registrations.find((r) => r.booking === bookingId) as Record<string, unknown> | undefined
   const label = (value: unknown) =>
     value && typeof value === 'object'
       ? ((value as { label?: string; subject?: string }).label ??
@@ -219,11 +233,29 @@ export async function personDataCopy(payload: Payload, email: string): Promise<P
         'status',
         'notes',
         'language',
+        'invoiceRequested',
+        'registeredAt',
         'consentText',
         'consentDate',
         'createdAt',
       ]),
       session: label(b.session),
+      ...(registrationOf(b.id)
+        ? {
+            registration: pick(registrationOf(b.id)!, [
+              'pesel',
+              'heightCm',
+              'allergies',
+              'medications',
+              'diet',
+              'conditions',
+              'activitiesConsentText',
+              'consentText',
+              'consentDate',
+              'updatedAt',
+            ]),
+          }
+        : {}),
     })),
     messages: messages.map((m) =>
       pick(m, [

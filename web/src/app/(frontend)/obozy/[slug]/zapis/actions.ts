@@ -9,6 +9,7 @@ import { getCurrentCustomer } from '@/lib/auth'
 import { MAX_CHILDREN, formatSessionDates } from '@/lib/bookings'
 import { recordEmailIssue, sessionSummary } from '@/lib/bookingEffects'
 import { createCampBookings } from '@/lib/bookingService'
+import { campMailbox, registrationUrl } from '@/lib/campRegistration'
 import { DEFAULT_LANGUAGE, type EmailLanguage } from '@/lib/email/language'
 import { publicUrl, tokenLink } from '@/lib/email/links'
 import {
@@ -56,11 +57,6 @@ function field(formData: FormData, name: string): string {
 
 function pick(email: { subject: string; html: string; text: string }) {
   return { subject: email.subject, html: email.html, text: email.text }
-}
-
-/** The camp mailbox, or the school's usual one until it is set. */
-function campMailbox(): string | undefined {
-  return process.env.CAMP_EMAIL || process.env.ADMIN_NOTIFY_EMAIL || undefined
 }
 
 /**
@@ -223,7 +219,7 @@ export async function bookCamp(
               location: summary?.location,
               registrationUrl:
                 !waitlist && child.registrationToken
-                  ? tokenLink('/obozy/rejestracja', child.registrationToken)
+                  ? registrationUrl(child.registrationToken)
                   : null,
               accountUrl: booking.customer ? `${publicUrl()}/konto` : null,
               waitlist,

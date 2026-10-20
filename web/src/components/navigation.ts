@@ -98,6 +98,9 @@ export function isActive(href: string, pathname: string): boolean {
  */
 const FORM_PAGES = [
   /^\/(kursy|obozy)\/[^/]+\/zapis$/,
+  // The camp registration form — without this the camp-page rule below took
+  // `rejestracja` for a camp's slug and led to `/obozy/rejestracja/zapis`.
+  /^\/obozy\/rejestracja$/,
   /^\/(kontakt|terminarz|logowanie|rejestracja)$/,
   /^\/(konto|newsletter)(\/|$)/,
 ]

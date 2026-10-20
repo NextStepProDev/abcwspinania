@@ -101,6 +101,22 @@ const BOOKING: Field[] = [
   ['Data urodzenia dziecka', 'childBirthDate', day],
   ['Zgoda na publikację zdjęć dziecka', 'photoConsent', yesNo],
   ['Treść zgody na zdjęcia', 'photoConsentText', text],
+  ['Faktura', 'invoiceRequested', yesNo],
+  ['Formularz rejestracyjny wypełniony', 'registeredAt', date],
+  // The camp registration form (`camp-registrations`), kept a month after the camp.
+  ['PESEL dziecka', 'registration.pesel', text],
+  [
+    'Wzrost dziecka (cm)',
+    'registration.heightCm',
+    (v) => (typeof v === 'number' ? String(v) : null),
+  ],
+  ['Uczulenia', 'registration.allergies', text],
+  ['Przyjmowane leki', 'registration.medications', text],
+  ['Dieta', 'registration.diet', text],
+  ['Choroby i przeciwwskazania', 'registration.conditions', text],
+  ['Zgoda na udział w zajęciach', 'registration.activitiesConsentText', text],
+  ['Data zgody (formularz rejestracyjny)', 'registration.consentDate', date],
+  ['Treść zgody (formularz rejestracyjny)', 'registration.consentText', text],
   ['Uwagi', 'notes', text],
   ['Język maili', 'language', language],
   ['Data zapisu', 'createdAt', date],
@@ -138,10 +154,21 @@ const SENT: Field[] = [
   ['Wysłana', 'sentAt', date],
 ]
 
+/** A field's value; `a.b` reads into a nested record (a booking's `registration`). */
+function valueAt(row: Record<string, unknown>, key: string): unknown {
+  return key
+    .split('.')
+    .reduce<unknown>(
+      (value, part) =>
+        value && typeof value === 'object' ? (value as Record<string, unknown>)[part] : undefined,
+      row,
+    )
+}
+
 /** One record as a two-column table; fields with no value are left out. */
 function record(row: Record<string, unknown>, fields: Field[]): string {
   const lines = fields
-    .map(([label, key, format]) => [label, format(row[key])] as const)
+    .map(([label, key, format]) => [label, format(valueAt(row, key))] as const)
     .filter((entry): entry is readonly [string, string] => entry[1] !== null)
     .map(
       ([label, value]) =>
@@ -177,7 +204,7 @@ export function personDataDocument(copy: PersonDataCopy): string {
 <p class="lead">Kopia danych osobowych, które szkoła przechowuje pod adresem <strong>${escapeHtml(copy.email)}</strong>. Stan na ${escapeHtml(made)}.</p>
 <div class="box">Administrator danych: ${escapeHtml(controller)}.<br>W sprawie danych: ${escapeHtml(CONTROLLER.email)}.</div>
 ${section('Konto na stronie', copy.account ? [copy.account] : [], ACCOUNT)}
-${section('Zapisy na kursy', copy.bookings, BOOKING)}
+${section('Zapisy na kursy i obozy', copy.bookings, BOOKING)}
 ${section('Wiadomości z formularza kontaktowego', copy.messages, MESSAGE)}
 ${section('Newsletter', copy.newsletter, NEWSLETTER)}
 ${section('Wiadomości wysłane do Ciebie przez szkołę', copy.messagesSentToThem, SENT)}

@@ -7,6 +7,7 @@ import './access.int'
 import './accounts.int'
 import './bookings.int'
 import './campBookings.int'
+import './campRegistration.int'
 import './broadcasts.int'
 import { run } from './harness'
 
