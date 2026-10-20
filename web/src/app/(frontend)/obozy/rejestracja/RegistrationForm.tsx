@@ -101,7 +101,7 @@ export function RegistrationForm({
         <p>
           {state.first === false
             ? 'Dziękujemy — szkoła widzi już poprawione dane.'
-            : 'Dziękujemy! Umowę i dane do przelewu zaliczki prześlemy w osobnym mailu.'}{' '}
+            : 'Dziękujemy! Dane do przelewu zaliczki wysłaliśmy mailem, a umowę prześlemy osobno.'}{' '}
           Gdyby coś się zmieniło przed obozem, wróć tym samym linkiem z maila i popraw formularz.
         </p>
       </FormDone>

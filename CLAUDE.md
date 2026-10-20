@@ -1169,6 +1169,19 @@ do 30 dni przed obozem. Cała ścieżka działa bez konta; konto dla chętnych.
   `/api/bookings/:id/registration-link`) — przy zapisie dodanym ręcznie albo
   zgubionym mailu. Token zostaje ten sam. Przypomnienie raz, po
   `REGISTRATION_REMINDER_DAYS` (4) bez formularza.
+- **Zaliczka (krok 3, bez umowy na razie)**: kwota, konto, tytuł przelewu
+  i zasada zwrotu w jednym miejscu — `lib/campPayment.ts` (zmiana kwoty albo
+  konta = jedna edycja). Pierwsze wypełnienie formularza ustawia
+  `depositDueAt` na `DEPOSIT_DAYS` (7) i wysyła rodzicowi dane do przelewu;
+  poprawka formularza terminu nie przesuwa (szkoła może go przesunąć ręcznie
+  w panelu). Po terminie bez zaliczki — jedno przypomnienie
+  (`depositReminderWhere`), miejsce NIE jest zwalniane (decyzja Krzyśka).
+  Wpłatę zaznacza Krzysiek statusem „zaliczka wpłacona” — przy obozie to
+  wysyła maila „zostało X zł” (`statusEmailForKind`; przy kursie zaliczka
+  dalej bez maila). Kwota pozostała = cena turnusu albo obozu minus 500 zł;
+  bez ceny w panelu mail nie podaje kwoty, zamiast podać złą.
+- **Maile o statusie zapisu obozowego mówią o obozie i dziecku**
+  (`campStatusEmail`), nie o kursie, i mają `replyTo` na `CAMP_EMAIL`.
 - **Testy integracyjne nie wołają przez HTTP niczego, co wysyła mail** —
   serwer deweloperski ma prawdziwy klucz Brevo. „Wyślij link” sprawdza się
   w procesie testów (`registrationLinkHandler`), przez HTTP tylko odmowę.

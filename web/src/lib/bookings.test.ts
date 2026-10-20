@@ -283,3 +283,29 @@ test('an anonymized booking keeps its date in the label, not the name', () => {
   assert.equal(anonymizedLabel('Ola Nowak'), 'zanonimizowany')
   assert.equal(anonymizedLabel(null), 'zanonimizowany')
 })
+
+// --- camp status emails --------------------------------------------------------
+
+import { statusEmailForKind } from '@/lib/bookings'
+
+test('on a camp the deposit tells the parent; on a course it stays silent', () => {
+  assert.equal(statusEmailForKind('camp', 'confirmed', 'deposit'), 'deposit')
+  assert.equal(statusEmailForKind('camp', 'new', 'deposit'), 'deposit')
+  assert.equal(statusEmailForKind('course', 'confirmed', 'deposit'), null)
+  assert.equal(statusEmailForKind(undefined, 'confirmed', 'deposit'), null)
+})
+
+test('back to the deposit from "paid" is a correction, not an email', () => {
+  assert.equal(statusEmailForKind('camp', 'paid', 'deposit'), null)
+  assert.equal(statusEmailForKind('camp', 'deposit', 'deposit'), null)
+})
+
+test('a camp’s other statuses follow the course rules', () => {
+  assert.equal(statusEmailForKind('camp', 'new', 'confirmed'), 'confirmed')
+  assert.equal(statusEmailForKind('camp', 'deposit', 'cancelled'), 'cancelled')
+  const start = '2027-07-01T00:00:00Z'
+  assert.equal(
+    statusEmailForKind('camp', 'deposit', 'paid', start, new Date('2027-07-02T10:00:00Z')),
+    null,
+  )
+})

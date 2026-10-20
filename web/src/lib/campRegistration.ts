@@ -20,12 +20,18 @@ import {
 import type { EmailLanguage } from '@/lib/email/language'
 import { publicUrl, tokenLink } from '@/lib/email/links'
 import {
+  depositReminderEmail,
   registrationLinkEmail,
   registrationNotification,
   registrationReceivedEmail,
   type RegistrationLinkReason,
 } from '@/lib/email/templates'
-import { expiredRegistrationsWhere, registrationReminderWhere } from '@/lib/expiry'
+import { campMailbox, campPrice, depositDueDate, paymentDetails } from '@/lib/campPayment'
+import {
+  depositReminderWhere,
+  expiredRegistrationsWhere,
+  registrationReminderWhere,
+} from '@/lib/expiry'
 import { peselBirthDate } from '@/lib/pesel'
 import type { Booking, Camp, CampRegistration, Session } from '@/payload-types'
 
@@ -41,11 +47,6 @@ import type { Booking, Camp, CampRegistration, Session } from '@/payload-types'
  */
 
 type Req = Partial<PayloadRequest>
-
-/** Where the camp's mail is answered (`CAMP_EMAIL`, obozy@) — the school's usual box until set. */
-export function campMailbox(): string | undefined {
-  return process.env.CAMP_EMAIL || process.env.ADMIN_NOTIFY_EMAIL || undefined
-}
 
 function pick(email: { subject: string; html: string; text: string }) {
   return { subject: email.subject, html: email.html, text: email.text }
@@ -145,13 +146,15 @@ export interface RegistrationInput {
  * booking, what outlives the camp — the birth date from the PESEL, the photo
  * consent (ticked: its clause; unticked: withdrawn) and the invoice request.
  * One transaction: the parent never sees half a save. Returns whether this
- * was the first save (the emails differ).
+ * was the first save (the emails differ) and the deposit's deadline — set
+ * on the first save, `DEPOSIT_DAYS` from now: the payment details go out
+ * with this save's email.
  */
 export async function saveRegistration(
   payload: Payload,
   ctx: RegistrationContext,
   input: RegistrationInput,
-): Promise<{ first: boolean }> {
+): Promise<{ first: boolean; depositDueAt: string | null }> {
   const req = await createLocalReq({}, payload)
   await initTransaction(req)
   try {
@@ -180,6 +183,10 @@ export async function saveRegistration(
       req,
     })
     const existing = docs[0]
+    // Kept when it is already set — a correction of the form does not move
+    // the deadline (and the school may have moved it by hand).
+    const dueAt =
+      ctx.booking.depositDueAt ?? (existing ? null : depositDueDate(new Date()).toISOString())
     if (existing) {
       await payload.update({
         collection: 'camp-registrations',
@@ -203,13 +210,14 @@ export async function saveRegistration(
         photoConsentText: input.photoConsent ? photoConsentForStorage() : null,
         invoiceRequested: input.invoiceRequested,
         registeredAt: ctx.booking.registeredAt ?? now,
+        depositDueAt: dueAt,
       },
       overrideAccess: true,
       req,
       context: { skipRecount: true, skipStatusEmail: true },
     })
     await commitTransaction(req)
-    return { first: !existing }
+    return { first: !existing, depositDueAt: dueAt }
   } catch (error) {
     await killTransaction(req)
     throw error
@@ -221,8 +229,9 @@ export async function sendRegistrationEmails(
   payload: Payload,
   ctx: RegistrationContext,
   token: string,
-  first: boolean,
+  saved: { first: boolean; depositDueAt: string | null },
 ): Promise<void> {
+  const { first } = saved
   const { booking, session, camp } = ctx
   const lang = (booking.language ?? 'pl') as EmailLanguage
   const name = childName(booking)
@@ -240,11 +249,22 @@ export async function sendRegistrationEmails(
             campTitle,
             dates: formatSessionDates(lang, session.startDate, session.endDate),
             url: registrationUrl(token),
+            payment: paymentDetails(
+              lang,
+              name,
+              campPrice(session.price, camp?.price),
+              saved.depositDueAt,
+            ),
           }),
         ),
       })
       .catch((error) =>
-        recordEmailIssue(payload, booking.id, 'Potwierdzenie formularza rejestracyjnego', error),
+        recordEmailIssue(
+          payload,
+          booking.id,
+          'Potwierdzenie formularza z danymi do przelewu',
+          error,
+        ),
       )
   }
   if (mailbox) {
@@ -379,6 +399,69 @@ export async function sendRegistrationReminders(payload: Payload): Promise<void>
     )
   }
   if (docs.length) payload.logger.info(`Sent ${docs.length} registration form reminder(s)`)
+}
+
+/**
+ * One reminder per camp booking whose deposit is late
+ * (`depositReminderWhere`), with the payment details again. Marked BEFORE the
+ * send: a reminder that failed is noted on the booking for the school, and
+ * the next day does not send it twice.
+ */
+export async function sendDepositReminders(payload: Payload): Promise<void> {
+  const { docs } = await payload.find({
+    collection: 'bookings',
+    where: depositReminderWhere(new Date()),
+    pagination: false,
+    depth: 0,
+    overrideAccess: true,
+  })
+  for (const booking of docs) {
+    try {
+      await payload.db.updateOne({
+        collection: 'bookings',
+        id: booking.id,
+        data: { depositReminderAt: new Date().toISOString() },
+      })
+      const sessionId = idOf(booking.session)
+      const session = sessionId
+        ? await payload
+            .findByID({
+              collection: 'sessions',
+              id: sessionId,
+              depth: 1,
+              joins: false,
+              overrideAccess: true,
+            })
+            .catch(() => null)
+        : null
+      const camp = session && typeof session.camp === 'object' ? session.camp : null
+      const lang = (booking.language ?? 'pl') as EmailLanguage
+      const name = childName(booking)
+      await payload
+        .sendEmail({
+          to: booking.email!,
+          replyTo: campMailbox(),
+          ...pick(
+            depositReminderEmail(lang, {
+              firstName: booking.firstName,
+              childName: name,
+              campTitle: camp?.title ?? '',
+              dates: session ? formatSessionDates(lang, session.startDate, session.endDate) : '',
+              payment: paymentDetails(
+                lang,
+                name,
+                campPrice(session?.price, camp?.price),
+                booking.depositDueAt ?? null,
+              ),
+            }),
+          ),
+        })
+        .catch((error) => recordEmailIssue(payload, booking.id, 'Przypomnienie o zaliczce', error))
+    } catch (error) {
+      payload.logger.warn({ err: error }, `Deposit reminder for booking ${booking.id} failed`)
+    }
+  }
+  if (docs.length) payload.logger.info(`Sent ${docs.length} deposit reminder(s)`)
 }
 
 /**

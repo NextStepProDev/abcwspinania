@@ -133,7 +133,7 @@ export function isUpcoming(
   return now.getTime() < lastDay + DAY_MS
 }
 
-export type StatusEmail = 'confirmed' | 'paid' | 'cancelled'
+export type StatusEmail = 'confirmed' | 'deposit' | 'paid' | 'cancelled'
 
 /**
  * Which change of status the participant hears about. The school moves a
@@ -160,6 +160,25 @@ export function statusEmailFor(
   if (next === 'paid' && sessionStart && courseStarted(sessionStart, now)) return null
   if (next === 'confirmed' || next === 'paid' || next === 'cancelled') return next
   return null
+}
+
+/**
+ * `statusEmailFor` for a booking of either kind. A camp adds one email: the
+ * deposit (decided 20.10.2026) — "zaliczka wpłynęła, zostało X zł". On a
+ * course the deposit stays silent, as it always was. Moving back to the
+ * deposit from "paid" is a correction, not news.
+ */
+export function statusEmailForKind(
+  kind: unknown,
+  previous: BookingStatus | null | undefined,
+  next: BookingStatus,
+  sessionStart?: string | null,
+  now: Date = new Date(),
+): StatusEmail | null {
+  if (kind === 'camp' && next === 'deposit') {
+    return previous === 'deposit' || previous === 'paid' ? null : 'deposit'
+  }
+  return statusEmailFor(previous, next, sessionStart, now)
 }
 
 const polishDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw' })

@@ -14,6 +14,7 @@ import * as migration_20261012_181845_broadcasts_copy_unreviewed from './2026101
 import * as migration_20261019_192951_bookings_camp_kind from './20261019_192951_bookings_camp_kind';
 import * as migration_20261020_001006_bookings_camp_registration from './20261020_001006_bookings_camp_registration';
 import * as migration_20261020_035727_camp_registrations from './20261020_035727_camp_registrations';
+import * as migration_20261020_111312_camp_deposit from './20261020_111312_camp_deposit';
 
 export const migrations = [
   {
@@ -94,6 +95,11 @@ export const migrations = [
   {
     up: migration_20261020_035727_camp_registrations.up,
     down: migration_20261020_035727_camp_registrations.down,
-    name: '20261020_035727_camp_registrations'
+    name: '20261020_035727_camp_registrations',
+  },
+  {
+    up: migration_20261020_111312_camp_deposit.up,
+    down: migration_20261020_111312_camp_deposit.down,
+    name: '20261020_111312_camp_deposit'
   },
 ];

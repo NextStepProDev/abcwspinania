@@ -1,6 +1,6 @@
 'use client'
 
-import { BOOKING_STATUS_OPTIONS, statusEmailFor, type BookingStatus } from '@/lib/bookings'
+import { BOOKING_STATUS_OPTIONS, statusEmailForKind, type BookingStatus } from '@/lib/bookings'
 
 import { StatusSelectCell } from './StatusSelectCell'
 
@@ -14,12 +14,18 @@ import { StatusSelectCell } from './StatusSelectCell'
  */
 export function BookingStatusCell(props: {
   cellData?: string
-  rowData?: { id?: number | string; email?: string | null }
+  rowData?: { id?: number | string; email?: string | null; kind?: string | null }
 }) {
   // A phone booking may have no address (12.10.2026): then nobody is
   // emailed, and the question would say otherwise. When the row does not
   // carry the field at all, it still asks — the safe side.
   const noAddress = props.rowData?.email === null || props.rowData?.email === ''
+  // Same safe side for the kind: a row without it may be a camp, whose
+  // deposit emails the parent — so it is treated as one.
+  const kind = props.rowData && 'kind' in props.rowData ? props.rowData.kind : 'camp'
+  const known = props.rowData?.kind
+  const who = known === 'camp' ? 'rodzic' : known ? 'kursant' : 'uczestnik'
+  const what = known === 'camp' ? 'obóz' : known ? 'kurs' : 'termin'
   return (
     <StatusSelectCell
       {...props}
@@ -30,10 +36,10 @@ export function BookingStatusCell(props: {
       // The list loads rows without their session, so the cell cannot tell
       // whether the course has started: for "paid" it says when the email goes.
       confirmFor={(from, to) =>
-        !noAddress && statusEmailFor(from as BookingStatus, to as BookingStatus)
+        !noAddress && statusEmailForKind(kind, from as BookingStatus, to as BookingStatus)
           ? to === 'paid'
-            ? `Zmienić status na „${labelOf(to)}”? Jeśli kurs jeszcze się nie zaczął, kursant dostanie maila.`
-            : `Zmienić status na „${labelOf(to)}”? Kursant dostanie maila.`
+            ? `Zmienić status na „${labelOf(to)}”? Jeśli ${what} jeszcze się nie zaczął, ${who} dostanie maila.`
+            : `Zmienić status na „${labelOf(to)}”? ${who[0].toUpperCase()}${who.slice(1)} dostanie maila.`
           : null
       }
     />

@@ -9,6 +9,8 @@ import {
   registrationLinkHandler,
   registrationOpen,
   saveRegistration,
+  sendDepositReminders,
+  sendRegistrationEmails,
   sendRegistrationReminders,
   type RegistrationInput,
 } from '@/lib/campRegistration'
@@ -72,16 +74,14 @@ test('the link opens its own child’s form; a made-up token opens nothing', asy
 test('the form saves once, corrects in place, and puts the birth date on the booking', async () => {
   const { child } = await signUp('regsave', 'Zosia')
   const ctx = (await findByToken(payload, child.registrationToken!))!
-  assert.deepEqual(await saveRegistration(payload, ctx, form), { first: true })
+  assert.equal((await saveRegistration(payload, ctx, form)).first, true)
   const again = (await findByToken(payload, child.registrationToken!))!
-  assert.deepEqual(
-    await saveRegistration(payload, again, {
-      ...form,
-      medications: 'Ventolin',
-      photoConsent: false,
-    }),
-    { first: false },
-  )
+  const corrected = await saveRegistration(payload, again, {
+    ...form,
+    medications: 'Ventolin',
+    photoConsent: false,
+  })
+  assert.equal(corrected.first, false)
   const rows = await registrationsOf(child.booking.id)
   assert.equal(rows.length, 1)
   assert.equal(rows[0].medications, 'Ventolin')
@@ -227,4 +227,72 @@ test('"Wyślij link" in the panel is the school’s only, and sends the child’
   const sent = outbox.filter((m) => m.to === email('regbutton'))
   assert.equal(sent.length, 1)
   assert.ok(sent[0].text.includes(`token=${child.registrationToken}`), 'the same link as before')
+})
+
+// --- the deposit ------------------------------------------------------------------
+
+test('the first form sets the deposit deadline and emails the bank details; a correction does not', async () => {
+  const { child } = await signUp('depfirst', 'Zosia')
+  outbox.length = 0
+  const ctx = (await findByToken(payload, child.registrationToken!))!
+  const saved = await saveRegistration(payload, ctx, form)
+  await sendRegistrationEmails(payload, ctx, child.registrationToken!, saved)
+  const due = Date.parse(saved.depositDueAt!)
+  assert.ok(Math.abs(due - (Date.now() + 7 * 86_400_000)) < 60_000, 'seven days from now')
+  const mail = outbox.find((m) => m.to === email('depfirst'))
+  assert.match(mail?.text ?? '', /Numer konta: PL89 1140 2004 0000 3002 7291 9707/)
+  assert.match(mail?.text ?? '', /Tytuł przelewu: Obóz JURA Zosia Test/)
+
+  outbox.length = 0
+  const again = (await findByToken(payload, child.registrationToken!))!
+  const corrected = await saveRegistration(payload, again, { ...form, diet: 'Bez glutenu' })
+  await sendRegistrationEmails(payload, again, child.registrationToken!, corrected)
+  assert.equal(corrected.depositDueAt, saved.depositDueAt, 'the deadline stays')
+  assert.ok(!outbox.some((m) => m.to === email('depfirst')), 'no second payment email')
+})
+
+test('"zaliczka wpłacona" on a camp tells the parent what is left to pay', async () => {
+  const { camp, child } = await signUp('depstatus', 'Zosia')
+  await payload.update({
+    collection: 'camps',
+    id: camp.id,
+    data: { price: 2500 },
+    overrideAccess: true,
+  })
+  outbox.length = 0
+  await payload.update({
+    collection: 'bookings',
+    id: child.booking.id,
+    data: { status: 'deposit' },
+    overrideAccess: true,
+  })
+  const mail = outbox.find((m) => m.to === email('depstatus'))
+  assert.match(mail?.subject ?? '', /^Zaliczka wpłynęła: Zosia Test/)
+  assert.match(mail?.text ?? '', /Do zapłaty zostało 2000/)
+})
+
+test('a late deposit is reminded once; a paid one and a future deadline are not', async () => {
+  const late = await signUp('deplate', 'Zosia')
+  const paid = await signUp('deppaid', 'Staś')
+  const early = await signUp('depearly', 'Ala')
+  const past = new Date(Date.now() - 86_400_000).toISOString()
+  for (const [id, due] of [
+    [late.child.booking.id, past],
+    [paid.child.booking.id, past],
+    [early.child.booking.id, new Date(Date.now() + 86_400_000).toISOString()],
+  ] as const) {
+    await payload.db.updateOne({ collection: 'bookings', id, data: { depositDueAt: due } })
+  }
+  await payload.db.updateOne({
+    collection: 'bookings',
+    id: paid.child.booking.id,
+    data: { status: 'deposit' },
+  })
+  outbox.length = 0
+  await sendDepositReminders(payload)
+  await sendDepositReminders(payload)
+  assert.deepEqual(
+    outbox.filter((m) => /Przypomnienie o zaliczce/.test(m.subject)).map((m) => m.to),
+    [email('deplate')],
+  )
 })

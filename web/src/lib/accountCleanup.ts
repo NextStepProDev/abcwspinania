@@ -2,7 +2,11 @@ import { getPayload } from 'payload'
 import config from '@payload-config'
 
 import { anonymizedLabel } from '@/lib/bookings'
-import { deleteExpiredRegistrations, sendRegistrationReminders } from '@/lib/campRegistration'
+import {
+  deleteExpiredRegistrations,
+  sendDepositReminders,
+  sendRegistrationReminders,
+} from '@/lib/campRegistration'
 import {
   expiredBookingsWhere,
   expiredMessagesWhere,
@@ -176,6 +180,9 @@ export function scheduleAccountCleanup(): void {
         })
         await sendRegistrationReminders(payload).catch((error) => {
           console.warn('Registration reminders failed, will retry tomorrow:', error)
+        })
+        await sendDepositReminders(payload).catch((error) => {
+          console.warn('Deposit reminders failed, will retry tomorrow:', error)
         })
       })
       .catch((error) => console.warn('Camp registration sweep failed:', error))

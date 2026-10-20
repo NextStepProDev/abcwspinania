@@ -226,3 +226,23 @@ export function registrationReminderWhere(now: Date, days = REGISTRATION_REMINDE
     ],
   }
 }
+
+/**
+ * Camp bookings whose parent gets the deposit reminder (decided 20.10.2026:
+ * the system reminds, Krzysiek marks the payment himself): the deadline
+ * passed, no deposit marked (still "zgłoszony" or "potwierdzony"), an
+ * address, no reminder yet, the camp still ahead. Nothing is released — the
+ * school decides.
+ */
+export function depositReminderWhere(now: Date): Where {
+  return {
+    and: [
+      { kind: { equals: 'camp' } },
+      { status: { in: ['new', 'confirmed'] } },
+      { email: { exists: true } },
+      { depositDueAt: { less_than: now.toISOString() } },
+      { depositReminderAt: { exists: false } },
+      { 'session.startDate': { greater_than: now.toISOString() } },
+    ],
+  }
+}

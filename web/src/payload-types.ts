@@ -511,7 +511,7 @@ export interface Booking {
   kind: 'course' | 'camp';
   session: number | Session;
   /**
-   * „Lista rezerwowa” i „rezygnacja” nie zajmują miejsca. Zmiana na „potwierdzony” lub „rezygnacja” wysyła kursantowi maila; na „opłacony” — tylko przed pierwszym dniem kursu.
+   * „Lista rezerwowa” i „rezygnacja” nie zajmują miejsca. Zmiana na „potwierdzony” lub „rezygnacja” wysyła maila (kursantowi albo rodzicowi); na „opłacony” — tylko przed pierwszym dniem. Przy obozie także „zaliczka wpłacona” — rodzic dostaje maila, ile zostało do zapłaty.
    */
   status: 'new' | 'confirmed' | 'deposit' | 'paid' | 'waitlist' | 'cancelled';
   firstName: string;
@@ -536,6 +536,11 @@ export interface Booking {
   registrationSentAt?: string | null;
   registrationReminderAt?: string | null;
   registeredAt?: string | null;
+  /**
+   * Ustawia się sam po wypełnieniu formularza (7 dni). Można przesunąć, np. po rozmowie z rodzicem.
+   */
+  depositDueAt?: string | null;
+  depositReminderAt?: string | null;
   invoiceRequested?: boolean | null;
   notes?: string | null;
   /**
@@ -1238,6 +1243,8 @@ export interface BookingsSelect<T extends boolean = true> {
   registrationSentAt?: T;
   registrationReminderAt?: T;
   registeredAt?: T;
+  depositDueAt?: T;
+  depositReminderAt?: T;
   invoiceRequested?: T;
   notes?: T;
   adminNotes?: T;

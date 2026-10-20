@@ -6,7 +6,7 @@ import {
   BOOKING_STATUS_OPTIONS,
   kindMismatch,
   sessionFilterFor,
-  statusEmailFor,
+  statusEmailForKind,
   type BookingStatus,
 } from '../lib/bookings'
 import { idOf, recordEmailIssue, recountSession, sendStatusEmail } from '../lib/bookingEffects'
@@ -80,6 +80,7 @@ const sessionMatchesKind: RelationshipFieldSingleValidation = async (value, { da
 /** How the panel names each status email when one does not go out. */
 const STATUS_EMAIL_LABEL = {
   confirmed: 'Mail „miejsce potwierdzone”',
+  deposit: 'Mail „zaliczka wpłynęła”',
   paid: 'Mail „płatność zaksięgowana”',
   cancelled: 'Mail „zapis anulowany”',
 } as const
@@ -214,7 +215,7 @@ export const Bookings: CollectionConfig = {
           )
         }
         const previousStatus = previousDoc?.status as BookingStatus | undefined
-        let status = statusEmailFor(previousStatus, doc.status as BookingStatus)
+        let status = statusEmailForKind(doc.kind, previousStatus, doc.status as BookingStatus)
         // "Paid" emails only before the course starts (`statusEmailFor`), so
         // that one needs the session's first day. `joins: false` — the
         // session's join carries every participant's data.
@@ -232,7 +233,12 @@ export const Bookings: CollectionConfig = {
               req,
             })
             .catch(() => null)
-          status = statusEmailFor(previousStatus, doc.status as BookingStatus, session?.startDate)
+          status = statusEmailForKind(
+            doc.kind,
+            previousStatus,
+            doc.status as BookingStatus,
+            session?.startDate,
+          )
         }
         if (!status) return doc
         try {
@@ -304,7 +310,7 @@ export const Bookings: CollectionConfig = {
         // A select in the list itself — see the component.
         components: { Cell: '/components/admin/BookingStatusCell#BookingStatusCell' },
         description:
-          '„Lista rezerwowa” i „rezygnacja” nie zajmują miejsca. Zmiana na „potwierdzony” lub „rezygnacja” wysyła kursantowi maila; na „opłacony” — tylko przed pierwszym dniem kursu.',
+          '„Lista rezerwowa” i „rezygnacja” nie zajmują miejsca. Zmiana na „potwierdzony” lub „rezygnacja” wysyła maila (kursantowi albo rodzicowi); na „opłacony” — tylko przed pierwszym dniem. Przy obozie także „zaliczka wpłacona” — rodzic dostaje maila, ile zostało do zapłaty.',
       },
     },
     {
@@ -457,6 +463,27 @@ export const Bookings: CollectionConfig = {
         condition: (data) => data?.kind === 'camp',
         components: { Field: '/components/admin/RegistrationPanel#RegistrationPanel' },
       },
+    },
+    {
+      // `DEPOSIT_DAYS` after the email with the payment details — the first
+      // save of the registration form. Past it, without a deposit, the parent
+      // is reminded once (`depositReminderWhere`); the place is not released.
+      name: 'depositDueAt',
+      type: 'date',
+      label: 'Termin wpłaty zaliczki',
+      index: true,
+      admin: {
+        position: 'sidebar',
+        condition: (data) => data?.kind === 'camp',
+        date: { pickerAppearance: 'dayOnly', displayFormat: 'd.MM.yyyy' },
+        description:
+          'Ustawia się sam po wypełnieniu formularza (7 dni). Można przesunąć, np. po rozmowie z rodzicem.',
+      },
+    },
+    {
+      name: 'depositReminderAt',
+      type: 'date',
+      hidden: true,
     },
     {
       // Set by the parent in the registration form; the school issues the

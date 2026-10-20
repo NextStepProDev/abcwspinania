@@ -81,7 +81,7 @@ export async function submitRegistration(
         message: 'Tego formularza nie można już wysłać. Odśwież stronę, żeby zobaczyć dlaczego.',
       }
     }
-    const { first } = await saveRegistration(payload, ctx, {
+    const saved = await saveRegistration(payload, ctx, {
       pesel: data.pesel,
       heightCm: Number(data.height.trim()),
       allergies: data.allergies,
@@ -91,8 +91,8 @@ export async function submitRegistration(
       photoConsent: data.photoConsent,
       invoiceRequested: data.invoiceRequested,
     })
-    await sendRegistrationEmails(payload, ctx, token, first)
-    return { status: 'done', first }
+    await sendRegistrationEmails(payload, ctx, token, saved)
+    return { status: 'done', first: saved.first }
   } catch (error) {
     console.error('Failed to store a camp registration form:', error)
     return {

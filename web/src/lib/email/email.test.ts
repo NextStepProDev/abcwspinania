@@ -633,10 +633,65 @@ test('the registration link says why it comes: again, a freed place, a reminder'
   assert.match(registrationLinkEmail('pl', 'reminder', registration).subject, /^Przypomnienie/)
 })
 
-test('the parent’s confirmation leads back to the form to correct it', () => {
-  const email = registrationReceivedEmail('pl', registration)
-  assert.match(email.subject, /przyjęty — Zosia Nowak/)
+const payment = {
+  deposit: '500 zł',
+  dueDate: '8 marca 2027',
+  recipient: 'IQ SERVICE Krzysztof Wróbel / ABC WSPINANIA',
+  account: 'PL89 1140 2004 0000 3002 7291 9707',
+  title: 'Obóz JURA Zosia Nowak',
+  remaining: '2000 zł',
+  refundDays: 30,
+}
+
+test('after the form the parent gets the deposit, its deadline and the bank details', () => {
+  const email = registrationReceivedEmail('pl', { ...registration, payment })
+  assert.match(email.subject, /dane do przelewu — Zosia Nowak/)
+  assert.match(email.text, /Zaliczka: 500 zł/)
+  assert.match(email.text, /Termin wpłaty zaliczki: 8 marca 2027/)
+  assert.match(email.text, /Pozostała kwota: 2000 zł — najpóźniej w dniu rozpoczęcia obozu/)
+  assert.match(email.text, /Numer konta: PL89 1140 2004 0000 3002 7291 9707/)
+  assert.match(email.text, /Tytuł przelewu: Obóz JURA Zosia Nowak/)
+  assert.match(email.text, /do 30 dni przed obozem/)
   assert.match(email.text, /Popraw formularz: https:\/\/x\.pl\/obozy\/rejestracja\?token=abc/)
+  assert.match(
+    registrationReceivedEmail('en', { ...registration, payment }).text,
+    /Deposit: 500 zł/,
+  )
+})
+
+test('without a price in the panel the email gives no balance rather than a wrong one', () => {
+  const email = registrationReceivedEmail('pl', {
+    ...registration,
+    payment: { ...payment, remaining: null },
+  })
+  assert.doesNotMatch(email.text, /Pozostała kwota/)
+})
+
+import { campStatusEmail, depositReminderEmail } from '@/lib/email/templates'
+
+test('the deposit email says what is left and where it goes', () => {
+  const email = campStatusEmail('pl', 'deposit', { ...registration, payment })
+  assert.match(email.subject, /^Zaliczka wpłynęła: Zosia Nowak/)
+  assert.match(email.text, /Do zapłaty zostało 2000 zł/)
+  assert.match(email.text, /Numer konta: PL89/)
+  assert.doesNotMatch(email.text, /Termin wpłaty zaliczki/, 'the deposit is paid')
+})
+
+test('camp status emails speak about the camp and the child, not a course', () => {
+  for (const lang of ['pl', 'en'] as const) {
+    for (const status of ['confirmed', 'deposit', 'paid', 'cancelled'] as const) {
+      const email = campStatusEmail(lang, status, { ...registration, payment: null })
+      assert.match(email.subject, /Zosia Nowak/, `${lang} ${status}`)
+      assert.doesNotMatch(email.text, /\bkurs|course\b/i, `${lang} ${status}`)
+    }
+  }
+})
+
+test('the deposit reminder repeats the bank details', () => {
+  const email = depositReminderEmail('pl', { ...registration, payment })
+  assert.match(email.subject, /Przypomnienie o zaliczce — Zosia Nowak/)
+  assert.match(email.text, /termin minął 8 marca 2027/)
+  assert.match(email.text, /Numer konta: PL89/)
 })
 
 test('the school hears a form came in or changed — without the health answers', () => {

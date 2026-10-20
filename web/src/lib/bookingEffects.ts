@@ -8,9 +8,10 @@ import {
   type StatusEmail,
 } from '@/lib/bookings'
 import { emailFailureReason } from '@/lib/broadcasts'
+import { campMailbox, campPrice, paymentDetails } from '@/lib/campPayment'
 import { publicUrl } from '@/lib/email/links'
 import type { EmailLanguage } from '@/lib/email/language'
-import { bookingStatusEmail, placeFreedNotification } from '@/lib/email/templates'
+import { bookingStatusEmail, campStatusEmail, placeFreedNotification } from '@/lib/email/templates'
 import type { Booking, Session } from '@/payload-types'
 
 /**
@@ -120,7 +121,13 @@ export async function sessionSummary(
   sessionId: number,
   lang: EmailLanguage,
   req?: Req,
-): Promise<{ courseTitle: string; dates: string; location: string | null } | null> {
+): Promise<{
+  courseTitle: string
+  dates: string
+  location: string | null
+  /** The session's own price, else its course's or camp's; null when none. */
+  price: number | null
+} | null> {
   const session = (await payload.findByID({
     collection: 'sessions',
     id: sessionId,
@@ -137,10 +144,14 @@ export async function sessionSummary(
     courseTitle: course?.title ?? camp?.title ?? '',
     dates: formatSessionDates(lang, session.startDate, session.endDate),
     location: session.location || course?.location || camp?.location || null,
+    price: campPrice(session.price, course?.price ?? camp?.price),
   }
 }
 
-/** Tells the participant their booking was confirmed, paid or cancelled. */
+/**
+ * Tells the participant their booking was confirmed, paid or cancelled — and,
+ * on a camp, that the deposit arrived (`statusEmailForKind`).
+ */
 export async function sendStatusEmail(
   payload: Payload,
   booking: Booking,
@@ -155,15 +166,30 @@ export async function sendStatusEmail(
   const lang = booking.language === 'en' ? 'en' : 'pl'
   const summary = await sessionSummary(payload, sessionId, lang, req)
   if (!summary) return
-  const email = bookingStatusEmail(lang, status, {
-    firstName: booking.firstName,
-    ...summary,
-    accountUrl: idOf(booking.customer) ? `${publicUrl()}/konto` : null,
-  })
+  const accountUrl = idOf(booking.customer) ? `${publicUrl()}/konto` : null
+  const camp = booking.kind === 'camp'
+  // A camp email speaks to the parent about the child; the course one says
+  // "kurs" and has no deposit email.
+  const childName = [booking.childFirstName, booking.childLastName].filter(Boolean).join(' ')
+  const email = camp
+    ? campStatusEmail(lang, status, {
+        firstName: booking.firstName,
+        childName,
+        campTitle: summary.courseTitle,
+        dates: summary.dates,
+        location: summary.location,
+        payment: status === 'deposit' ? paymentDetails(lang, childName, summary.price, null) : null,
+        accountUrl,
+      })
+    : bookingStatusEmail(lang, status as 'confirmed' | 'paid' | 'cancelled', {
+        firstName: booking.firstName,
+        ...summary,
+        accountUrl,
+      })
   await payload.sendEmail({
     to: booking.email,
     // A reply goes to the school, not to an address with no mailbox.
-    replyTo: process.env.ADMIN_NOTIFY_EMAIL || undefined,
+    replyTo: (camp ? campMailbox() : process.env.ADMIN_NOTIFY_EMAIL) || undefined,
     subject: email.subject,
     html: email.html,
     text: email.text,
