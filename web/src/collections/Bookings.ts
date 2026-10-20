@@ -61,8 +61,9 @@ const sessionMatchesKind: RelationshipFieldSingleValidation = async (value, { da
  * even if they later edit their account — and a booking made without an
  * account has nowhere else to keep them.
  *
- * Created only by the site's server action (`kursy/[slug]/zapis/actions.ts`)
- * or by the school in the panel (a phone booking). REST create is closed:
+ * Created only by the site's server actions (`kursy/[slug]/zapis/actions.ts`,
+ * `obozy/[slug]/zapis/actions.ts`) or by the school in the panel (a phone
+ * booking). REST create is closed:
  * a public one would let anyone fill a session with fake bookings, past the
  * form's validation and consent.
  *
@@ -339,11 +340,15 @@ export const Bookings: CollectionConfig = {
           ],
         },
         {
+          // Not required: the sign-up asks only for the names, the date comes
+          // with the registration form (decided 20.10.2026).
           name: 'childBirthDate',
           type: 'date',
           label: 'Data urodzenia',
-          validate: requiredOnCamp('Podaj datę urodzenia dziecka.'),
-          admin: { date: { pickerAppearance: 'dayOnly', displayFormat: 'd.MM.yyyy' } },
+          admin: {
+            date: { pickerAppearance: 'dayOnly', displayFormat: 'd.MM.yyyy' },
+            description: 'Rodzic podaje ją w formularzu rejestracyjnym.',
+          },
         },
         {
           // Optional, its own consent (decided 19.10.2026): the school sees
@@ -369,6 +374,21 @@ export const Bookings: CollectionConfig = {
           },
         },
       ],
+    },
+    {
+      // The key in the parent's link to the registration form — the form
+      // needs no account, so whoever holds the link fills it in. Hidden:
+      // never in the panel or in an API response, the participant's own
+      // included. Not part of the person's data copy (a key, not data).
+      name: 'registrationToken',
+      type: 'text',
+      index: true,
+      hidden: true,
+    },
+    {
+      name: 'registrationSentAt',
+      type: 'date',
+      hidden: true,
     },
     {
       name: 'notes',

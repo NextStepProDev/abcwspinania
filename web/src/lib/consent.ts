@@ -83,3 +83,21 @@ export const BOOKING_CONSENT_TEXT =
 export function bookingConsentForStorage(): string {
   return `[${BOOKING_CONSENT_VERSION}] ${BOOKING_CONSENT_TEXT}`
 }
+
+/**
+ * Accepted with every camp booking — given by the PARENT, for their own
+ * details and the children's names (the rest of the child's details come
+ * with the registration form, under its own clause). Its own purpose
+ * (signing a child up for a camp), so its own text and version.
+ */
+export const CAMP_BOOKING_CONSENT_VERSION = '2026-10-20'
+
+export const CAMP_BOOKING_CONSENT_TEXT =
+  'Wyrażam zgodę na przetwarzanie moich danych (imię, nazwisko, adres e-mail, ' +
+  'numer telefonu) oraz imienia i nazwiska dziecka w celu zapisu dziecka na ' +
+  'wybrany obóz, kontaktu w jego sprawie i jego organizacji. ' +
+  `Administratorem danych jest ${CONTROLLER_SHORT}. Szczegóły w polityce prywatności.`
+
+export function campBookingConsentForStorage(): string {
+  return `[${CAMP_BOOKING_CONSENT_VERSION}] ${CAMP_BOOKING_CONSENT_TEXT}`
+}

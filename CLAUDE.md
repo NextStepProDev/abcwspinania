@@ -47,7 +47,7 @@ subdomeny `api.*`.
 | `Messages` | `messages` | **nie** | zgłoszenia z formularza — dane osobowe |
 | `Newsletter` | `newsletter` | **nie** | zapisy na newsletter — dane osobowe |
 | `Customers` | `customers` | **tylko własne konto** | konta uczestników (logowanie na stronie) |
-| `Bookings` | `bookings` | **tylko własne zapisy** | zapisy na kursy — dane osobowe |
+| `Bookings` | `bookings` | **tylko własne zapisy** | zapisy na kursy i obozy — dane osobowe |
 | `Broadcasts` | `broadcasts` | **nie** | „Wysyłki” — wiadomości do grup |
 | `BroadcastDeliveries` | `broadcast-deliveries` | **nie** | odbiorcy każdej wysyłki i stan kolejki; ukryte w menu |
 | `Users` | `users` | **nie** | konta do panelu |
@@ -968,8 +968,8 @@ zrobi z kursanta administratora. Koszt: zasada 28.
   z adresem przepisanym drugi raz — sprawdza to też serwer. W logu jest kto
   i ile, nigdy czyj adres. Konta panelu (`users`) nie są ruszane. Tekst
   o kopiach („znikną po 40 dniach”) powtarza retencję z `abc-backup.sh`.
-- **Dzieci (do zapisów na obozy) dojdą w etapie 4**, nie teraz — żeby nie
-  projektować pól pod wymagania, których Krzysiek jeszcze nie podał.
+- **Dzieci (zapisy na obozy)** — patrz „Zapisy na obozy”. Konto zapisuje
+  rodzica; dzieci są w jego zapisach, bez osobnych kont.
 
 ### Konta panelu (`users`)
 
@@ -1079,15 +1079,19 @@ i `lib/bookingEffects.ts` (skutki uboczne).
   terminy w kodzie strony ma `joins: false` (`lib/content.ts`, „Moje
   konto”, `bookingEffects`). Sprawdzone 03.10.2026: REST terminu nie pokazuje
   zapisów anonimowi ani innemu kursantowi, kod stron ich nie zawiera.
-- Limit nginx `account_forms` obejmuje też POST na `/kursy/*/zapis`.
+- Limit nginx `account_forms` obejmuje też POST na `/kursy/*/zapis` i `/obozy/*/zapis`.
 
 ---
 
 ## Zapisy na obozy
 
 Od 19.10.2026 (etap 4, ZAKRES pkt 2), gałąź `feat/camp-bookings`, w budowie.
-Ustalone z Krzyśkiem: zaliczka 500 zł w 7 dni od zapisu, reszta do dnia
-rozpoczęcia, pełny zwrot do 30 dni przed obozem.
+Procedura Krzyśka (20.10.2026): (1) krótki zapis rezerwuje miejsce, (2) mail
+z linkiem do formularza rejestracyjnego, (3) po formularzu umowa do podpisania
+i dane do przelewu — od tego maila 7 dni na zaliczkę 500 zł, reszta do dnia
+rozpoczęcia, (4) ok. 2 tygodnie przed obozem pakiet informacji i pusta karta
+kwalifikacyjna w PDF (karta zostaje papierowa — wzór Kuratorium). Pełny zwrot
+do 30 dni przed obozem. Cała ścieżka działa bez konta; konto dla chętnych.
 
 - **Jedna kolekcja `bookings` dla kursów i obozów** (decyzja 19.10.2026),
   rozróżniana polem `kind` (`course` / `camp`). Liczenie miejsc, lista
@@ -1100,9 +1104,34 @@ rozpoczęcia, pełny zwrot do 30 dni przed obozem.
   wyłączyłoby też trasy listy. Przy podbiciu Payloada sprawdzić, czy link
   wciąż ma ten `id`.
 - **Przy obozie imię, nazwisko i kontakt to RODZIC**, uczestnik to dziecko
-  (`childFirstName`, `childLastName`, `childBirthDate`), wymagane tylko przy
-  `kind = camp`. Etykieta zapisu bierze imię dziecka. Jedno dziecko = jeden
-  zapis (jak „jedna osoba = jeden zapis”).
+  (`childFirstName`, `childLastName` — wymagane tylko przy `kind = camp`;
+  `childBirthDate` przychodzi z formularza rejestracyjnego). Etykieta zapisu
+  bierze imię dziecka. Jedno dziecko = jeden zapis (jak „jedna osoba = jeden
+  zapis”).
+- **Zapis na stronie: `/obozy/[slug]/zapis`** (krok 1), tylko dla obozu
+  (`camps.kind = camp`) — wyjazd i zajęcia przekierowują na `/kontakt`, bo
+  przycisk „Zapisz się” w nagłówku nie odróżni ich po adresie. Rodzic wpisuje
+  turnus, siebie i jedno albo kilkoro dzieci (`MAX_CHILDREN`); każde dziecko
+  to osobny zapis w TEJ SAMEJ transakcji z blokadą co kurs
+  (`createCampBookings`) — dzieci liczone po kolei, więc przy braku miejsc
+  pierwsze dostaje miejsce, następne listę rezerwową.
+- **Rodzeństwo dzieli adres**, więc duplikat przy obozie to adres + imię
+  i nazwisko dziecka (`childKey`, bez wielkości liter i nadmiarowych spacji),
+  nie sam adres jak przy kursie. Powtórzony zapis tych samych dzieci
+  odpowiada tak samo jak pierwszy, bez nowych wpisów i maili.
+- **Link do formularza rejestracyjnego**: każdy nowy zapis dostaje
+  `registrationToken` (pole `hidden` — nie ma go w panelu ani w żadnej
+  odpowiedzi API; Local API czyta je tylko z `showHiddenFields`). Dziecko
+  z listy rezerwowej linku nie dostaje. Mail do rodzica idzie OSOBNO na każde
+  dziecko (jeden przycisk na mail), do szkoły — jeden na zgłoszenie.
+- **Maile obozowe przez `CAMP_EMAIL`** (`obozy@abcwspinania.info`, decyzja
+  20.10.2026): powiadomienie o zapisie idzie tam, a mail do rodzica ma tam
+  `replyTo` — tam wracają odpowiedzi i podpisane umowy. Puste = jak
+  `ADMIN_NOTIFY_EMAIL`. Nadawca zostaje `EMAIL_FROM`, dopóki domena szkoły
+  nie jest uwierzytelniona w Brevo. **Na czas testów `CAMP_EMAIL` zostaje
+  PUSTY** (lokalnie i na produkcji) — maile obozowe idą wtedy, jak przy
+  kursach, na `ADMIN_NOTIFY_EMAIL` (Gmail Mateusza, filtr przekazuje
+  Krzyśkowi). `obozy@` wpisuje się w `deploy/.env` w dniu startu zapisów.
 - **Termin musi pasować do rodzaju**: `filterOptions` pokazuje w panelu tylko
   terminy danego rodzaju, a `validate` (`sessionMatchesKind`) pilnuje tego przy
   zapisie — zastępuje sprawdzenie Payloada, którego komunikat brzmiał
@@ -1399,7 +1428,8 @@ bezpiecznik przy szczytach sharpa. Skrypt jest idempotentny.
    `grep -rl "https://<domena>" /app/.next | wc -l` w kontenerze — zero
    znaczy, że adres nie wszedł.
 8. Maile: w `deploy/.env` `BREVO_API_KEY`, `EMAIL_FROM` (adres na domenie
-   uwierzytelnionej w Brevo), `ADMIN_NOTIFY_EMAIL` i `PUBLIC_URL` (adres,
+   uwierzytelnionej w Brevo), `ADMIN_NOTIFY_EMAIL`, `CAMP_EMAIL` (skrzynka
+   obozów) i `PUBLIC_URL` (adres,
    pod którym strona działa TERAZ — linki w mailach do kursantów). W Brevo:
    „Anonymous email tracking: Yes”. Bez klucza strona działa, ale maile
    lądują w logu kontenera.

@@ -93,10 +93,11 @@ export function isActive(href: string, pathname: string): boolean {
 /**
  * Pages where the visitor is already signing up or filling in a form — and
  * the schedule itself, where the call would lead to the page it is on.
- * `/kontakt` is also the camp sign-up (`signUpPath` in `lib/bookings.ts`).
+ * `/kontakt` is also the sign-up for trips and classes (`signUpPath` in
+ * `lib/bookings.ts`).
  */
 const FORM_PAGES = [
-  /^\/kursy\/[^/]+\/zapis$/,
+  /^\/(kursy|obozy)\/[^/]+\/zapis$/,
   /^\/(kontakt|terminarz|logowanie|rejestracja)$/,
   /^\/(konto|newsletter)(\/|$)/,
 ]
@@ -116,7 +117,9 @@ export function signUpHref(pathname: string): string | null {
   const course = /^\/kursy\/([^/]+)$/.exec(pathname)
   if (course) return `/kursy/${course[1]}/zapis`
   const camp = /^\/obozy\/([^/]+)$/.exec(pathname)
-  if (camp) return `/kontakt?camp=${camp[1]}`
+  // The path alone does not tell a camp from a trip — the booking page sends
+  // a trip on to the contact form.
+  if (camp) return `/obozy/${camp[1]}/zapis`
   if (pathname === '/kursy') return '/terminarz?show=courses'
   if (pathname === '/obozy') return '/terminarz?show=camps'
   return '/terminarz'

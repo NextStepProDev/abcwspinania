@@ -161,14 +161,44 @@ export async function makeCourse(published = true) {
   return course
 }
 
+let campNumber = 0
+
+export async function makeCamp({
+  published = true,
+  kind = 'camp',
+}: { published?: boolean; kind?: 'camp' | 'trip' | 'classes' } = {}) {
+  campNumber += 1
+  const camp = await payload.create({
+    collection: 'camps',
+    data: {
+      title: `Obóz testowy ${tag} ${campNumber}`,
+      slug: `${tag}-camp-${campNumber}`,
+      kind,
+      _status: published ? 'published' : 'draft',
+    } as never,
+    overrideAccess: true,
+  })
+  cleanup(() => payload.delete({ collection: 'camps', id: camp.id, overrideAccess: true }))
+  return camp
+}
+
 export async function makeSession(
   courseId: number,
-  { capacity = 5, daysAhead = 20 }: { capacity?: number | null; daysAhead?: number } = {},
+  {
+    capacity = 5,
+    daysAhead = 20,
+    camp = false,
+  }: { capacity?: number | null; daysAhead?: number; camp?: boolean } = {},
 ) {
   const start = new Date(Date.now() + daysAhead * 86_400_000)
   const session = await payload.create({
     collection: 'sessions',
-    data: { course: courseId, startDate: start.toISOString(), status: 'open', capacity } as never,
+    data: {
+      [camp ? 'camp' : 'course']: courseId,
+      startDate: start.toISOString(),
+      status: 'open',
+      capacity,
+    } as never,
     overrideAccess: true,
   })
   // Bookings first (the session refuses deletion while it has any), then the session.

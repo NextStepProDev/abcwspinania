@@ -103,6 +103,7 @@ export async function anonymizeExpiredBookings(): Promise<void> {
         childBirthDate: null,
         photoConsent: false,
         photoConsentText: null,
+        registrationToken: null,
         emailIssue: null,
         emailIssueAt: null,
         label: anonymizedLabel(booking.label),

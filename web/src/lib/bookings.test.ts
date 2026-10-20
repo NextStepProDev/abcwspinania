@@ -5,6 +5,7 @@ import {
   ACTIVE_STATUSES,
   anonymizedLabel,
   availability,
+  childKey,
   formatSessionDates,
   isUpcoming,
   kindMismatch,
@@ -13,7 +14,7 @@ import {
   signUpPath,
   statusEmailFor,
 } from '@/lib/bookings'
-import { isValid, validateBooking } from '@/lib/validation'
+import { isValid, validateBooking, validateCampBooking } from '@/lib/validation'
 
 // --- kind -------------------------------------------------------------------
 
@@ -191,6 +192,48 @@ test('notes are optional but bounded', () => {
   assert.ok(validateBooking({ ...booking, notes: 'a'.repeat(2001) }, false).notes)
 })
 
+// --- the camp booking form ----------------------------------------------------
+
+const camp = {
+  ...booking,
+  children: [
+    { firstName: 'Zosia', lastName: 'Nowak' },
+    { firstName: 'Staś', lastName: 'Nowak' },
+  ],
+}
+
+test('a parent with two children passes; the parent is checked as on a course', () => {
+  assert.ok(isValid(validateCampBooking(camp, false, 6)))
+  const errors = validateCampBooking({ ...camp, email: 'x', consent: false }, false, 6)
+  assert.deepEqual(Object.keys(errors).sort(), ['consent', 'email'])
+})
+
+test('a camp booking needs at least one child, and no more than the form allows', () => {
+  assert.ok(validateCampBooking({ ...camp, children: [] }, false, 6).childrenCount)
+  assert.ok(validateCampBooking(camp, false, 1).childrenCount)
+})
+
+test('each child needs both names, and the errors stay at that child’s place', () => {
+  const errors = validateCampBooking(
+    { ...camp, children: [camp.children[0], { firstName: 'S', lastName: '' }] },
+    false,
+    6,
+  )
+  assert.equal(errors.children?.[0], undefined)
+  assert.ok(errors.children?.[1]?.firstName)
+  assert.ok(errors.children?.[1]?.lastName)
+})
+
+test('the same child typed twice is pointed out, a sibling is not', () => {
+  const errors = validateCampBooking(
+    { ...camp, children: [...camp.children, { firstName: ' zosia', lastName: 'NOWAK ' }] },
+    false,
+    6,
+  )
+  assert.equal(errors.children?.[1], undefined)
+  assert.match(errors.children?.[2]?.firstName ?? '', /już wpisane/)
+})
+
 // --- a place frees up while people wait ---------------------------------------
 
 import { placeFreedForWaitlist } from '@/lib/bookings'
@@ -211,12 +254,25 @@ test('a course date signs up on its booking form, with that date chosen', () => 
   )
 })
 
-test('a camp date asks through the contact form until camps take bookings', () => {
+test('a camp date signs up on the camp’s form, with that date chosen', () => {
   assert.equal(
-    signUpPath({ id: 7, courseSlug: null, campSlug: 'oboz-letni' }),
-    '/kontakt?camp=oboz-letni',
+    signUpPath({ id: 7, courseSlug: null, campSlug: 'oboz-letni', campBookable: true }),
+    '/obozy/oboz-letni/zapis?session=7',
+  )
+})
+
+test('a trip or classes date asks through the contact form', () => {
+  assert.equal(
+    signUpPath({ id: 7, courseSlug: null, campSlug: 'jaskinie', campBookable: false }),
+    '/kontakt?camp=jaskinie',
   )
   assert.equal(signUpPath({ id: 7, courseSlug: null, campSlug: null }), '/kontakt')
+})
+
+test('the same child twice is one booking, whatever the spacing and letter case', () => {
+  assert.equal(childKey('Zosia', 'Nowak'), childKey(' zosia ', 'NOWAK'))
+  assert.equal(childKey('Anna  Maria', 'Łęcka'), childKey('anna maria', 'łęcka'))
+  assert.notEqual(childKey('Zosia', 'Nowak'), childKey('Staś', 'Nowak'))
 })
 
 test('an anonymized booking keeps its date in the label, not the name', () => {

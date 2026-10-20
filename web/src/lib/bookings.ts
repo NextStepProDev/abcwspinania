@@ -228,20 +228,41 @@ export function placeFreedForWaitlist(
 /**
  * Where a date's "Zapisz się" leads (the schedule, `/terminarz`).
  *
- * A course date opens its booking form with that date already chosen — the
- * form reads `?session=`. Camps take no bookings yet (stage 4), so a camp
- * date asks through the contact form with the camp filled in. Until
- * 10.10.2026 every date led to `/kontakt?termin=…`, a leftover from before
- * bookings whose parameter the contact form never read.
+ * A course or camp date opens its booking form with that date already
+ * chosen — both forms read `?session=`. Trips and recurring classes (a
+ * `camps` entry of another kind) take no bookings, so their dates ask
+ * through the contact form with the entry filled in. Until 10.10.2026 every
+ * date led to `/kontakt?termin=…`, a leftover from before bookings whose
+ * parameter the contact form never read.
  */
 export function signUpPath(session: {
   id: number
   courseSlug: string | null
   campSlug: string | null
+  /** The entry is a camp (`kind = camp`), not a trip or classes. */
+  campBookable?: boolean
 }): string {
   if (session.courseSlug) return `/kursy/${session.courseSlug}/zapis?session=${session.id}`
+  if (session.campSlug && session.campBookable)
+    return `/obozy/${session.campSlug}/zapis?session=${session.id}`
   if (session.campSlug) return `/kontakt?camp=${session.campSlug}`
   return '/kontakt'
+}
+
+/** Children one camp sign-up takes at once — siblings, rarely more than two. */
+export const MAX_CHILDREN = 6
+
+/**
+ * A child as the duplicate check compares them. Siblings share the parent's
+ * address, so on a camp the address alone is not one person: the same
+ * address with the same child's name is the same booking (a double click, a
+ * second try), another name is a sibling.
+ */
+export function childKey(
+  firstName: string | null | undefined,
+  lastName: string | null | undefined,
+) {
+  return `${firstName ?? ''} ${lastName ?? ''}`.trim().replace(/\s+/g, ' ').toLocaleLowerCase('pl')
 }
 
 /**

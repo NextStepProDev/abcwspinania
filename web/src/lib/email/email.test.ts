@@ -441,6 +441,63 @@ test('a line break in the name cannot reach the booking subject either', () => {
   assert.doesNotMatch(email.subject, /[\r\n]/)
 })
 
+// --- camp bookings -----------------------------------------------------------
+
+import { campBookingReceivedEmail, newCampBookingNotification } from '@/lib/email/templates'
+
+const campChild = {
+  firstName: 'Anna',
+  childName: 'Zosia Nowak',
+  campTitle: 'Obóz wspinaczkowo-przygodowy',
+  dates: '26 czerwca – 3 lipca 2027',
+  location: 'Rzędkowice',
+  registrationUrl: 'https://x.pl/obozy/rejestracja?token=abc',
+  accountUrl: null,
+  waitlist: false,
+}
+
+test('the camp confirmation greets the parent, names the child and leads to the registration form', () => {
+  for (const lang of ['pl', 'en'] as const) {
+    const email = campBookingReceivedEmail(lang, campChild)
+    assert.match(email.subject, /Zosia Nowak — Obóz wspinaczkowo-przygodowy/)
+    assert.match(email.text, /Anna/)
+    assert.match(email.text, /26 czerwca – 3 lipca 2027/)
+    assert.match(email.text, /x\.pl\/obozy\/rejestracja\?token=abc/)
+  }
+})
+
+test('a child on the waiting list gets no registration form yet', () => {
+  const email = campBookingReceivedEmail('pl', {
+    ...campChild,
+    registrationUrl: null,
+    waitlist: true,
+  })
+  assert.match(email.subject, /^Lista rezerwowa/)
+  assert.match(email.text, /liście rezerwowej/)
+  assert.doesNotMatch(email.text, /rejestracja/)
+})
+
+test('the school hears about a sign-up once, with every child and the waiting list flagged', () => {
+  const email = newCampBookingNotification({
+    name: 'Anna Nowak',
+    email: 'anna@example.com',
+    phone: '+48600100200',
+    campTitle: 'Obóz wspinaczkowo-przygodowy',
+    dates: '26 czerwca – 3 lipca 2027',
+    children: [
+      { name: 'Zosia Nowak', waitlist: false },
+      { name: 'Staś Nowak', waitlist: true },
+    ],
+    notes: null,
+    hasAccount: false,
+    adminUrl: 'https://x.pl/admin/collections/bookings?where[session][equals]=7',
+  })
+  assert.match(email.subject, /Nowy zapis na obóz: Zosia Nowak, Staś Nowak/)
+  assert.match(email.text, /Dziecko 1: Zosia Nowak\n/)
+  assert.match(email.text, /Dziecko 2: Staś Nowak \(LISTA REZERWOWA\)/)
+  assert.match(email.text, /Rodzic: Anna Nowak/)
+})
+
 import { placeFreedNotification } from '@/lib/email/templates'
 
 test('the freed-place email names the session and the first person waiting', () => {

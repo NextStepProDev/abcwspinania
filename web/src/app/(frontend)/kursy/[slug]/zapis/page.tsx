@@ -6,7 +6,8 @@ import { Container } from '@/components/Ui'
 import { accountPageMetadata, getCurrentCustomer } from '@/lib/auth'
 import { getCourse, getSessionsForCourse } from '@/lib/content'
 import { formatDateRange, formatSpotsLeft } from '@/lib/format'
-import { BookingForm, type SessionChoice } from './BookingForm'
+import type { SessionChoice } from '@/components/SessionChoices'
+import { BookingForm } from './BookingForm'
 
 /** A form page — nothing for a search engine; the course page is indexed. */
 export function generateMetadata() {

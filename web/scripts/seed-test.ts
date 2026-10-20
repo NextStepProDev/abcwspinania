@@ -330,11 +330,13 @@ async function session(data: {
   lengthDays: number
   capacity: number
   status?: string
+  /** A camp's turnus instead of the course's date. */
+  campId?: number
 }) {
   return payload.create({
     collection: 'sessions',
     data: {
-      course: course.id,
+      ...(data.campId ? { camp: data.campId } : { course: course.id }),
       startDate: iso(data.startDays),
       endDate: iso(data.startDays + data.lengthDays),
       capacity: data.capacity,
@@ -389,6 +391,34 @@ await booking(full.id, 'kasia', 'Katarzyna', 'Lewandowska', 'deposit', {
 })
 await booking(full.id, 'marek', 'Marek', 'Zieliński', 'waitlist')
 
+// --- camps: a parent with two children, and a full turnus ---
+const { docs: camps } = await payload.find({
+  collection: 'camps',
+  where: { and: [{ _status: { equals: 'published' } }, { kind: { equals: 'camp' } }] },
+  sort: 'order',
+  limit: 1,
+  depth: 0,
+  overrideAccess: true,
+})
+const camp = camps[0]
+const campOpen = camp
+  ? await session({ startDays: 35, lengthDays: 7, capacity: 8, campId: camp.id })
+  : null
+const campFull = camp
+  ? await session({ startDays: 63, lengthDays: 7, capacity: 2, campId: camp.id })
+  : null
+const child = (firstName: string, lastName: string) => ({
+  kind: 'camp',
+  childFirstName: firstName,
+  childLastName: lastName,
+})
+if (campOpen && campFull) {
+  await booking(campOpen.id, 'anna', 'Anna', 'Kowalska', 'new', child('Zosia', 'Kowalska'))
+  await booking(campOpen.id, 'anna', 'Anna', 'Kowalska', 'deposit', child('Staś', 'Kowalski'))
+  await booking(campFull.id, 'jan', 'Jan', 'Mazur', 'confirmed', child('Ola', 'Mazur'))
+  await booking(campFull.id, 'jan', 'Jan', 'Mazur', 'confirmed', child('Kuba', 'Mazur'))
+}
+
 for (const [name, status] of [
   ['nl1', 'subscribed'],
   ['nl2', 'subscribed'],
@@ -432,6 +462,8 @@ const rows: [string, string, string][] = [
   ['Tom', 'tom', 'EN account: emails in English'],
   ['Ewa', 'ewa', 'unconfirmed account'],
   ['Gość', 'gosc', 'booking WITHOUT an account — register this address'],
+  ['Anna', 'anna', 'parent: two children on the open camp turnus'],
+  ['Jan', 'jan', 'parent: two children filling the full camp turnus'],
   ['Nowy', 'nowy', 'does NOT exist — registration from scratch'],
 ]
 if (!onProduction) rows.unshift(['School panel', 'szkola', 'login at /admin'])
@@ -441,6 +473,14 @@ say(`Course with the test sessions: ${base}/kursy/${course.slug}`)
 say(
   `Open session: ${formatDateRange(open.startDate, open.endDate)} · full session: ${formatDateRange(full.startDate, full.endDate)}`,
 )
+if (camp && campOpen && campFull) {
+  say(`Camp with the test turnusy: ${base}/obozy/${camp.slug}`)
+  say(
+    `Open turnus: ${formatDateRange(campOpen.startDate, campOpen.endDate)} · full turnus: ${formatDateRange(campFull.startDate, campFull.endDate)}`,
+  )
+} else {
+  say('No published camp — no camp test data (run `npm run seed` first).')
+}
 say(`Real confirmed newsletter subscribers: ${realSubscribers}`)
 if (!onProduction) say(`Ewa's expired link: ${base}/konto/potwierdz?token=${ewaToken}`)
 finish()

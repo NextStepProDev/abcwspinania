@@ -521,12 +521,17 @@ export interface Booking {
   phone: string;
   childFirstName?: string | null;
   childLastName?: string | null;
+  /**
+   * Rodzic podaje ją w formularzu rejestracyjnym.
+   */
   childBirthDate?: string | null;
   /**
    * Na stronie i w mediach społecznościowych. Bez zaznaczenia — nie publikować zdjęć, na których dziecko da się rozpoznać.
    */
   photoConsent?: boolean | null;
   photoConsentText?: string | null;
+  registrationToken?: string | null;
+  registrationSentAt?: string | null;
   notes?: string | null;
   /**
    * Widoczne tylko w panelu — kursant ich nie widzi.
@@ -1192,6 +1197,8 @@ export interface BookingsSelect<T extends boolean = true> {
   childBirthDate?: T;
   photoConsent?: T;
   photoConsentText?: T;
+  registrationToken?: T;
+  registrationSentAt?: T;
   notes?: T;
   adminNotes?: T;
   emailIssue?: T;

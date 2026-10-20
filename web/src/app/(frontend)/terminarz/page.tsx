@@ -129,6 +129,7 @@ export default async function SchedulePage({ searchParams }: Props) {
                               id: session.id,
                               courseSlug: asCourse(session.course)?.slug ?? null,
                               campSlug: asCamp(session.camp)?.slug ?? null,
+                              campBookable: asCamp(session.camp)?.kind === 'camp',
                             })}
                             variant={details.soldOut ? 'outline' : 'primary'}
                           >

@@ -12,6 +12,7 @@ import * as migration_20261010_182558_messages_general_topics from './20261010_1
 import * as migration_20261012_162239_bookings_email_optional from './20261012_162239_bookings_email_optional';
 import * as migration_20261012_181845_broadcasts_copy_unreviewed from './20261012_181845_broadcasts_copy_unreviewed';
 import * as migration_20261019_192951_bookings_camp_kind from './20261019_192951_bookings_camp_kind';
+import * as migration_20261020_001006_bookings_camp_registration from './20261020_001006_bookings_camp_registration';
 
 export const migrations = [
   {
@@ -82,6 +83,11 @@ export const migrations = [
   {
     up: migration_20261019_192951_bookings_camp_kind.up,
     down: migration_20261019_192951_bookings_camp_kind.down,
-    name: '20261019_192951_bookings_camp_kind'
+    name: '20261019_192951_bookings_camp_kind',
+  },
+  {
+    up: migration_20261020_001006_bookings_camp_registration.up,
+    down: migration_20261020_001006_bookings_camp_registration.down,
+    name: '20261020_001006_bookings_camp_registration'
   },
 ];

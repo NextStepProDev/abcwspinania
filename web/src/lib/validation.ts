@@ -1,3 +1,4 @@
+import { childKey } from '@/lib/bookings'
 import { pluralPl } from '@/lib/format'
 import { TOPIC_VALUES } from '@/lib/topics'
 
@@ -366,6 +367,62 @@ export function validateBooking(data: BookingData, loggedIn: boolean): BookingEr
     errors.notes = `Uwagi mogą mieć najwyżej ${NOTES_MAX} znaków.`
 
   if (!data.consent) errors.consent = BOOKING_CONSENT_MISSING
+
+  return errors
+}
+
+// --- Camp bookings -----------------------------------------------------------
+
+export interface ChildData {
+  firstName: string
+  lastName: string
+}
+
+/** The parent's details (the contact, as on a course) and the children. */
+export interface CampBookingData extends BookingData {
+  children: ChildData[]
+}
+
+export type ChildErrors = Partial<Record<keyof ChildData, string>>
+
+export type CampBookingErrors = BookingErrors & {
+  /** Per child, in the form's order; an empty slot is a child without errors. */
+  children?: (ChildErrors | undefined)[]
+  /** No child at all, or more than the form allows. */
+  childrenCount?: string
+}
+
+/**
+ * A camp booking: the parent as on a course booking (`validateBooking`), and
+ * one to `maxChildren` children with a first and last name each — the rest
+ * of the child's details come later, in the registration form. The same
+ * child twice is caught here; the service would store it once anyway.
+ */
+export function validateCampBooking(
+  data: CampBookingData,
+  loggedIn: boolean,
+  maxChildren: number,
+): CampBookingErrors {
+  const errors: CampBookingErrors = validateBooking(data, loggedIn)
+
+  if (data.children.length === 0) errors.childrenCount = 'Wpisz dane dziecka.'
+  else if (data.children.length > maxChildren)
+    errors.childrenCount = `Jednym zgłoszeniem zapiszesz najwyżej ${maxChildren} dzieci.`
+
+  const seen = new Set<string>()
+  const children = data.children.map((child) => {
+    const childErrors: ChildErrors = {}
+    const firstName = checkName(child.firstName, 'Podaj imię dziecka.')
+    if (firstName) childErrors.firstName = firstName
+    const lastName = checkName(child.lastName, 'Podaj nazwisko dziecka.')
+    if (lastName) childErrors.lastName = lastName
+    const key = childKey(child.firstName, child.lastName)
+    if (!firstName && !lastName && seen.has(key))
+      childErrors.firstName = 'To dziecko jest już wpisane wyżej.'
+    seen.add(key)
+    return isValid(childErrors) ? undefined : childErrors
+  })
+  if (children.some(Boolean)) errors.children = children
 
   return errors
 }

@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 import {
   ACCOUNT_CONSENT_TEXT,
   BOOKING_CONSENT_TEXT,
+  CAMP_BOOKING_CONSENT_TEXT,
   CONSENT_TEXT,
   NEWSLETTER_CONSENT_TEXT,
 } from '@/lib/consent'
@@ -19,6 +20,7 @@ const CLAUSES = {
   newsletter: NEWSLETTER_CONSENT_TEXT,
   account: ACCOUNT_CONSENT_TEXT,
   booking: BOOKING_CONSENT_TEXT,
+  campBooking: CAMP_BOOKING_CONSENT_TEXT,
 }
 
 test('every consent clause names the legal controller, not just the brand', () => {

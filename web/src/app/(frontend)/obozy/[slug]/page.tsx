@@ -195,9 +195,16 @@ export default async function CampPage({ params }: Props) {
             )}
 
             <div className="flex flex-col gap-2.5">
-              <Button href={`/kontakt?camp=${camp.slug}`} className="w-full">
-                Zapytaj o miejsce
-              </Button>
+              {/* A camp with turnusy takes bookings; a trip or classes asks. */}
+              {camp.kind === 'camp' && sessions.length > 0 ? (
+                <Button href={`/obozy/${camp.slug}/zapis`} className="w-full">
+                  Zapisz dziecko
+                </Button>
+              ) : (
+                <Button href={`/kontakt?camp=${camp.slug}`} className="w-full">
+                  Zapytaj o miejsce
+                </Button>
+              )}
               {tel && (
                 <Button href={tel} variant="outline" className="w-full">
                   {siteConfig.phone}

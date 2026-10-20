@@ -10,10 +10,20 @@ import {
 } from 'payload'
 import { sql } from '@payloadcms/db-postgres'
 
-import { ACTIVE_STATUSES, availability, newBookingStatus, type BookingStatus } from '@/lib/bookings'
-import { accountConsentForStorage, bookingConsentForStorage } from '@/lib/consent'
+import {
+  ACTIVE_STATUSES,
+  availability,
+  childKey,
+  newBookingStatus,
+  type BookingStatus,
+} from '@/lib/bookings'
+import {
+  accountConsentForStorage,
+  bookingConsentForStorage,
+  campBookingConsentForStorage,
+} from '@/lib/consent'
 import type { EmailLanguage } from '@/lib/email/language'
-import type { Booking, Course, Customer, Session } from '@/payload-types'
+import type { Booking, Camp, Course, Customer, Session } from '@/payload-types'
 
 /**
  * Creating a booking — the part that must happen ALL AT ONCE.
@@ -273,6 +283,194 @@ export async function createBooking(payload: Payload, input: BookingInput): Prom
 
     await commitTransaction(req)
     return { kind: 'created', booking, status, session, course, newAccount, unconfirmedAccount }
+  } catch (error) {
+    await killTransaction(req)
+    throw error
+  }
+}
+
+// --- Camp bookings -------------------------------------------------------------
+
+export interface CampBookingInput {
+  sessionId: number
+  /** The camp whose page the form was on — the session must belong to it. */
+  campId: number
+  /** The PARENT — the booking's contact, as on a course. */
+  contact: BookingInput['contact']
+  /** One booking each; checked by `validateCampBooking`. */
+  children: { firstName: string; lastName: string }[]
+  notes: string | null
+  language: EmailLanguage
+  customerId: number | null
+  wantsAccount: boolean
+}
+
+export interface CampChildResult {
+  booking: Booking
+  status: BookingStatus
+  /** The key of the child's registration form link — only on a new booking. */
+  registrationToken: string | null
+  /** False: this child was already booked on the session from this address. */
+  created: boolean
+}
+
+export type CampBookingResult =
+  | { kind: 'unavailable' }
+  | {
+      kind: 'done'
+      session: Session
+      camp: Camp
+      /** In the form's order. */
+      children: CampChildResult[]
+      newAccount: Customer | null
+      unconfirmedAccount: Customer | null
+    }
+
+/**
+ * Signing children up for a camp — the course booking's rules, per child:
+ * the same lock on the session, so siblings and a stranger booking the last
+ * places at once are counted one after another; each child gets a place
+ * while there is one, the rest the waiting list.
+ *
+ * Siblings share the parent's address, so the duplicate check is the address
+ * AND the child's name (`childKey`): the same child again (a double click, a
+ * second try) keeps its first booking, another name is a new one.
+ */
+export async function createCampBookings(
+  payload: Payload,
+  input: CampBookingInput,
+): Promise<CampBookingResult> {
+  const req = await createLocalReq({}, payload)
+  await initTransaction(req)
+  try {
+    const tx = await txOf(payload, req)
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(${LOCK_SESSION}, ${input.sessionId})`)
+
+    // --- the session: this camp's (a camp, not a trip), published, bookable ---
+    const session = await payload
+      .findByID({
+        collection: 'sessions',
+        id: input.sessionId,
+        depth: 1,
+        joins: false,
+        req,
+        overrideAccess: true,
+      })
+      .catch(() => null)
+    const camp = session && typeof session.camp === 'object' ? session.camp : null
+    const bookable =
+      session &&
+      camp &&
+      camp.id === input.campId &&
+      camp.kind === 'camp' &&
+      camp._status === 'published' &&
+      (session.status === 'open' || session.status === 'waitlist') &&
+      Date.parse(session.startDate) >= startOfTodayUtc()
+    if (!session || !camp || !bookable) {
+      await commitTransaction(req)
+      return { kind: 'unavailable' }
+    }
+
+    const { docs: earlier } = await payload.find({
+      collection: 'bookings',
+      where: {
+        and: [
+          { session: { equals: session.id } },
+          { email: { equals: input.contact.email } },
+          { status: { not_equals: 'cancelled' } },
+        ],
+      },
+      sort: 'createdAt',
+      limit: 100,
+      depth: 0,
+      req,
+      overrideAccess: true,
+    })
+    const booked = new Map(earlier.map((b) => [childKey(b.childFirstName, b.childLastName), b]))
+
+    // An account as on a course: from the FIRST booking's details when this
+    // address booked the session before, and never next to one that already
+    // has an account (its email went out with it).
+    const first = earlier[0]
+    const accounts =
+      !input.customerId && input.wantsAccount && !earlier.some((b) => b.customer)
+        ? await accountFor(
+            payload,
+            req,
+            tx,
+            first
+              ? {
+                  firstName: first.firstName,
+                  lastName: first.lastName,
+                  email: input.contact.email,
+                  phone: first.phone,
+                }
+              : input.contact,
+            first?.language ?? input.language,
+          )
+        : NO_ACCOUNT
+    const accountId = input.customerId ?? accounts.accountId
+
+    const children: CampChildResult[] = []
+    for (const child of input.children) {
+      const key = childKey(child.firstName, child.lastName)
+      const existing = booked.get(key)
+      if (existing) {
+        children.push({
+          booking: existing,
+          status: existing.status as BookingStatus,
+          registrationToken: null,
+          created: false,
+        })
+        continue
+      }
+      // Counted again for each child: the one before may have taken the last place.
+      const active = await payload.count({
+        collection: 'bookings',
+        where: {
+          and: [{ session: { equals: session.id } }, { status: { in: [...ACTIVE_STATUSES] } }],
+        },
+        req,
+        overrideAccess: true,
+      })
+      const status = newBookingStatus(
+        availability(session.capacity, active.totalDocs),
+        session.status,
+      )
+      const registrationToken = crypto.randomBytes(32).toString('hex')
+      const booking = await payload.create({
+        collection: 'bookings',
+        data: {
+          kind: 'camp',
+          session: session.id,
+          status,
+          ...input.contact,
+          childFirstName: child.firstName,
+          childLastName: child.lastName,
+          notes: input.notes || undefined,
+          customer: accountId ?? undefined,
+          language: input.language,
+          consentText: campBookingConsentForStorage(),
+          consentDate: new Date().toISOString(),
+          registrationToken,
+          registrationSentAt: new Date().toISOString(),
+        },
+        req,
+        overrideAccess: true,
+      })
+      booked.set(key, booking)
+      children.push({ booking, status, registrationToken, created: true })
+    }
+
+    await commitTransaction(req)
+    return {
+      kind: 'done',
+      session,
+      camp,
+      children,
+      newAccount: accounts.newAccount,
+      unconfirmedAccount: accounts.unconfirmedAccount,
+    }
   } catch (error) {
     await killTransaction(req)
     throw error

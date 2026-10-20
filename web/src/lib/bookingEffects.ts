@@ -136,7 +136,7 @@ export async function sessionSummary(
   return {
     courseTitle: course?.title ?? camp?.title ?? '',
     dates: formatSessionDates(lang, session.startDate, session.endDate),
-    location: session.location || course?.location || null,
+    location: session.location || course?.location || camp?.location || null,
   }
 }
 
