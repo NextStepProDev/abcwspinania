@@ -21,3 +21,10 @@ export function publicUrl(): string {
 export function tokenLink(path: string, token: string): string {
   return `${publicUrl()}${path}?token=${encodeURIComponent(token)}`
 }
+
+/**
+ * Where the unsubscribe header of a NON-newsletter email leads — our page,
+ * not Brevo's list (`withServiceUnsubscribe` in `email/brevo.ts`). GET shows
+ * the page, Gmail's one-click POST is answered and changes nothing.
+ */
+export const SERVICE_EMAILS_UNSUBSCRIBE_PATH = '/o-mailach/wypisz'

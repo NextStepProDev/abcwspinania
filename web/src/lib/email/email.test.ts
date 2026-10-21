@@ -189,6 +189,28 @@ test('the body carries reply-to, html and text', () => {
   assert.equal(body.cc, undefined)
 })
 
+test('an email without its own unsubscribe header gets ours, not Brevo’s', () => {
+  // Brevo adds its own when there is none, and a click on it stops every
+  // later email to the address (`withServiceUnsubscribe`).
+  const url = 'https://x.pl/o-mailach/wypisz'
+  const body = toBrevoBody({ to: 'a@x.pl', subject: 's' }, sender, url)
+  assert.deepEqual(body.headers, { 'List-Unsubscribe': `<${url}>` })
+})
+
+test('the newsletter keeps its own unsubscribe header', () => {
+  const own = '<https://x.pl/api/newsletter/unsubscribe?token=t>'
+  const body = toBrevoBody(
+    {
+      to: 'a@x.pl',
+      subject: 's',
+      headers: { 'List-Unsubscribe': own, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
+    },
+    sender,
+    'https://x.pl/o-mailach/wypisz',
+  )
+  assert.equal(body.headers?.['List-Unsubscribe'], own)
+})
+
 test('an email without a recipient is refused before it reaches Brevo', () => {
   assert.throws(() => toBrevoBody({ subject: 's' }, sender), /recipient/)
 })

@@ -1207,6 +1207,19 @@ Od 01.10.2026 aplikacja wysyła maile przez **Brevo, przez jego HTTP API**
   a bramka `npm audit --audit-level=high` zatrzymałaby każdy PR. Poprawka jest
   w nodemailer 10, którego adapter nie przyjmuje. Wrócić do oficjalnego, gdy
   przejdzie na nodemailer ≥ 10.0.6 — wtedy zmiana dostawcy to konfiguracja.
+- **⚠️ Brevo dokleja WŁASNY nagłówek wypisania do każdego maila, który go nie
+  ma** (także transakcyjnego; wyłączenie tylko na planie Enterprise).
+  Znalezione 21.10.2026 w nagłówkach maila próbnego: Gmail pokazuje go jako
+  „Anuluj subskrypcję”, a kliknięcie wpisuje adres na listę wypisanych
+  w Brevo — potem Brevo przyjmuje nasze maile do tej osoby i PO CICHU ich nie
+  doręcza (potwierdzenia, statusy, nowe hasło), a aplikacja nie wie. Nagłówek
+  podany przez nas zastępuje ten Brevo (sprawdzone tego samego dnia), więc
+  adapter (`withServiceUnsubscribe` w `lib/email/brevo.ts`) daje każdemu
+  mailowi bez własnego nasz: `/o-mailach/wypisz` — GET prowadzi na stronę
+  z wyjaśnieniem, POST (jedno kliknięcie Gmaila; `List-Unsubscribe-Post`
+  dokłada Brevo) odpowiada 200 i niczego nie zmienia. Newsletter zostaje przy
+  swoim prawdziwym wypisaniu. Przycisk w Gmailu zostaje — bez żadnego
+  nagłówka wróciłby ten z Brevo.
 - **Bez `BREVO_API_KEY` maile idą do konsoli** (Payload ostrzega przy starcie).
   Celowo: lokalnie i w CI nikt nie dostanie maila przez przypadek.
 - **Nadawca musi być na domenie uwierzytelnionej w Brevo** (SPF + DKIM +

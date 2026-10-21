@@ -96,7 +96,36 @@ export interface Sender {
   name: string
 }
 
-export function toBrevoBody(message: SendEmailOptions, sender: Sender): BrevoBody {
+/**
+ * Brevo adds a `List-Unsubscribe` header of its OWN to every email that has
+ * none — transactional ones included, with no setting to turn it off outside
+ * the Enterprise plan. Gmail shows it as "Anuluj subskrypcję", and one click
+ * puts the address on Brevo's unsubscribe list: from then on Brevo accepts
+ * our emails to that address and silently does not deliver them — a booking's
+ * bank details, a status change, a new password. Found 21.10.2026 in the raw
+ * headers of a test email; a header we set ourselves replaces Brevo's
+ * (checked the same day).
+ *
+ * So every email without its own (the newsletter sets one — a real
+ * unsubscribe) gets `serviceUnsubscribeUrl`: our page, which explains that
+ * these are emails about a booking or an account and unsubscribes nobody.
+ * Brevo still adds `List-Unsubscribe-Post` (one-click), so the URL also
+ * accepts Gmail's POST.
+ */
+function withServiceUnsubscribe(
+  headers: Record<string, string>,
+  serviceUnsubscribeUrl: string | undefined,
+): Record<string, string> {
+  if (!serviceUnsubscribeUrl) return headers
+  if (Object.keys(headers).some((h) => h.toLowerCase() === 'list-unsubscribe')) return headers
+  return { ...headers, 'List-Unsubscribe': `<${serviceUnsubscribeUrl}>` }
+}
+
+export function toBrevoBody(
+  message: SendEmailOptions,
+  sender: Sender,
+  serviceUnsubscribeUrl?: string,
+): BrevoBody {
   const to = untracked(toBrevoAddresses(message.to as AddressInput))
   if (to.length === 0) throw new Error('Email without a recipient')
 
@@ -126,16 +155,20 @@ export function toBrevoBody(message: SendEmailOptions, sender: Sender): BrevoBod
   const headers = Object.entries((message.headers ?? {}) as Record<string, unknown>).filter(
     (entry): entry is [string, string] => typeof entry[1] === 'string',
   )
-  if (headers.length) body.headers = Object.fromEntries(headers)
+  const all = withServiceUnsubscribe(Object.fromEntries(headers), serviceUnsubscribeUrl)
+  if (Object.keys(all).length) body.headers = all
   return body
 }
 
 export function brevoAdapter({
   apiKey,
   sender,
+  serviceUnsubscribeUrl,
 }: {
   apiKey: string
   sender: Sender
+  /** See `withServiceUnsubscribe`. */
+  serviceUnsubscribeUrl?: string
 }): PayloadEmailAdapter {
   return () => ({
     name: 'brevo',
@@ -149,7 +182,7 @@ export function brevoAdapter({
           'content-type': 'application/json',
           'api-key': apiKey,
         },
-        body: JSON.stringify(toBrevoBody(message, sender)),
+        body: JSON.stringify(toBrevoBody(message, sender, serviceUnsubscribeUrl)),
         // A hung request must not hold up a form submission indefinitely.
         signal: AbortSignal.timeout(15_000),
       })

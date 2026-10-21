@@ -11,6 +11,7 @@ import { collections } from './collections'
 import { Users } from './collections/Users'
 import { globals } from './globals'
 import { brevoAdapter } from './lib/email/brevo'
+import { publicUrl, SERVICE_EMAILS_UNSUBSCRIBE_PATH } from './lib/email/links'
 import { restorePublicMessage } from './lib/errorResponse'
 
 const filename = fileURLToPath(import.meta.url)
@@ -61,6 +62,9 @@ function emailAdapter() {
   return brevoAdapter({
     apiKey,
     sender: { email, name: process.env.EMAIL_FROM_NAME || 'ABC Wspinania' },
+    // Our own unsubscribe header on every non-newsletter email, in place of
+    // the one Brevo would add (`withServiceUnsubscribe` in `email/brevo.ts`).
+    serviceUnsubscribeUrl: `${publicUrl()}${SERVICE_EMAILS_UNSUBSCRIBE_PATH}`,
   })
 }
 
