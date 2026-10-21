@@ -73,8 +73,8 @@ export async function deleteExpiredMessages(): Promise<void> {
  * five years from the end of the course's year) — from 1 January on, without
  * anyone remembering. What stays is a trace for statistics: the date, the
  * status, the language, when it was made. No name, address, phone, notes or
- * consent text, and on a camp booking no child's name, birth date or photo
- * consent — data that no longer points to a person is not personal data.
+ * consent text, and on a camp booking no child's name, birth date, photo
+ * consent or the parent's address — data that no longer points to a person is not personal data.
  *
  * Through the database adapter, row by row: the collection's own rules would
  * refuse empty required fields, and its hooks would rebuild the list label
@@ -109,6 +109,9 @@ export async function anonymizeExpiredBookings(): Promise<void> {
         photoConsent: false,
         photoConsentText: null,
         registrationToken: null,
+        addressStreet: null,
+        addressPostcode: null,
+        addressCity: null,
         emailIssue: null,
         emailIssueAt: null,
         label: anonymizedLabel(booking.label),

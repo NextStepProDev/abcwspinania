@@ -5,6 +5,8 @@ export interface SessionChoice {
   spots: string
   full: boolean
   note: string | null
+  /** Places left, counted — null without a capacity. The camp form warns with it. */
+  spotsLeft?: number | null
 }
 
 /**
@@ -17,11 +19,14 @@ export function SessionChoices({
   sessions,
   defaultId,
   error,
+  onChoose,
 }: {
   legend: string
   sessions: SessionChoice[]
   defaultId: number | null | undefined
   error?: string
+  /** Told the id of the date picked — the camp form's warning follows it. */
+  onChoose?: (id: number) => void
 }) {
   return (
     // `min-w-0`: a fieldset is as wide as its content by default, so one
@@ -41,6 +46,7 @@ export function SessionChoices({
             name="sessionId"
             value={s.id}
             defaultChecked={s.id === defaultId}
+            onChange={() => onChoose?.(s.id)}
             className="size-4 shrink-0"
           />
           {/* On a phone the places go under the date — beside it, "1 wolne"

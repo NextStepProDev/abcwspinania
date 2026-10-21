@@ -494,7 +494,7 @@ export interface Session {
   createdAt: string;
 }
 /**
- * Zapisy na kursy i obozy. Przy obozie imię, nazwisko i kontakt to dane rodzica, a uczestnik to dziecko. Zmiana statusu na „potwierdzony”, „opłacony” albo „rezygnacja” wysyła kursantowi maila. Zapis telefoniczny dodaj tu ręcznie — wtedy liczy się do wolnych miejsc.
+ * Zapisy na kursy i obozy. Przy obozie imię, nazwisko i kontakt to dane rodzica, a uczestnik to dziecko. Zmiana statusu na „potwierdzony”, „opłacony” albo „rezygnacja” wysyła maila kursantowi albo rodzicowi (przy obozie także „zaliczka wpłacona”). Zapis telefoniczny dodaj tu ręcznie — wtedy liczy się do wolnych miejsc.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "bookings".
@@ -521,6 +521,9 @@ export interface Booking {
    */
   email?: string | null;
   phone: string;
+  addressStreet?: string | null;
+  addressPostcode?: string | null;
+  addressCity?: string | null;
   childFirstName?: string | null;
   childLastName?: string | null;
   /**
@@ -1234,6 +1237,9 @@ export interface BookingsSelect<T extends boolean = true> {
   lastName?: T;
   email?: T;
   phone?: T;
+  addressStreet?: T;
+  addressPostcode?: T;
+  addressCity?: T;
   childFirstName?: T;
   childLastName?: T;
   childBirthDate?: T;

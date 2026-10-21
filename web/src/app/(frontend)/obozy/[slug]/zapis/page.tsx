@@ -50,6 +50,7 @@ export default async function CampBookingPage({ params, searchParams }: Props) {
       spots: full ? 'brak miejsc — lista rezerwowa' : formatSpotsLeft(s.spotsLeft),
       full,
       note: s.note ?? null,
+      spotsLeft: typeof s.spotsLeft === 'number' ? s.spotsLeft : null,
     }
   })
 
@@ -77,8 +78,9 @@ export default async function CampBookingPage({ params, searchParams }: Props) {
           ) : (
             <>
               <p className="mt-3 text-[17px] leading-7 text-rock-600">
-                Zapis rezerwuje miejsce. Potem dostaniesz mailem formularz rejestracyjny dla każdego
-                dziecka, a po jego wypełnieniu — umowę i dane do przelewu zaliczki.
+                Zapis rezerwuje miejsce. Potem dostaniesz mailem link do formularza rejestracyjnego
+                (jednego dla wszystkich zapisanych dzieci), a po jego wypełnieniu — dane do przelewu
+                zaliczki i umowę.
               </p>
               <div className="mt-8 rounded-2xl border border-rock-200 bg-white p-6 lg:p-8">
                 <CampBookingForm

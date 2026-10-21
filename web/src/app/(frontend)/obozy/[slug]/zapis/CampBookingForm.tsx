@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useId, useState } from 'react'
+import { useActionState, useEffect, useId, useState } from 'react'
 
 import { FormAlert, FormDone, TextLink } from '@/components/AccountForm'
 import {
@@ -22,6 +22,7 @@ import {
   type ChildData,
   type ChildErrors,
 } from '@/lib/validation'
+import { pluralPl } from '@/lib/format'
 import { bookCamp, type CampBookingState } from './actions'
 
 const INITIAL: CampBookingState = { status: 'idle' }
@@ -44,10 +45,13 @@ function ChildrenFields({
   initial,
   errors,
   max,
+  onCount,
 }: {
   initial: ChildData[]
   errors: (ChildErrors | undefined)[] | undefined
   max: number
+  /** Told how many rows there are — the warning about places counts them. */
+  onCount: (count: number) => void
 }) {
   const id = useId()
   const [rows, setRows] = useState(() =>
@@ -58,6 +62,8 @@ function ChildrenFields({
     })),
   )
   const [next, setNext] = useState(rows.length)
+  // The rows a failed submit came back with count from the start.
+  useEffect(() => onCount(rows.length), []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <fieldset className="flex min-w-0 flex-col gap-4">
@@ -72,7 +78,11 @@ function ChildrenFields({
               <span className="text-sm font-medium text-rock-600">Dziecko {i + 1}</span>
               <button
                 type="button"
-                onClick={() => setRows(rows.filter((r) => r.key !== row.key))}
+                onClick={() => {
+                  const left = rows.filter((r) => r.key !== row.key)
+                  setRows(left)
+                  onCount(left.length)
+                }}
                 className="text-sm font-medium text-rope underline-offset-4 hover:underline"
               >
                 Usuń
@@ -110,6 +120,7 @@ function ChildrenFields({
               { key: next, child: { firstName: '', lastName: '' }, errors: undefined },
             ])
             setNext(next + 1)
+            onCount(rows.length + 1)
           }}
           className="self-start rounded-lg border border-rock-200 px-4 py-2 text-sm font-medium hover:border-rope"
         >
@@ -117,8 +128,8 @@ function ChildrenFields({
         </button>
       )}
       <p className="text-sm text-rock-600">
-        Rodzeństwo zapisz tutaj razem — każde dziecko dostaje swoje miejsce i swój formularz
-        rejestracyjny.
+        Rodzeństwo zapisz tutaj razem — dostaniesz jeden formularz rejestracyjny i jedną umowę dla
+        wszystkich.
       </p>
     </fieldset>
   )
@@ -142,6 +153,8 @@ export function CampBookingForm({
 }) {
   const [state, action, pending] = useActionState(bookCamp, INITIAL)
   const id = useId()
+  const [chosenId, setChosenId] = useState<number | null>(null)
+  const [childCount, setChildCount] = useState(1)
 
   if (state.status === 'done') {
     const booked = state.booked ?? []
@@ -163,7 +176,7 @@ export function CampBookingForm({
           {/* Every child on the waiting list: no registration form went out. */}
           {allWaiting
             ? 'Turnus jest pełny — potwierdzenie wysłaliśmy mailem.'
-            : 'Sprawdź skrzynkę: dla każdego dziecka z miejscem wysłaliśmy osobny mail z linkiem do formularza rejestracyjnego. Po jego wypełnieniu prześlemy umowę i dane do przelewu zaliczki.'}
+            : 'Sprawdź skrzynkę: wysłaliśmy mail z linkiem do formularza rejestracyjnego — jednego dla wszystkich dzieci z miejscem. Po jego wypełnieniu prześlemy dane do przelewu zaliczki i umowę.'}
           {waiting.length > 0 &&
             ' Gdy zwolni się miejsce dla dziecka z listy rezerwowej, odezwiemy się od razu.'}
         </p>
@@ -185,6 +198,8 @@ export function CampBookingForm({
 
   const chosen = state.values?.sessionId ? Number(state.values.sessionId) : preselected
   const defaultSession = sessions.some((s) => s.id === chosen) ? chosen : sessions[0]?.id
+  const spotsLeft = sessions.find((s) => s.id === (chosenId ?? defaultSession))?.spotsLeft
+  const short = typeof spotsLeft === 'number' && spotsLeft > 0 && childCount > spotsLeft
 
   return (
     <form action={action} onSubmit={stopInvalidSubmit} noValidate className="flex flex-col gap-6">
@@ -201,6 +216,7 @@ export function CampBookingForm({
         sessions={sessions}
         defaultId={defaultSession}
         error={state.errors?.sessionId}
+        onChoose={setChosenId}
       />
 
       {/* Remounted after each failed submit, so the rows match what came back. */}
@@ -209,9 +225,51 @@ export function CampBookingForm({
         initial={state.children ?? []}
         errors={state.errors?.children}
         max={maxChildren}
+        onCount={setChildCount}
       />
       {state.errors?.childrenCount && (
         <p className="-mt-3 text-sm text-error">{state.errors.childrenCount}</p>
+      )}
+      {short && (
+        // Fewer places than children (decided 21.10.2026): the parent says
+        // what to do before sending — siblings usually go together or not at
+        // all. The server counts again under its lock; without JavaScript the
+        // first children get the places, as the default says.
+        <fieldset
+          role="status"
+          className="flex min-w-0 flex-col gap-3 rounded-lg border border-rope bg-rope-soft p-4 text-sm"
+        >
+          <legend className="sr-only">Za mało wolnych miejsc</legend>
+          <p className="font-medium text-rock-900">
+            Wolne miejsca na tym turnusie: {spotsLeft}. Zapisujesz {childCount}{' '}
+            {pluralPl(childCount, 'dziecko', 'dzieci', 'dzieci')}.
+          </p>
+          <label className="flex items-start gap-3">
+            <input
+              type="radio"
+              name="whenShort"
+              value="split"
+              defaultChecked={state.values?.whenShort !== 'together'}
+              className="mt-1 size-4 shrink-0"
+            />
+            <span>
+              Zapisz na wolne miejsca pierwsze dzieci z listy, a pozostałe na listę rezerwową.
+            </span>
+          </label>
+          <label className="flex items-start gap-3">
+            <input
+              type="radio"
+              name="whenShort"
+              value="together"
+              defaultChecked={state.values?.whenShort === 'together'}
+              className="mt-1 size-4 shrink-0"
+            />
+            <span>
+              Zapisz wszystkie na listę rezerwową — pojadą razem albo wcale. Odezwiemy się, gdy
+              znajdzie się miejsce dla wszystkich.
+            </span>
+          </label>
+        </fieldset>
       )}
 
       {customer ? (

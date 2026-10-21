@@ -10,7 +10,7 @@ import {
 } from 'payload'
 
 import { isAdmin } from '@/lib/access'
-import { ACTIVE_STATUSES, formatSessionDates, type BookingStatus } from '@/lib/bookings'
+import { ACTIVE_STATUSES, formatSessionDates } from '@/lib/bookings'
 import { idOf, recordEmailIssue } from '@/lib/bookingEffects'
 import {
   campActivitiesConsentForStorage,
@@ -26,7 +26,13 @@ import {
   registrationReceivedEmail,
   type RegistrationLinkReason,
 } from '@/lib/email/templates'
-import { campMailbox, campPrice, depositDueDate, paymentDetails } from '@/lib/campPayment'
+import {
+  campMailbox,
+  campPrice,
+  depositDueDate,
+  joinNames,
+  paymentDetails,
+} from '@/lib/campPayment'
 import {
   depositReminderWhere,
   expiredRegistrationsWhere,
@@ -36,8 +42,9 @@ import { peselBirthDate } from '@/lib/pesel'
 import type { Booking, Camp, CampRegistration, Session } from '@/payload-types'
 
 /**
- * The camp registration form (step 2): finding the booking a link belongs
- * to, saving the form, sending the link, the reminder and the deletion a
+ * The camp registration form (step 2): finding the sign-up a link belongs
+ * to (one link and one form for the children signed up together), saving
+ * the form, sending the link, the reminder and the deletion a
  * month after the camp. The page and its action are in
  * `app/(frontend)/obozy/rejestracja/`.
  *
@@ -57,15 +64,42 @@ export const registrationUrl = (token: string) => tokenLink('/obozy/rejestracja'
 export const childName = (booking: Pick<Booking, 'childFirstName' | 'childLastName'>) =>
   [booking.childFirstName, booking.childLastName].filter(Boolean).join(' ')
 
-export interface RegistrationContext {
+export interface RegistrationChild {
   booking: Booking
-  session: Session
-  camp: Camp | null
   registration: CampRegistration | null
 }
 
 /**
- * The booking behind a registration link, with its session and any form
+ * A registration link's sign-up: the children it was sent for (one link and
+ * one form for the children signed up together, decided 21.10.2026), their
+ * session and camp.
+ */
+export interface RegistrationContext {
+  token: string
+  session: Session
+  camp: Camp | null
+  children: RegistrationChild[]
+}
+
+/** The bookings sharing a registration token, oldest first — hidden field included. */
+async function bookingsWithToken(payload: Payload, token: string, req?: Req): Promise<Booking[]> {
+  const { docs } = await payload.find({
+    collection: 'bookings',
+    where: {
+      and: [{ registrationToken: { equals: token } }, { kind: { equals: 'camp' } }],
+    },
+    sort: 'createdAt',
+    limit: 50,
+    depth: 0,
+    overrideAccess: true,
+    showHiddenFields: true,
+    req,
+  })
+  return docs
+}
+
+/**
+ * The sign-up behind a registration link, with its session and any forms
  * already sent — or null for a token that matches nothing. Only camp
  * bookings carry a token. The session is read without its `bookings` join
  * (every participant's data).
@@ -75,19 +109,9 @@ export async function findByToken(
   token: string,
 ): Promise<RegistrationContext | null> {
   if (!/^[0-9a-f]{64}$/.test(token)) return null
-  const { docs } = await payload.find({
-    collection: 'bookings',
-    where: {
-      and: [{ registrationToken: { equals: token } }, { kind: { equals: 'camp' } }],
-    },
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-    showHiddenFields: true,
-  })
-  const booking = docs[0]
-  const sessionId = booking ? idOf(booking.session) : null
-  if (!booking || !sessionId) return null
+  const bookings = await bookingsWithToken(payload, token)
+  const sessionId = bookings[0] ? idOf(bookings[0].session) : null
+  if (!sessionId) return null
   const session = await payload
     .findByID({
       collection: 'sessions',
@@ -100,37 +124,45 @@ export async function findByToken(
   if (!session) return null
   const { docs: registrations } = await payload.find({
     collection: 'camp-registrations',
-    where: { booking: { equals: booking.id } },
-    limit: 1,
+    where: { booking: { in: bookings.map((b) => b.id) } },
+    limit: 50,
     depth: 0,
     overrideAccess: true,
   })
   return {
-    booking,
+    token,
     session,
     camp: typeof session.camp === 'object' ? session.camp : null,
-    registration: registrations[0] ?? null,
+    children: bookings.map((booking) => ({
+      booking,
+      registration: registrations.find((r) => idOf(r.booking) === booking.id) ?? null,
+    })),
   }
+}
+
+/** Children whose part of the form can be filled in: not cancelled, not waiting. */
+export function openChildren(ctx: RegistrationContext): RegistrationChild[] {
+  return ctx.children.filter(
+    (c) => c.booking.status !== 'cancelled' && c.booking.status !== 'waitlist',
+  )
 }
 
 /**
  * What the link may do now. Open from the sign-up until the camp starts — the
  * parent may correct the medication the week before (the reason for the
- * form's timing). Closed once it has started (the paper card rules then),
- * for a cancelled booking and while the child waits for a place.
+ * form's timing). Closed once it has started (the paper card rules then);
+ * with no child left to fill in, it says why — cancelled, or waiting.
  */
 export function registrationOpen(
   ctx: RegistrationContext,
   now = new Date(),
 ): 'open' | 'started' | 'cancelled' | 'waitlist' {
-  const status = ctx.booking.status as BookingStatus
-  if (status === 'cancelled') return 'cancelled'
-  if (status === 'waitlist') return 'waitlist'
   if (Date.parse(ctx.session.startDate) <= now.getTime()) return 'started'
-  return 'open'
+  if (openChildren(ctx).length > 0) return 'open'
+  return ctx.children.some((c) => c.booking.status === 'waitlist') ? 'waitlist' : 'cancelled'
 }
 
-export interface RegistrationInput {
+export interface RegistrationChildInput {
   pesel: string
   heightCm: number
   allergies: string
@@ -138,120 +170,150 @@ export interface RegistrationInput {
   diet: string
   conditions: string
   photoConsent: boolean
+}
+
+export interface RegistrationInput {
+  address: { street: string; postcode: string; city: string }
   invoiceRequested: boolean
+  /** By booking id — one entry per child the form showed. */
+  children: Record<number, RegistrationChildInput>
+}
+
+export interface SavedRegistration {
+  /** No child of this sign-up had sent the form before — the payment email goes out. */
+  first: boolean
+  /** The deposit's deadline, the same for the whole sign-up. */
+  depositDueAt: string | null
+  /** The children saved, in the form's order. */
+  bookings: Booking[]
 }
 
 /**
- * Saves the form: the registration row (created or replaced) and, on the
- * booking, what outlives the camp — the birth date from the PESEL, the photo
- * consent (ticked: its clause; unticked: withdrawn) and the invoice request.
- * One transaction: the parent never sees half a save. Returns whether this
- * was the first save (the emails differ) and the deposit's deadline — set
- * on the first save, `DEPOSIT_DAYS` from now: the payment details go out
- * with this save's email.
+ * Saves the form for the whole sign-up: a registration row per child
+ * (created or replaced) and, on each booking, what outlives the camp — the
+ * parent's address, the birth date from the PESEL, the photo consent
+ * (ticked: its clause; unticked: withdrawn) and the invoice request. One
+ * transaction: the parent never sees half a save.
+ *
+ * The deposit's deadline is set on the first save, `DEPOSIT_DAYS` from now —
+ * the payment details go out with this save's email — and kept on a
+ * correction (the school may also have moved it by hand).
  */
 export async function saveRegistration(
   payload: Payload,
   ctx: RegistrationContext,
   input: RegistrationInput,
-): Promise<{ first: boolean; depositDueAt: string | null }> {
+): Promise<SavedRegistration> {
   const req = await createLocalReq({}, payload)
   await initTransaction(req)
   try {
     const now = new Date().toISOString()
-    const data = {
-      booking: ctx.booking.id,
-      pesel: input.pesel.trim(),
-      heightCm: input.heightCm,
-      allergies: input.allergies.trim() || null,
-      medications: input.medications.trim() || null,
-      diet: input.diet.trim() || null,
-      conditions: input.conditions.trim() || null,
-      activitiesConsentText: campActivitiesConsentForStorage(),
-      consentText: campRegistrationConsentForStorage(),
-      consentDate: now,
-    }
+    const open = openChildren(ctx).filter((c) => input.children[c.booking.id])
     // Looked up again inside the transaction: two tabs sending the form at
     // once must not both create a row (the field is unique — the second
     // would fail with a database error instead of updating).
-    const { docs } = await payload.find({
+    const { docs: existing } = await payload.find({
       collection: 'camp-registrations',
-      where: { booking: { equals: ctx.booking.id } },
-      limit: 1,
+      where: { booking: { in: open.map((c) => c.booking.id) } },
+      limit: 50,
       depth: 0,
       overrideAccess: true,
       req,
     })
-    const existing = docs[0]
-    // Kept when it is already set — a correction of the form does not move
-    // the deadline (and the school may have moved it by hand).
+    const first = existing.length === 0
     const dueAt =
-      ctx.booking.depositDueAt ?? (existing ? null : depositDueDate(new Date()).toISOString())
-    if (existing) {
-      await payload.update({
-        collection: 'camp-registrations',
-        id: existing.id,
-        data,
-        overrideAccess: true,
-        req,
-      })
-    } else {
-      await payload.create({ collection: 'camp-registrations', data, overrideAccess: true, req })
-    }
+      ctx.children.map((c) => c.booking.depositDueAt).find(Boolean) ??
+      (first ? depositDueDate(new Date()).toISOString() : null)
 
-    const birthDate = peselBirthDate(input.pesel)
-    await payload.update({
-      collection: 'bookings',
-      id: ctx.booking.id,
-      data: {
-        // Noon UTC, the way Payload stores a day-only date.
-        childBirthDate: birthDate ? `${birthDate}T12:00:00.000Z` : ctx.booking.childBirthDate,
-        photoConsent: input.photoConsent,
-        photoConsentText: input.photoConsent ? photoConsentForStorage() : null,
-        invoiceRequested: input.invoiceRequested,
-        registeredAt: ctx.booking.registeredAt ?? now,
-        depositDueAt: dueAt,
-      },
-      overrideAccess: true,
-      req,
-      context: { skipRecount: true, skipStatusEmail: true },
-    })
+    const saved: Booking[] = []
+    for (const { booking } of open) {
+      const child = input.children[booking.id]!
+      const data = {
+        booking: booking.id,
+        pesel: child.pesel.trim(),
+        heightCm: child.heightCm,
+        allergies: child.allergies.trim() || null,
+        medications: child.medications.trim() || null,
+        diet: child.diet.trim() || null,
+        conditions: child.conditions.trim() || null,
+        activitiesConsentText: campActivitiesConsentForStorage(),
+        consentText: campRegistrationConsentForStorage(),
+        consentDate: now,
+      }
+      const row = existing.find((r) => idOf(r.booking) === booking.id)
+      if (row) {
+        await payload.update({
+          collection: 'camp-registrations',
+          id: row.id,
+          data,
+          overrideAccess: true,
+          req,
+        })
+      } else {
+        await payload.create({ collection: 'camp-registrations', data, overrideAccess: true, req })
+      }
+      const birthDate = peselBirthDate(child.pesel)
+      saved.push(
+        await payload.update({
+          collection: 'bookings',
+          id: booking.id,
+          data: {
+            addressStreet: input.address.street.trim(),
+            addressPostcode: input.address.postcode.trim(),
+            addressCity: input.address.city.trim(),
+            // Noon UTC, the way Payload stores a day-only date.
+            childBirthDate: birthDate ? `${birthDate}T12:00:00.000Z` : booking.childBirthDate,
+            photoConsent: child.photoConsent,
+            photoConsentText: child.photoConsent ? photoConsentForStorage() : null,
+            invoiceRequested: input.invoiceRequested,
+            registeredAt: booking.registeredAt ?? now,
+            depositDueAt: booking.depositDueAt ?? dueAt,
+          },
+          overrideAccess: true,
+          req,
+          context: { skipRecount: true, skipStatusEmail: true },
+        }),
+      )
+    }
     await commitTransaction(req)
-    return { first: !existing, depositDueAt: dueAt }
+    return { first, depositDueAt: dueAt, bookings: saved }
   } catch (error) {
     await killTransaction(req)
     throw error
   }
 }
 
-/** The emails after a save: the parent on the first one, the school on every one. */
+/**
+ * The emails after a save: the parent on the first one — the payment
+ * details for the whole sign-up, one transfer — and the school on every one.
+ */
 export async function sendRegistrationEmails(
   payload: Payload,
   ctx: RegistrationContext,
-  token: string,
-  saved: { first: boolean; depositDueAt: string | null },
+  saved: SavedRegistration,
 ): Promise<void> {
-  const { first } = saved
-  const { booking, session, camp } = ctx
-  const lang = (booking.language ?? 'pl') as EmailLanguage
-  const name = childName(booking)
+  const { session, camp } = ctx
+  const lead = saved.bookings[0]
+  if (!lead) return
+  const lang = (lead.language ?? 'pl') as EmailLanguage
+  const names = saved.bookings.map(childName)
   const campTitle = camp?.title ?? ''
   const mailbox = campMailbox()
-  if (first && booking.email) {
+  if (saved.first && lead.email) {
     await payload
       .sendEmail({
-        to: booking.email,
+        to: lead.email,
         replyTo: mailbox,
         ...pick(
           registrationReceivedEmail(lang, {
-            firstName: booking.firstName,
-            childName: name,
+            firstName: lead.firstName,
+            childName: joinNames(lang, names),
             campTitle,
             dates: formatSessionDates(lang, session.startDate, session.endDate),
-            url: registrationUrl(token),
+            url: registrationUrl(ctx.token),
             payment: paymentDetails(
               lang,
-              name,
+              names,
               campPrice(session.price, camp?.price),
               saved.depositDueAt,
             ),
@@ -259,12 +321,7 @@ export async function sendRegistrationEmails(
         ),
       })
       .catch((error) =>
-        recordEmailIssue(
-          payload,
-          booking.id,
-          'Potwierdzenie formularza z danymi do przelewu',
-          error,
-        ),
+        recordEmailIssue(payload, lead.id, 'Potwierdzenie formularza z danymi do przelewu', error),
       )
   }
   if (mailbox) {
@@ -273,12 +330,12 @@ export async function sendRegistrationEmails(
         to: mailbox,
         ...pick(
           registrationNotification({
-            childName: name,
-            parent: `${booking.firstName} ${booking.lastName}`,
+            childName: joinNames('pl', names),
+            parent: `${lead.firstName} ${lead.lastName}`,
             campTitle,
             dates: formatSessionDates('pl', session.startDate, session.endDate),
-            updated: !first,
-            adminUrl: `${publicUrl()}/admin/collections/bookings/${booking.id}`,
+            updated: !saved.first,
+            adminUrl: `${publicUrl()}/admin/collections/bookings/${lead.id}`,
           }),
         ),
       })
@@ -288,13 +345,15 @@ export async function sendRegistrationEmails(
 
 /**
  * Emails the parent the registration link — from the panel ("Wyślij link"),
- * when the child moves up from the waiting list, or as the reminder. The
- * token stays the one already sent (an older email's link keeps working); a
- * booking made in the panel gets its first one here. Written through the
- * database adapter: the token field is hidden, and a save through the
- * collection would run its hooks again from inside one of them.
+ * when a child moves up from the waiting list, or as the reminder. The link
+ * is the sign-up's: the email names every child it opens, and the token
+ * stays the one already sent (an older email's link keeps working). A child
+ * with none — added in the panel, or moved up from the waiting list — gets
+ * a token of its own: its own form and, later, its own contract.
  *
- * Returns false when there is nobody to write to.
+ * Written through the database adapter: the token field is hidden, and a
+ * save through the collection would run its hooks again from inside one of
+ * them. Returns false when there is nobody to write to.
  */
 export async function sendRegistrationLink(
   payload: Payload,
@@ -311,6 +370,8 @@ export async function sendRegistrationLink(
     req,
   })) as Booking
   if (!booking.email || booking.kind !== 'camp') return false
+  const token = booking.registrationToken || crypto.randomBytes(32).toString('hex')
+  const group = booking.registrationToken ? await bookingsWithToken(payload, token, req) : [booking]
   const sessionId = idOf(booking.session)
   const session = sessionId
     ? await payload
@@ -324,18 +385,20 @@ export async function sendRegistrationLink(
         })
         .catch(() => null)
     : null
-  const token = booking.registrationToken || crypto.randomBytes(32).toString('hex')
   const now = new Date().toISOString()
-  await payload.db.updateOne({
-    collection: 'bookings',
-    id: booking.id,
-    data: {
-      registrationToken: token,
-      registrationSentAt: reason === 'reminder' ? booking.registrationSentAt : now,
-      registrationReminderAt: reason === 'reminder' ? now : null,
-    },
-    req,
-  })
+  for (const member of group) {
+    await payload.db.updateOne({
+      collection: 'bookings',
+      id: member.id,
+      data: {
+        registrationToken: token,
+        registrationSentAt: reason === 'reminder' ? member.registrationSentAt : now,
+        registrationReminderAt: reason === 'reminder' ? now : null,
+      },
+      req,
+    })
+  }
+  const named = group.filter((b) => b.status !== 'cancelled' && b.status !== 'waitlist')
   const lang = (booking.language ?? 'pl') as EmailLanguage
   const camp = session && typeof session.camp === 'object' ? session.camp : null
   try {
@@ -345,7 +408,7 @@ export async function sendRegistrationLink(
       ...pick(
         registrationLinkEmail(lang, reason, {
           firstName: booking.firstName,
-          childName: childName(booking),
+          childName: joinNames(lang, (named.length ? named : [booking]).map(childName)),
           campTitle: camp?.title ?? '',
           dates: session ? formatSessionDates(lang, session.startDate, session.endDate) : '',
           url: registrationUrl(token),
@@ -383,7 +446,11 @@ export function movedUpFromWaitlist(
 
 // --- the daily sweep -------------------------------------------------------------
 
-/** One reminder per booking whose form is still empty (`registrationReminderWhere`). */
+/**
+ * One reminder per sign-up whose form is still empty
+ * (`registrationReminderWhere`) — siblings share a link, so they share the
+ * reminder too.
+ */
 export async function sendRegistrationReminders(payload: Payload): Promise<void> {
   const { docs } = await payload.find({
     collection: 'bookings',
@@ -391,38 +458,55 @@ export async function sendRegistrationReminders(payload: Payload): Promise<void>
     pagination: false,
     depth: 0,
     overrideAccess: true,
-    select: { kind: true },
+    showHiddenFields: true,
+    select: { registrationToken: true },
   })
-  for (const { id } of docs) {
+  const seen = new Set<string>()
+  let sent = 0
+  for (const { id, registrationToken } of docs) {
+    if (registrationToken && seen.has(registrationToken)) continue
+    if (registrationToken) seen.add(registrationToken)
+    sent += 1
     await sendRegistrationLink(payload, id, 'reminder').catch((error) =>
       payload.logger.warn({ err: error }, `Registration reminder for booking ${id} failed`),
     )
   }
-  if (docs.length) payload.logger.info(`Sent ${docs.length} registration form reminder(s)`)
+  if (sent) payload.logger.info(`Sent ${sent} registration form reminder(s)`)
 }
 
 /**
- * One reminder per camp booking whose deposit is late
- * (`depositReminderWhere`), with the payment details again. Marked BEFORE the
- * send: a reminder that failed is noted on the booking for the school, and
- * the next day does not send it twice.
+ * One reminder per sign-up whose deposit is late (`depositReminderWhere`),
+ * with the payment details again — for the children still owing it, one
+ * transfer. Marked BEFORE the send: a reminder that failed is noted on the
+ * booking for the school, and the next day does not send it twice.
  */
 export async function sendDepositReminders(payload: Payload): Promise<void> {
   const { docs } = await payload.find({
     collection: 'bookings',
     where: depositReminderWhere(new Date()),
     pagination: false,
+    sort: 'createdAt',
     depth: 0,
     overrideAccess: true,
+    showHiddenFields: true,
   })
+  // Siblings of one sign-up share its token; a booking without one stands alone.
+  const groups = new Map<string, Booking[]>()
   for (const booking of docs) {
+    const key = booking.registrationToken || `booking-${booking.id}`
+    groups.set(key, [...(groups.get(key) ?? []), booking])
+  }
+  for (const group of groups.values()) {
+    const lead = group[0]!
     try {
-      await payload.db.updateOne({
-        collection: 'bookings',
-        id: booking.id,
-        data: { depositReminderAt: new Date().toISOString() },
-      })
-      const sessionId = idOf(booking.session)
+      for (const booking of group) {
+        await payload.db.updateOne({
+          collection: 'bookings',
+          id: booking.id,
+          data: { depositReminderAt: new Date().toISOString() },
+        })
+      }
+      const sessionId = idOf(lead.session)
       const session = sessionId
         ? await payload
             .findByID({
@@ -435,33 +519,33 @@ export async function sendDepositReminders(payload: Payload): Promise<void> {
             .catch(() => null)
         : null
       const camp = session && typeof session.camp === 'object' ? session.camp : null
-      const lang = (booking.language ?? 'pl') as EmailLanguage
-      const name = childName(booking)
+      const lang = (lead.language ?? 'pl') as EmailLanguage
+      const names = group.map(childName)
       await payload
         .sendEmail({
-          to: booking.email!,
+          to: lead.email!,
           replyTo: campMailbox(),
           ...pick(
             depositReminderEmail(lang, {
-              firstName: booking.firstName,
-              childName: name,
+              firstName: lead.firstName,
+              childName: joinNames(lang, names),
               campTitle: camp?.title ?? '',
               dates: session ? formatSessionDates(lang, session.startDate, session.endDate) : '',
               payment: paymentDetails(
                 lang,
-                name,
+                names,
                 campPrice(session?.price, camp?.price),
-                booking.depositDueAt ?? null,
+                lead.depositDueAt ?? null,
               ),
             }),
           ),
         })
-        .catch((error) => recordEmailIssue(payload, booking.id, 'Przypomnienie o zaliczce', error))
+        .catch((error) => recordEmailIssue(payload, lead.id, 'Przypomnienie o zaliczce', error))
     } catch (error) {
-      payload.logger.warn({ err: error }, `Deposit reminder for booking ${booking.id} failed`)
+      payload.logger.warn({ err: error }, `Deposit reminder for booking ${lead.id} failed`)
     }
   }
-  if (docs.length) payload.logger.info(`Sent ${docs.length} deposit reminder(s)`)
+  if (groups.size) payload.logger.info(`Sent ${groups.size} deposit reminder(s)`)
 }
 
 /**

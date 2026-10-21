@@ -12,6 +12,8 @@ import {
   sendDepositReminders,
   sendRegistrationEmails,
   sendRegistrationReminders,
+  type RegistrationChildInput,
+  type RegistrationContext,
   type RegistrationInput,
 } from '@/lib/campRegistration'
 import { erasePerson, personDataCopy } from '@/lib/personErasure'
@@ -24,7 +26,7 @@ import { email, http, makeCamp, makeSession, outbox, payload, test } from './har
  * data going a month after the camp — and with its booking.
  */
 
-const form: RegistrationInput = {
+const childForm: RegistrationChildInput = {
   pesel: '15230701232',
   heightCm: 142,
   allergies: 'Orzechy',
@@ -32,7 +34,21 @@ const form: RegistrationInput = {
   diet: 'Wegetariańska',
   conditions: '',
   photoConsent: true,
-  invoiceRequested: true,
+}
+
+/** The whole form for a link's sign-up: the same answers for every child. */
+function formFor(ctx: RegistrationContext, child = childForm): RegistrationInput {
+  return {
+    address: { street: 'ul. Testowa 1', postcode: '42-421', city: 'Rzędkowice' },
+    invoiceRequested: true,
+    children: Object.fromEntries(ctx.children.map((c) => [c.booking.id, child])),
+  }
+}
+
+/** Opens a link's sign-up and sends its form. */
+async function fill(token: string, child = childForm) {
+  const ctx = (await findByToken(payload, token))!
+  return saveRegistration(payload, ctx, formFor(ctx, child))
 }
 
 async function signUp(parent: string, child: string, options: { capacity?: number } = {}) {
@@ -65,7 +81,7 @@ async function registrationsOf(bookingId: number) {
 test('the link opens its own child’s form; a made-up token opens nothing', async () => {
   const { child } = await signUp('reglink', 'Zosia')
   const ctx = await findByToken(payload, child.registrationToken!)
-  assert.equal(ctx?.booking.id, child.booking.id)
+  assert.equal(ctx?.children[0]?.booking.id, child.booking.id)
   assert.equal(registrationOpen(ctx!), 'open')
   assert.equal(await findByToken(payload, 'f'.repeat(64)), null)
   assert.equal(await findByToken(payload, ''), null)
@@ -74,13 +90,13 @@ test('the link opens its own child’s form; a made-up token opens nothing', asy
 test('the form saves once, corrects in place, and puts the birth date on the booking', async () => {
   const { child } = await signUp('regsave', 'Zosia')
   const ctx = (await findByToken(payload, child.registrationToken!))!
-  assert.equal((await saveRegistration(payload, ctx, form)).first, true)
+  assert.equal((await saveRegistration(payload, ctx, formFor(ctx))).first, true)
   const again = (await findByToken(payload, child.registrationToken!))!
-  const corrected = await saveRegistration(payload, again, {
-    ...form,
-    medications: 'Ventolin',
-    photoConsent: false,
-  })
+  const corrected = await saveRegistration(
+    payload,
+    again,
+    formFor(again, { ...childForm, medications: 'Ventolin', photoConsent: false }),
+  )
   assert.equal(corrected.first, false)
   const rows = await registrationsOf(child.booking.id)
   assert.equal(rows.length, 1)
@@ -106,11 +122,11 @@ test('the health data is the school’s only: no form for a participant or a vis
 
 test('deleting a booking — by hand or as a person’s erasure — takes its form with it', async () => {
   const { child } = await signUp('regdelete', 'Zosia')
-  await saveRegistration(payload, (await findByToken(payload, child.registrationToken!))!, form)
+  await fill(child.registrationToken!)
   const copy = await personDataCopy(payload, email('regdelete'))
   assert.equal(
     (copy.bookings[0] as { registration?: { pesel?: string } }).registration?.pesel,
-    form.pesel,
+    childForm.pesel,
     'the copy of the person’s data includes the form',
   )
   await erasePerson(payload, email('regdelete'))
@@ -121,7 +137,7 @@ test('the form goes a month after its camp; a camp still ahead keeps it', async 
   const past = await signUp('regold', 'Zosia')
   const ahead = await signUp('regnew', 'Staś')
   for (const { child } of [past, ahead]) {
-    await saveRegistration(payload, (await findByToken(payload, child.registrationToken!))!, form)
+    await fill(child.registrationToken!)
   }
   // The past camp ended two months ago.
   await payload.update({
@@ -187,11 +203,7 @@ test('a child moved up from the waiting list gets the form link; a status change
 test('the reminder goes once, only while the form is empty', async () => {
   const { child } = await signUp('regremind', 'Zosia')
   const done = await signUp('regremdone', 'Staś')
-  await saveRegistration(
-    payload,
-    (await findByToken(payload, done.child.registrationToken!))!,
-    form,
-  )
+  await fill(done.child.registrationToken!)
   // Both links "sent" five days ago.
   for (const id of [child.booking.id, done.child.booking.id]) {
     await payload.db.updateOne({
@@ -235,8 +247,8 @@ test('the first form sets the deposit deadline and emails the bank details; a co
   const { child } = await signUp('depfirst', 'Zosia')
   outbox.length = 0
   const ctx = (await findByToken(payload, child.registrationToken!))!
-  const saved = await saveRegistration(payload, ctx, form)
-  await sendRegistrationEmails(payload, ctx, child.registrationToken!, saved)
+  const saved = await saveRegistration(payload, ctx, formFor(ctx))
+  await sendRegistrationEmails(payload, ctx, saved)
   const due = Date.parse(saved.depositDueAt!)
   assert.ok(Math.abs(due - (Date.now() + 7 * 86_400_000)) < 60_000, 'seven days from now')
   const mail = outbox.find((m) => m.to === email('depfirst'))
@@ -245,8 +257,12 @@ test('the first form sets the deposit deadline and emails the bank details; a co
 
   outbox.length = 0
   const again = (await findByToken(payload, child.registrationToken!))!
-  const corrected = await saveRegistration(payload, again, { ...form, diet: 'Bez glutenu' })
-  await sendRegistrationEmails(payload, again, child.registrationToken!, corrected)
+  const corrected = await saveRegistration(
+    payload,
+    again,
+    formFor(again, { ...childForm, diet: 'Bez glutenu' }),
+  )
+  await sendRegistrationEmails(payload, again, corrected)
   assert.equal(corrected.depositDueAt, saved.depositDueAt, 'the deadline stays')
   assert.ok(!outbox.some((m) => m.to === email('depfirst')), 'no second payment email')
 })
@@ -295,4 +311,95 @@ test('a late deposit is reminded once; a paid one and a future deadline are not'
     outbox.filter((m) => /Przypomnienie o zaliczce/.test(m.subject)).map((m) => m.to),
     [email('deplate')],
   )
+})
+
+// --- one form for siblings -------------------------------------------------------
+
+test('siblings fill one form: a part each, one address, one payment email for both', async () => {
+  const camp = await makeCamp()
+  await payload.update({
+    collection: 'camps',
+    id: camp.id,
+    data: { price: 2500 },
+    overrideAccess: true,
+  })
+  const session = await makeSession(camp.id, { camp: true })
+  const result = await createCampBookings(payload, {
+    sessionId: session.id,
+    campId: camp.id,
+    contact: {
+      firstName: 'sibform',
+      lastName: 'Test',
+      email: email('sibform'),
+      phone: '+48600100200',
+    },
+    children: [
+      { firstName: 'Zosia', lastName: 'Test' },
+      { firstName: 'Staś', lastName: 'Test' },
+    ],
+    notes: null,
+    language: 'pl',
+    customerId: null,
+    wantsAccount: false,
+  })
+  assert.ok(result.kind === 'done')
+  const token = result.children[0].registrationToken!
+  const ctx = (await findByToken(payload, token))!
+  assert.equal(ctx.children.length, 2, 'one link opens both children')
+
+  outbox.length = 0
+  const saved = await saveRegistration(payload, ctx, formFor(ctx))
+  await sendRegistrationEmails(payload, ctx, saved)
+  for (const { booking } of result.children) {
+    assert.equal((await registrationsOf(booking.id)).length, 1)
+    const after = await payload.findByID({
+      collection: 'bookings',
+      id: booking.id,
+      depth: 0,
+      overrideAccess: true,
+    })
+    assert.equal(after.addressCity, 'Rzędkowice')
+    assert.equal(after.depositDueAt, saved.depositDueAt, 'one deadline for the sign-up')
+  }
+  const toParent = outbox.filter((m) => m.to === email('sibform'))
+  assert.equal(toParent.length, 1, 'one payment email, not one per child')
+  assert.match(toParent[0].text, /Zaliczka: 1000/)
+  assert.match(toParent[0].text, /Tytuł przelewu: Obóz JURA Zosia Test, Staś Test/)
+})
+
+test('siblings late with the form get one reminder between them', async () => {
+  const camp = await makeCamp()
+  const session = await makeSession(camp.id, { camp: true })
+  const result = await createCampBookings(payload, {
+    sessionId: session.id,
+    campId: camp.id,
+    contact: {
+      firstName: 'sibremind',
+      lastName: 'Test',
+      email: email('sibremind'),
+      phone: '+48600100200',
+    },
+    children: [
+      { firstName: 'Zosia', lastName: 'Test' },
+      { firstName: 'Staś', lastName: 'Test' },
+    ],
+    notes: null,
+    language: 'pl',
+    customerId: null,
+    wantsAccount: false,
+  })
+  assert.ok(result.kind === 'done')
+  for (const { booking } of result.children) {
+    await payload.db.updateOne({
+      collection: 'bookings',
+      id: booking.id,
+      data: { registrationSentAt: new Date(Date.now() - 5 * 86_400_000).toISOString() },
+    })
+  }
+  outbox.length = 0
+  await sendRegistrationReminders(payload)
+  await sendRegistrationReminders(payload)
+  const reminders = outbox.filter((m) => m.to === email('sibremind'))
+  assert.equal(reminders.length, 1)
+  assert.match(reminders[0].text, /Zosia Test i Staś Test/)
 })

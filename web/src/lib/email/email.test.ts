@@ -445,36 +445,44 @@ test('a line break in the name cannot reach the booking subject either', () => {
 
 import { campBookingReceivedEmail, newCampBookingNotification } from '@/lib/email/templates'
 
-const campChild = {
+const campSignUp = {
   firstName: 'Anna',
-  childName: 'Zosia Nowak',
+  placed: 'Zosia Nowak i Staś Nowak',
+  waiting: '',
   campTitle: 'Obóz wspinaczkowo-przygodowy',
   dates: '26 czerwca – 3 lipca 2027',
   location: 'Rzędkowice',
   registrationUrl: 'https://x.pl/obozy/rejestracja?token=abc',
   accountUrl: null,
-  waitlist: false,
 }
 
-test('the camp confirmation greets the parent, names the child and leads to the registration form', () => {
+test('siblings get one confirmation with one link to their one registration form', () => {
   for (const lang of ['pl', 'en'] as const) {
-    const email = campBookingReceivedEmail(lang, campChild)
-    assert.match(email.subject, /Zosia Nowak — Obóz wspinaczkowo-przygodowy/)
+    const email = campBookingReceivedEmail(lang, campSignUp)
+    assert.match(email.subject, /Zosia Nowak i Staś Nowak — Obóz wspinaczkowo-przygodowy/)
     assert.match(email.text, /Anna/)
     assert.match(email.text, /26 czerwca – 3 lipca 2027/)
-    assert.match(email.text, /x\.pl\/obozy\/rejestracja\?token=abc/)
+    assert.equal(email.text.match(/obozy\/rejestracja\?token=abc/g)?.length, 1)
   }
 })
 
-test('a child on the waiting list gets no registration form yet', () => {
-  const email = campBookingReceivedEmail('pl', {
-    ...campChild,
-    registrationUrl: null,
-    waitlist: true,
+test('a child left on the waiting list is named apart; with all waiting there is no form yet', () => {
+  const split = campBookingReceivedEmail('pl', {
+    ...campSignUp,
+    placed: 'Zosia Nowak',
+    waiting: 'Staś Nowak',
   })
-  assert.match(email.subject, /^Lista rezerwowa/)
-  assert.match(email.text, /liście rezerwowej/)
-  assert.doesNotMatch(email.text, /rejestracja/)
+  assert.match(split.text, /Zosia Nowak: miejsce zarezerwowane/)
+  assert.match(split.text, /Staś Nowak: na tym turnusie zabrakło miejsca/)
+  assert.match(split.text, /rejestracja\?token=abc/)
+  const all = campBookingReceivedEmail('pl', {
+    ...campSignUp,
+    placed: '',
+    waiting: 'Zosia Nowak i Staś Nowak',
+    registrationUrl: null,
+  })
+  assert.match(all.subject, /^Lista rezerwowa/)
+  assert.doesNotMatch(all.text, /rejestracja/)
 })
 
 test('the school hears about a sign-up once, with every child and the waiting list flagged', () => {

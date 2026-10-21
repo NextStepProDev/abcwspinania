@@ -430,7 +430,8 @@ export function validateCampBooking(
 
 // --- Camp registration form --------------------------------------------------
 
-export interface CampRegistrationData {
+/** One child's part of the registration form. */
+export interface RegistrationChildData {
   pesel: string
   /** Centimetres, as typed. */
   height: string
@@ -438,17 +439,31 @@ export interface CampRegistrationData {
   medications: string
   diet: string
   conditions: string
-  activitiesConsent: boolean
   photoConsent: boolean
+}
+
+export type RegistrationChildErrors = Partial<Record<keyof RegistrationChildData, string>>
+
+/**
+ * What the form asks once for the whole sign-up (one form, one contract,
+ * decided 21.10.2026): the parent's address for the contract and the
+ * invoice, the invoice request and the two required consents.
+ */
+export interface RegistrationSharedData {
+  street: string
+  postcode: string
+  city: string
   invoiceRequested: boolean
+  activitiesConsent: boolean
   consent: boolean
 }
 
-export type CampRegistrationErrors = Partial<Record<keyof CampRegistrationData, string>>
+export type RegistrationSharedErrors = Partial<Record<keyof RegistrationSharedData, string>>
 
 export const HEALTH_TEXT_MAX = 2000
 export const HEIGHT_MIN_CM = 80
 export const HEIGHT_MAX_CM = 210
+const ADDRESS_MAX = 200
 
 export const ACTIVITIES_CONSENT_MISSING = 'Bez tej zgody dziecko nie może wziąć udziału w obozie.'
 export const REGISTRATION_CONSENT_MISSING = 'Bez tej zgody nie możemy przyjąć formularza.'
@@ -464,13 +479,39 @@ export function checkHeight(raw: string): string | undefined {
   return undefined
 }
 
+/** Street and number, as the contract prints it. */
+export function checkStreet(raw: string): string | undefined {
+  const value = raw.trim()
+  if (!value) return 'Podaj ulicę i numer domu.'
+  if (value.length > ADDRESS_MAX) return 'Ten adres jest za długi.'
+  return undefined
+}
+
 /**
- * The registration form (camp step 2). The health questions may stay empty —
- * "nothing to report" is an answer — but each is bounded; the PESEL, the
- * height and both consents are required. The PESEL rule is `checkPesel`.
+ * A postcode — Polish "42-421" is what nearly everyone types, but a family
+ * from abroad has another shape, so only its length is a rule.
  */
-export function validateCampRegistration(data: CampRegistrationData): CampRegistrationErrors {
-  const errors: CampRegistrationErrors = {}
+export function checkPostcode(raw: string): string | undefined {
+  const value = raw.trim()
+  if (!value) return 'Podaj kod pocztowy.'
+  if (value.length < 3 || value.length > 12) return 'Ten kod pocztowy wygląda na niepełny.'
+  return undefined
+}
+
+export function checkCity(raw: string): string | undefined {
+  const value = raw.trim()
+  if (!value) return 'Podaj miejscowość.'
+  if (value.length > ADDRESS_MAX) return 'Ta nazwa jest za długa.'
+  return undefined
+}
+
+/**
+ * One child's answers. The health questions may stay empty — "nothing to
+ * report" is an answer — but each is bounded; the PESEL (`checkPesel`) and
+ * the height are required.
+ */
+export function validateRegistrationChild(data: RegistrationChildData): RegistrationChildErrors {
+  const errors: RegistrationChildErrors = {}
   const pesel = checkPesel(data.pesel)
   if (pesel) errors.pesel = pesel
   const height = checkHeight(data.height)
@@ -479,6 +520,18 @@ export function validateCampRegistration(data: CampRegistrationData): CampRegist
     if (data[key].trim().length > HEALTH_TEXT_MAX)
       errors[key] = `To pole może mieć najwyżej ${HEALTH_TEXT_MAX} znaków.`
   }
+  return errors
+}
+
+/** The sign-up's shared part: the address and both consents are required. */
+export function validateRegistrationShared(data: RegistrationSharedData): RegistrationSharedErrors {
+  const errors: RegistrationSharedErrors = {}
+  const street = checkStreet(data.street)
+  if (street) errors.street = street
+  const postcode = checkPostcode(data.postcode)
+  if (postcode) errors.postcode = postcode
+  const city = checkCity(data.city)
+  if (city) errors.city = city
   if (!data.activitiesConsent) errors.activitiesConsent = ACTIVITIES_CONSENT_MISSING
   if (!data.consent) errors.consent = REGISTRATION_CONSENT_MISSING
   return errors

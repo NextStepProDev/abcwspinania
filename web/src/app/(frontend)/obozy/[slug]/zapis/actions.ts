@@ -9,7 +9,7 @@ import { getCurrentCustomer } from '@/lib/auth'
 import { MAX_CHILDREN, formatSessionDates } from '@/lib/bookings'
 import { recordEmailIssue, sessionSummary } from '@/lib/bookingEffects'
 import { createCampBookings } from '@/lib/bookingService'
-import { campMailbox } from '@/lib/campPayment'
+import { campMailbox, joinNames } from '@/lib/campPayment'
 import { registrationUrl } from '@/lib/campRegistration'
 import { DEFAULT_LANGUAGE, type EmailLanguage } from '@/lib/email/language'
 import { publicUrl, tokenLink } from '@/lib/email/links'
@@ -137,6 +137,7 @@ export async function bookCamp(
     notes: data.notes,
     consent: data.consent ? 'on' : '',
     createAccount: wantsAccount ? 'on' : '',
+    whenShort: field(formData, 'whenShort'),
   }
 
   if (looksLikeBot(field(formData, 'website'))) return { status: 'done', booked: [] }
@@ -186,6 +187,7 @@ export async function bookCamp(
       language,
       customerId: customer?.id ?? null,
       wantsAccount: !customer && wantsAccount,
+      togetherOrWaitlist: formData.get('whenShort') === 'together',
     })
 
     if (result.kind === 'unavailable') {
@@ -204,9 +206,14 @@ export async function bookCamp(
     const dates = summary?.dates ?? formatSessionDates(language, session.startDate, session.endDate)
     const mailbox = campMailbox()
 
-    for (const child of created) {
-      const { booking } = child
-      const waitlist = child.status === 'waitlist'
+    // One email for the children signed up together, with their one form link.
+    if (created.length > 0) {
+      const nameOf = (c: (typeof created)[number]) =>
+        `${c.booking.childFirstName} ${c.booking.childLastName}`
+      const placed = created.filter((c) => c.status !== 'waitlist')
+      const waiting = created.filter((c) => c.status === 'waitlist')
+      const token = placed.find((c) => c.registrationToken)?.registrationToken
+      const lead = created[0]!.booking
       await payload
         .sendEmail({
           to: contact.email,
@@ -214,24 +221,23 @@ export async function bookCamp(
           ...pick(
             campBookingReceivedEmail(language, {
               firstName: contact.firstName,
-              childName: `${booking.childFirstName} ${booking.childLastName}`,
+              placed: joinNames(language, placed.map(nameOf)),
+              waiting: joinNames(language, waiting.map(nameOf)),
               campTitle: summary?.courseTitle ?? camp.title,
               dates,
               location: summary?.location,
-              registrationUrl:
-                !waitlist && child.registrationToken
-                  ? registrationUrl(child.registrationToken)
-                  : null,
-              accountUrl: booking.customer ? `${publicUrl()}/konto` : null,
-              waitlist,
+              registrationUrl: token ? registrationUrl(token) : null,
+              accountUrl: lead.customer ? `${publicUrl()}/konto` : null,
             }),
           ),
         })
         .catch((error) =>
           recordEmailIssue(
             payload,
-            booking.id,
-            waitlist ? 'Mail „lista rezerwowa”' : 'Potwierdzenie zapisu z linkiem do formularza',
+            lead.id,
+            placed.length
+              ? 'Potwierdzenie zapisu z linkiem do formularza'
+              : 'Mail „lista rezerwowa”',
             error,
           ),
         )

@@ -303,12 +303,25 @@ export interface CampBookingInput {
   language: EmailLanguage
   customerId: number | null
   wantsAccount: boolean
+  /**
+   * The parent's choice when the form warned that there are fewer places
+   * than children (decided 21.10.2026): true puts every new child on the
+   * waiting list rather than sending only some — siblings go together or
+   * not at all. Checked here again, under the lock: the form's count may be
+   * old by now.
+   */
+  togetherOrWaitlist?: boolean
 }
 
 export interface CampChildResult {
   booking: Booking
   status: BookingStatus
-  /** The key of the child's registration form link — only on a new booking. */
+  /**
+   * The key of the sign-up's registration form link — one for all the
+   * children with a place in this sign-up (one form, one contract, decided
+   * 21.10.2026). Null for a child on the waiting list (it gets its own form
+   * once it has a place) and for one booked before.
+   */
   registrationToken: string | null
   /** False: this child was already booked on the session from this address. */
   created: boolean
@@ -411,6 +424,24 @@ export async function createCampBookings(
         : NO_ACCOUNT
     const accountId = input.customerId ?? accounts.accountId
 
+    // How many of these children are new, and whether they all fit: with
+    // "together or the waiting list" a sign-up that does not fit waits whole.
+    const newChildren = input.children.filter(
+      (c) => !booked.has(childKey(c.firstName, c.lastName)),
+    ).length
+    const activeBefore = await payload.count({
+      collection: 'bookings',
+      where: {
+        and: [{ session: { equals: session.id } }, { status: { in: [...ACTIVE_STATUSES] } }],
+      },
+      req,
+      overrideAccess: true,
+    })
+    const left = availability(session.capacity, activeBefore.totalDocs).spotsLeft
+    const allWait = Boolean(input.togetherOrWaitlist) && left !== null && left < newChildren
+    // One link for the whole sign-up: every child here with a place shares it.
+    const sharedToken = crypto.randomBytes(32).toString('hex')
+
     const children: CampChildResult[] = []
     for (const child of input.children) {
       const key = childKey(child.firstName, child.lastName)
@@ -433,11 +464,10 @@ export async function createCampBookings(
         req,
         overrideAccess: true,
       })
-      const status = newBookingStatus(
-        availability(session.capacity, active.totalDocs),
-        session.status,
-      )
-      const registrationToken = crypto.randomBytes(32).toString('hex')
+      const status: BookingStatus = allWait
+        ? 'waitlist'
+        : newBookingStatus(availability(session.capacity, active.totalDocs), session.status)
+      const registrationToken = status === 'waitlist' ? null : sharedToken
       const booking = await payload.create({
         collection: 'bookings',
         data: {
@@ -453,7 +483,7 @@ export async function createCampBookings(
           consentText: campBookingConsentForStorage(),
           consentDate: new Date().toISOString(),
           registrationToken,
-          registrationSentAt: new Date().toISOString(),
+          registrationSentAt: registrationToken ? new Date().toISOString() : null,
         },
         req,
         overrideAccess: true,

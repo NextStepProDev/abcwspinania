@@ -16,6 +16,12 @@ export const CAMP_DEPOSIT_PLN = 500
 
 export const DEPOSIT_DAYS = 7
 
+/**
+ * The organiser's entry in the register of tour organisers (CEOTIPT), as on
+ * the contract — for the invoice and the contract (Krzysiek, 21.10.2026).
+ */
+export const CAMP_ORGANISER_REGISTRY = 'CEOTIPT nr 10677'
+
 /** Full refund up to this many days before the camp; later the deposit is kept. */
 export const FULL_REFUND_DAYS = 30
 
@@ -64,25 +70,35 @@ const DAY_FORMAT: Record<EmailLanguage, Intl.DateTimeFormat> = {
 /**
  * The payment block of a camp email, formatted for its language: the
  * deposit and its deadline, what is left (when the turnus has a price), the
- * account and the title.
+ * account and the title. For a sign-up with several children (one form, one
+ * contract, decided 21.10.2026) every amount is per child times the
+ * children, and the title names them all — one transfer for the family.
  */
 export function paymentDetails(
   lang: EmailLanguage,
-  childName: string,
+  childNames: string[],
   price: number | null,
   dueDate: Date | string | null,
 ): CampPaymentDetails {
+  const count = Math.max(1, childNames.length)
   const remaining = remainingAfterDeposit(price)
   const due = dueDate ? new Date(dueDate) : null
   return {
-    deposit: formatPln(CAMP_DEPOSIT_PLN),
+    deposit: formatPln(CAMP_DEPOSIT_PLN * count),
     dueDate: due && !Number.isNaN(due.getTime()) ? DAY_FORMAT[lang].format(due) : '',
     recipient: CAMP_TRANSFER.recipient,
     account: CAMP_TRANSFER.account,
-    title: transferTitle(childName),
-    remaining: remaining === null ? null : formatPln(remaining),
+    title: transferTitle(childNames.join(', ')),
+    remaining: remaining === null ? null : formatPln(remaining * count),
     refundDays: FULL_REFUND_DAYS,
   }
+}
+
+/** "Zosia Nowak", "Zosia Nowak i Staś Nowak", "Ala, Ola i Ela" — in a sentence. */
+export function joinNames(lang: EmailLanguage, names: string[]): string {
+  if (names.length <= 1) return names[0] ?? ''
+  const and = lang === 'pl' ? ' i ' : ' and '
+  return `${names.slice(0, -1).join(', ')}${and}${names[names.length - 1]}`
 }
 
 /**

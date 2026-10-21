@@ -37,11 +37,26 @@ test('the transfer title is the one Krzysiek asked for', () => {
 import { paymentDetails } from '@/lib/campPayment'
 
 test('the payment block names the amounts, the deadline as a day, the account and the title', () => {
-  const p = paymentDetails('pl', 'Zosia Nowak', 2500, '2027-03-08T10:00:00Z')
+  const p = paymentDetails('pl', ['Zosia Nowak'], 2500, '2027-03-08T10:00:00Z')
   assert.equal(p.deposit.replace(/\s/g, ' '), '500 zł')
   assert.equal(p.remaining?.replace(/\s/g, ' '), '2000 zł')
   assert.equal(p.dueDate, '8 marca 2027')
   assert.equal(p.account, 'PL89 1140 2004 0000 3002 7291 9707')
   assert.equal(p.title, 'Obóz JURA Zosia Nowak')
-  assert.equal(paymentDetails('en', 'Zosia', null, null).remaining, null)
+  assert.equal(paymentDetails('en', ['Zosia'], null, null).remaining, null)
+})
+
+import { joinNames } from '@/lib/campPayment'
+
+test('siblings in one sign-up pay one transfer: amounts times the children, all named', () => {
+  const p = paymentDetails('pl', ['Zosia Nowak', 'Staś Nowak'], 2500, '2027-03-08T10:00:00Z')
+  assert.equal(p.deposit.replace(/\s/g, ' '), '1000 zł')
+  assert.equal(p.remaining?.replace(/\s/g, ' '), '4000 zł')
+  assert.equal(p.title, 'Obóz JURA Zosia Nowak, Staś Nowak')
+})
+
+test('names read as a sentence in either language', () => {
+  assert.equal(joinNames('pl', ['Zosia']), 'Zosia')
+  assert.equal(joinNames('pl', ['Zosia', 'Staś']), 'Zosia i Staś')
+  assert.equal(joinNames('en', ['Ala', 'Ola', 'Ela']), 'Ala, Ola and Ela')
 })

@@ -28,34 +28,39 @@ test('a correct PESEL passes, a typo in any digit does not', () => {
 
 // --- the registration form ------------------------------------------------------
 
-import { checkHeight, isValid, validateCampRegistration } from '@/lib/validation'
+import {
+  checkHeight,
+  isValid,
+  validateRegistrationChild,
+  validateRegistrationShared,
+} from '@/lib/validation'
 
-const form = {
+const child = {
   pesel: '15230701232',
   height: '142',
   allergies: '',
   medications: '',
   diet: '',
   conditions: '',
-  activitiesConsent: true,
   photoConsent: false,
+}
+
+const shared = {
+  street: 'ul. Jurajska 47',
+  postcode: '42-421',
+  city: 'Rzędkowice',
   invoiceRequested: false,
+  activitiesConsent: true,
   consent: true,
 }
 
-test('a registration with nothing to report on health passes', () => {
-  assert.ok(isValid(validateCampRegistration(form)))
+test('a child with nothing to report on health passes', () => {
+  assert.ok(isValid(validateRegistrationChild(child)))
 })
 
-test('the PESEL, the height and both consents are required', () => {
-  const errors = validateCampRegistration({
-    ...form,
-    pesel: '',
-    height: '',
-    activitiesConsent: false,
-    consent: false,
-  })
-  assert.deepEqual(Object.keys(errors).sort(), ['activitiesConsent', 'consent', 'height', 'pesel'])
+test('each child needs the PESEL and the height', () => {
+  const errors = validateRegistrationChild({ ...child, pesel: '', height: '' })
+  assert.deepEqual(Object.keys(errors).sort(), ['height', 'pesel'])
 })
 
 test('the height is whole centimetres within a child’s range', () => {
@@ -66,5 +71,29 @@ test('the height is whole centimetres within a child’s range', () => {
 })
 
 test('a health answer is bounded', () => {
-  assert.ok(validateCampRegistration({ ...form, allergies: 'a'.repeat(2001) }).allergies)
+  assert.ok(validateRegistrationChild({ ...child, allergies: 'a'.repeat(2001) }).allergies)
+})
+
+test('the address and both consents are asked once, all required', () => {
+  assert.ok(isValid(validateRegistrationShared(shared)))
+  const errors = validateRegistrationShared({
+    ...shared,
+    street: '',
+    postcode: '',
+    city: '',
+    activitiesConsent: false,
+    consent: false,
+  })
+  assert.deepEqual(Object.keys(errors).sort(), [
+    'activitiesConsent',
+    'city',
+    'consent',
+    'postcode',
+    'street',
+  ])
+})
+
+test('a foreign postcode is fine, a fragment is not', () => {
+  assert.ok(isValid(validateRegistrationShared({ ...shared, postcode: 'SW1A 1AA' })))
+  assert.ok(validateRegistrationShared({ ...shared, postcode: '42' }).postcode)
 })

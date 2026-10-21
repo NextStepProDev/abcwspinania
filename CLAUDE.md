@@ -1115,16 +1115,26 @@ do 30 dni przed obozem. Cała ścieżka działa bez konta; konto dla chętnych.
   turnus, siebie i jedno albo kilkoro dzieci (`MAX_CHILDREN`); każde dziecko
   to osobny zapis w TEJ SAMEJ transakcji z blokadą co kurs
   (`createCampBookings`) — dzieci liczone po kolei, więc przy braku miejsc
-  pierwsze dostaje miejsce, następne listę rezerwową.
+  pierwsze dostaje miejsce, następne listę rezerwową. **Gdy dzieci jest
+  więcej niż wolnych miejsc**, formularz ostrzega i daje wybór (decyzja
+  21.10.2026): pierwsze na miejsca, reszta rezerwowa, albo wszystkie na listę
+  rezerwową (`togetherOrWaitlist` — rodzeństwo razem albo wcale; serwer
+  liczy jeszcze raz pod blokadą). Krzysiek zawsze może dołożyć miejsca
+  i przestawić status ręcznie.
 - **Rodzeństwo dzieli adres**, więc duplikat przy obozie to adres + imię
   i nazwisko dziecka (`childKey`, bez wielkości liter i nadmiarowych spacji),
   nie sam adres jak przy kursie. Powtórzony zapis tych samych dzieci
   odpowiada tak samo jak pierwszy, bez nowych wpisów i maili.
-- **Link do formularza rejestracyjnego**: każdy nowy zapis dostaje
-  `registrationToken` (pole `hidden` — nie ma go w panelu ani w żadnej
-  odpowiedzi API; Local API czyta je tylko z `showHiddenFields`). Dziecko
-  z listy rezerwowej linku nie dostaje. Mail do rodzica idzie OSOBNO na każde
-  dziecko (jeden przycisk na mail), do szkoły — jeden na zgłoszenie.
+- **Jeden link, jeden formularz, jedna umowa na zgłoszenie** (decyzja
+  21.10.2026, jak we wzorze umowy Krzyśka): dzieci z miejscem z jednego
+  zgłoszenia dzielą jeden `registrationToken` (pole `hidden` — nie ma go
+  w panelu ani w żadnej odpowiedzi API; Local API czyta je tylko
+  z `showHiddenFields`). Token = zgłoszenie: formularz ma część na każde
+  dziecko, a adres rodzica, faktura i zgody są raz. Dziecko z listy
+  rezerwowej tokenu nie dostaje — po zwolnieniu miejsca dostaje WŁASNY
+  (własny formularz i własną umowę). Do rodzica jeden mail po zapisie,
+  jeden z danymi do przelewu (zaliczka × dzieci, jeden przelew, jeden
+  termin), jedno przypomnienie na zgłoszenie; do szkoły jeden na zgłoszenie.
 - **Maile obozowe przez `CAMP_EMAIL`** (`obozy@abcwspinania.info`, decyzja
   20.10.2026): powiadomienie o zapisie idzie tam, a mail do rodzica ma tam
   `replyTo` — tam wracają odpowiedzi i podpisane umowy. Puste = jak
@@ -1145,10 +1155,12 @@ do 30 dni przed obozem. Cała ścieżka działa bez konta; konto dla chętnych.
 - **Zgoda na zdjęcia dziecka — opcjonalna** (`photoConsent` + treść
   w `photoConsentText`). Odznaczenie w panelu = wycofanie zgody.
 - **Formularz rejestracyjny (krok 2): `/obozy/rejestracja?token=…`**, bez
-  konta — kluczem jest `registrationToken` z maila. PESEL (data urodzenia
-  liczona z niego, `lib/pesel.ts`, idzie do zapisu), wzrost, uczulenia, leki,
-  dieta, choroby, zgoda na zajęcia (wymagana), zgoda na zdjęcia
-  (opcjonalna), „chcę fakturę”, zgoda RODO na dane i zdrowie dziecka. Działa
+  konta — kluczem jest `registrationToken` z maila. Na dziecko: PESEL (data
+  urodzenia liczona z niego, `lib/pesel.ts`, idzie do zapisu), wzrost,
+  uczulenia, leki, dieta, choroby, zgoda na zdjęcia (opcjonalna). Raz: adres
+  zamieszkania rodzica (do umowy i faktury, kopiowany na każdy zapis — jest
+  w anonimizacji i kopii danych), „chcę fakturę”, zgoda na zajęcia
+  (wymagana), zgoda RODO na dane i zdrowie dziecka. Działa
   do dnia rozpoczęcia obozu — rodzic wraca tym samym linkiem i poprawia
   (leki w lutym vs w lipcu); zamknięty dla listy rezerwowej i rezygnacji.
   Logika: `lib/campRegistration.ts`.
@@ -1180,6 +1192,11 @@ do 30 dni przed obozem. Cała ścieżka działa bez konta; konto dla chętnych.
   wysyła maila „zostało X zł” (`statusEmailForKind`; przy kursie zaliczka
   dalej bez maila). Kwota pozostała = cena turnusu albo obozu minus 500 zł;
   bez ceny w panelu mail nie podaje kwoty, zamiast podać złą.
+- **„Dane do faktury” w panelu zapisu** (`InvoicePanel`, gdy rodzic zaznaczy
+  fakturę): rodzic z adresem, dziecko, data urodzenia, termin, wpis do
+  rejestru organizatorów (`CAMP_ORGANISER_REGISTRY`). Fakturę Krzysiek
+  wystawia sam w swoim programie (bez NIP-u, poza KSeF). Numer rejestracji
+  obozu w Kuratorium — czeka na jego odpowiedź.
 - **Maile o statusie zapisu obozowego mówią o obozie i dziecku**
   (`campStatusEmail`), nie o kursie, i mają `replyTo` na `CAMP_EMAIL`.
 - **Testy integracyjne nie wołają przez HTTP niczego, co wysyła mail** —

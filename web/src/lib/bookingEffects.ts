@@ -178,7 +178,8 @@ export async function sendStatusEmail(
         campTitle: summary.courseTitle,
         dates: summary.dates,
         location: summary.location,
-        payment: status === 'deposit' ? paymentDetails(lang, childName, summary.price, null) : null,
+        payment:
+          status === 'deposit' ? paymentDetails(lang, [childName], summary.price, null) : null,
         accountUrl,
       })
     : bookingStatusEmail(lang, status as 'confirmed' | 'paid' | 'cancelled', {

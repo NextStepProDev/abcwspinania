@@ -423,43 +423,43 @@ export function newBookingNotification(data: NewBookingData): Email {
 export interface CampBookingEmailData {
   /** The parent's. */
   firstName?: string | null
-  childName: string
+  /** Already joined for the sentence (`joinNames`) — those with a place. */
+  placed: string
+  /** Those on the waiting list, joined the same way; empty when none. */
+  waiting: string
   campTitle: string
   /** Already formatted for the language (`formatSessionDates`). */
   dates: string
   location?: string | null
-  /** The child's registration form — set unless the child is on the waiting list. */
+  /** The sign-up's registration form — set when any child has a place. */
   registrationUrl: string | null
   accountUrl?: string | null
-  waitlist: boolean
 }
 
 const CAMP_RECEIVED = {
   pl: {
-    subject: (child: string, camp: string, waitlist: boolean) =>
-      `${waitlist ? 'Lista rezerwowa' : 'Zapis na obóz'}: ${child} — ${camp}`,
-    body: (child: string, waitlist: boolean) =>
-      waitlist
-        ? `Na ten turnus nie ma już wolnych miejsc, więc ${child} jest na liście rezerwowej. Gdy zwolni się miejsce, odezwiemy się od razu.`
-        : `Dziękujemy — ${child} ma zarezerwowane miejsce. Następny krok to formularz rejestracyjny: dane dziecka potrzebne do umowy i do opieki na obozie (m.in. PESEL, uczulenia, dieta). Po jego wypełnieniu prześlemy umowę i dane do przelewu zaliczki.`,
+    subject: (names: string, camp: string, allWaiting: boolean) =>
+      `${allWaiting ? 'Lista rezerwowa' : 'Zapis na obóz'}: ${names} — ${camp}`,
+    placed: (names: string) =>
+      `Dziękujemy — ${names}: miejsce zarezerwowane. Następny krok to formularz rejestracyjny (jeden dla wszystkich zapisanych tu dzieci): dane potrzebne do umowy i do opieki na obozie (m.in. PESEL, uczulenia, dieta). Po jego wypełnieniu prześlemy dane do przelewu zaliczki i umowę.`,
+    waiting: (names: string) =>
+      `${names}: na tym turnusie zabrakło miejsca, więc jest na liście rezerwowej. Gdy zwolni się miejsce, odezwiemy się od razu — wtedy przyjdzie też formularz.`,
     form: 'Wypełnij formularz rejestracyjny',
     account: 'Zapisy widzisz w Moim koncie',
-    child: 'Uczestnik',
     camp: 'Obóz',
     dates: 'Termin',
     place: 'Miejsce',
     note: 'Masz pytanie? Po prostu odpowiedz na tę wiadomość.',
   },
   en: {
-    subject: (child: string, camp: string, waitlist: boolean) =>
-      `${waitlist ? 'Waiting list' : 'Camp booking'}: ${child} — ${camp}`,
-    body: (child: string, waitlist: boolean) =>
-      waitlist
-        ? `This session is fully booked, so ${child} is on the waiting list. We will get in touch as soon as a place frees up.`
-        : `Thank you — ${child} has a place reserved. The next step is the registration form: the child's details we need for the contract and for looking after them at the camp (PESEL number, allergies, diet and more). Once it is filled in, we will send the contract and the bank details for the deposit.`,
+    subject: (names: string, camp: string, allWaiting: boolean) =>
+      `${allWaiting ? 'Waiting list' : 'Camp booking'}: ${names} — ${camp}`,
+    placed: (names: string) =>
+      `Thank you — ${names}: place reserved. The next step is the registration form (one for all the children signed up here): the details we need for the contract and for looking after them at the camp (PESEL number, allergies, diet and more). Once it is filled in, we will send the bank details for the deposit and the contract.`,
+    waiting: (names: string) =>
+      `${names}: this session is full, so on the waiting list. We will get in touch as soon as a place frees up — the form comes then.`,
     form: 'Fill in the registration form',
     account: 'Your bookings are in your account',
-    child: 'Participant',
     camp: 'Camp',
     dates: 'Dates',
     place: 'Place',
@@ -468,29 +468,34 @@ const CAMP_RECEIVED = {
 } satisfies Record<EmailLanguage, unknown>
 
 /**
- * To the parent, right after the sign-up — one email PER CHILD: each child
- * has its own registration form, and one button per email is what the
- * layout has (and what a parent clicks without hesitating).
+ * To the parent, right after the sign-up — ONE email for the children signed
+ * up together, with one link to their one registration form (decided
+ * 21.10.2026). A child on the waiting list is named apart and gets its form
+ * once it has a place.
  */
 export function campBookingReceivedEmail(lang: EmailLanguage, data: CampBookingEmailData): Email {
   const copy = CAMP_RECEIVED[lang]
   const details: [string, string][] = [
-    [copy.child, data.childName],
     [copy.camp, data.campTitle],
     [copy.dates, data.dates],
   ]
   if (data.location) details.push([copy.place, data.location])
+  const paragraphs = [
+    ...(data.placed ? [copy.placed(data.placed)] : []),
+    ...(data.waiting ? [copy.waiting(data.waiting)] : []),
+  ]
   const action = data.registrationUrl
     ? { label: copy.form, href: data.registrationUrl }
     : data.accountUrl
       ? { label: copy.account, href: data.accountUrl }
       : undefined
+  const names = [data.placed, data.waiting].filter(Boolean).join(', ')
   return {
-    subject: oneLine(copy.subject(data.childName, data.campTitle, data.waitlist)),
+    subject: oneLine(copy.subject(names, data.campTitle, !data.placed)),
     ...renderEmail({
       lang,
       heading: greeting(lang, data.firstName),
-      paragraphs: [copy.body(data.childName, data.waitlist)],
+      paragraphs,
       details,
       action,
       note: copy.note,

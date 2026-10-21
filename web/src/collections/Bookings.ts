@@ -96,7 +96,7 @@ export const Bookings: CollectionConfig = {
     defaultColumns: ['label', 'status', 'phone', 'createdAt'],
     group: 'Zapisy',
     description:
-      'Zapisy na kursy i obozy. Przy obozie imię, nazwisko i kontakt to dane rodzica, a uczestnik to dziecko. Zmiana statusu na „potwierdzony”, „opłacony” albo „rezygnacja” wysyła kursantowi maila. Zapis telefoniczny dodaj tu ręcznie — wtedy liczy się do wolnych miejsc.',
+      'Zapisy na kursy i obozy. Przy obozie imię, nazwisko i kontakt to dane rodzica, a uczestnik to dziecko. Zmiana statusu na „potwierdzony”, „opłacony” albo „rezygnacja” wysyła maila kursantowi albo rodzicowi (przy obozie także „zaliczka wpłacona”). Zapis telefoniczny dodaj tu ręcznie — wtedy liczy się do wolnych miejsc.',
     listSearchableFields: ['label', 'email', 'phone'],
     // Anonymized bookings (five years after the course, `lib/expiry.ts`) are
     // a trace for statistics, not work: rows with no name would only clutter
@@ -363,6 +363,37 @@ export const Bookings: CollectionConfig = {
       ],
     },
     {
+      // The parent's address — for the contract and the invoice (Krzysiek,
+      // 21.10.2026). Asked once in the registration form and copied onto each
+      // child's booking, like the contact. Not required here: a booking made
+      // in the panel may not have it yet.
+      type: 'row',
+      admin: { condition: (data) => data?.kind === 'camp' },
+      fields: [
+        {
+          name: 'addressStreet',
+          type: 'text',
+          maxLength: 200,
+          label: 'Adres rodzica — ulica i numer',
+          admin: { width: '50%' },
+        },
+        {
+          name: 'addressPostcode',
+          type: 'text',
+          maxLength: 12,
+          label: 'Kod pocztowy',
+          admin: { width: '20%' },
+        },
+        {
+          name: 'addressCity',
+          type: 'text',
+          maxLength: 200,
+          label: 'Miejscowość',
+          admin: { width: '30%' },
+        },
+      ],
+    },
+    {
       type: 'collapsible',
       label: 'Uczestnik obozu (dziecko)',
       admin: { condition: (data) => data?.kind === 'camp' },
@@ -493,7 +524,17 @@ export const Bookings: CollectionConfig = {
       type: 'checkbox',
       defaultValue: false,
       label: 'Rodzic chce fakturę',
-      admin: { condition: (data) => data?.kind === 'camp' },
+      admin: { position: 'sidebar', condition: (data) => data?.kind === 'camp' },
+    },
+    {
+      // What the invoice needs, in one place to copy from — see the component.
+      name: 'invoicePanel',
+      type: 'ui',
+      admin: {
+        position: 'sidebar',
+        condition: (data) => data?.kind === 'camp' && Boolean(data?.invoiceRequested),
+        components: { Field: '/components/admin/InvoicePanel#InvoicePanel' },
+      },
     },
     {
       name: 'notes',

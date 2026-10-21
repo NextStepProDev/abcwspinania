@@ -58,9 +58,9 @@ test('siblings on one address get a camp booking each, named after the child', a
     ],
   )
   assert.match(docs[0].label ?? '', /^Zosia Test · /)
-  // Each child its own key to the registration form, stored — and not handed out.
-  assert.ok(docs[0].registrationToken && docs[1].registrationToken)
-  assert.notEqual(docs[0].registrationToken, docs[1].registrationToken)
+  // One key to their one registration form, stored — and not handed out.
+  assert.ok(docs[0].registrationToken)
+  assert.equal(docs[0].registrationToken, docs[1].registrationToken)
   const plain = await payload.findByID({
     collection: 'bookings',
     id: docs[0].id,
@@ -112,6 +112,53 @@ test('two children for the last place: the first gets it, the second the waiting
     overrideAccess: true,
   })
   assert.equal(after.spotsLeft, 0)
+})
+
+test('a child on the waiting list gets no form link; the one with a place does', async () => {
+  const camp = await makeCamp()
+  const session = await makeSession(camp.id, { camp: true, capacity: 1 })
+  const result = await createCampBookings(
+    payload,
+    input(session.id, camp.id, 'splitlink', ['Zosia', 'Staś']),
+  )
+  assert.ok(result.kind === 'done')
+  assert.ok(result.children[0].registrationToken)
+  assert.equal(result.children[1].registrationToken, null)
+})
+
+test('"together or the waiting list": siblings who do not all fit wait together', async () => {
+  const camp = await makeCamp()
+  const session = await makeSession(camp.id, { camp: true, capacity: 1 })
+  const result = await createCampBookings(payload, {
+    ...input(session.id, camp.id, 'together', ['Zosia', 'Staś']),
+    togetherOrWaitlist: true,
+  })
+  assert.ok(result.kind === 'done')
+  assert.deepEqual(
+    result.children.map((c) => c.status),
+    ['waitlist', 'waitlist'],
+  )
+  const after = await payload.findByID({
+    collection: 'sessions',
+    id: session.id,
+    joins: false,
+    overrideAccess: true,
+  })
+  assert.equal(after.spotsLeft, 1, 'the place stays free for someone else')
+})
+
+test('"together" changes nothing when there are places for all', async () => {
+  const camp = await makeCamp()
+  const session = await makeSession(camp.id, { camp: true, capacity: 2 })
+  const result = await createCampBookings(payload, {
+    ...input(session.id, camp.id, 'togetherfits', ['Zosia', 'Staś']),
+    togetherOrWaitlist: true,
+  })
+  assert.ok(result.kind === 'done')
+  assert.deepEqual(
+    result.children.map((c) => c.status),
+    ['new', 'new'],
+  )
 })
 
 test('no camp booking on a draft camp, a trip, a past turnus or another camp’s session', async () => {
