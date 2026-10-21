@@ -132,3 +132,16 @@ export function paymentLine(
   }
   return undefined
 }
+
+/**
+ * The sender of every camp email: the configured address (`EMAIL_FROM` — the
+ * Brevo adapter always sends from it) under its own name, "ABC Wspinania ·
+ * Obozy" (decided 21.10.2026). A parent sees at once what the email is
+ * about, and a mail filter tells camp emails from course ones by it — the
+ * school's test forwarding passes the course ones only.
+ */
+export const CAMP_SENDER_NAME = 'ABC Wspinania · Obozy'
+
+export function campSender(): { name: string; address: string } {
+  return { name: CAMP_SENDER_NAME, address: process.env.EMAIL_FROM || 'obozy@abcwspinania.info' }
+}

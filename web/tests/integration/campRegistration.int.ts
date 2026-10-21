@@ -284,6 +284,7 @@ test('"zaliczka wpłacona" on a camp tells the parent what is left to pay', asyn
   })
   const mail = outbox.find((m) => m.to === email('depstatus'))
   assert.match(mail?.subject ?? '', /^Zaliczka wpłynęła: Zosia Test/)
+  assert.equal(mail?.fromName, 'ABC Wspinania · Obozy')
   assert.match(mail?.text ?? '', /Do zapłaty zostało 2000/)
 })
 
@@ -363,6 +364,8 @@ test('siblings fill one form: a part each, one address, one payment email for bo
   }
   const toParent = outbox.filter((m) => m.to === email('sibform'))
   assert.equal(toParent.length, 1, 'one payment email, not one per child')
+  // The name a mail filter tells camp emails by (the school's test forwarding).
+  assert.equal(toParent[0].fromName, 'ABC Wspinania · Obozy')
   assert.match(toParent[0].text, /Zaliczka: 1000/)
   assert.match(toParent[0].text, /Tytuł przelewu: Obóz JURA Zosia Test, Staś Test/)
 })

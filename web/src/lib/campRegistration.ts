@@ -29,6 +29,7 @@ import {
 import {
   campMailbox,
   campPrice,
+  campSender,
   depositDueDate,
   joinNames,
   paymentDetails,
@@ -303,6 +304,7 @@ export async function sendRegistrationEmails(
     await payload
       .sendEmail({
         to: lead.email,
+        from: campSender(),
         replyTo: mailbox,
         ...pick(
           registrationReceivedEmail(lang, {
@@ -327,6 +329,7 @@ export async function sendRegistrationEmails(
   if (mailbox) {
     await payload
       .sendEmail({
+        from: campSender(),
         to: mailbox,
         ...pick(
           registrationNotification({
@@ -404,6 +407,7 @@ export async function sendRegistrationLink(
   try {
     await payload.sendEmail({
       to: booking.email,
+      from: campSender(),
       replyTo: campMailbox(),
       ...pick(
         registrationLinkEmail(lang, reason, {
@@ -524,6 +528,7 @@ export async function sendDepositReminders(payload: Payload): Promise<void> {
       await payload
         .sendEmail({
           to: lead.email!,
+          from: campSender(),
           replyTo: campMailbox(),
           ...pick(
             depositReminderEmail(lang, {

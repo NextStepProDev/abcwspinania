@@ -9,7 +9,7 @@ import { getCurrentCustomer } from '@/lib/auth'
 import { MAX_CHILDREN, formatSessionDates } from '@/lib/bookings'
 import { recordEmailIssue, sessionSummary } from '@/lib/bookingEffects'
 import { createCampBookings } from '@/lib/bookingService'
-import { campMailbox, joinNames } from '@/lib/campPayment'
+import { campMailbox, campSender, joinNames } from '@/lib/campPayment'
 import { registrationUrl } from '@/lib/campRegistration'
 import { DEFAULT_LANGUAGE, type EmailLanguage } from '@/lib/email/language'
 import { publicUrl, tokenLink } from '@/lib/email/links'
@@ -217,6 +217,7 @@ export async function bookCamp(
       await payload
         .sendEmail({
           to: contact.email,
+          from: campSender(),
           replyTo: mailbox,
           ...pick(
             campBookingReceivedEmail(language, {
@@ -259,6 +260,7 @@ export async function bookCamp(
       const parent = `${contact.firstName} ${contact.lastName}`
       await payload
         .sendEmail({
+          from: campSender(),
           to: mailbox,
           replyTo: { name: parent, address: contact.email },
           ...pick(

@@ -8,7 +8,7 @@ import {
   type StatusEmail,
 } from '@/lib/bookings'
 import { emailFailureReason } from '@/lib/broadcasts'
-import { campMailbox, campPrice, paymentDetails } from '@/lib/campPayment'
+import { campMailbox, campPrice, campSender, paymentDetails } from '@/lib/campPayment'
 import { publicUrl } from '@/lib/email/links'
 import type { EmailLanguage } from '@/lib/email/language'
 import { bookingStatusEmail, campStatusEmail, placeFreedNotification } from '@/lib/email/templates'
@@ -190,6 +190,7 @@ export async function sendStatusEmail(
   await payload.sendEmail({
     to: booking.email,
     // A reply goes to the school, not to an address with no mailbox.
+    ...(camp ? { from: campSender() } : {}),
     replyTo: (camp ? campMailbox() : process.env.ADMIN_NOTIFY_EMAIL) || undefined,
     subject: email.subject,
     html: email.html,

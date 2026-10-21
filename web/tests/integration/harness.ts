@@ -26,6 +26,8 @@ export interface SentEmail {
   subject: string
   text: string
   headers?: Record<string, string>
+  /** The sender's display name, when the code set one (camp emails do). */
+  fromName?: string
 }
 
 type Cleanup = () => Promise<unknown>
@@ -52,6 +54,7 @@ payload.sendEmail = (async (message: Record<string, unknown>) => {
     subject: String(message.subject),
     text: String(message.text ?? ''),
     headers: message.headers as Record<string, string> | undefined,
+    fromName: (message.from as { name?: string } | undefined)?.name,
   })
 }) as Payload['sendEmail']
 
