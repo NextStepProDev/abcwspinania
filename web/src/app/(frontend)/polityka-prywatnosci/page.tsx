@@ -6,6 +6,7 @@ import {
   UNVERIFIED_ACCOUNT_DAYS,
   PENDING_NEWSLETTER_DAYS,
   BOOKING_RETENTION_YEARS,
+  CAMP_HEALTH_RETENTION_MONTHS,
   MESSAGE_RETENTION_MONTHS,
 } from '@/lib/expiry'
 import { CONTROLLER, PRIVACY_POLICY_VERSION } from '@/lib/legal'
@@ -89,6 +90,27 @@ export default function PrivacyPolicyPage() {
                 b RODO), a w zakresie rozliczeń — obowiązki podatkowe (art. 6 ust. 1 lit. c RODO).
               </li>
               <li>
+                <strong>Zapis dziecka na obóz</strong> — dane rodzica lub opiekuna (imię, nazwisko,
+                adres e-mail, telefon) oraz imię i nazwisko dziecka. Po to, żeby zarezerwować
+                miejsce i przekazać dalsze kroki. Podstawa: umowa o udział dziecka w obozie (art. 6
+                ust. 1 lit. b RODO).
+              </li>
+              <li>
+                <strong>Formularz rejestracyjny obozu</strong> — adres zamieszkania rodzica (do
+                umowy i faktury), PESEL i data urodzenia dziecka, wzrost (do zamówienia koszulek)
+                oraz informacje o zdrowiu dziecka: uczulenia, przyjmowane leki, dieta i choroby,
+                które mogą mieć wpływ na jego bezpieczeństwo. Po to, żeby zawrzeć umowę,
+                zorganizować obóz i zapewnić dziecku bezpieczeństwo i opiekę. Podstawa: umowa (art.
+                6 ust. 1 lit. b RODO), a dla informacji o zdrowiu — Twoja wyraźna zgoda (art. 9 ust.
+                2 lit. a RODO). Informacje o zdrowiu widzi tylko szkoła; nie wysyłamy ich mailem.
+              </li>
+              <li>
+                <strong>Zgoda na zdjęcia dziecka</strong> — nieobowiązkowa. Jeśli ją wyrazisz,
+                możemy publikować zdjęcia i nagrania z obozu, na których widać dziecko, na stronie i
+                w naszych mediach społecznościowych. Podstawa: Twoja zgoda (art. 6 ust. 1 lit. a
+                RODO), którą możesz wycofać w każdej chwili.
+              </li>
+              <li>
                 <strong>Konto uczestnika</strong> — imię, nazwisko, adres e-mail, telefon, wybrany
                 język wiadomości i hasło (przechowywane jako skrót kryptograficzny, z którego nie da
                 się go odtworzyć — nie zna go nikt, także szkoła). Po to, żeby prowadzić konto i
@@ -102,9 +124,9 @@ export default function PrivacyPolicyPage() {
                 temu nikt nie zapisze cudzego adresu.
               </li>
               <li>
-                <strong>Wiadomości do zapisanych na kurs</strong> — jeśli masz zapis, możemy napisać
-                do Ciebie w sprawie kursu (np. godzina zbiórki, zmiana planu). To część organizacji
-                kursu, nie marketing.
+                <strong>Wiadomości do zapisanych na kurs lub obóz</strong> — jeśli masz zapis (albo
+                zapisałeś dziecko), możemy napisać do Ciebie w jego sprawie (np. godzina zbiórki, co
+                spakować, zmiana planu). To część organizacji, nie marketing.
               </li>
               <li>
                 <strong>Dzienniki serwera</strong> — przy każdej wizycie serwer zapisuje techniczne
@@ -115,7 +137,7 @@ export default function PrivacyPolicyPage() {
             </List>
             <p>
               Podanie danych jest dobrowolne, ale bez nich nie odpowiemy na wiadomość, nie zapiszemy
-              Cię na kurs ani nie założymy konta.
+              Cię na kurs ani dziecka na obóz i nie założymy konta.
             </p>
           </Section>
 
@@ -133,6 +155,19 @@ export default function PrivacyPolicyPage() {
                 terminie i liczbie uczestników, do statystyk. Wyjątek: zapisy przypięte do Twojego
                 konta zostają, dopóki masz konto — to Twoja historia w zakładce Moje konto. Po
                 usunięciu konta obowiązuje ta sama zasada {BOOKING_RETENTION_YEARS} lat.
+              </li>
+              <li>
+                <strong>Zapisy na obozy</strong> — tak samo jak zapisy na kursy:{' '}
+                {BOOKING_RETENTION_YEARS} lat od końca roku obozu, potem usuwamy z nich dane osobowe
+                rodzica i dziecka (w tym adres i datę urodzenia).
+              </li>
+              <li>
+                <strong>PESEL i informacje o zdrowiu dziecka</strong> z formularza rejestracyjnego —
+                krócej: usuwamy je automatycznie{' '}
+                {CAMP_HEALTH_RETENTION_MONTHS === 1
+                  ? 'miesiąc'
+                  : `${CAMP_HEALTH_RETENTION_MONTHS} miesiące`}{' '}
+                po zakończeniu obozu.
               </li>
               <li>
                 <strong>Konto</strong> — dopóki go nie usuniesz. Konto niepotwierdzone usuwamy
@@ -169,10 +204,10 @@ export default function PrivacyPolicyPage() {
               </li>
               <li>
                 <strong>Brevo</strong> (Sendinblue SAS, Francja, UE) — wysyłka maili: potwierdzeń
-                zapisów, wiadomości do uczestników i newslettera. Brevo dodaje do wiadomości
-                mechanizm zliczania otwarć i kliknięć w linki; korzystamy z niego w trybie
-                zanonimizowanym — statystyki są wyłącznie zbiorcze i nie są przypisywane do
-                konkretnej osoby.
+                zapisów, wiadomości do uczestników i newslettera. Maile nie zawierają informacji o
+                zdrowiu ani numeru PESEL. Brevo dodaje do wiadomości mechanizm zliczania otwarć i
+                kliknięć w linki; korzystamy z niego w trybie zanonimizowanym — statystyki są
+                wyłącznie zbiorcze i nie są przypisywane do konkretnej osoby.
               </li>
               <li>
                 <strong>Cloudflare</strong> (Cloudflare, Inc., USA) — pośredniczy w ruchu do strony
@@ -242,15 +277,17 @@ export default function PrivacyPolicyPage() {
             <p>
               Połączenie ze stroną jest szyfrowane (HTTPS). Hasła do kont przechowujemy jako skrót
               kryptograficzny, z którego nie da się ich odtworzyć. Dostęp do danych w panelu ma
-              tylko szkoła. Kopie zapasowe są szyfrowane przed wysłaniem poza serwer.
+              tylko szkoła — dotyczy to zwłaszcza informacji o zdrowiu dzieci, przechowywanych
+              osobno i usuwanych miesiąc po obozie. Kopie zapasowe są szyfrowane przed wysłaniem
+              poza serwer.
             </p>
           </Section>
 
           <Section title="Zautomatyzowane decyzje">
             <p>
               Nie podejmujemy wobec Ciebie decyzji w sposób zautomatyzowany i nie profilujemy Cię.
-              Jedyny automatyzm to kolejność na liście rezerwowej: gdy kurs jest pełny, zapis trafia
-              na listę, a o przyjęciu z listy decyduje szkoła.
+              Jedyny automatyzm to kolejność na liście rezerwowej: gdy kurs albo turnus obozu jest
+              pełny, zapis trafia na listę, a o przyjęciu z listy decyduje szkoła.
             </p>
           </Section>
 

@@ -129,10 +129,22 @@ function BookingList({
               className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-rock-100 px-4 py-3"
             >
               <span>
-                <span className="block font-medium">{item.title}</span>
+                <span className="block font-medium">
+                  {item.child ? `${item.child} · ${item.title}` : item.title}
+                </span>
                 <span className="text-sm tabular-nums text-rock-600">{item.dates}</span>
+                {item.payment && (
+                  <span className="mt-1 block text-sm text-rock-600">{item.payment}</span>
+                )}
               </span>
-              <span className="text-sm text-rock-600">{STATUS_FOR_PARTICIPANT[item.status]}</span>
+              <span className="flex flex-col items-end gap-1 text-sm text-rock-600">
+                {STATUS_FOR_PARTICIPANT[item.status]}
+                {item.form && (
+                  <TextLink href={item.form.url}>
+                    {item.form.done ? 'Popraw formularz' : 'Wypełnij formularz rejestracyjny'}
+                  </TextLink>
+                )}
+              </span>
             </li>
           ))}
         </ul>

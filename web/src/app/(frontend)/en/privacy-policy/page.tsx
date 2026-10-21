@@ -11,6 +11,7 @@ import {
 } from '@/components/PolicyParts'
 import {
   BOOKING_RETENTION_YEARS,
+  CAMP_HEALTH_RETENTION_MONTHS,
   MESSAGE_RETENTION_MONTHS,
   PENDING_NEWSLETTER_DAYS,
   UNVERIFIED_ACCOUNT_DAYS,
@@ -87,6 +88,28 @@ export default function PrivacyPolicyEnglishPage() {
                 6(1)(b) GDPR) and, for settlements, tax obligations (Art. 6(1)(c) GDPR).
               </li>
               <li>
+                <strong>Signing a child up for a camp</strong> — the parent&apos;s or
+                guardian&apos;s details (first name, surname, email address, phone number) and the
+                child&apos;s first name and surname. To reserve the place and send the next steps.
+                Legal basis: the contract for the child taking part in the camp (Art. 6(1)(b) GDPR).
+              </li>
+              <li>
+                <strong>Camp registration form</strong> — the parent&apos;s home address (for the
+                contract and the invoice), the child&apos;s PESEL number and date of birth, height
+                (for the T-shirts) and information about the child&apos;s health: allergies,
+                medication, diet and conditions that may affect their safety. To conclude the
+                contract, run the camp and keep the child safe and looked after. Legal basis: the
+                contract (Art. 6(1)(b) GDPR) and, for the health information, your explicit consent
+                (Art. 9(2)(a) GDPR). Only the school sees the health information; we never send it
+                by email.
+              </li>
+              <li>
+                <strong>Consent to photos of the child</strong> — optional. With it, we may publish
+                photos and videos from the camp in which the child can be seen, on the website and
+                our social media. Legal basis: your consent (Art. 6(1)(a) GDPR), which you can
+                withdraw at any time.
+              </li>
+              <li>
                 <strong>Participant account</strong> — first name, surname, email address, phone
                 number, the language of our emails and your password (stored as a cryptographic hash
                 it cannot be recovered from — nobody knows it, the school included). To keep your
@@ -100,9 +123,9 @@ export default function PrivacyPolicyEnglishPage() {
                 someone else&apos;s address.
               </li>
               <li>
-                <strong>Messages to people booked on a course</strong> — if you have a booking, we
-                may write to you about the course (a meeting time, a change of plan). This is part
-                of running the course, not marketing.
+                <strong>Messages to people booked on a course or camp</strong> — if you have a
+                booking (or signed a child up), we may write to you about it (a meeting time, what
+                to pack, a change of plan). This is part of running it, not marketing.
               </li>
               <li>
                 <strong>Server logs</strong> — on every visit the server records technical data: IP
@@ -113,7 +136,7 @@ export default function PrivacyPolicyEnglishPage() {
             </List>
             <p>
               Giving your data is voluntary, but without it we cannot answer your message, book you
-              on a course or open an account.
+              on a course or a child on a camp, or open an account.
             </p>
           </Section>
 
@@ -132,6 +155,19 @@ export default function PrivacyPolicyEnglishPage() {
                 bookings attached to your account stay while you have the account — they are your
                 history under My account. Once the account is deleted, the same{' '}
                 {BOOKING_RETENTION_YEARS}-year rule applies.
+              </li>
+              <li>
+                <strong>Camp bookings</strong> — as course bookings: {BOOKING_RETENTION_YEARS} years
+                from the end of the camp&apos;s year, then the parent&apos;s and the child&apos;s
+                personal data is removed from them (the address and the date of birth included).
+              </li>
+              <li>
+                <strong>The child&apos;s PESEL number and health information</strong> from the
+                registration form — shorter: deleted automatically{' '}
+                {CAMP_HEALTH_RETENTION_MONTHS === 1
+                  ? 'one month'
+                  : `${CAMP_HEALTH_RETENTION_MONTHS} months`}{' '}
+                after the camp ends.
               </li>
               <li>
                 <strong>Account</strong> — until you delete it. An unconfirmed account is deleted
@@ -167,9 +203,10 @@ export default function PrivacyPolicyEnglishPage() {
               </li>
               <li>
                 <strong>Brevo</strong> (Sendinblue SAS, France, EU) — sending emails: booking
-                confirmations, messages to participants and the newsletter. Brevo adds a mechanism
-                counting opens and link clicks to emails; we use it in anonymised mode — the
-                statistics are aggregate only and not attributed to any person.
+                confirmations, messages to participants and the newsletter. The emails carry no
+                health information and no PESEL number. Brevo adds a mechanism counting opens and
+                link clicks to emails; we use it in anonymised mode — the statistics are aggregate
+                only and not attributed to any person.
               </li>
               <li>
                 <strong>Cloudflare</strong> (Cloudflare, Inc., USA) — sits between visitors and the
@@ -238,15 +275,17 @@ export default function PrivacyPolicyEnglishPage() {
             <p>
               The connection to the site is encrypted (HTTPS). Account passwords are stored as a
               cryptographic hash they cannot be recovered from. Only the school has access to the
-              data in the admin panel. Backups are encrypted before they leave the server.
+              data in the admin panel — above all to the children&apos;s health information, kept
+              apart and deleted a month after the camp. Backups are encrypted before they leave the
+              server.
             </p>
           </Section>
 
           <Section title="Automated decisions">
             <p>
               We make no automated decisions about you and do not profile you. The only automatic
-              step is the order of the waiting list: when a course is full, a booking goes onto the
-              list, and the school decides who gets a place from it.
+              step is the order of the waiting list: when a course or a camp turnus is full, a
+              booking goes onto the list, and the school decides who gets a place from it.
             </p>
           </Section>
 

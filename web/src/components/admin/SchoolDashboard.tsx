@@ -56,10 +56,42 @@ export async function SchoolDashboard({ payload, user }: { payload: Payload; use
   const lostEmails = {
     and: [{ emailIssueAt: { exists: true } }, { emailIssueHandled: { not_equals: true } }],
   }
-  const [newBookings, awaitingDeposit, waiting, newMessages, emailIssues] = await Promise.all([
-    count('bookings', { status: { equals: 'new' } }),
-    count('bookings', { status: { equals: 'confirmed' } }),
-    count('bookings', { status: { equals: 'waitlist' } }),
+  const course = { kind: { equals: 'course' } }
+  const camp = { kind: { equals: 'camp' } }
+  const both = (a: Record<string, unknown>, b: Record<string, unknown>) => ({ and: [a, b] })
+  // A camp booking with a place whose parent has not sent the registration
+  // form yet, and one whose deposit deadline passed without the deposit
+  // (`lib/campPayment.ts`) — the two things Krzysiek follows up by phone.
+  // Only camps still ahead: after one starts, neither is anything to chase.
+  const ahead = { 'session.startDate': { greater_than: new Date().toISOString() } }
+  const withoutForm = both(camp, {
+    and: [{ status: { in: [...ACTIVE_STATUSES] } }, { registeredAt: { exists: false } }, ahead],
+  })
+  const lateDeposit = both(camp, {
+    and: [
+      { status: { in: ['new', 'confirmed'] } },
+      { depositDueAt: { less_than: new Date().toISOString() } },
+      ahead,
+    ],
+  })
+  const [
+    newCourse,
+    awaitingDeposit,
+    waitingCourse,
+    newCamp,
+    campWithoutForm,
+    campLateDeposit,
+    waitingCamp,
+    newMessages,
+    emailIssues,
+  ] = await Promise.all([
+    count('bookings', both(course, { status: { equals: 'new' } })),
+    count('bookings', both(course, { status: { equals: 'confirmed' } })),
+    count('bookings', both(course, { status: { equals: 'waitlist' } })),
+    count('bookings', both(camp, { status: { equals: 'new' } })),
+    count('bookings', withoutForm),
+    count('bookings', lateDeposit),
+    count('bookings', both(camp, { status: { equals: 'waitlist' } })),
     count('messages', { status: { equals: 'new' } }),
     count('bookings', lostEmails),
   ])
@@ -90,28 +122,57 @@ export async function SchoolDashboard({ payload, user }: { payload: Payload; use
     })),
   )
 
-  const tiles = [
+  type Tile = { label: string; hint: string; value: number; href: string }
+  const courseTiles: Tile[] = [
     {
       label: 'Nowe zgłoszenia',
       hint: 'do potwierdzenia',
-      value: newBookings,
-      href: listUrl('bookings', { status: { equals: 'new' } }),
+      value: newCourse,
+      href: listUrl('bookings', both(course, { status: { equals: 'new' } })),
     },
     {
       label: 'Potwierdzone',
       hint: 'czekają na zaliczkę',
       value: awaitingDeposit,
-      href: listUrl('bookings', { status: { equals: 'confirmed' } }),
+      href: listUrl('bookings', both(course, { status: { equals: 'confirmed' } })),
     },
     {
       label: 'Lista rezerwowa',
       hint: 'czekają na miejsce',
-      value: waiting,
-      href: listUrl('bookings', { status: { equals: 'waitlist' } }),
+      value: waitingCourse,
+      href: listUrl('bookings', both(course, { status: { equals: 'waitlist' } })),
+    },
+  ]
+  const campTiles: Tile[] = [
+    {
+      label: 'Nowe zgłoszenia',
+      hint: 'dzieci zapisane na obóz',
+      value: newCamp,
+      href: listUrl('bookings', both(camp, { status: { equals: 'new' } })),
     },
     {
+      label: 'Bez formularza',
+      hint: 'rodzic nie wypełnił formularza rejestracyjnego',
+      value: campWithoutForm,
+      href: listUrl('bookings', withoutForm),
+    },
+    {
+      label: 'Zaliczka po terminie',
+      hint: 'minęło 7 dni, zaliczki nie zaznaczono',
+      value: campLateDeposit,
+      href: listUrl('bookings', lateDeposit),
+    },
+    {
+      label: 'Lista rezerwowa',
+      hint: 'dzieci czekają na miejsce',
+      value: waitingCamp,
+      href: listUrl('bookings', both(camp, { status: { equals: 'waitlist' } })),
+    },
+  ]
+  const otherTiles: Tile[] = [
+    {
       label: 'Maile, które nie doszły',
-      hint: 'kursant nie wie — odezwij się sam',
+      hint: 'adresat nie wie — odezwij się sam',
       value: emailIssues,
       href: listUrl('bookings', lostEmails),
     },
@@ -123,35 +184,45 @@ export async function SchoolDashboard({ payload, user }: { payload: Payload; use
     },
   ]
 
+  const tileGrid = (tiles: Tile[]) => (
+    <div
+      style={{
+        display: 'grid',
+        gap: 'var(--base)',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+      }}
+    >
+      {tiles.map((t) => (
+        <a
+          key={t.label}
+          href={t.href}
+          style={{
+            display: 'block',
+            padding: 'var(--base)',
+            border: '1px solid var(--theme-elevation-150)',
+            borderRadius: 'var(--style-radius-m, 4px)',
+            textDecoration: 'none',
+            background: t.value > 0 ? 'var(--theme-elevation-50)' : 'transparent',
+          }}
+        >
+          <div style={{ fontSize: 28, fontWeight: 600 }}>{t.value}</div>
+          <div style={{ fontWeight: 600 }}>{t.label}</div>
+          <div style={{ fontSize: 13, color: 'var(--theme-elevation-500)' }}>{t.hint}</div>
+        </a>
+      ))}
+    </div>
+  )
+  const groupTitle = { margin: 'calc(var(--base) * 1.25) 0 calc(var(--base) / 2)' }
+
   return (
     <section style={{ marginBottom: 'calc(var(--base) * 2)' }} aria-label="Do zrobienia">
       <h2 style={{ marginBottom: 'var(--base)' }}>Do zrobienia</h2>
-      <div
-        style={{
-          display: 'grid',
-          gap: 'var(--base)',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-        }}
-      >
-        {tiles.map((t) => (
-          <a
-            key={t.label}
-            href={t.href}
-            style={{
-              display: 'block',
-              padding: 'var(--base)',
-              border: '1px solid var(--theme-elevation-150)',
-              borderRadius: 'var(--style-radius-m, 4px)',
-              textDecoration: 'none',
-              background: t.value > 0 ? 'var(--theme-elevation-50)' : 'transparent',
-            }}
-          >
-            <div style={{ fontSize: 28, fontWeight: 600 }}>{t.value}</div>
-            <div style={{ fontWeight: 600 }}>{t.label}</div>
-            <div style={{ fontSize: 13, color: 'var(--theme-elevation-500)' }}>{t.hint}</div>
-          </a>
-        ))}
-      </div>
+      <h3 style={groupTitle}>Kursy</h3>
+      {tileGrid(courseTiles)}
+      <h3 style={groupTitle}>Obozy</h3>
+      {tileGrid(campTiles)}
+      <h3 style={groupTitle}>Wszystko</h3>
+      {tileGrid(otherTiles)}
 
       <h3 style={{ margin: 'calc(var(--base) * 1.5) 0 calc(var(--base) / 2)' }}>
         Najbliższe terminy
@@ -188,7 +259,16 @@ export async function SchoolDashboard({ payload, user }: { payload: Payload; use
                   </td>
                   <td style={{ padding: '6px 8px' }}>{onList || '—'}</td>
                   <td style={{ padding: '6px 8px' }}>
-                    <a href={listUrl('bookings', { session: { equals: session.id } })}>zapisani</a>
+                    <a
+                      href={listUrl('bookings', {
+                        and: [
+                          { session: { equals: session.id } },
+                          { kind: { equals: camp ? 'camp' : 'course' } },
+                        ],
+                      })}
+                    >
+                      zapisani
+                    </a>
                     {' · '}
                     <a href={`/api/sessions/${session.id}/export`}>Excel</a>
                   </td>

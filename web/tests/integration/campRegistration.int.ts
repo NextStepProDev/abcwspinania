@@ -18,7 +18,7 @@ import {
 } from '@/lib/campRegistration'
 import { erasePerson, personDataCopy } from '@/lib/personErasure'
 
-import { email, http, makeCamp, makeSession, outbox, payload, test } from './harness'
+import { email, http, makeCamp, makeCustomer, makeSession, outbox, payload, test } from './harness'
 
 /**
  * The camp registration form (`lib/campRegistration.ts`): the link's token,
@@ -402,4 +402,71 @@ test('siblings late with the form get one reminder between them', async () => {
   const reminders = outbox.filter((m) => m.to === email('sibremind'))
   assert.equal(reminders.length, 1)
   assert.match(reminders[0].text, /Zosia Test i Staś Test/)
+})
+
+// --- the turnus's list for Excel ---------------------------------------------------
+
+import { exportSessionHandler } from '@/lib/sessionExport'
+
+test('a camp turnus exports the children with their form answers, for the school only', async () => {
+  const { session, child } = await signUp('regexport', 'Zosia')
+  await fill(child.registrationToken!)
+  const response = await exportSessionHandler({
+    payload,
+    user: { collection: 'users', email: email('school') },
+    routeParams: { id: session.id },
+  } as unknown as PayloadRequest)
+  assert.equal(response.status, 200)
+  const csv = await response.text()
+  const [header, row] = csv.replace(/^﻿/, '').split(/\r?\n/)
+  assert.match(
+    header,
+    /^Lp\.;Imię dziecka;Nazwisko dziecka;Data urodzenia;Wzrost \(cm\);Uczulenia;/,
+  )
+  assert.match(row, /;Zosia;Test;7\.03\.2015;142;Orzechy;/)
+  assert.match(row, /;wypełniony;/)
+  assert.match(row, /regexport Test/)
+
+  const refused = await exportSessionHandler({
+    payload,
+    user: null,
+    routeParams: { id: session.id },
+  } as unknown as PayloadRequest)
+  assert.equal(refused.status, 403)
+})
+
+// --- My account ----------------------------------------------------------------------
+
+import { bookingsOf } from '@/lib/participantBookings'
+
+test('My account shows the child, the form link and the money — but not for a camp that is over', async () => {
+  const parent = await makeCustomer('regaccount')
+  const ahead = await signUp('regaccount', 'Zosia')
+  const past = await signUp('regaccount', 'Staś')
+  for (const { child } of [ahead, past]) {
+    await payload.db.updateOne({
+      collection: 'bookings',
+      id: child.booking.id,
+      data: { customer: parent.id, depositDueAt: new Date(Date.now() + 86_400_000).toISOString() },
+    })
+  }
+  // Staś's camp ended last week.
+  await payload.update({
+    collection: 'sessions',
+    id: past.session.id,
+    data: {
+      startDate: new Date(Date.now() - 14 * 86_400_000).toISOString(),
+      endDate: new Date(Date.now() - 7 * 86_400_000).toISOString(),
+    },
+    overrideAccess: true,
+    context: { recountingSpots: true },
+  })
+  const { upcoming, archive } = await bookingsOf(parent.id)
+  const zosia = upcoming.find((r) => r.child === 'Zosia Test')
+  assert.ok(zosia?.form?.url.includes('/obozy/rejestracja?token='))
+  assert.match(zosia?.payment ?? '', /Zaliczka/)
+  const stas = archive.find((r) => r.child === 'Staś Test')
+  assert.ok(stas, 'the past camp is in the archive')
+  assert.equal(stas.form, undefined, 'no link to a form that is closed')
+  assert.equal(stas.payment, undefined, 'no deposit talk after the camp')
 })

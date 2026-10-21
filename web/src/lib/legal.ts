@@ -34,4 +34,4 @@ export const CONTROLLER_SHORT = `${CONTROLLER.person}, prowadzący szkołę ABC 
 export const PRIVACY_POLICY_PATH = '/polityka-prywatnosci'
 
 /** Version of the policy text — change it with every change of substance. */
-export const PRIVACY_POLICY_VERSION = '2026-10-10'
+export const PRIVACY_POLICY_VERSION = '2026-10-21'

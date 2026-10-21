@@ -60,3 +60,17 @@ test('names read as a sentence in either language', () => {
   assert.equal(joinNames('pl', ['Zosia', 'Staś']), 'Zosia i Staś')
   assert.equal(joinNames('en', ['Ala', 'Ola', 'Ela']), 'Ala, Ola and Ela')
 })
+
+import { paymentLine } from '@/lib/campPayment'
+
+test('My account tells the parent where the money stands', () => {
+  // Intl puts a no-break space before "zł".
+  const line = (...args: Parameters<typeof paymentLine>) =>
+    paymentLine(...args)?.replace(/\s/g, ' ')
+  assert.match(line('new', 2500, '2027-03-08T10:00:00Z') ?? '', /Zaliczka 500 zł do 8 marca 2027/)
+  assert.match(line('deposit', 2500, null) ?? '', /zostało 2000 zł/)
+  assert.match(line('deposit', null, null) ?? '', /Resztę zapłać/)
+  assert.equal(line('paid', 2500, null), 'Opłacone w całości.')
+  assert.equal(line('new', 2500, null), undefined, 'no deadline before the form')
+  assert.equal(line('waitlist', 2500, '2027-03-08T10:00:00Z'), undefined)
+})

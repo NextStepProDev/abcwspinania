@@ -109,3 +109,26 @@ export function joinNames(lang: EmailLanguage, names: string[]): string {
 export function campMailbox(): string | undefined {
   return process.env.CAMP_EMAIL || process.env.ADMIN_NOTIFY_EMAIL || undefined
 }
+
+/**
+ * Where a camp booking's money stands, for the parent: the deposit and its
+ * deadline, what is left after it, or paid. Nothing before the form is in
+ * (no deadline yet) and nothing on the waiting list or a cancellation.
+ */
+export function paymentLine(
+  status: string,
+  price: number | null,
+  depositDueAt: string | null | undefined,
+): string | undefined {
+  const remaining = remainingAfterDeposit(price)
+  if (status === 'paid') return 'Opłacone w całości.'
+  if (status === 'deposit') {
+    return remaining === null
+      ? 'Zaliczka wpłynęła. Resztę zapłać najpóźniej w dniu rozpoczęcia obozu.'
+      : `Zaliczka wpłynęła. Do zapłaty zostało ${formatPln(remaining)} — najpóźniej w dniu rozpoczęcia obozu.`
+  }
+  if ((status === 'new' || status === 'confirmed') && depositDueAt) {
+    return `Zaliczka ${formatPln(CAMP_DEPOSIT_PLN)} do ${DAY_FORMAT.pl.format(new Date(depositDueAt))} — dane do przelewu są w mailu po formularzu.`
+  }
+  return undefined
+}

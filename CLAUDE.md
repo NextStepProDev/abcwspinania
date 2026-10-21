@@ -1197,6 +1197,20 @@ do 30 dni przed obozem. Cała ścieżka działa bez konta; konto dla chętnych.
   rejestru organizatorów (`CAMP_ORGANISER_REGISTRY`). Fakturę Krzysiek
   wystawia sam w swoim programie (bez NIP-u, poza KSeF). Numer rejestracji
   obozu w Kuratorium — czeka na jego odpowiedź.
+- **Pulpit dzieli kafelki na kursy i obozy** (`SchoolDashboard`); przy obozach
+  dodatkowo „Bez formularza” (miejsce jest, formularza nie ma) i „Zaliczka po
+  terminie” — to, za czym Krzysiek dzwoni.
+- **Excel turnusu obozu ma własne kolumny** (`campTable` w
+  `lib/sessionExport.ts`): dziecko, data urodzenia, wzrost, uczulenia, leki,
+  dieta, choroby, zgoda na zdjęcia, status, formularz, termin zaliczki,
+  rodzic z telefonem i adresem, faktura. Dane o zdrowiu wychodzą w tym pliku
+  CELOWO (lista na obóz); kopia pobrana na komputer szkoły nie znika sama.
+- **„Moje konto” rodzica**: przy zapisie obozowym imię dziecka, link do
+  formularza („Wypełnij” / „Popraw”) i stan płatności (`paymentLine`) —
+  link z tokenem tylko dla zapisów własnego konta.
+- **Polityka prywatności PL i EN** (wersja 2026-10-21) opisuje zapis dziecka,
+  formularz rejestracyjny (PESEL i zdrowie na zgodę z art. 9 ust. 2 lit. a,
+  kasowane miesiąc po obozie), zgodę na zdjęcia i adres rodzica.
 - **Maile o statusie zapisu obozowego mówią o obozie i dziecku**
   (`campStatusEmail`), nie o kursie, i mają `replyTo` na `CAMP_EMAIL`.
 - **Testy integracyjne nie wołają przez HTTP niczego, co wysyła mail** —
