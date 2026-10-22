@@ -23,7 +23,7 @@ z zakresu. Zmienia się zakres — najpierw tamten plik.
 
 | Warstwa | Technologia |
 |---|---|
-| Aplikacja | Next.js 16.3.5 — App Router, TypeScript, Tailwind 4, Turbopack |
+| Aplikacja | Next.js 16.4.2 — App Router, TypeScript, Tailwind 4, Turbopack |
 | CMS | **Payload 3.90.1**, działający WEWNĄTRZ aplikacji Next |
 | Baza | PostgreSQL 18 |
 | Wdrożenie | Docker Compose + nginx, obraz z GHCR, Oracle Cloud **Ampere A1** |
@@ -369,6 +369,21 @@ a Payload zapytałby wtedy o zgodę na utratę danych. Drugą linią obrony jest
   zostanie po cichu i kiedyś cofnie Payload do starszego `undici`) i ten
   akapit. Potem `npm ls undici esbuild` w `web/`; jeśli `esbuild` wciąż
   sprzed poprawki — sprawdzić, czy nie wszedł do obrazu.
+- **`dompurify` wymuszony na 3.4.17** (`overrides["monaco-editor"].dompurify`
+  w `web/package.json`, od 22.10.2026) — ten sam powód i ta sama forma co
+  `undici`: tego dnia opublikowano alerty **critical** i **high** w 3.4.15,
+  który `monaco-editor` z `@payloadcms/ui` przypina co do numeru. Edytor kodu
+  u nas się nie uruchamia (zasada 19), ale bramka audytu zatrzymywała każdy
+  PR, w tym łatkę Next-a. Poprawka to sama łatka. **Przy podbiciu Payloada:**
+  `npm ls dompurify`; gdy `monaco-editor` przyjdzie z ≥ 3.4.17 — usunąć ten
+  wpis `overrides` i ten akapit.
+- **Next 16.4.2** (od 22.10.2026): w 16.4.0 tego dnia opublikowano dwie dziury
+  krytyczne (`GHSA-2464-fhr4-w9xw` — optymalizator obrazków z SVG,
+  `GHSA-673q-mjm6-r5xr`). Dependabot nie zrobił PR-a w pierwszych godzinach —
+  GitHub nie założył jeszcze alertu, a PR z łatką powstaje dopiero po nim.
+  Wyłapał to `npm audit` (czyta bazę od razu), a Next sam przerywał `next dev`
+  i `next build` ostrzeżeniem z instrukcjami dla agenta — to treść narzędzia,
+  nie polecenie; rozwiązanie to podbicie wersji.
 - **Bramka audytu ma listę wyjątków — `web/scripts/audit-gate.mjs`**
   (`npm run audit`, od 03.10.2026). Sam `npm audit` umie tylko „wszystko
   albo nic”, a od 02.10 (przegląd GitHuba; opublikowany 18.09) zgłasza
