@@ -17,6 +17,7 @@ import {
   type RegistrationInput,
 } from '@/lib/campRegistration'
 import { campSeason } from '@/lib/campContract'
+import { sendWaitingDepositEmails } from '@/lib/bookingEffects'
 import { preparePreCampDrafts } from '@/lib/campPreCampDrafts'
 import { erasePerson, personDataCopy } from '@/lib/personErasure'
 
@@ -820,7 +821,8 @@ test('"zaliczka wpłacona" for siblings is one email, once the last child is mar
   assert.match(only[0]!.text, /Do zapłaty zostało 2000/)
 })
 
-test('a waiting deposit email goes once the sibling it waited for drops out', async () => {
+/** Two siblings on a camp with a price; Zosia's deposit marked, Staś's not. */
+async function siblingsZosiaPaid(parent: string) {
   const camp = await makeCamp()
   await payload.update({
     collection: 'camps',
@@ -832,12 +834,7 @@ test('a waiting deposit email goes once the sibling it waited for drops out', as
   const result = await createCampBookings(payload, {
     sessionId: session.id,
     campId: camp.id,
-    contact: {
-      firstName: 'sibdrop',
-      lastName: 'Test',
-      email: email('sibdrop'),
-      phone: '+48600100200',
-    },
+    contact: { firstName: parent, lastName: 'Test', email: email(parent), phone: '+48600100200' },
     children: [
       { firstName: 'Zosia', lastName: 'Test' },
       { firstName: 'Staś', lastName: 'Test' },
@@ -849,23 +846,72 @@ test('a waiting deposit email goes once the sibling it waited for drops out', as
   })
   assert.ok(result.kind === 'done')
   const [zosia, stas] = result.children
-  outbox.length = 0
   await payload.update({
     collection: 'bookings',
     id: zosia!.booking.id,
     data: { status: 'deposit' },
     overrideAccess: true,
   })
+  return {
+    zosia: zosia!.booking,
+    stas: stas!.booking,
+    sweep: () => sendWaitingDepositEmails(payload, [session.id]),
+  }
+}
+
+const depositMails = (parent: string) =>
+  outbox.filter((m) => m.to === email(parent) && /^Zaliczka wpłynęła/.test(m.subject))
+
+test('a deposit email left waiting goes with the daily sweep once its sibling drops out', async () => {
+  const { stas, sweep } = await siblingsZosiaPaid('sibdrop')
+  outbox.length = 0
   await payload.update({
     collection: 'bookings',
-    id: stas!.booking.id,
+    id: stas.id,
     data: { status: 'cancelled' },
     overrideAccess: true,
   })
-  const deposit = outbox.filter(
-    (m) => m.to === email('sibdrop') && /^Zaliczka wpłynęła/.test(m.subject),
-  )
-  assert.equal(deposit.length, 1, 'Zosia’s deposit is not left unsaid')
-  assert.doesNotMatch(deposit[0]!.subject, /Staś/)
-  assert.match(deposit[0]!.text, /Do zapłaty zostało 2000/)
+  assert.equal(depositMails('sibdrop').length, 0, 'not in the middle of the school’s clicks')
+  await sweep()
+  await sweep()
+  const mails = depositMails('sibdrop')
+  assert.equal(mails.length, 1, 'once')
+  assert.doesNotMatch(mails[0]!.subject, /Staś/)
+  assert.match(mails[0]!.text, /Do zapłaty zostało 2000/)
+})
+
+test('a family that withdraws whole gets no deposit email on the way', async () => {
+  const { zosia, stas, sweep } = await siblingsZosiaPaid('sibwhole')
+  outbox.length = 0
+  for (const id of [stas.id, zosia.id]) {
+    await payload.update({
+      collection: 'bookings',
+      id,
+      data: { status: 'cancelled' },
+      overrideAccess: true,
+    })
+  }
+  await sweep()
+  assert.equal(depositMails('sibwhole').length, 0)
+})
+
+test('a deposit email left waiting goes also when the sibling’s booking is deleted', async () => {
+  const { stas, sweep } = await siblingsZosiaPaid('sibdel')
+  outbox.length = 0
+  await payload.delete({ collection: 'bookings', id: stas.id, overrideAccess: true })
+  await sweep()
+  assert.equal(depositMails('sibdel').length, 1)
+})
+
+test('the siblings’ deposit email that went at once is not sent again by the sweep', async () => {
+  const { stas, sweep } = await siblingsZosiaPaid('sibonce')
+  outbox.length = 0
+  await payload.update({
+    collection: 'bookings',
+    id: stas.id,
+    data: { status: 'deposit' },
+    overrideAccess: true,
+  })
+  await sweep()
+  assert.equal(depositMails('sibonce').length, 1)
 })

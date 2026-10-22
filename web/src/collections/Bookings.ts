@@ -14,13 +14,7 @@ import {
   statusEmailForKind,
   type BookingStatus,
 } from '../lib/bookings'
-import {
-  idOf,
-  recordEmailIssue,
-  recountSession,
-  sendStatusEmail,
-  sendWaitingDepositEmail,
-} from '../lib/bookingEffects'
+import { idOf, recordEmailIssue, recountSession, sendStatusEmail } from '../lib/bookingEffects'
 import { LANGUAGE_OPTIONS_FOR_PAYLOAD } from '../lib/email/language'
 import {
   contractHandler,
@@ -240,7 +234,6 @@ export const Bookings: CollectionConfig = {
           )
         }
         const previousStatus = previousDoc?.status as BookingStatus | undefined
-        await sendWaitingDepositEmail(req.payload, doc, previousStatus, req)
         let status = statusEmailForKind(doc.kind, previousStatus, doc.status as BookingStatus)
         // "Paid" emails only before the course starts (`statusEmailFor`), so
         // that one needs the session's first day. `joins: false` — the
@@ -544,6 +537,14 @@ export const Bookings: CollectionConfig = {
         description:
           'Ustawia się sam po wypełnieniu formularza (7 dni). Można przesunąć, np. po rozmowie z rodzicem.',
       },
+    },
+    {
+      // When the parent was told the deposit came — siblings get one email
+      // between them, sometimes from the daily sweep (`sendWaitingDepositEmails`).
+      name: 'depositEmailAt',
+      hooks: { beforeDuplicate: [clearOnDuplicate] },
+      type: 'date',
+      hidden: true,
     },
     {
       name: 'depositReminderAt',

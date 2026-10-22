@@ -2,6 +2,7 @@ import { getPayload } from 'payload'
 import config from '@payload-config'
 
 import { anonymizedLabel } from '@/lib/bookings'
+import { sendWaitingDepositEmails } from '@/lib/bookingEffects'
 import { preparePreCampDrafts } from '@/lib/campPreCampDrafts'
 import {
   deleteExpiredRegistrations,
@@ -191,6 +192,9 @@ export function scheduleAccountCleanup(): void {
         })
         await sendDepositReminders(payload).catch((error) => {
           console.warn('Deposit reminders failed, will retry tomorrow:', error)
+        })
+        await sendWaitingDepositEmails(payload).catch((error) => {
+          console.warn('Waiting deposit emails failed, will retry tomorrow:', error)
         })
         await preparePreCampDrafts(payload).catch((error) => {
           console.warn('Pre-camp drafts failed, will retry tomorrow:', error)

@@ -185,33 +185,59 @@ async function depositSiblings(payload: Payload, booking: Booking, req?: Req): P
 }
 
 /**
- * A sibling's deposit email waits for the last child of the sign-up
- * (`sendStatusEmail`). When that child drops out instead — cancelled, or
- * moved to the waiting list — nothing would ever send it: this does, for the
- * siblings left. Only when the child was the one not yet paid for.
+ * Deposit emails left waiting: siblings get one, once the last child with a
+ * place is marked (`sendStatusEmail`) — but when the child it waited for
+ * drops out instead (cancelled, waiting list, deleted), no click would ever
+ * send it. The daily sweep does, for the children left. Not at once on the
+ * dropout: a family withdrawing whole is clicked one child at a time, and
+ * would get "zaliczka wpłynęła" between two cancellations.
  */
-export async function sendWaitingDepositEmail(
+export async function sendWaitingDepositEmails(
   payload: Payload,
-  booking: Booking,
-  previousStatus: string | null | undefined,
-  req?: Req,
+  // Tests narrow the sweep to their own turnusy — the dev database has others.
+  onlySessions?: number[],
 ): Promise<void> {
-  if (booking.kind !== 'camp') return
-  if (previousStatus !== 'new' && previousStatus !== 'confirmed') return
-  if (booking.status !== 'cancelled' && booking.status !== 'waitlist') return
-  // Never fails the save it follows: a status change must not be undone by an email.
-  let first: Booking | undefined
-  try {
-    const siblings = (await depositSiblings(payload, booking, req)).filter(
-      (b) => b.id !== booking.id,
-    )
-    if (siblings.some((b) => b.status === 'new' || b.status === 'confirmed')) return
-    first = siblings.find((b) => b.status === 'deposit')
-    if (!first) return
-    await sendStatusEmail(payload, first, 'deposit', req)
-  } catch (error) {
-    if (first) await recordEmailIssue(payload, first.id, 'Mail „zaliczka wpłynęła”', error, req)
-    else payload.logger.error({ err: error }, 'Failed to check a waiting deposit email')
+  const { docs } = await payload.find({
+    collection: 'bookings',
+    where: {
+      and: [
+        ...(onlySessions ? [{ session: { in: onlySessions } }] : []),
+        { kind: { equals: 'camp' } },
+        { status: { equals: 'deposit' } },
+        { email: { exists: true } },
+        { depositEmailAt: { exists: false } },
+        { 'session.startDate': { greater_than: new Date().toISOString() } },
+      ],
+    },
+    sort: 'createdAt',
+    pagination: false,
+    depth: 0,
+    overrideAccess: true,
+    showHiddenFields: true,
+  })
+  const seen = new Set<string>()
+  for (const booking of docs) {
+    const key = booking.registrationToken || `booking-${booking.id}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    let siblings: Booking[] = [booking]
+    try {
+      siblings = await depositSiblings(payload, booking)
+      if (siblings.some((b) => b.status === 'new' || b.status === 'confirmed')) continue
+      await sendStatusEmail(payload, booking, 'deposit')
+    } catch (error) {
+      // Noted once, and every child marked so that tomorrow does not try again.
+      await recordEmailIssue(payload, booking.id, 'Mail „zaliczka wpłynęła”', error)
+      for (const b of siblings.filter((s) => s.status === 'deposit')) {
+        await payload.db
+          .updateOne({
+            collection: 'bookings',
+            id: b.id,
+            data: { depositEmailAt: new Date().toISOString() },
+          })
+          .catch(() => undefined)
+      }
+    }
   }
 }
 
@@ -238,13 +264,14 @@ export async function sendStatusEmail(
   // school marks each child: one email, once the LAST of them is marked
   // (Mateusz, 22.10.2026), naming those with a deposit and their balance.
   let children = [childName]
+  let depositIds = [booking.id]
   if (camp && status === 'deposit') {
     const siblings = await depositSiblings(payload, booking, req)
     if (siblings.some((b) => b.status === 'new' || b.status === 'confirmed')) return
     // A child already paid in full is neither in it nor in its balance.
-    children = siblings
-      .filter((b) => b.status === 'deposit')
-      .map((b) => [b.childFirstName, b.childLastName].filter(Boolean).join(' '))
+    const paid = siblings.filter((b) => b.status === 'deposit')
+    children = paid.map((b) => [b.childFirstName, b.childLastName].filter(Boolean).join(' '))
+    depositIds = paid.map((b) => b.id)
   }
   const email = camp
     ? campStatusEmail(lang, status, {
@@ -270,6 +297,17 @@ export async function sendStatusEmail(
     html: email.html,
     text: email.text,
   })
+  // The siblings' deposit email went: the daily sweep leaves them alone.
+  if (camp && status === 'deposit') {
+    for (const id of depositIds) {
+      await payload.db.updateOne({
+        collection: 'bookings',
+        id,
+        data: { depositEmailAt: new Date().toISOString() },
+        req,
+      })
+    }
+  }
 }
 
 /**

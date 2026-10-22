@@ -556,6 +556,7 @@ export interface Booking {
    * Ustawia się sam po wypełnieniu formularza (7 dni). Można przesunąć, np. po rozmowie z rodzicem.
    */
   depositDueAt?: string | null;
+  depositEmailAt?: string | null;
   depositReminderAt?: string | null;
   invoiceRequested?: boolean | null;
   invoiceCompanyName?: string | null;
@@ -1297,6 +1298,7 @@ export interface BookingsSelect<T extends boolean = true> {
   registrationReminderAt?: T;
   registeredAt?: T;
   depositDueAt?: T;
+  depositEmailAt?: T;
   depositReminderAt?: T;
   invoiceRequested?: T;
   invoiceCompanyName?: T;
