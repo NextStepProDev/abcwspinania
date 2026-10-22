@@ -56,9 +56,14 @@ export function stopInvalidSubmit(event: FormEvent<HTMLFormElement>) {
   // browser's own checks disagree with ours: `type="email"` rejects
   // `żaneta@example.pl`, which the server accepts — blocking on it stopped
   // the send with no message at all, since our rule shows nothing.
+  // A field hidden by its checkbox (the camp form's company invoice) does not
+  // count — the server ignores it too.
   const blocking = Array.from(form.elements).filter(
     (el): el is HTMLInputElement =>
-      el instanceof HTMLInputElement && (el.validity.customError || el.validity.valueMissing),
+      el instanceof HTMLInputElement &&
+      (el.validity.customError || el.validity.valueMissing) &&
+      // `checkVisibility` from Safari 17.4; before it, `offsetParent` says the same.
+      (el.checkVisibility?.() ?? el.offsetParent !== null),
   )
   if (blocking.length === 0) return
   event.preventDefault()

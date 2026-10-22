@@ -28,6 +28,8 @@ export interface SentEmail {
   headers?: Record<string, string>
   /** The sender's display name, when the code set one (camp emails do). */
   fromName?: string
+  /** File names of the attachments (the camp contract). */
+  attachments: string[]
 }
 
 type Cleanup = () => Promise<unknown>
@@ -55,6 +57,9 @@ payload.sendEmail = (async (message: Record<string, unknown>) => {
     text: String(message.text ?? ''),
     headers: message.headers as Record<string, string> | undefined,
     fromName: (message.from as { name?: string } | undefined)?.name,
+    attachments: ((message.attachments as { filename: string }[] | undefined) ?? []).map(
+      (a) => a.filename,
+    ),
   })
 }) as Payload['sendEmail']
 

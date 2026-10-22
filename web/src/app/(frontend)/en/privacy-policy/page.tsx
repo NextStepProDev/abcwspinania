@@ -95,13 +95,13 @@ export default function PrivacyPolicyEnglishPage() {
               </li>
               <li>
                 <strong>Camp registration form</strong> — the parent&apos;s home address (for the
-                contract and the invoice), the child&apos;s PESEL number and date of birth, height
-                (for the T-shirts) and information about the child&apos;s health: allergies,
-                medication, diet and conditions that may affect their safety. To conclude the
-                contract, run the camp and keep the child safe and looked after. Legal basis: the
-                contract (Art. 6(1)(b) GDPR) and, for the health information, your explicit consent
-                (Art. 9(2)(a) GDPR). Only the school sees the health information; we never send it
-                by email.
+                contract and the invoice), for an invoice to a company — its name, tax number (NIP)
+                and address, the child&apos;s PESEL number and date of birth, height (for the
+                T-shirts) and information about the child&apos;s health: allergies, medication, diet
+                and conditions that may affect their safety. To conclude the contract, run the camp
+                and keep the child safe and looked after. Legal basis: the contract (Art. 6(1)(b)
+                GDPR) and, for the health information, your explicit consent (Art. 9(2)(a) GDPR).
+                Only the school sees the health information; we never send it by email.
               </li>
               <li>
                 <strong>Consent to photos of the child</strong> — optional. With it, we may publish

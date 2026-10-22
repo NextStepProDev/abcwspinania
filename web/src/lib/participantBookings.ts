@@ -3,7 +3,7 @@ import config from '@payload-config'
 
 import { isUpcoming, type BookingStatus } from '@/lib/bookings'
 import { campPrice, paymentLine } from '@/lib/campPayment'
-import { registrationUrl } from '@/lib/campRegistration'
+import { contractUrl, registrationUrl } from '@/lib/campRegistration'
 import { formatDateRange } from '@/lib/format'
 import type { Session } from '@/payload-types'
 
@@ -19,6 +19,8 @@ export interface BookingRow {
   child?: string
   /** On a camp booking with a place: the registration form, and whether it is in. */
   form?: { url: string; done: boolean }
+  /** On a camp booking whose contract went out: where to download it. */
+  contract?: string
   /** On a camp booking: where the money stands, in one line. */
   payment?: string
 }
@@ -87,6 +89,7 @@ export async function bookingsOf(customerId: number) {
           url: registrationUrl(booking.registrationToken),
           done: Boolean(booking.registeredAt),
         }
+        if (booking.contractSentAt) row.contract = contractUrl(booking.registrationToken)
       }
       if (ahead) {
         row.payment = paymentLine(

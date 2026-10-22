@@ -1,4 +1,6 @@
 import crypto from 'node:crypto'
+import { readFile } from 'node:fs/promises'
+import path from 'node:path'
 
 import {
   commitTransaction,
@@ -11,6 +13,14 @@ import {
 
 import { isAdmin } from '@/lib/access'
 import { ACTIVE_STATUSES, formatSessionDates } from '@/lib/bookings'
+import {
+  CONTRACT_RETURN_EMAIL,
+  campSeason,
+  contractFileName,
+  type ContractData,
+} from '@/lib/campContract'
+import { contractPdf } from '@/lib/contractPdf'
+import { privateFilesDir } from '@/lib/privateFiles'
 import { idOf, recordEmailIssue } from '@/lib/bookingEffects'
 import {
   campActivitiesConsentForStorage,
@@ -61,6 +71,9 @@ function pick(email: { subject: string; html: string; text: string }) {
 }
 
 export const registrationUrl = (token: string) => tokenLink('/obozy/rejestracja', token)
+
+/** The contract to download — the same key as the form (`umowa/route.ts`). */
+export const contractUrl = (token: string) => tokenLink('/obozy/rejestracja/umowa', token)
 
 export const childName = (booking: Pick<Booking, 'childFirstName' | 'childLastName'>) =>
   [booking.childFirstName, booking.childLastName].filter(Boolean).join(' ')
@@ -176,6 +189,8 @@ export interface RegistrationChildInput {
 export interface RegistrationInput {
   address: { street: string; postcode: string; city: string }
   invoiceRequested: boolean
+  /** The invoice goes to a company; null for one in the parent's name. */
+  invoiceCompany: { name: string; nip: string; address: string } | null
   /** By booking id — one entry per child the form showed. */
   children: Record<number, RegistrationChildInput>
 }
@@ -267,6 +282,9 @@ export async function saveRegistration(
             photoConsent: child.photoConsent,
             photoConsentText: child.photoConsent ? photoConsentForStorage() : null,
             invoiceRequested: input.invoiceRequested,
+            invoiceCompanyName: input.invoiceCompany?.name.trim() || null,
+            invoiceNip: input.invoiceCompany?.nip || null,
+            invoiceCompanyAddress: input.invoiceCompany?.address.trim() || null,
             registeredAt: booking.registeredAt ?? now,
             depositDueAt: booking.depositDueAt ?? dueAt,
           },
@@ -284,6 +302,69 @@ export async function saveRegistration(
   }
 }
 
+/** The organiser's stamp and signature from "Ustawienia obozów", or null when none is uploaded. */
+async function contractSignature(
+  payload: Payload,
+): Promise<{ bytes: Uint8Array; type: 'png' | 'jpg' } | null> {
+  const config = await payload
+    .findGlobal({ slug: 'camp-config', depth: 1, overrideAccess: true })
+    .catch(() => null)
+  const file = config?.contractSignature
+  if (!file || typeof file !== 'object' || !file.filename) return null
+  const bytes = await readFile(path.join(privateFilesDir(), path.basename(file.filename))).catch(
+    () => null,
+  )
+  if (!bytes) return null
+  return { bytes, type: file.mimeType === 'image/png' ? 'png' : 'jpg' }
+}
+
+/**
+ * The contract for the children of one sign-up (`campContract.ts`): the
+ * parent from the first of them (the address is copied onto each), every
+ * child with its turnus, the price and the day of concluding. Null when the
+ * turnus has no price — a contract must state one.
+ */
+export async function buildContract(
+  payload: Payload,
+  input: {
+    bookings: Booking[]
+    session: Session
+    camp: Camp | null
+    concludedOn: Date
+    price: number | null
+  },
+): Promise<{ bytes: Uint8Array; fileName: string } | null> {
+  const lead = input.bookings[0]
+  if (!lead || input.price === null) return null
+  const season = campSeason(input.session.startDate)
+  const turnus = [
+    formatSessionDates('pl', input.session.startDate, input.session.endDate),
+    input.camp?.title,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+  const data: ContractData = {
+    concludedOn: input.concludedOn,
+    season,
+    parent: {
+      name: `${lead.firstName} ${lead.lastName}`,
+      address: [
+        lead.addressStreet,
+        [lead.addressPostcode, lead.addressCity].filter(Boolean).join(' '),
+      ]
+        .filter(Boolean)
+        .join(', '),
+      phone: lead.phone,
+      email: lead.email ?? '',
+    },
+    children: input.bookings.map((b) => ({ name: childName(b), turnus })),
+    price: input.price,
+    ownSleepingBags: Boolean(input.camp?.ownSleepingBags),
+  }
+  const bytes = await contractPdf(data, await contractSignature(payload))
+  return { bytes, fileName: contractFileName(season, lead.lastName) }
+}
+
 /**
  * The emails after a save: the parent on the first one — the payment
  * details for the whole sign-up, one transfer — and the school on every one.
@@ -292,20 +373,58 @@ export async function sendRegistrationEmails(
   payload: Payload,
   ctx: RegistrationContext,
   saved: SavedRegistration,
-): Promise<void> {
+): Promise<{ contractAttached: boolean }> {
   const { session, camp } = ctx
   const lead = saved.bookings[0]
-  if (!lead) return
+  if (!lead) return { contractAttached: false }
+  let contractAttached = false
   const lang = (lead.language ?? 'pl') as EmailLanguage
   const names = saved.bookings.map(childName)
   const campTitle = camp?.title ?? ''
   const mailbox = campMailbox()
   if (saved.first && lead.email) {
+    // The contract goes with the payment details: the day it is sent is the
+    // day it is concluded, and the deposit's 7 days count from it. A failed
+    // contract must not stop the payment email — the school hears about it.
+    const price = campPrice(session.price, camp?.price)
+    const sentAt = new Date()
+    const contract = await buildContract(payload, {
+      bookings: saved.bookings,
+      session,
+      camp,
+      concludedOn: sentAt,
+      price,
+    }).catch((error) => {
+      payload.logger.error({ err: error }, 'Failed to build a camp contract')
+      return null
+    })
+    if (contract) {
+      contractAttached = true
+      for (const booking of saved.bookings) {
+        await payload.db.updateOne({
+          collection: 'bookings',
+          id: booking.id,
+          data: { contractSentAt: sentAt.toISOString(), contractPrice: price },
+        })
+      }
+    } else {
+      await recordEmailIssue(
+        payload,
+        lead.id,
+        'Umowa nie poszła z danymi do przelewu',
+        price === null
+          ? 'turnus nie ma ceny w panelu; wpisz ją i pobierz umowę z zapisu'
+          : 'nie udało się utworzyć umowy; pobierz ją z zapisu',
+      )
+    }
     await payload
       .sendEmail({
         to: lead.email,
         from: campSender(),
         replyTo: mailbox,
+        ...(contract
+          ? { attachments: [{ filename: contract.fileName, content: contract.bytes }] }
+          : {}),
         ...pick(
           registrationReceivedEmail(lang, {
             firstName: lead.firstName,
@@ -313,12 +432,9 @@ export async function sendRegistrationEmails(
             campTitle,
             dates: formatSessionDates(lang, session.startDate, session.endDate),
             url: registrationUrl(ctx.token),
-            payment: paymentDetails(
-              lang,
-              names,
-              campPrice(session.price, camp?.price),
-              saved.depositDueAt,
-            ),
+            payment: paymentDetails(lang, names, price, saved.depositDueAt),
+            contractAttached: Boolean(contract),
+            contractEmail: CONTRACT_RETURN_EMAIL,
           }),
         ),
       })
@@ -344,6 +460,7 @@ export async function sendRegistrationEmails(
       })
       .catch((error) => console.error('Failed to send the registration notification:', error))
   }
+  return { contractAttached }
 }
 
 /**
@@ -570,6 +687,88 @@ export async function deleteExpiredRegistrations(payload: Payload): Promise<void
   if (errors.length) {
     payload.logger.warn({ errors }, `Could not delete ${errors.length} registration form(s)`)
   }
+}
+
+// --- the contract to download -------------------------------------------------------
+
+/**
+ * The contract of the sign-up `booking` belongs to, as sent — the children
+ * sharing its link that have a place, the price and the day stored when it
+ * went out. Before it went out, a preview with today's date and the current
+ * price (the school may look at it in the panel). Null without a price.
+ */
+export async function contractOf(
+  payload: Payload,
+  booking: Booking,
+): Promise<{ bytes: Uint8Array; fileName: string } | null> {
+  const sessionId = idOf(booking.session)
+  if (!sessionId) return null
+  const session = await payload
+    .findByID({
+      collection: 'sessions',
+      id: sessionId,
+      depth: 1,
+      joins: false,
+      overrideAccess: true,
+    })
+    .catch(() => null)
+  if (!session) return null
+  const camp = typeof session.camp === 'object' ? session.camp : null
+  const group = booking.registrationToken
+    ? await bookingsWithToken(payload, booking.registrationToken)
+    : [booking]
+  const bookings = group.filter((b) => b.status !== 'cancelled' && b.status !== 'waitlist')
+  return buildContract(payload, {
+    bookings: bookings.length ? bookings : [booking],
+    session,
+    camp,
+    concludedOn: booking.contractSentAt ? new Date(booking.contractSentAt) : new Date(),
+    price:
+      typeof booking.contractPrice === 'number'
+        ? booking.contractPrice
+        : campPrice(session.price, camp?.price),
+  })
+}
+
+export function pdfResponse(contract: { bytes: Uint8Array; fileName: string }): Response {
+  return new Response(Buffer.from(contract.bytes), {
+    headers: {
+      'Content-Type': 'application/pdf',
+      // ASCII only by construction (`contractFileName`).
+      'Content-Disposition': `attachment; filename="${contract.fileName}"`,
+      // Personal data: never in a shared cache.
+      'Cache-Control': 'private, no-store',
+    },
+  })
+}
+
+/** GET /api/bookings/:id/contract — the school's copy, from the booking's page. */
+export async function contractHandler(req: PayloadRequest): Promise<Response> {
+  if (!isAdmin({ req })) return Response.json({ error: 'Tylko dla konta szkoły.' }, { status: 403 })
+  const id = Number(req.routeParams?.id)
+  const booking = Number.isInteger(id)
+    ? await req.payload
+        .findByID({
+          collection: 'bookings',
+          id,
+          depth: 0,
+          overrideAccess: true,
+          showHiddenFields: true,
+          disableErrors: true,
+        })
+        .catch(() => null)
+    : null
+  if (!booking || booking.kind !== 'camp') {
+    return Response.json({ error: 'Nie ma takiego zapisu obozowego.' }, { status: 404 })
+  }
+  const contract = await contractOf(req.payload, booking)
+  if (!contract) {
+    return Response.json(
+      { error: 'Umowy nie da się utworzyć — turnus nie ma ceny w panelu.' },
+      { status: 400 },
+    )
+  }
+  return pdfResponse(contract)
 }
 
 // --- the panel's "Wyślij link" (`Bookings.endpoints`) ---------------------------

@@ -16,9 +16,22 @@ import {
   type RegistrationContext,
   type RegistrationInput,
 } from '@/lib/campRegistration'
+import { campSeason } from '@/lib/campContract'
+import { preparePreCampDrafts } from '@/lib/campPreCampDrafts'
 import { erasePerson, personDataCopy } from '@/lib/personErasure'
 
-import { email, http, makeCamp, makeCustomer, makeSession, outbox, payload, test } from './harness'
+import {
+  cleanup,
+  email,
+  http,
+  makeCamp,
+  makeCustomer,
+  makeSession,
+  outbox,
+  payload,
+  removeWhere,
+  test,
+} from './harness'
 
 /**
  * The camp registration form (`lib/campRegistration.ts`): the link's token,
@@ -41,6 +54,7 @@ function formFor(ctx: RegistrationContext, child = childForm): RegistrationInput
   return {
     address: { street: 'ul. Testowa 1', postcode: '42-421', city: 'Rzędkowice' },
     invoiceRequested: true,
+    invoiceCompany: null,
     children: Object.fromEntries(ctx.children.map((c) => [c.booking.id, child])),
   }
 }
@@ -472,4 +486,139 @@ test('My account shows the child, the form link and the money — but not for a 
   assert.ok(stas, 'the past camp is in the archive')
   assert.equal(stas.form, undefined, 'no link to a form that is closed')
   assert.equal(stas.payment, undefined, 'no deposit talk after the camp')
+})
+
+// --- the contract and the email before the camp ------------------------------------
+
+test('the payment email carries the contract; its price and day stay with the booking', async () => {
+  const { camp, child } = await signUp('contract', 'Zosia')
+  await payload.update({
+    collection: 'camps',
+    id: camp.id,
+    data: { price: 2500 },
+    overrideAccess: true,
+  })
+  outbox.length = 0
+  const ctx = (await findByToken(payload, child.registrationToken!))!
+  const sent = await sendRegistrationEmails(
+    payload,
+    ctx,
+    await saveRegistration(payload, ctx, formFor(ctx)),
+  )
+  assert.equal(sent.contractAttached, true, 'the form’s thank-you says the contract went')
+  const mail = outbox.find((m) => m.to === email('contract'))
+  assert.deepEqual(mail?.attachments, [`umowa-oboz-${campSeason(ctx.session.startDate)}-test.pdf`])
+  const after = await payload.findByID({
+    collection: 'bookings',
+    id: child.booking.id,
+    depth: 0,
+    overrideAccess: true,
+  })
+  assert.equal(after.contractPrice, 2500)
+  assert.ok(after.contractSentAt)
+
+  // The parent's download by the link's key; the school's endpoint is closed to others.
+  const download = await http(`/obozy/rejestracja/umowa?token=${child.registrationToken}`)
+  assert.equal(download.status, 200)
+  assert.equal(download.headers.get('content-type'), 'application/pdf')
+  assert.match(download.headers.get('cache-control') ?? '', /no-store/)
+  assert.equal((await http(`/api/bookings/${child.booking.id}/contract`)).status, 403)
+})
+
+test('without a price there is no contract — the school is told on the booking', async () => {
+  const { child } = await signUp('nocontract', 'Staś')
+  outbox.length = 0
+  const ctx = (await findByToken(payload, child.registrationToken!))!
+  const sent = await sendRegistrationEmails(
+    payload,
+    ctx,
+    await saveRegistration(payload, ctx, formFor(ctx)),
+  )
+  assert.equal(sent.contractAttached, false, 'the thank-you says it follows')
+  const mail = outbox.find((m) => m.to === email('nocontract'))
+  assert.deepEqual(mail?.attachments, [])
+  const after = await payload.findByID({
+    collection: 'bookings',
+    id: child.booking.id,
+    depth: 0,
+    overrideAccess: true,
+  })
+  assert.equal(after.contractSentAt ?? null, null)
+  assert.match(after.emailIssue ?? '', /ceny/)
+  assert.equal(
+    (await http(`/obozy/rejestracja/umowa?token=${child.registrationToken}`)).status,
+    404,
+  )
+})
+
+test('before a camp the school gets a draft to its parents — once, never sent by itself', async () => {
+  const camp = await makeCamp()
+  const soon = await makeSession(camp.id, { camp: true, daysAhead: 10 })
+  const later = await makeSession(camp.id, { camp: true, daysAhead: 40 })
+  cleanup(() => removeWhere('broadcasts', { session: { in: [soon.id, later.id] } }))
+  for (const session of [soon, later]) {
+    const result = await createCampBookings(payload, {
+      sessionId: session.id,
+      campId: camp.id,
+      contact: {
+        firstName: 'precamp',
+        lastName: 'Test',
+        email: email('precamp'),
+        phone: '+48600100200',
+      },
+      children: [{ firstName: 'Ala', lastName: 'Test' }],
+      notes: null,
+      language: 'pl',
+      customerId: null,
+      wantsAccount: false,
+    })
+    assert.ok(result.kind === 'done')
+  }
+  outbox.length = 0
+  await preparePreCampDrafts(payload, [soon.id, later.id])
+  await preparePreCampDrafts(payload, [soon.id, later.id])
+  const { docs } = await payload.find({
+    collection: 'broadcasts',
+    where: { session: { in: [soon.id, later.id] } },
+    depth: 0,
+    overrideAccess: true,
+  })
+  assert.equal(docs.length, 1, 'one draft, for the turnus within 16 days')
+  assert.equal(docs[0].session, soon.id)
+  assert.equal(docs[0].status, 'draft')
+  assert.match(docs[0].subject, new RegExp(`Przed obozem: ${camp.title}`))
+  assert.ok(!outbox.some((m) => m.to === email('precamp')), 'nothing to the parents')
+  const notices = outbox.filter((m) => /Mail przed obozem czeka/.test(m.subject))
+  assert.equal(notices.length, 1, 'the school is told once')
+})
+
+test('a trip or regular classes get no pre-camp draft, even with someone booked', async () => {
+  const trip = await makeCamp({ kind: 'trip' })
+  const session = await makeSession(trip.id, { camp: true, daysAhead: 10 })
+  cleanup(() => removeWhere('broadcasts', { session: { equals: session.id } }))
+  // Added by hand in the panel — the site takes no bookings for a trip.
+  await payload.create({
+    collection: 'bookings',
+    data: {
+      kind: 'camp',
+      session: session.id,
+      firstName: 'pretrip',
+      lastName: 'Test',
+      email: email('pretrip'),
+      phone: '+48600100200',
+      childFirstName: 'Ala',
+      childLastName: 'Test',
+      status: 'confirmed',
+      consentText: 'test',
+    } as never,
+    overrideAccess: true,
+    context: { skipStatusEmail: true },
+  })
+  await preparePreCampDrafts(payload, [session.id])
+  const drafts = await payload.count({
+    collection: 'broadcasts',
+    where: { session: { equals: session.id } },
+    overrideAccess: true,
+  })
+  assert.equal(drafts.totalDocs, 0)
 })

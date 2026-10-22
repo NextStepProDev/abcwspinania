@@ -12,6 +12,7 @@ import {
 import { idOf, recordEmailIssue, recountSession, sendStatusEmail } from '../lib/bookingEffects'
 import { LANGUAGE_OPTIONS_FOR_PAYLOAD } from '../lib/email/language'
 import {
+  contractHandler,
   movedUpFromWaitlist,
   registrationLinkHandler,
   sendRegistrationLink,
@@ -111,7 +112,10 @@ export const Bookings: CollectionConfig = {
     delete: isAdmin,
   },
   defaultSort: '-createdAt',
-  endpoints: [{ path: '/:id/registration-link', method: 'post', handler: registrationLinkHandler }],
+  endpoints: [
+    { path: '/:id/registration-link', method: 'post', handler: registrationLinkHandler },
+    { path: '/:id/contract', method: 'get', handler: contractHandler },
+  ],
   hooks: {
     beforeDelete: [
       // The registration form goes with its booking — its `booking` is
@@ -525,6 +529,54 @@ export const Bookings: CollectionConfig = {
       defaultValue: false,
       label: 'Rodzic chce fakturę',
       admin: { position: 'sidebar', condition: (data) => data?.kind === 'camp' },
+    },
+    {
+      // An invoice for a company (Krzysiek, 22.10.2026: it happens — then
+      // with the NIP, through KSeF). Asked in the registration form only when
+      // the parent chooses a company. Empty — the invoice is in the parent's
+      // name; the school may also fill it in after a phone call.
+      type: 'collapsible',
+      label: 'Faktura na firmę',
+      admin: {
+        position: 'sidebar',
+        initCollapsed: true,
+        condition: (data) => data?.kind === 'camp' && Boolean(data?.invoiceRequested),
+      },
+      fields: [
+        { name: 'invoiceCompanyName', type: 'text', maxLength: 300, label: 'Nazwa firmy' },
+        { name: 'invoiceNip', type: 'text', maxLength: 13, label: 'NIP' },
+        {
+          name: 'invoiceCompanyAddress',
+          type: 'textarea',
+          maxLength: 300,
+          label: 'Adres firmy',
+        },
+      ],
+    },
+    {
+      // The contract (`campContract.ts`) as sent: the day it went out — the day
+      // it is concluded, which the deposit's 7 days count from — and the price
+      // per child that day. A later change of price in the panel leaves a
+      // sent contract as it was (Krzysiek, 22.10.2026).
+      name: 'contractSentAt',
+      type: 'date',
+      label: 'Umowa wysłana',
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+        condition: (data) => data?.kind === 'camp' && Boolean(data?.contractSentAt),
+        date: { pickerAppearance: 'dayOnly', displayFormat: 'd.MM.yyyy' },
+      },
+    },
+    {
+      name: 'contractPrice',
+      type: 'number',
+      label: 'Cena w umowie (zł)',
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+        condition: (data) => data?.kind === 'camp' && typeof data?.contractPrice === 'number',
+      },
     },
     {
       // What the invoice needs, in one place to copy from — see the component.

@@ -97,12 +97,13 @@ export default function PrivacyPolicyPage() {
               </li>
               <li>
                 <strong>Formularz rejestracyjny obozu</strong> — adres zamieszkania rodzica (do
-                umowy i faktury), PESEL i data urodzenia dziecka, wzrost (do zamówienia koszulek)
-                oraz informacje o zdrowiu dziecka: uczulenia, przyjmowane leki, dieta i choroby,
-                które mogą mieć wpływ na jego bezpieczeństwo. Po to, żeby zawrzeć umowę,
-                zorganizować obóz i zapewnić dziecku bezpieczeństwo i opiekę. Podstawa: umowa (art.
-                6 ust. 1 lit. b RODO), a dla informacji o zdrowiu — Twoja wyraźna zgoda (art. 9 ust.
-                2 lit. a RODO). Informacje o zdrowiu widzi tylko szkoła; nie wysyłamy ich mailem.
+                umowy i faktury), przy fakturze na firmę — jej nazwa, NIP i adres, PESEL i data
+                urodzenia dziecka, wzrost (do zamówienia koszulek) oraz informacje o zdrowiu
+                dziecka: uczulenia, przyjmowane leki, dieta i choroby, które mogą mieć wpływ na jego
+                bezpieczeństwo. Po to, żeby zawrzeć umowę, zorganizować obóz i zapewnić dziecku
+                bezpieczeństwo i opiekę. Podstawa: umowa (art. 6 ust. 1 lit. b RODO), a dla
+                informacji o zdrowiu — Twoja wyraźna zgoda (art. 9 ust. 2 lit. a RODO). Informacje o
+                zdrowiu widzi tylko szkoła; nie wysyłamy ich mailem.
               </li>
               <li>
                 <strong>Zgoda na zdjęcia dziecka</strong> — nieobowiązkowa. Jeśli ją wyrazisz,

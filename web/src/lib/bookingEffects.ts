@@ -227,7 +227,8 @@ export async function recordEmailIssue(
       req,
       overrideAccess: true,
     })
-    const line = `${what} — ${emailFailureReason(error)}`
+    // A string is the reason itself — a problem of ours, not of the sending.
+    const line = `${what} — ${typeof error === 'string' ? error : emailFailureReason(error)}`
     const open = current.emailIssue && !current.emailIssueHandled ? current.emailIssue : null
     await payload.update({
       collection: 'bookings',

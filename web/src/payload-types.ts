@@ -80,6 +80,7 @@ export interface Config {
     instructors: Instructor;
     media: Media;
     'gallery-photos': GalleryPhoto;
+    'private-files': PrivateFile;
     messages: Message;
     newsletter: Newsletter;
     customers: Customer;
@@ -110,6 +111,7 @@ export interface Config {
     instructors: InstructorsSelect<false> | InstructorsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     'gallery-photos': GalleryPhotosSelect<false> | GalleryPhotosSelect<true>;
+    'private-files': PrivateFilesSelect<false> | PrivateFilesSelect<true>;
     messages: MessagesSelect<false> | MessagesSelect<true>;
     newsletter: NewsletterSelect<false> | NewsletterSelect<true>;
     customers: CustomersSelect<false> | CustomersSelect<true>;
@@ -129,6 +131,7 @@ export interface Config {
     'about-page': AboutPage;
     'camps-page': CampsPage;
     'english-page': EnglishPage;
+    'camp-config': CampConfig;
   };
   globalsSelect: {
     'site-config': SiteConfigSelect<false> | SiteConfigSelect<true>;
@@ -136,6 +139,7 @@ export interface Config {
     'about-page': AboutPageSelect<false> | AboutPageSelect<true>;
     'camps-page': CampsPageSelect<false> | CampsPageSelect<true>;
     'english-page': EnglishPageSelect<false> | EnglishPageSelect<true>;
+    'camp-config': CampConfigSelect<false> | CampConfigSelect<true>;
   };
   locale: null;
   widgets: {
@@ -407,6 +411,10 @@ export interface Camp {
   duration?: string | null;
   maxGroupSize?: number | null;
   location?: string | null;
+  /**
+   * Zaznacz, gdy na miejscu nie ma pościeli — umowa wpisze wtedy „własne śpiwory”.
+   */
+  ownSleepingBags?: boolean | null;
   accommodation?: boolean | null;
   meals?: boolean | null;
   highlights?:
@@ -483,6 +491,11 @@ export interface Session {
    */
   note?: string | null;
   /**
+   * Wpisz, gdy Kuratorium przyjmie zgłoszenie — pojawi się w danych do faktury.
+   */
+  kuratoriumNumber?: string | null;
+  preCampDraftAt?: string | null;
+  /**
    * Wszystkie zapisy na ten termin — także rezerwowe i rezygnacje.
    */
   bookings?: {
@@ -545,6 +558,11 @@ export interface Booking {
   depositDueAt?: string | null;
   depositReminderAt?: string | null;
   invoiceRequested?: boolean | null;
+  invoiceCompanyName?: string | null;
+  invoiceNip?: string | null;
+  invoiceCompanyAddress?: string | null;
+  contractSentAt?: string | null;
+  contractPrice?: number | null;
   notes?: string | null;
   /**
    * Widoczne tylko w panelu — kursant ich nie widzi.
@@ -902,6 +920,28 @@ export interface GalleryPhoto {
   };
 }
 /**
+ * Pliki widoczne tylko w panelu, np. pieczątka z podpisem do umów obozowych. Strona ich nie pokazuje.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "private-files".
+ */
+export interface PrivateFile {
+  id: number;
+  /**
+   * Np. „Pieczątka z podpisem — umowy obozowe”.
+   */
+  title?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+}
+/**
  * Zgłoszenia z formularza na stronie. Nowe są u góry.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1033,6 +1073,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'gallery-photos';
         value: number | GalleryPhoto;
+      } | null)
+    | ({
+        relationTo: 'private-files';
+        value: number | PrivateFile;
       } | null)
     | ({
         relationTo: 'messages';
@@ -1181,6 +1225,7 @@ export interface CampsSelect<T extends boolean = true> {
   duration?: T;
   maxGroupSize?: T;
   location?: T;
+  ownSleepingBags?: T;
   accommodation?: T;
   meals?: T;
   highlights?:
@@ -1220,6 +1265,8 @@ export interface SessionsSelect<T extends boolean = true> {
   spotsLeft?: T;
   status?: T;
   note?: T;
+  kuratoriumNumber?: T;
+  preCampDraftAt?: T;
   bookings?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -1252,6 +1299,11 @@ export interface BookingsSelect<T extends boolean = true> {
   depositDueAt?: T;
   depositReminderAt?: T;
   invoiceRequested?: T;
+  invoiceCompanyName?: T;
+  invoiceNip?: T;
+  invoiceCompanyAddress?: T;
+  contractSentAt?: T;
+  contractPrice?: T;
   notes?: T;
   adminNotes?: T;
   emailIssue?: T;
@@ -1436,6 +1488,22 @@ export interface GalleryPhotosSelect<T extends boolean = true> {
               filename?: T;
             };
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "private-files_select".
+ */
+export interface PrivateFilesSelect<T extends boolean = true> {
+  title?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1768,6 +1836,27 @@ export interface EnglishPage {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-config".
+ */
+export interface CampConfig {
+  id: number;
+  /**
+   * Wstawiana do każdej umowy obozowej w miejsce podpisu organizatora. PNG albo JPG, najlepiej na białym tle. Bez niej umowa wychodzi z pustym miejscem na podpis.
+   */
+  contractSignature?: (number | null) | PrivateFile;
+  /**
+   * Tyle dni przed początkiem turnusu dostaniesz mail z linkiem do gotowego szkicu wiadomości dla rodziców.
+   */
+  preCampReminderDays: number;
+  /**
+   * Wstawiana do szkicu wysyłki dla rodziców z danego turnusu. Fragmenty w nawiasach kwadratowych, np. [miejsce zbiórki], uzupełniasz w szkicu. Pusta linia = nowy akapit, linia zaczynająca się od „- ” = punkt listy.
+   */
+  preCampTemplate?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "site-config_select".
  */
 export interface SiteConfigSelect<T extends boolean = true> {
@@ -1881,6 +1970,18 @@ export interface EnglishPageSelect<T extends boolean = true> {
   season?: T;
   directions?: T;
   coursesNote?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-config_select".
+ */
+export interface CampConfigSelect<T extends boolean = true> {
+  contractSignature?: T;
+  preCampReminderDays?: T;
+  preCampTemplate?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

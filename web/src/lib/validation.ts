@@ -454,6 +454,11 @@ export interface RegistrationSharedData {
   postcode: string
   city: string
   invoiceRequested: boolean
+  /** The invoice goes to a company — then with its name, NIP and address. */
+  invoiceCompany: boolean
+  invoiceCompanyName: string
+  invoiceNip: string
+  invoiceCompanyAddress: string
   activitiesConsent: boolean
   consent: boolean
 }
@@ -498,6 +503,36 @@ export function checkPostcode(raw: string): string | undefined {
   return undefined
 }
 
+/** "631-172-65-35", "PL6311726535" → the ten digits; spaces and dashes dropped. */
+export function normalizeNip(raw: string): string {
+  return raw.replace(/[\s-]/g, '').replace(/^PL/i, '')
+}
+
+/** A Polish NIP: ten digits with its check digit (weights 6 5 7 2 3 4 5 6 7). */
+export function checkNip(raw: string): string | undefined {
+  const value = normalizeNip(raw.trim())
+  if (!value) return 'Podaj NIP firmy.'
+  if (!/^\d{10}$/.test(value)) return 'NIP ma 10 cyfr, np. 631-172-65-35.'
+  const weights = [6, 5, 7, 2, 3, 4, 5, 6, 7]
+  const sum = weights.reduce((total, w, i) => total + w * Number(value[i]), 0)
+  if (sum % 11 !== Number(value[9])) return 'Ten NIP ma błąd — sprawdź cyfry.'
+  return undefined
+}
+
+export function checkCompanyName(raw: string): string | undefined {
+  const value = raw.trim()
+  if (!value) return 'Podaj nazwę firmy.'
+  if (value.length > 300) return 'Ta nazwa jest za długa.'
+  return undefined
+}
+
+export function checkCompanyAddress(raw: string): string | undefined {
+  const value = raw.trim()
+  if (!value) return 'Podaj adres firmy.'
+  if (value.length > 300) return 'Ten adres jest za długi.'
+  return undefined
+}
+
 export function checkCity(raw: string): string | undefined {
   const value = raw.trim()
   if (!value) return 'Podaj miejscowość.'
@@ -532,6 +567,15 @@ export function validateRegistrationShared(data: RegistrationSharedData): Regist
   if (postcode) errors.postcode = postcode
   const city = checkCity(data.city)
   if (city) errors.city = city
+  // Company details only matter when the invoice goes to a company.
+  if (data.invoiceRequested && data.invoiceCompany) {
+    const name = checkCompanyName(data.invoiceCompanyName)
+    if (name) errors.invoiceCompanyName = name
+    const nip = checkNip(data.invoiceNip)
+    if (nip) errors.invoiceNip = nip
+    const address = checkCompanyAddress(data.invoiceCompanyAddress)
+    if (address) errors.invoiceCompanyAddress = address
+  }
   if (!data.activitiesConsent) errors.activitiesConsent = ACTIVITIES_CONSENT_MISSING
   if (!data.consent) errors.consent = REGISTRATION_CONSENT_MISSING
   return errors

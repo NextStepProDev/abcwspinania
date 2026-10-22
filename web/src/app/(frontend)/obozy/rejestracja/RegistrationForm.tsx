@@ -23,7 +23,10 @@ import {
   HEALTH_TEXT_MAX,
   REGISTRATION_CONSENT_MISSING,
   checkCity,
+  checkCompanyAddress,
+  checkCompanyName,
   checkHeight,
+  checkNip,
   checkPostcode,
   checkStreet,
 } from '@/lib/validation'
@@ -55,6 +58,9 @@ export interface RegistrationFormShared {
   postcode: string
   city: string
   invoiceRequested: boolean
+  invoiceCompanyName: string
+  invoiceNip: string
+  invoiceCompanyAddress: string
 }
 
 function HealthField({
@@ -123,7 +129,9 @@ export function RegistrationForm({
         <p>
           {state.first === false
             ? 'Dziękujemy — szkoła widzi już poprawione dane.'
-            : 'Dziękujemy! Dane do przelewu zaliczki wysłaliśmy mailem, a umowę prześlemy osobno.'}{' '}
+            : state.contractAttached
+              ? 'Dziękujemy! Dane do przelewu zaliczki i umowę wysłaliśmy mailem.'
+              : 'Dziękujemy! Dane do przelewu zaliczki wysłaliśmy mailem, a umowę prześlemy osobno.'}{' '}
           Gdyby coś się zmieniło przed obozem, wróć tym samym linkiem z maila i popraw formularz.
         </p>
       </FormDone>
@@ -265,18 +273,65 @@ export function RegistrationForm({
         </div>
       </fieldset>
 
-      <label className="flex items-start gap-3 text-sm leading-6 text-rock-600">
-        <input
-          name="invoiceRequested"
-          type="checkbox"
-          defaultChecked={ticked('invoiceRequested', shared?.invoiceRequested)}
-          className="mt-1 size-4 shrink-0"
-        />
-        <span>
-          <strong className="text-rock-900">Potrzebuję faktury</strong> — wystawimy ją na podany
-          adres.
-        </span>
-      </label>
+      {/* The company part opens with its checkbox by CSS alone (`has-[]`),
+          so it works before — or without — JavaScript. */}
+      <div className="group/invoice flex flex-col gap-4">
+        <label className="flex items-start gap-3 text-sm leading-6 text-rock-600">
+          <input
+            name="invoiceRequested"
+            type="checkbox"
+            defaultChecked={ticked('invoiceRequested', shared?.invoiceRequested)}
+            className="mt-1 size-4 shrink-0"
+          />
+          <span>
+            <strong className="text-rock-900">Potrzebuję faktury</strong> — wystawimy ją na rodzica,
+            na podany adres, albo na firmę.
+          </span>
+        </label>
+        <div className="hidden flex-col gap-4 pl-7 group-has-[input[name=invoiceRequested]:checked]/invoice:flex">
+          <label className="flex items-start gap-3 text-sm leading-6 text-rock-600">
+            <input
+              name="invoiceCompany"
+              type="checkbox"
+              defaultChecked={ticked('invoiceCompany', Boolean(shared?.invoiceNip))}
+              className="mt-1 size-4 shrink-0"
+            />
+            <span>
+              <strong className="text-rock-900">Na firmę</strong> — z NIP-em.
+            </span>
+          </label>
+          <div className="hidden flex-col gap-5 group-has-[input[name=invoiceCompany]:checked]/invoice:flex">
+            <TextField
+              id={`${id}-company`}
+              name="invoiceCompanyName"
+              label="Nazwa firmy"
+              autoComplete="organization"
+              defaultValue={text('invoiceCompanyName', shared?.invoiceCompanyName)}
+              validate={checkCompanyName}
+              error={state.errors?.invoiceCompanyName}
+            />
+            <TextField
+              id={`${id}-nip`}
+              name="invoiceNip"
+              label="NIP"
+              placeholder="631-172-65-35"
+              defaultValue={text('invoiceNip', shared?.invoiceNip)}
+              validate={checkNip}
+              error={state.errors?.invoiceNip}
+            />
+            <TextField
+              id={`${id}-company-address`}
+              name="invoiceCompanyAddress"
+              label="Adres firmy"
+              autoComplete="off"
+              placeholder="ul. Skalna 1, 42-421 Rzędkowice"
+              defaultValue={text('invoiceCompanyAddress', shared?.invoiceCompanyAddress)}
+              validate={checkCompanyAddress}
+              error={state.errors?.invoiceCompanyAddress}
+            />
+          </div>
+        </div>
+      </div>
 
       <Honeypot />
       <ConsentField

@@ -30,7 +30,9 @@ test('a correct PESEL passes, a typo in any digit does not', () => {
 
 import {
   checkHeight,
+  checkNip,
   isValid,
+  normalizeNip,
   validateRegistrationChild,
   validateRegistrationShared,
 } from '@/lib/validation'
@@ -50,6 +52,10 @@ const shared = {
   postcode: '42-421',
   city: 'Rzędkowice',
   invoiceRequested: false,
+  invoiceCompany: false,
+  invoiceCompanyName: '',
+  invoiceNip: '',
+  invoiceCompanyAddress: '',
   activitiesConsent: true,
   consent: true,
 }
@@ -96,4 +102,31 @@ test('the address and both consents are asked once, all required', () => {
 test('a foreign postcode is fine, a fragment is not', () => {
   assert.ok(isValid(validateRegistrationShared({ ...shared, postcode: 'SW1A 1AA' })))
   assert.ok(validateRegistrationShared({ ...shared, postcode: '42' }).postcode)
+})
+
+test('a company invoice needs the name, a valid NIP and the address — only when chosen', () => {
+  // Ticked "na firmę" without "faktura": nothing to check, the server ignores it.
+  assert.ok(isValid(validateRegistrationShared({ ...shared, invoiceCompany: true })))
+  const company = { ...shared, invoiceRequested: true, invoiceCompany: true }
+  assert.deepEqual(Object.keys(validateRegistrationShared(company)).sort(), [
+    'invoiceCompanyAddress',
+    'invoiceCompanyName',
+    'invoiceNip',
+  ])
+  const filled = {
+    ...company,
+    invoiceCompanyName: 'IQ SERVICE',
+    invoiceNip: '631-172-65-35',
+    invoiceCompanyAddress: 'Rzędkowice 1, 42-421 Włodowice',
+  }
+  assert.ok(isValid(validateRegistrationShared(filled)))
+})
+
+test('a NIP is ten digits with its check digit, spaces, dashes and PL allowed', () => {
+  assert.equal(checkNip('6311726535'), undefined)
+  assert.equal(checkNip('PL 631 172 65 35'), undefined)
+  assert.equal(normalizeNip('631-172-65-35'), '6311726535')
+  assert.match(checkNip('6311726536') ?? '', /błąd/)
+  assert.match(checkNip('63117265') ?? '', /10 cyfr/)
+  assert.match(checkNip('') ?? '', /Podaj/)
 })

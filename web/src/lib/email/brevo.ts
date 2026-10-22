@@ -37,6 +37,8 @@ interface BrevoBody {
   htmlContent?: string
   textContent?: string
   headers?: Record<string, string>
+  /** Brevo's shape: the file's name and its bytes in base64. */
+  attachment?: { name: string; content: string }[]
 }
 
 // Spelled out rather than taken from `SendEmailOptions`: Payload derives that
@@ -121,6 +123,27 @@ function withServiceUnsubscribe(
   return { ...headers, 'List-Unsubscribe': `<${serviceUnsubscribeUrl}>` }
 }
 
+/**
+ * Nodemailer-style attachments (`{ filename, content }`, the content bytes or
+ * a string) as Brevo takes them — base64. Today only the camp contract (PDF)
+ * goes this way. An attachment without a name or content would be a refused
+ * send at Brevo, so it is dropped here instead.
+ */
+function toBrevoAttachments(input: unknown): { name: string; content: string }[] {
+  if (!Array.isArray(input)) return []
+  return input.flatMap((item: { filename?: unknown; content?: unknown }) => {
+    const name = typeof item?.filename === 'string' ? item.filename : ''
+    const content = item?.content
+    const bytes =
+      content instanceof Uint8Array
+        ? Buffer.from(content)
+        : typeof content === 'string'
+          ? Buffer.from(content)
+          : null
+    return name && bytes ? [{ name, content: bytes.toString('base64') }] : []
+  })
+}
+
 export function toBrevoBody(
   message: SendEmailOptions,
   sender: Sender,
@@ -157,6 +180,8 @@ export function toBrevoBody(
   )
   const all = withServiceUnsubscribe(Object.fromEntries(headers), serviceUnsubscribeUrl)
   if (Object.keys(all).length) body.headers = all
+  const attachments = toBrevoAttachments(message.attachments)
+  if (attachments.length) body.attachment = attachments
   return body
 }
 

@@ -85,6 +85,9 @@ export default async function RegistrationPage({ searchParams }: Props) {
                             postcode: lead.addressPostcode ?? '',
                             city: lead.addressCity ?? '',
                             invoiceRequested: Boolean(lead.invoiceRequested),
+                            invoiceCompanyName: lead.invoiceCompanyName ?? '',
+                            invoiceNip: lead.invoiceNip ?? '',
+                            invoiceCompanyAddress: lead.invoiceCompanyAddress ?? '',
                           }
                         : null
                     }

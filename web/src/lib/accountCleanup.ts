@@ -2,6 +2,7 @@ import { getPayload } from 'payload'
 import config from '@payload-config'
 
 import { anonymizedLabel } from '@/lib/bookings'
+import { preparePreCampDrafts } from '@/lib/campPreCampDrafts'
 import {
   deleteExpiredRegistrations,
   sendDepositReminders,
@@ -112,6 +113,10 @@ export async function anonymizeExpiredBookings(): Promise<void> {
         addressStreet: null,
         addressPostcode: null,
         addressCity: null,
+        // A sole trader's NIP and name are a person's data too.
+        invoiceCompanyName: null,
+        invoiceNip: null,
+        invoiceCompanyAddress: null,
         emailIssue: null,
         emailIssueAt: null,
         label: anonymizedLabel(booking.label),
@@ -186,6 +191,9 @@ export function scheduleAccountCleanup(): void {
         })
         await sendDepositReminders(payload).catch((error) => {
           console.warn('Deposit reminders failed, will retry tomorrow:', error)
+        })
+        await preparePreCampDrafts(payload).catch((error) => {
+          console.warn('Pre-camp drafts failed, will retry tomorrow:', error)
         })
       })
       .catch((error) => console.warn('Camp registration sweep failed:', error))

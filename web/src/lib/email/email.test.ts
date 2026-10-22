@@ -197,6 +197,21 @@ test('an email without its own unsubscribe header gets ours, not Brevo’s', () 
   assert.deepEqual(body.headers, { 'List-Unsubscribe': `<${url}>` })
 })
 
+test('an attachment goes to Brevo as a named base64 file', () => {
+  const body = toBrevoBody(
+    {
+      to: 'a@x.pl',
+      subject: 's',
+      attachments: [
+        { filename: 'umowa.pdf', content: new Uint8Array([37, 80, 68, 70]) },
+        { filename: '', content: 'x' },
+      ],
+    },
+    sender,
+  )
+  assert.deepEqual(body.attachment, [{ name: 'umowa.pdf', content: 'JVBERg==' }])
+})
+
 test('the newsletter keeps its own unsubscribe header', () => {
   const own = '<https://x.pl/api/newsletter/unsubscribe?token=t>'
   const body = toBrevoBody(
@@ -716,4 +731,30 @@ test('the school hears a form came in or changed — without the health answers'
   // The template takes no health data at all; the text says where it is.
   assert.match(first.text, /w panelu/)
   assert.doesNotMatch(first.text + updated.text, /PESEL: |Uczulenia: |Leki: /)
+})
+
+test('the payment email says the contract is attached and where it goes back — or that it follows', () => {
+  const withContract = registrationReceivedEmail('pl', {
+    ...registration,
+    payment,
+    contractAttached: true,
+    contractEmail: 'obozy@abcwspinania.info',
+  })
+  assert.match(
+    withContract.text,
+    /W załączniku jest umowa[\s\S]*odeślij[\s\S]*obozy@abcwspinania\.info/,
+  )
+  assert.match(
+    registrationReceivedEmail('pl', { ...registration, payment }).text,
+    /prześlemy w osobnym mailu/,
+  )
+  assert.match(
+    registrationReceivedEmail('en', {
+      ...registration,
+      payment,
+      contractAttached: true,
+      contractEmail: 'obozy@abcwspinania.info',
+    }).text,
+    /The contract is attached/,
+  )
 })

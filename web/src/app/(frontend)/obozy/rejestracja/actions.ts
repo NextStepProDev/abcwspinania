@@ -14,6 +14,7 @@ import {
 import {
   isValid,
   looksLikeBot,
+  normalizeNip,
   validateRegistrationChild,
   validateRegistrationShared,
   type RegistrationChildData,
@@ -42,6 +43,8 @@ export interface RegistrationState {
   values?: Record<string, string>
   /** On success: the first save, or a correction of one sent before. */
   first?: boolean
+  /** The first save's email carried the contract (not without a price). */
+  contractAttached?: boolean
 }
 
 function field(formData: FormData, name: string): string {
@@ -71,6 +74,10 @@ export async function submitRegistration(
     postcode: field(formData, 'postcode'),
     city: field(formData, 'city'),
     invoiceRequested: formData.get('invoiceRequested') === 'on',
+    invoiceCompany: formData.get('invoiceCompany') === 'on',
+    invoiceCompanyName: field(formData, 'invoiceCompanyName'),
+    invoiceNip: field(formData, 'invoiceNip'),
+    invoiceCompanyAddress: field(formData, 'invoiceCompanyAddress'),
     activitiesConsent: formData.get('activitiesConsent') === 'on',
     consent: formData.get('consent') === 'on',
   }
@@ -112,6 +119,14 @@ export async function submitRegistration(
     const saved = await saveRegistration(payload, ctx, {
       address: { street: shared.street, postcode: shared.postcode, city: shared.city },
       invoiceRequested: shared.invoiceRequested,
+      invoiceCompany:
+        shared.invoiceRequested && shared.invoiceCompany
+          ? {
+              name: shared.invoiceCompanyName,
+              nip: normalizeNip(shared.invoiceNip),
+              address: shared.invoiceCompanyAddress,
+            }
+          : null,
       children: Object.fromEntries(
         Object.entries(children).map(([id, c]): [string, RegistrationChildInput] => [
           id,
@@ -127,8 +142,8 @@ export async function submitRegistration(
         ]),
       ),
     })
-    await sendRegistrationEmails(payload, ctx, saved)
-    return { status: 'done', first: saved.first }
+    const sent = await sendRegistrationEmails(payload, ctx, saved)
+    return { status: 'done', first: saved.first, contractAttached: sent.contractAttached }
   } catch (error) {
     console.error('Failed to store a camp registration form:', error)
     return {

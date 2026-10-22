@@ -233,6 +233,26 @@ export const Sessions: CollectionConfig = {
       admin: { description: 'Np. „wariant weekendowy” albo „grupa w tygodniu”.' },
     },
     {
+      // Krzysiek, 22.10.2026: each turnus gets its own number once the
+      // Kuratorium accepts the notification; parents need it on the invoice
+      // ("Dane do faktury" on a booking shows it).
+      name: 'kuratoriumNumber',
+      type: 'text',
+      maxLength: 100,
+      label: 'Numer zgłoszenia wypoczynku (Kuratorium)',
+      admin: {
+        condition: (data) => Boolean(data?.camp),
+        description: 'Wpisz, gdy Kuratorium przyjmie zgłoszenie — pojawi się w danych do faktury.',
+      },
+    },
+    {
+      // When the school was reminded about the email before this turnus and
+      // its draft was made (`sendPreCampReminders`) — once per turnus.
+      name: 'preCampDraftAt',
+      type: 'date',
+      hidden: true,
+    },
+    {
       name: 'bookings',
       type: 'join',
       collection: 'bookings',

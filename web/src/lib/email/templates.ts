@@ -692,7 +692,10 @@ const REGISTRATION_RECEIVED = {
   pl: {
     subject: (child: string) => `Formularz przyjęty, dane do przelewu — ${child}`,
     body: (child: string, p: CampPaymentDetails) =>
-      `Dziękujemy — mamy formularz rejestracyjny dla: ${child}. Teraz zaliczka: ${p.deposit} do ${p.dueDate}, przelewem na konto poniżej. Umowę prześlemy w osobnym mailu.`,
+      `Dziękujemy — mamy formularz rejestracyjny dla: ${child}. Teraz zaliczka: ${p.deposit} do ${p.dueDate}, przelewem na konto poniżej.`,
+    contract: (email: string) =>
+      `W załączniku jest umowa, już podpisana przez nas. Wydrukuj ją, podpisz i odeślij skan albo zdjęcie na ${email}. Kartę kwalifikacyjną przywozisz na obóz.`,
+    noContract: 'Umowę prześlemy w osobnym mailu.',
     change: 'Gdyby coś się zmieniło przed obozem (np. leki), popraw formularz tym samym linkiem.',
     action: 'Popraw formularz',
     note: 'Pytania? Odpowiedz na tę wiadomość.',
@@ -700,7 +703,10 @@ const REGISTRATION_RECEIVED = {
   en: {
     subject: (child: string) => `Form received, payment details — ${child}`,
     body: (child: string, p: CampPaymentDetails) =>
-      `Thank you — we have the registration form for ${child}. Next is the deposit: ${p.deposit} by ${p.dueDate}, by transfer to the account below. The contract will follow in a separate email.`,
+      `Thank you — we have the registration form for ${child}. Next is the deposit: ${p.deposit} by ${p.dueDate}, by transfer to the account below.`,
+    contract: (email: string) =>
+      `The contract is attached, already signed by us. Print it, sign it and send a scan or a photo back to ${email}. The qualification card comes with the child to the camp.`,
+    noContract: 'The contract will follow in a separate email.',
     change:
       'If anything changes before the camp (medication, say), correct the form with the same link.',
     action: 'Correct the form',
@@ -715,7 +721,13 @@ const REGISTRATION_RECEIVED = {
  */
 export function registrationReceivedEmail(
   lang: EmailLanguage,
-  data: RegistrationEmailData & { payment: CampPaymentDetails },
+  data: RegistrationEmailData & {
+    payment: CampPaymentDetails
+    /** The contract PDF is attached to this email. */
+    contractAttached?: boolean
+    /** Where the signed contract goes back. */
+    contractEmail?: string
+  },
 ): Email {
   const copy = REGISTRATION_RECEIVED[lang]
   return {
@@ -725,6 +737,9 @@ export function registrationReceivedEmail(
       heading: greeting(lang, data.firstName),
       paragraphs: [
         copy.body(data.childName, data.payment),
+        data.contractAttached && data.contractEmail
+          ? copy.contract(data.contractEmail)
+          : copy.noContract,
         PAYMENT[lang].refund(data.payment.refundDays),
         copy.change,
       ],
@@ -947,6 +962,35 @@ export function placeFreedNotification(data: PlaceFreedData): Email {
       ],
       details,
       action: { label: 'Otwórz termin w panelu', href: data.adminUrl },
+    }),
+  }
+}
+
+export interface PreCampDraftData {
+  campTitle: string
+  dates: string
+  /** Parents the draft goes to — with a place, one per address. */
+  recipients: number
+  adminUrl: string
+}
+
+/** To the school, before a camp: the parents' email waits as a draft. */
+export function preCampDraftNotification(data: PreCampDraftData): Email {
+  return {
+    subject: oneLine(`Mail przed obozem czeka na uzupełnienie: ${data.campTitle}, ${data.dates}`),
+    ...renderEmail({
+      lang: 'pl',
+      heading: 'Mail przed obozem — szkic gotowy',
+      paragraphs: [
+        'W „Wysyłkach” czeka szkic maila do rodziców tego turnusu: co spakować i co przywieźć. Uzupełnij to, co w nawiasach kwadratowych — miejsce zbiórki, daty i godziny — i kliknij „Wyślij”.',
+        'Nic nie wyjdzie, dopóki go nie wyślesz.',
+      ],
+      details: [
+        ['Obóz', data.campTitle],
+        ['Termin', data.dates],
+        ['Rodzice z miejscem (dziś)', String(data.recipients)],
+      ],
+      action: { label: 'Otwórz szkic w panelu', href: data.adminUrl },
     }),
   }
 }

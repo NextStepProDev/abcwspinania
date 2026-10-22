@@ -44,6 +44,7 @@ subdomeny `api.*`.
 | `Instructors` | `instructors` | tak | kadra |
 | `Media` | `media` | tak | okładki, portrety, zdjęcia w treści; `alt` nieobowiązkowy |
 | `GalleryPhotos` | `gallery-photos` | tak | zdjęcia na `/galeria` — osobna zakładka, nie znacznik w Mediach |
+| `PrivateFiles` | `private-files` | **nie** | pliki tylko dla szkoły — pieczątka z podpisem do umów obozowych |
 | `Messages` | `messages` | **nie** | zgłoszenia z formularza — dane osobowe |
 | `Newsletter` | `newsletter` | **nie** | zapisy na newsletter — dane osobowe |
 | `Customers` | `customers` | **tylko własne konto** | konta uczestników (logowanie na stronie) |
@@ -60,6 +61,7 @@ subdomeny `api.*`.
 | `AboutPage` | `about-page` | teksty podstrony „O nas" |
 | `CampsPage` | `camps-page` | wstęp podstrony „Obozy i wyjazdy" |
 | `EnglishPage` | `english-page` | jedyna podstrona po angielsku |
+| `CampConfig` | `camp-config` | „Ustawienia obozów” — podpis do umów, mail przed obozem (tylko szkoła) |
 
 `Messages` przyjmuje zapis od **każdego poza szkołą** (formularz publiczny;
 konto panelu nie dodaje wiadomości — bez „Stwórz nowy”, `visitorsOnly`, od
@@ -1181,7 +1183,7 @@ do 30 dni przed obozem. Cała ścieżka działa bez konta; konto dla chętnych.
   `/api/bookings/:id/registration-link`) — przy zapisie dodanym ręcznie albo
   zgubionym mailu. Token zostaje ten sam. Przypomnienie raz, po
   `REGISTRATION_REMINDER_DAYS` (4) bez formularza.
-- **Zaliczka (krok 3, bez umowy na razie)**: kwota, konto, tytuł przelewu
+- **Zaliczka (krok 3)**: kwota, konto, tytuł przelewu
   i zasada zwrotu w jednym miejscu — `lib/campPayment.ts` (zmiana kwoty albo
   konta = jedna edycja). Pierwsze wypełnienie formularza ustawia
   `depositDueAt` na `DEPOSIT_DAYS` (7) i wysyła rodzicowi dane do przelewu;
@@ -1193,10 +1195,55 @@ do 30 dni przed obozem. Cała ścieżka działa bez konta; konto dla chętnych.
   dalej bez maila). Kwota pozostała = cena turnusu albo obozu minus 500 zł;
   bez ceny w panelu mail nie podaje kwoty, zamiast podać złą.
 - **„Dane do faktury” w panelu zapisu** (`InvoicePanel`, gdy rodzic zaznaczy
-  fakturę): rodzic z adresem, dziecko, data urodzenia, termin, wpis do
-  rejestru organizatorów (`CAMP_ORGANISER_REGISTRY`). Fakturę Krzysiek
-  wystawia sam w swoim programie (bez NIP-u, poza KSeF). Numer rejestracji
-  obozu w Kuratorium — czeka na jego odpowiedź.
+  fakturę): rodzic z adresem albo firma (nazwa, NIP, adres), dziecko, data
+  urodzenia, termin, wpis do rejestru organizatorów
+  (`CAMP_ORGANISER_REGISTRY`) i numer obozu w kuratorium (pole
+  `kuratoriumNumber` terminu, wpisuje szkoła). Fakturę Krzysiek wystawia sam
+  w swoim programie (na firmę — przez KSeF, 22.10.2026).
+- **Faktura na firmę w formularzu rejestracyjnym** (od 22.10.2026): pod
+  „Potrzebuję faktury” pole „Na firmę”, a pod nim nazwa, NIP i adres —
+  pokazywane samym CSS-em (`group-has-[…:checked]`), więc działają bez JS.
+  NIP sprawdzany z cyfrą kontrolną (`checkNip`), zapisywany bez kresek
+  (`normalizeNip`). **Ukryte pole nie blokuje wysyłki**: `stopInvalidSubmit`
+  pomija pola niewidoczne (`checkVisibility()`) — bez tego puste pola firmy
+  zatrzymywały każdy formularz bez faktury. Serwer sprawdza je tylko przy
+  fakturze na firmę.
+- **Umowa (krok 4, od 22.10.2026)**: tekst ze wzoru Krzyśka z jego
+  poprawkami (`lib/campContract.ts`, czysty, testowany), PDF przez `pdf-lib`
+  + `@pdf-lib/fontkit` z fontem Inter z `public/fonts/` (polskie znaki;
+  czytany od `process.cwd()`, zasada 15). **Font osadzany w całości** —
+  podzbiór z fontkita gubił glify (tekst się kopiował, na stronie były
+  dziury). Jedna umowa na zgłoszenie, idzie ZAŁĄCZNIKIEM z mailem z danymi
+  do przelewu — dzień wysłania = dzień zawarcia, od niego liczy się 7 dni
+  zaliczki. Przy wysyłce zapis dostaje `contractSentAt` i `contractPrice`:
+  pobrana później umowa jest TA SAMA, nawet po zmianie ceny w panelu.
+  Bez ceny turnusu umowa nie idzie — mail z przelewem tak, a szkoła widzi
+  to w „Mailach, które nie doszły” (powód tekstem: `recordEmailIssue`
+  z ciągiem znaków zapisuje go bez zmian). Pobieranie: szkoła
+  `/api/bookings/:id/contract` (przycisk w `RegistrationPanel`; przed
+  wysyłką podgląd z dzisiejszą datą), rodzic `/obozy/rejestracja/umowa?token=`
+  (link w „Moim koncie”, tylko po wysyłce) — `Cache-Control: private,
+  no-store`. Podpisaną kopię rodzic odsyła na `obozy@`
+  (`CONTRACT_RETURN_EMAIL`).
+- **Pieczątka z podpisem NIE jest w repo** (repo jest publiczne): wgrywa się
+  ją raz na każdym serwerze w „Ustawieniach obozów” (global `camp-config`),
+  do kolekcji `private-files` — czyta tylko szkoła, także sam plik
+  (`/api/private-files/file/…` → 403 bez konta szkoły). Pliki leżą
+  w `uploads/private` (ten sam wolumen, więc kopia nocna je obejmuje).
+  **Celowo bez wpisu w `localPatterns` i bez bloku nginx** (wyjątek od
+  zasady 23): nic z tej kolekcji nie jest pokazywane na stronie, a długi
+  cache byłby odwrotnością celu. Bez wgranego podpisu umowa wychodzi
+  z pustym miejscem na podpis organizatora.
+- **Mail przed obozem** (od 22.10.2026, `lib/campPreCamp.ts` czysty,
+  `lib/campPreCampDrafts.ts` w dziennym sprzątaniu): `preCampReminderDays`
+  (domyślnie 16, „Ustawienia obozów”) przed turnusem system zakłada SZKIC
+  wysyłki do jego rodziców z tekstem standardowym Krzyśka (edytowalny tam
+  samo; pusta linia = akapit, „- ” = punkt listy) i mailem mówi o tym
+  `CAMP_EMAIL`. **Sam nie wysyła nic** — miejsce zbiórki, daty i godziny są
+  w nawiasach do uzupełnienia. System wpisuje sam nazwę obozu i linię
+  o śpiworze (tylko gdy obóz ma „własne śpiwory”). Raz na turnus
+  (`preCampDraftAt`, oznaczany po założeniu szkicu, przed mailem); turnus
+  bez nikogo z miejscem czeka do następnego dnia.
 - **Pulpit dzieli kafelki na kursy i obozy** (`SchoolDashboard`); przy obozach
   dodatkowo „Bez formularza” (miejsce jest, formularza nie ma) i „Zaliczka po
   terminie” — to, za czym Krzysiek dzwoni.
@@ -1206,11 +1253,13 @@ do 30 dni przed obozem. Cała ścieżka działa bez konta; konto dla chętnych.
   rodzic z telefonem i adresem, faktura. Dane o zdrowiu wychodzą w tym pliku
   CELOWO (lista na obóz); kopia pobrana na komputer szkoły nie znika sama.
 - **„Moje konto” rodzica**: przy zapisie obozowym imię dziecka, link do
-  formularza („Wypełnij” / „Popraw”) i stan płatności (`paymentLine`) —
-  link z tokenem tylko dla zapisów własnego konta.
-- **Polityka prywatności PL i EN** (wersja 2026-10-21) opisuje zapis dziecka,
+  formularza („Wypełnij” / „Popraw”), „Pobierz umowę” (po jej wysłaniu;
+  zwykły `<a>`, nie `next/link`, który prefetchowałby plik) i stan płatności
+  (`paymentLine`) — link z tokenem tylko dla zapisów własnego konta.
+- **Polityka prywatności PL i EN** (wersja 2026-10-22) opisuje zapis dziecka,
   formularz rejestracyjny (PESEL i zdrowie na zgodę z art. 9 ust. 2 lit. a,
-  kasowane miesiąc po obozie), zgodę na zdjęcia i adres rodzica.
+  kasowane miesiąc po obozie), zgodę na zdjęcia, adres rodzica i dane firmy
+  do faktury.
 - **Maile o statusie zapisu obozowego mówią o obozie i dziecku**
   (`campStatusEmail`), nie o kursie, i mają `replyTo` na `CAMP_EMAIL`.
 - **Testy integracyjne nie wołają przez HTTP niczego, co wysyła mail** —

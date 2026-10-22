@@ -105,6 +105,10 @@ const BOOKING: Field[] = [
   ['Zgoda na publikację zdjęć dziecka', 'photoConsent', yesNo],
   ['Treść zgody na zdjęcia', 'photoConsentText', text],
   ['Faktura', 'invoiceRequested', yesNo],
+  ['Faktura na firmę — nazwa', 'invoiceCompanyName', text],
+  ['NIP', 'invoiceNip', text],
+  ['Adres firmy', 'invoiceCompanyAddress', text],
+  ['Umowa wysłana', 'contractSentAt', date],
   ['Formularz rejestracyjny wypełniony', 'registeredAt', date],
   // The camp registration form (`camp-registrations`), kept a month after the camp.
   ['PESEL dziecka', 'registration.pesel', text],

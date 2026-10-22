@@ -8,7 +8,9 @@ import { usePathname } from 'next/navigation'
  * whether the parent filled it in, a link to its data (PESEL, health — a
  * collection of its own, `CampRegistrations`), and "Wyślij link" — for a
  * booking added in the panel (no email went out), a lost email, or a child
- * the school moved up from the waiting list by hand.
+ * the school moved up from the waiting list by hand. "Pobierz umowę" — the
+ * contract as sent to the parent, or before that a preview with today's date
+ * (`/api/bookings/:id/contract`).
  *
  * The booking id comes from the address, as in `SessionExportLink`. Shown
  * only for a saved booking.
@@ -84,6 +86,9 @@ export function RegistrationPanel() {
       >
         {sending ? 'Wysyłam…' : 'Wyślij rodzicowi link do formularza'}
       </button>
+      <p style={{ margin: '12px 0 0', fontSize: 13 }}>
+        <a href={`/api/bookings/${id}/contract`}>Pobierz umowę (PDF)</a>
+      </p>
       {message && (
         <p style={{ marginTop: 8, fontSize: 13, color: 'var(--theme-elevation-500)' }}>{message}</p>
       )}

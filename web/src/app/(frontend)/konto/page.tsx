@@ -144,6 +144,15 @@ function BookingList({
                     {item.form.done ? 'Popraw formularz' : 'Wypełnij formularz rejestracyjny'}
                   </TextLink>
                 )}
+                {item.contract && (
+                  // A plain link: a file, not a page — `next/link` would prefetch it.
+                  <a
+                    href={item.contract}
+                    className="font-medium text-rope underline-offset-4 hover:underline"
+                  >
+                    Pobierz umowę
+                  </a>
+                )}
               </span>
             </li>
           ))}

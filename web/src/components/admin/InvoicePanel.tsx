@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { useFormFields } from '@payloadcms/ui'
 
 import { CAMP_ORGANISER_REGISTRY } from '@/lib/campPayment'
@@ -10,7 +11,9 @@ import { CAMP_ORGANISER_REGISTRY } from '@/lib/campPayment'
  * itself, in its own program; this puts what Krzysiek listed in one place to
  * copy from: the parent with the address, the child, the birth date, the
  * dates (the booking's label carries them) and the organiser's registry
- * number. The camp's own registration number waits for Krzysiek's answer.
+ * number, and the turnus's number in the kuratorium's register (a field of
+ * the turnus, read once from its REST). A company's name, NIP and address
+ * replace the parent when the parent asked for an invoice to a company.
  *
  * Read from the form being edited (`useFormFields`), so it follows unsaved
  * changes too.
@@ -27,7 +30,22 @@ export function InvoicePanel() {
     childLastName: fields.childLastName?.value,
     childBirthDate: fields.childBirthDate?.value,
     label: fields.label?.value,
+    session: fields.session?.value,
+    companyName: fields.invoiceCompanyName?.value,
+    nip: fields.invoiceNip?.value,
+    companyAddress: fields.invoiceCompanyAddress?.value,
   }))
+  const sessionId = typeof values.session === 'number' ? values.session : null
+  const [kuratorium, setKuratorium] = useState<string | null>(null)
+  useEffect(() => {
+    if (!sessionId) return
+    fetch(`/api/sessions/${sessionId}?depth=0`, { credentials: 'same-origin' })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: { kuratoriumNumber?: string | null } | null) =>
+        setKuratorium(body?.kuratoriumNumber ?? ''),
+      )
+      .catch(() => setKuratorium(''))
+  }, [sessionId])
   if (!values.invoiceRequested) return null
 
   const str = (v: unknown) => (typeof v === 'string' ? v : '')
@@ -41,14 +59,29 @@ export function InvoicePanel() {
   const address = [str(values.street), `${str(values.postcode)} ${str(values.city)}`.trim()]
     .filter(Boolean)
     .join(', ')
+  const parent = `${str(values.firstName)} ${str(values.lastName)}`.trim()
+  const buyer: [string, string][] = str(values.nip)
+    ? [
+        ['Nabywca (firma)', str(values.companyName)],
+        ['NIP', str(values.nip)],
+        ['Adres firmy', str(values.companyAddress)],
+        ['Rodzic', parent],
+      ]
+    : [
+        ['Nabywca (rodzic)', parent],
+        ['Adres', address || '— rodzic jeszcze nie podał (formularz rejestracyjny)'],
+      ]
   const rows: [string, string][] = [
-    ['Nabywca (rodzic)', `${str(values.firstName)} ${str(values.lastName)}`.trim()],
-    ['Adres', address || '— rodzic jeszcze nie podał (formularz rejestracyjny)'],
+    ...buyer,
     ['Uczestnik', `${str(values.childFirstName)} ${str(values.childLastName)}`.trim()],
     ['Data urodzenia', birth || '— z formularza rejestracyjnego'],
     ['Obóz', camp],
     ['Termin', dates],
     ['Wpis do rejestru organizatorów', CAMP_ORGANISER_REGISTRY],
+    [
+      'Numer obozu w kuratorium',
+      kuratorium === null ? 'Sprawdzam…' : kuratorium || '— wpisz w terminie obozu',
+    ],
   ]
 
   return (
