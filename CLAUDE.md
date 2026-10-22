@@ -95,7 +95,7 @@ wyjątków:
 | nazwy pól (= kolumny w bazie) i wartości `select` | klauzule RODO w `src/lib/consent.ts` |
 | nazwy pól formularzy HTTP, parametry zapytań | **adresy podstron** (`/kursy`, `/obozy`, `/terminarz`) |
 | komunikaty commitów, logi dla programisty | tekst w `scripts/seed.ts` (to treść, nie kod) |
-| **workflowy GitHub** — nazwy, pola, kroki, komunikaty, komentarze (do 14.10.2026 część była po polsku, np. „Dane testowe”) | dane testowe widoczne na stronie i w panelu (`scripts/seed-test.ts`) |
+| **workflowy GitHub** — nazwy, pola, kroki, komunikaty, komentarze (do 14.10.2026 część była po polsku, np. „Dane testowe”) | dane testowe widoczne na stronie i w panelu (`scripts/test-data/courses.ts`) |
 
 **Adresy zostają polskie celowo.** To element strony widziany przez
 użytkownika i indeksowany przez wyszukiwarkę, a nie szczegół implementacji —
@@ -1827,7 +1827,19 @@ repo). **Zmieniasz funkcję — zmień jej kroki w tym samym commicie.**
 - **Maile w rundzie Krzyśka idą do obu**: `TEST_INBOX` i `ADMIN_NOTIFY_EMAIL`
   zostają Gmailem Mateusza, a filtr Gmaila przekazuje wszystko od
   `zapisy@szkolawspinaczkowa.pl` na `biuro@abcwspinania.info` (krok Z4).
-- Dane: `TEST_INBOX=ty@gmail.com npm run seed:test` (`web/scripts/seed-test.ts`).
+- **Dwa skrypty, jeden moduł** (od 22.10.2026, `web/scripts/test-data/`):
+  `seed:test:courses` (= dawne `seed:test`, alias zostaje — używa go workflow
+  „Test data” i scenariusz kursów) i `seed:test:camps` (scenariusz
+  `docs/testy-obozy.html`). Wspólne w `common.ts`: skrzynka, hasło (te same
+  konta i to samo hasło w obu), sprzątanie, okno czasu. **Osobne tagi**
+  `+abctest-` i `+abctestoboz-` — żaden nie zawiera drugiego, więc `clean`
+  jednego nie rusza danych drugiego; „bez znacznika” liczy oba. Osobne okna
+  (`seed-test:since`, `seed-test-camps:since`) i osobne notatki terminów
+  („TERMIN TESTOWY…”, „TURNUS TESTOWY…”). Dane obozów wpisują stany tymi
+  samymi funkcjami co strona (`saveRegistration`, `sendRegistrationEmails`
+  z podmienionym `sendEmail`), turnusy mają własną cenę 2500 zł; linki do
+  formularzy rejestracyjnych są w podsumowaniu tylko lokalnie.
+- Dane: `TEST_INBOX=ty@gmail.com npm run seed:test` (`web/scripts/test-data/courses.ts`).
   Każdy adres to alias jednej skrzynki (`ty+abctest-ola@gmail.com`), więc
   konta są osobne, a maile — prawdziwe, przez Brevo — trafiają do testera.
   Znacznik `+abctest-` w adresie i dopisek „TERMIN TESTOWY — nie zapisuj się”

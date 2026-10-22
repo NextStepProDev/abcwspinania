@@ -13,7 +13,7 @@ name: Test data
 # inbox and the test accounts' password are therefore secrets (TEST_INBOX,
 # TEST_PASSWORD), and the script prints no address, no token and no personal
 # data — only ids. It creates NO panel account on production (a known password
-# to the school's panel). Details: the header of web/scripts/seed-test.ts.
+# to the school's panel). Details: the header of web/scripts/test-data/courses.ts.
 
 on:
   workflow_dispatch:
