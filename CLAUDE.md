@@ -1192,7 +1192,11 @@ do 30 dni przed obozem. Cała ścieżka działa bez konta; konto dla chętnych.
   (`depositReminderWhere`), miejsce NIE jest zwalniane (decyzja Krzyśka).
   Wpłatę zaznacza Krzysiek statusem „zaliczka wpłacona” — przy obozie to
   wysyła maila „zostało X zł” (`statusEmailForKind`; przy kursie zaliczka
-  dalej bez maila). Kwota pozostała = cena turnusu albo obozu minus 500 zł;
+  dalej bez maila; **rodzeństwo z jednego zgłoszenia dostaje JEDEN mail**,
+  gdy zaliczkę ma zaznaczoną ostatnie dziecko z miejscem — z imionami
+  dzieci z zaliczką i łączną kwotą, decyzja Mateusza 22.10.2026; dziecko
+  zaznaczone od razu jako „opłacony” nie wstrzymuje maila i nie wchodzi do
+  niego ani do kwoty). Kwota pozostała = cena turnusu albo obozu minus 500 zł;
   bez ceny w panelu mail nie podaje kwoty, zamiast podać złą.
 - **„Dane do faktury” w panelu zapisu** (`InvoicePanel`, gdy rodzic zaznaczy
   fakturę): rodzic z adresem albo firma (nazwa, NIP, adres), dziecko, data

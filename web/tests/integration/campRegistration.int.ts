@@ -750,3 +750,72 @@ test('a contract that went without the organiser’s signature is flagged for th
   })
   assert.match(after.emailIssue ?? '', /bez podpisu/)
 })
+
+test('"zaliczka wpłacona" for siblings is one email, once the last child is marked', async () => {
+  const camp = await makeCamp()
+  await payload.update({
+    collection: 'camps',
+    id: camp.id,
+    data: { price: 2500 },
+    overrideAccess: true,
+  })
+  const session = await makeSession(camp.id, { camp: true })
+  const result = await createCampBookings(payload, {
+    sessionId: session.id,
+    campId: camp.id,
+    contact: {
+      firstName: 'sibdeposit',
+      lastName: 'Test',
+      email: email('sibdeposit'),
+      phone: '+48600100200',
+    },
+    children: [
+      { firstName: 'Zosia', lastName: 'Test' },
+      { firstName: 'Staś', lastName: 'Test' },
+    ],
+    notes: null,
+    language: 'pl',
+    customerId: null,
+    wantsAccount: false,
+  })
+  assert.ok(result.kind === 'done')
+  const [zosia, stas] = result.children
+  const mark = (id: number) =>
+    payload.update({
+      collection: 'bookings',
+      id,
+      data: { status: 'deposit' },
+      overrideAccess: true,
+    })
+  outbox.length = 0
+  await mark(zosia!.booking.id)
+  assert.equal(outbox.filter((m) => m.to === email('sibdeposit')).length, 0, 'not yet')
+  await mark(stas!.booking.id)
+  const mails = outbox.filter((m) => m.to === email('sibdeposit'))
+  assert.equal(mails.length, 1, 'one email for both')
+  assert.match(mails[0]!.subject, /Zosia Test i Staś Test/)
+  assert.match(mails[0]!.text, /Do zapłaty zostało 4000/)
+
+  // A child paid in full at once is not in the deposit email, nor in its balance.
+  outbox.length = 0
+  await payload.update({
+    collection: 'bookings',
+    id: zosia!.booking.id,
+    data: { status: 'paid' },
+    overrideAccess: true,
+    context: { skipStatusEmail: true },
+  })
+  await payload.update({
+    collection: 'bookings',
+    id: stas!.booking.id,
+    data: { status: 'confirmed' },
+    overrideAccess: true,
+    context: { skipStatusEmail: true },
+  })
+  outbox.length = 0
+  await mark(stas!.booking.id)
+  const only = outbox.filter((m) => m.to === email('sibdeposit'))
+  assert.equal(only.length, 1)
+  assert.doesNotMatch(only[0]!.subject, /Zosia/)
+  assert.match(only[0]!.text, /Do zapłaty zostało 2000/)
+})

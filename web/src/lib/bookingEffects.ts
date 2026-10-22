@@ -8,7 +8,7 @@ import {
   type StatusEmail,
 } from '@/lib/bookings'
 import { emailFailureReason } from '@/lib/broadcasts'
-import { campMailbox, campPrice, campSender, paymentDetails } from '@/lib/campPayment'
+import { campMailbox, campPrice, campSender, joinNames, paymentDetails } from '@/lib/campPayment'
 import { publicUrl } from '@/lib/email/links'
 import type { EmailLanguage } from '@/lib/email/language'
 import { bookingStatusEmail, campStatusEmail, placeFreedNotification } from '@/lib/email/templates'
@@ -152,6 +152,38 @@ export async function sessionSummary(
  * Tells the participant their booking was confirmed, paid or cancelled — and,
  * on a camp, that the deposit arrived (`statusEmailForKind`).
  */
+/**
+ * The children of `booking`'s sign-up that have a place — those sharing its
+ * registration link (the token is hidden, so read again with it), the
+ * booking itself included and in sign-up order. Alone without a link.
+ */
+async function depositSiblings(payload: Payload, booking: Booking, req?: Req): Promise<Booking[]> {
+  const own = (await payload.findByID({
+    collection: 'bookings',
+    id: booking.id,
+    depth: 0,
+    overrideAccess: true,
+    showHiddenFields: true,
+    req,
+  })) as Booking
+  if (!own.registrationToken) return [own]
+  const { docs } = await payload.find({
+    collection: 'bookings',
+    where: {
+      and: [
+        { registrationToken: { equals: own.registrationToken } },
+        { status: { not_in: ['cancelled', 'waitlist'] } },
+      ],
+    },
+    sort: 'createdAt',
+    limit: 50,
+    depth: 0,
+    overrideAccess: true,
+    req,
+  })
+  return docs.length ? docs : [own]
+}
+
 export async function sendStatusEmail(
   payload: Payload,
   booking: Booking,
@@ -171,15 +203,26 @@ export async function sendStatusEmail(
   // A camp email speaks to the parent about the child; the course one says
   // "kurs" and has no deposit email.
   const childName = [booking.childFirstName, booking.childLastName].filter(Boolean).join(' ')
+  // Siblings signed up together pay their deposits in one transfer, and the
+  // school marks each child: one email, once the LAST of them is marked
+  // (Mateusz, 22.10.2026), naming those with a deposit and their balance.
+  let children = [childName]
+  if (camp && status === 'deposit') {
+    const siblings = await depositSiblings(payload, booking, req)
+    if (siblings.some((b) => b.status === 'new' || b.status === 'confirmed')) return
+    // A child already paid in full is neither in it nor in its balance.
+    children = siblings
+      .filter((b) => b.status === 'deposit')
+      .map((b) => [b.childFirstName, b.childLastName].filter(Boolean).join(' '))
+  }
   const email = camp
     ? campStatusEmail(lang, status, {
         firstName: booking.firstName,
-        childName,
+        childName: joinNames(lang, children),
         campTitle: summary.courseTitle,
         dates: summary.dates,
         location: summary.location,
-        payment:
-          status === 'deposit' ? paymentDetails(lang, [childName], summary.price, null) : null,
+        payment: status === 'deposit' ? paymentDetails(lang, children, summary.price, null) : null,
         accountUrl,
       })
     : bookingStatusEmail(lang, status as 'confirmed' | 'paid' | 'cancelled', {

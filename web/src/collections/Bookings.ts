@@ -329,7 +329,7 @@ export const Bookings: CollectionConfig = {
         // A select in the list itself — see the component.
         components: { Cell: '/components/admin/BookingStatusCell#BookingStatusCell' },
         description:
-          '„Lista rezerwowa” i „rezygnacja” nie zajmują miejsca. Zmiana na „potwierdzony” lub „rezygnacja” wysyła maila (kursantowi albo rodzicowi); na „opłacony” — tylko przed pierwszym dniem. Przy obozie także „zaliczka wpłacona” — rodzic dostaje maila, ile zostało do zapłaty.',
+          '„Lista rezerwowa” i „rezygnacja” nie zajmują miejsca. Zmiana na „potwierdzony” lub „rezygnacja” wysyła maila (kursantowi albo rodzicowi); na „opłacony” — tylko przed pierwszym dniem. Przy obozie także „zaliczka wpłacona” — rodzic dostaje maila, ile zostało do zapłaty; przy rodzeństwie jeden mail, gdy zaznaczysz ostatnie dziecko ze zgłoszenia.',
       },
     },
     {

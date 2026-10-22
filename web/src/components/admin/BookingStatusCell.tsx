@@ -39,7 +39,10 @@ export function BookingStatusCell(props: {
         !noAddress && statusEmailForKind(kind, from as BookingStatus, to as BookingStatus)
           ? to === 'paid'
             ? `Zmienić status na „${labelOf(to)}”? Jeśli ${what} jeszcze się nie zaczął, ${who} dostanie maila.`
-            : `Zmienić status na „${labelOf(to)}”? ${who[0].toUpperCase()}${who.slice(1)} dostanie maila.`
+            : to === 'deposit'
+              ? // Siblings get one email, when the last of them is marked (`sendStatusEmail`).
+                `Zmienić status na „${labelOf(to)}”? Rodzic dostanie maila — przy rodzeństwie jednego, po zaznaczeniu ostatniego dziecka.`
+              : `Zmienić status na „${labelOf(to)}”? ${who[0].toUpperCase()}${who.slice(1)} dostanie maila.`
           : null
       }
     />
