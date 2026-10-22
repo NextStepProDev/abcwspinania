@@ -819,3 +819,53 @@ test('"zaliczka wpłacona" for siblings is one email, once the last child is mar
   assert.doesNotMatch(only[0]!.subject, /Zosia/)
   assert.match(only[0]!.text, /Do zapłaty zostało 2000/)
 })
+
+test('a waiting deposit email goes once the sibling it waited for drops out', async () => {
+  const camp = await makeCamp()
+  await payload.update({
+    collection: 'camps',
+    id: camp.id,
+    data: { price: 2500 },
+    overrideAccess: true,
+  })
+  const session = await makeSession(camp.id, { camp: true })
+  const result = await createCampBookings(payload, {
+    sessionId: session.id,
+    campId: camp.id,
+    contact: {
+      firstName: 'sibdrop',
+      lastName: 'Test',
+      email: email('sibdrop'),
+      phone: '+48600100200',
+    },
+    children: [
+      { firstName: 'Zosia', lastName: 'Test' },
+      { firstName: 'Staś', lastName: 'Test' },
+    ],
+    notes: null,
+    language: 'pl',
+    customerId: null,
+    wantsAccount: false,
+  })
+  assert.ok(result.kind === 'done')
+  const [zosia, stas] = result.children
+  outbox.length = 0
+  await payload.update({
+    collection: 'bookings',
+    id: zosia!.booking.id,
+    data: { status: 'deposit' },
+    overrideAccess: true,
+  })
+  await payload.update({
+    collection: 'bookings',
+    id: stas!.booking.id,
+    data: { status: 'cancelled' },
+    overrideAccess: true,
+  })
+  const deposit = outbox.filter(
+    (m) => m.to === email('sibdrop') && /^Zaliczka wpłynęła/.test(m.subject),
+  )
+  assert.equal(deposit.length, 1, 'Zosia’s deposit is not left unsaid')
+  assert.doesNotMatch(deposit[0]!.subject, /Staś/)
+  assert.match(deposit[0]!.text, /Do zapłaty zostało 2000/)
+})

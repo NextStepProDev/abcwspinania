@@ -184,6 +184,37 @@ async function depositSiblings(payload: Payload, booking: Booking, req?: Req): P
   return docs.length ? docs : [own]
 }
 
+/**
+ * A sibling's deposit email waits for the last child of the sign-up
+ * (`sendStatusEmail`). When that child drops out instead — cancelled, or
+ * moved to the waiting list — nothing would ever send it: this does, for the
+ * siblings left. Only when the child was the one not yet paid for.
+ */
+export async function sendWaitingDepositEmail(
+  payload: Payload,
+  booking: Booking,
+  previousStatus: string | null | undefined,
+  req?: Req,
+): Promise<void> {
+  if (booking.kind !== 'camp') return
+  if (previousStatus !== 'new' && previousStatus !== 'confirmed') return
+  if (booking.status !== 'cancelled' && booking.status !== 'waitlist') return
+  // Never fails the save it follows: a status change must not be undone by an email.
+  let first: Booking | undefined
+  try {
+    const siblings = (await depositSiblings(payload, booking, req)).filter(
+      (b) => b.id !== booking.id,
+    )
+    if (siblings.some((b) => b.status === 'new' || b.status === 'confirmed')) return
+    first = siblings.find((b) => b.status === 'deposit')
+    if (!first) return
+    await sendStatusEmail(payload, first, 'deposit', req)
+  } catch (error) {
+    if (first) await recordEmailIssue(payload, first.id, 'Mail „zaliczka wpłynęła”', error, req)
+    else payload.logger.error({ err: error }, 'Failed to check a waiting deposit email')
+  }
+}
+
 export async function sendStatusEmail(
   payload: Payload,
   booking: Booking,
