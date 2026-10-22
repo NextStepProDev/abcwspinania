@@ -1,4 +1,9 @@
-import { APIError, type CollectionConfig, type RelationshipFieldSingleValidation } from 'payload'
+import {
+  APIError,
+  type CollectionConfig,
+  type FieldHook,
+  type RelationshipFieldSingleValidation,
+} from 'payload'
 
 import { adminOrOwner, isAdmin } from '../lib/access'
 import {
@@ -17,6 +22,16 @@ import {
   registrationLinkHandler,
   sendRegistrationLink,
 } from '../lib/campRegistration'
+
+/**
+ * "Zduplikuj" in the panel is how the school adds a sibling by phone: the
+ * copy keeps the parent and the turnus, but everything of the FIRST child's
+ * sign-up starts again — the form link (sharing it would put the copy into
+ * the other child's form and contract), the form, the deposit, the contract
+ * and the photo consent, which was given for that child only.
+ */
+const clearOnDuplicate: FieldHook = () => null
+const noOnDuplicate: FieldHook = () => false
 
 /** A field the camp booking needs and the course booking does not have. */
 function requiredOnCamp(message: string) {
@@ -427,6 +442,7 @@ export const Bookings: CollectionConfig = {
           // Not required: the sign-up asks only for the names, the date comes
           // with the registration form (decided 20.10.2026).
           name: 'childBirthDate',
+          hooks: { beforeDuplicate: [clearOnDuplicate] },
           type: 'date',
           label: 'Data urodzenia',
           admin: {
@@ -440,6 +456,7 @@ export const Bookings: CollectionConfig = {
           // site (with the clause stored below) or by the school after a
           // consent given in person; unticking it is the withdrawal.
           name: 'photoConsent',
+          hooks: { beforeDuplicate: [noOnDuplicate] },
           type: 'checkbox',
           defaultValue: false,
           label: 'Zgoda na publikację zdjęć dziecka',
@@ -450,6 +467,7 @@ export const Bookings: CollectionConfig = {
         },
         {
           name: 'photoConsentText',
+          hooks: { beforeDuplicate: [clearOnDuplicate] },
           type: 'textarea',
           label: 'Treść zgody na zdjęcia',
           admin: {
@@ -465,23 +483,27 @@ export const Bookings: CollectionConfig = {
       // never in the panel or in an API response, the participant's own
       // included. Not part of the person's data copy (a key, not data).
       name: 'registrationToken',
+      hooks: { beforeDuplicate: [clearOnDuplicate] },
       type: 'text',
       index: true,
       hidden: true,
     },
     {
       name: 'registrationSentAt',
+      hooks: { beforeDuplicate: [clearOnDuplicate] },
       type: 'date',
       hidden: true,
     },
     {
       // The reminder (`sendRegistrationReminders`) goes once.
       name: 'registrationReminderAt',
+      hooks: { beforeDuplicate: [clearOnDuplicate] },
       type: 'date',
       hidden: true,
     },
     {
       name: 'registeredAt',
+      hooks: { beforeDuplicate: [clearOnDuplicate] },
       type: 'date',
       label: 'Formularz rejestracyjny wypełniony',
       index: true,
@@ -504,6 +526,7 @@ export const Bookings: CollectionConfig = {
       // save of the registration form. Past it, without a deposit, the parent
       // is reminded once (`depositReminderWhere`); the place is not released.
       name: 'depositDueAt',
+      hooks: { beforeDuplicate: [clearOnDuplicate] },
       type: 'date',
       label: 'Termin wpłaty zaliczki',
       index: true,
@@ -517,13 +540,14 @@ export const Bookings: CollectionConfig = {
     },
     {
       name: 'depositReminderAt',
+      hooks: { beforeDuplicate: [clearOnDuplicate] },
       type: 'date',
       hidden: true,
     },
     {
       // Set by the parent in the registration form; the school issues the
-      // invoice itself (decided 20.10.2026). The details to put on it come
-      // when Krzysiek says which.
+      // invoice itself (decided 20.10.2026) from "Dane do faktury"
+      // (`InvoicePanel`) — to the parent, or to a company below.
       name: 'invoiceRequested',
       type: 'checkbox',
       defaultValue: false,
@@ -559,6 +583,7 @@ export const Bookings: CollectionConfig = {
       // per child that day. A later change of price in the panel leaves a
       // sent contract as it was (Krzysiek, 22.10.2026).
       name: 'contractSentAt',
+      hooks: { beforeDuplicate: [clearOnDuplicate] },
       type: 'date',
       label: 'Umowa wysłana',
       admin: {
@@ -570,6 +595,7 @@ export const Bookings: CollectionConfig = {
     },
     {
       name: 'contractPrice',
+      hooks: { beforeDuplicate: [clearOnDuplicate] },
       type: 'number',
       label: 'Cena w umowie (zł)',
       admin: {
@@ -607,6 +633,7 @@ export const Bookings: CollectionConfig = {
       // Set by `recordEmailIssue` when an email to the participant did not go
       // out; counted on the dashboard until the school ticks "Załatwione".
       name: 'emailIssue',
+      hooks: { beforeDuplicate: [clearOnDuplicate] },
       type: 'text',
       label: 'Mail, który nie doszedł',
       access: { read: isAdmin },
@@ -619,6 +646,7 @@ export const Bookings: CollectionConfig = {
     },
     {
       name: 'emailIssueAt',
+      hooks: { beforeDuplicate: [clearOnDuplicate] },
       type: 'date',
       label: 'Kiedy',
       index: true,
@@ -632,6 +660,7 @@ export const Bookings: CollectionConfig = {
     },
     {
       name: 'emailIssueHandled',
+      hooks: { beforeDuplicate: [noOnDuplicate] },
       type: 'checkbox',
       label: 'Załatwione',
       defaultValue: false,

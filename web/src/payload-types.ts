@@ -1841,7 +1841,7 @@ export interface EnglishPage {
 export interface CampConfig {
   id: number;
   /**
-   * Wstawiana do każdej umowy obozowej w miejsce podpisu organizatora. PNG albo JPG, najlepiej na białym tle. Bez niej umowa wychodzi z pustym miejscem na podpis.
+   * Wstawiana do każdej umowy obozowej w miejsce podpisu organizatora. PNG albo JPG, najlepiej na białym tle. Bez niej umowa wychodzi z pustym miejscem na podpis, a zapis dostaje notkę na pulpicie. Usunięcie pliku w „Plikach prywatnych” czyści to pole — wtedy wybierz nowy plik tutaj.
    */
   contractSignature?: (number | null) | PrivateFile;
   /**

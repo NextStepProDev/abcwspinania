@@ -462,8 +462,8 @@ import { campBookingReceivedEmail, newCampBookingNotification } from '@/lib/emai
 
 const campSignUp = {
   firstName: 'Anna',
-  placed: 'Zosia Nowak i Staś Nowak',
-  waiting: '',
+  placed: ['Zosia Nowak', 'Staś Nowak'],
+  waiting: [] as string[],
   campTitle: 'Obóz wspinaczkowo-przygodowy',
   dates: '26 czerwca – 3 lipca 2027',
   location: 'Rzędkowice',
@@ -474,7 +474,8 @@ const campSignUp = {
 test('siblings get one confirmation with one link to their one registration form', () => {
   for (const lang of ['pl', 'en'] as const) {
     const email = campBookingReceivedEmail(lang, campSignUp)
-    assert.match(email.subject, /Zosia Nowak i Staś Nowak — Obóz wspinaczkowo-przygodowy/)
+    const and = lang === 'pl' ? 'i' : 'and'
+    assert.match(email.subject, new RegExp(`Zosia Nowak ${and} Staś Nowak — Obóz wspinaczkowo`))
     assert.match(email.text, /Anna/)
     assert.match(email.text, /26 czerwca – 3 lipca 2027/)
     assert.equal(email.text.match(/obozy\/rejestracja\?token=abc/g)?.length, 1)
@@ -484,16 +485,16 @@ test('siblings get one confirmation with one link to their one registration form
 test('a child left on the waiting list is named apart; with all waiting there is no form yet', () => {
   const split = campBookingReceivedEmail('pl', {
     ...campSignUp,
-    placed: 'Zosia Nowak',
-    waiting: 'Staś Nowak',
+    placed: ['Zosia Nowak'],
+    waiting: ['Staś Nowak'],
   })
   assert.match(split.text, /Zosia Nowak: miejsce zarezerwowane/)
   assert.match(split.text, /Staś Nowak: na tym turnusie zabrakło miejsca/)
   assert.match(split.text, /rejestracja\?token=abc/)
   const all = campBookingReceivedEmail('pl', {
     ...campSignUp,
-    placed: '',
-    waiting: 'Zosia Nowak i Staś Nowak',
+    placed: [],
+    waiting: ['Zosia Nowak', 'Staś Nowak'],
     registrationUrl: null,
   })
   assert.match(all.subject, /^Lista rezerwowa/)
@@ -757,4 +758,13 @@ test('the payment email says the contract is attached and where it goes back —
     }).text,
     /The contract is attached/,
   )
+})
+
+test('siblings split between places and the waiting list read as one list in the subject', () => {
+  const email = campBookingReceivedEmail('pl', {
+    ...campSignUp,
+    placed: ['Zosia Nowak', 'Staś Nowak'],
+    waiting: ['Ala Nowak'],
+  })
+  assert.match(email.subject, /Zosia Nowak, Staś Nowak i Ala Nowak/)
 })

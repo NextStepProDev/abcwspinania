@@ -1,9 +1,12 @@
-import { APIError, type CollectionConfig } from 'payload'
+import { APIError, type CollectionConfig, type FieldHook } from 'payload'
 
 import { recountSession } from '../lib/bookingEffects'
 import { exportSessionHandler } from '../lib/sessionExport'
 
 import { anyone, isAdmin } from '../lib/access'
+
+/** "Zduplikuj" makes the next turnus: what belongs to this one starts again. */
+const clearOnDuplicate: FieldHook = () => null
 
 /**
  * Scheduled runs of courses and camps — one source for the schedule page, the
@@ -237,6 +240,7 @@ export const Sessions: CollectionConfig = {
       // Kuratorium accepts the notification; parents need it on the invoice
       // ("Dane do faktury" on a booking shows it).
       name: 'kuratoriumNumber',
+      hooks: { beforeDuplicate: [clearOnDuplicate] },
       type: 'text',
       maxLength: 100,
       label: 'Numer zgłoszenia wypoczynku (Kuratorium)',
@@ -247,8 +251,9 @@ export const Sessions: CollectionConfig = {
     },
     {
       // When the school was reminded about the email before this turnus and
-      // its draft was made (`sendPreCampReminders`) — once per turnus.
+      // its draft was made (`preparePreCampDrafts`) — once per turnus.
       name: 'preCampDraftAt',
+      hooks: { beforeDuplicate: [clearOnDuplicate] },
       type: 'date',
       hidden: true,
     },

@@ -1232,8 +1232,25 @@ do 30 dni przed obozem. Cała ścieżka działa bez konta; konto dla chętnych.
   w `uploads/private` (ten sam wolumen, więc kopia nocna je obejmuje).
   **Celowo bez wpisu w `localPatterns` i bez bloku nginx** (wyjątek od
   zasady 23): nic z tej kolekcji nie jest pokazywane na stronie, a długi
-  cache byłby odwrotnością celu. Bez wgranego podpisu umowa wychodzi
-  z pustym miejscem na podpis organizatora.
+  cache byłby odwrotnością celu. Za to odpowiedź z plikiem ma jawne
+  `Cache-Control: private, no-store` (`modifyResponseHeaders`, od
+  22.10.2026): Payload nie wysyła żadnego, a Cloudflare trzyma `.png` bez
+  tego nagłówka na swoim brzegu — pobranie przez konto szkoły oddałoby
+  podpis każdemu pytającemu o ten adres. Bez wybranego podpisu umowa
+  wychodzi z pustym miejscem na podpis organizatora, a zapis dostaje notkę
+  („Mail, który nie doszedł” na pulpicie). **Usunięcie pliku w „Plikach
+  prywatnych” samo czyści pole w „Ustawieniach obozów”** (klucz obcy) —
+  znalezione przy audycie 22.10.2026: nowy plik wgrany, stary usunięty,
+  umowy szły bez podpisu i nikt by o tym nie wiedział.
+- **„Zduplikuj” zapisu obozowego = nowe dziecko** (od 22.10.2026): tak
+  szkoła dopisze rodzeństwo przez telefon. Kopia zostawia rodzica, kontakt
+  i turnus, a zeruje wszystko, co należało do PIERWSZEGO dziecka
+  (`beforeDuplicate` na polach): token formularza (inaczej kopia weszłaby
+  do cudzego formularza i umowy), „formularz wypełniony”, datę urodzenia,
+  zgodę na zdjęcia, termin zaliczki, umowę i notkę o mailu. To samo przy
+  terminie: kopia turnusu nie dziedziczy numeru z Kuratorium ani znacznika
+  „szkic przed obozem zrobiony”. Payload kopiuje przy duplikacie także pola
+  `hidden` — nowe pole zapisu albo terminu: zdecyduj, czy kopia ma je mieć.
 - **Mail przed obozem** (od 22.10.2026, `lib/campPreCamp.ts` czysty,
   `lib/campPreCampDrafts.ts` w dziennym sprzątaniu): `preCampReminderDays`
   (domyślnie 16, „Ustawienia obozów”) przed turnusem system zakłada SZKIC

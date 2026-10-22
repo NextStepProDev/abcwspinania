@@ -9,7 +9,7 @@ import { getCurrentCustomer } from '@/lib/auth'
 import { MAX_CHILDREN, formatSessionDates } from '@/lib/bookings'
 import { recordEmailIssue, sessionSummary } from '@/lib/bookingEffects'
 import { createCampBookings } from '@/lib/bookingService'
-import { campMailbox, campSender, joinNames } from '@/lib/campPayment'
+import { campMailbox, campSender } from '@/lib/campPayment'
 import { registrationUrl } from '@/lib/campRegistration'
 import { DEFAULT_LANGUAGE, type EmailLanguage } from '@/lib/email/language'
 import { publicUrl, tokenLink } from '@/lib/email/links'
@@ -222,8 +222,8 @@ export async function bookCamp(
           ...pick(
             campBookingReceivedEmail(language, {
               firstName: contact.firstName,
-              placed: joinNames(language, placed.map(nameOf)),
-              waiting: joinNames(language, waiting.map(nameOf)),
+              placed: placed.map(nameOf),
+              waiting: waiting.map(nameOf),
               campTitle: summary?.courseTitle ?? camp.title,
               dates,
               location: summary?.location,

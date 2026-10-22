@@ -2,6 +2,7 @@ import { TOPICS } from '@/lib/topics'
 
 import type { EmailLanguage } from '@/lib/email/language'
 import { renderEmail, type RenderedEmail } from '@/lib/email/layout'
+import { joinNames } from '@/lib/campPayment'
 import { BOOKING_RETENTION_YEARS } from '@/lib/expiry'
 
 /**
@@ -423,10 +424,10 @@ export function newBookingNotification(data: NewBookingData): Email {
 export interface CampBookingEmailData {
   /** The parent's. */
   firstName?: string | null
-  /** Already joined for the sentence (`joinNames`) — those with a place. */
-  placed: string
-  /** Those on the waiting list, joined the same way; empty when none. */
-  waiting: string
+  /** The children with a place, in the form's order. */
+  placed: string[]
+  /** Those on the waiting list; empty when none. */
+  waiting: string[]
   campTitle: string
   /** Already formatted for the language (`formatSessionDates`). */
   dates: string
@@ -480,18 +481,21 @@ export function campBookingReceivedEmail(lang: EmailLanguage, data: CampBookingE
     [copy.dates, data.dates],
   ]
   if (data.location) details.push([copy.place, data.location])
+  const placed = joinNames(lang, data.placed)
+  const waiting = joinNames(lang, data.waiting)
   const paragraphs = [
-    ...(data.placed ? [copy.placed(data.placed)] : []),
-    ...(data.waiting ? [copy.waiting(data.waiting)] : []),
+    ...(placed ? [copy.placed(placed)] : []),
+    ...(waiting ? [copy.waiting(waiting)] : []),
   ]
   const action = data.registrationUrl
     ? { label: copy.form, href: data.registrationUrl }
     : data.accountUrl
       ? { label: copy.account, href: data.accountUrl }
       : undefined
-  const names = [data.placed, data.waiting].filter(Boolean).join(', ')
+  // One list in the subject: "Zosia, Staś i Ala", not "Zosia i Staś, Ala".
+  const names = joinNames(lang, [...data.placed, ...data.waiting])
   return {
-    subject: oneLine(copy.subject(names, data.campTitle, !data.placed)),
+    subject: oneLine(copy.subject(names, data.campTitle, !placed)),
     ...renderEmail({
       lang,
       heading: greeting(lang, data.firstName),

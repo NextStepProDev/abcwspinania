@@ -333,7 +333,7 @@ export async function buildContract(
     concludedOn: Date
     price: number | null
   },
-): Promise<{ bytes: Uint8Array; fileName: string } | null> {
+): Promise<{ bytes: Uint8Array; fileName: string; signed: boolean } | null> {
   const lead = input.bookings[0]
   if (!lead || input.price === null) return null
   const season = campSeason(input.session.startDate)
@@ -361,8 +361,9 @@ export async function buildContract(
     price: input.price,
     ownSleepingBags: Boolean(input.camp?.ownSleepingBags),
   }
-  const bytes = await contractPdf(data, await contractSignature(payload))
-  return { bytes, fileName: contractFileName(season, lead.lastName) }
+  const signature = await contractSignature(payload)
+  const bytes = await contractPdf(data, signature)
+  return { bytes, fileName: contractFileName(season, lead.lastName), signed: Boolean(signature) }
 }
 
 /**
@@ -400,6 +401,16 @@ export async function sendRegistrationEmails(
     })
     if (contract) {
       contractAttached = true
+      // Deleting the file in "Pliki prywatne" empties the setting by itself —
+      // without this the contracts would go unsigned and nobody would know.
+      if (!contract.signed) {
+        await recordEmailIssue(
+          payload,
+          lead.id,
+          'Umowa poszła bez podpisu organizatora',
+          'w „Ustawieniach obozów” nie ma pieczątki z podpisem; wybierz ją tam i wyślij rodzicowi umowę pobraną z zapisu',
+        )
+      }
       for (const booking of saved.bookings) {
         await payload.db.updateOne({
           collection: 'bookings',
@@ -700,7 +711,7 @@ export async function deleteExpiredRegistrations(payload: Payload): Promise<void
 export async function contractOf(
   payload: Payload,
   booking: Booking,
-): Promise<{ bytes: Uint8Array; fileName: string } | null> {
+): Promise<{ bytes: Uint8Array; fileName: string; signed: boolean } | null> {
   const sessionId = idOf(booking.session)
   if (!sessionId) return null
   const session = await payload

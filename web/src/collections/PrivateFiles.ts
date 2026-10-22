@@ -14,8 +14,9 @@ import { privateFilesDir } from '../lib/privateFiles'
  * Deliberately WITHOUT the two entries an upload collection usually needs
  * (CLAUDE.md, rule 23): no `next/image` pattern and no nginx cache block —
  * nothing here is shown on the site, and caching it would be the opposite of
- * the point. Stored in its own folder of the uploads volume, so the nightly
- * backup takes it with the rest.
+ * the point (the response says so itself: `private, no-store`). Stored in
+ * its own folder of the uploads volume, so the nightly backup takes it with
+ * the rest.
  */
 export const PrivateFiles: CollectionConfig = {
   slug: 'private-files',
@@ -36,6 +37,13 @@ export const PrivateFiles: CollectionConfig = {
     mimeTypes: ['image/png', 'image/jpeg'],
     crop: false,
     focalPoint: false,
+    // Payload sends a file with no Cache-Control, and Cloudflare keeps a .png
+    // without one at its edge — the school's own download would then be
+    // served to anyone asking for the same address. Never cached, anywhere.
+    modifyResponseHeaders: ({ headers }) => {
+      headers.set('Cache-Control', 'private, no-store')
+      return headers
+    },
   },
   fields: [
     {

@@ -24,6 +24,7 @@ import {
   cleanup,
   email,
   http,
+  makeAdmin,
   makeCamp,
   makeCustomer,
   makeSession,
@@ -621,4 +622,131 @@ test('a trip or regular classes get no pre-camp draft, even with someone booked'
     overrideAccess: true,
   })
   assert.equal(drafts.totalDocs, 0)
+})
+
+test('"Zduplikuj" on a camp booking makes a new child, not a second copy of the sign-up', async () => {
+  const { child } = await signUp('dupchild', 'Zosia')
+  const ctx = (await findByToken(payload, child.registrationToken!))!
+  await sendRegistrationEmails(payload, ctx, await saveRegistration(payload, ctx, formFor(ctx)))
+  const copy = await payload.duplicate({
+    collection: 'bookings',
+    id: child.booking.id,
+    overrideAccess: true,
+  })
+  const after = await payload.findByID({
+    collection: 'bookings',
+    id: copy.id,
+    depth: 0,
+    overrideAccess: true,
+    showHiddenFields: true,
+  })
+  // A sibling added by phone: its own form and contract, nothing of the first child's.
+  assert.equal(after.registrationToken ?? null, null, 'not in the first child’s link')
+  assert.equal(after.registeredAt ?? null, null, 'its form is not filled in')
+  assert.equal(after.contractSentAt ?? null, null)
+  assert.equal(after.contractPrice ?? null, null)
+  assert.equal(after.depositDueAt ?? null, null)
+  assert.equal(after.childBirthDate ?? null, null)
+  assert.equal(after.photoConsent, false, 'the first child’s photo consent is not this one’s')
+  assert.equal(after.photoConsentText ?? null, null)
+  const link = (await findByToken(payload, child.registrationToken!))!
+  assert.equal(link.children.length, 1, 'the parent’s link still opens one child')
+})
+
+test('"Zduplikuj" on a turnus starts its own reminder and Kuratorium number', async () => {
+  const camp = await makeCamp()
+  const session = await makeSession(camp.id, { camp: true, daysAhead: 10 })
+  await payload.update({
+    collection: 'sessions',
+    id: session.id,
+    data: { kuratoriumNumber: 'KO-123/2027' },
+    overrideAccess: true,
+  })
+  await payload.db.updateOne({
+    collection: 'sessions',
+    id: session.id,
+    data: { preCampDraftAt: new Date().toISOString() },
+  })
+  const copy = await payload.duplicate({
+    collection: 'sessions',
+    id: session.id,
+    overrideAccess: true,
+  })
+  cleanup(() => payload.delete({ collection: 'sessions', id: copy.id, overrideAccess: true }))
+  const after = await payload.findByID({
+    collection: 'sessions',
+    id: copy.id,
+    depth: 0,
+    joins: false,
+    overrideAccess: true,
+    showHiddenFields: true,
+  })
+  assert.equal(after.preCampDraftAt ?? null, null, 'the new turnus gets its own draft')
+  assert.equal(after.kuratoriumNumber ?? null, null, 'a number is per turnus')
+})
+
+test('the signature file is the school’s only and never kept by a cache', async () => {
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+    'base64',
+  )
+  const file = await payload.create({
+    collection: 'private-files',
+    data: { title: 'test' },
+    file: {
+      data: png,
+      mimetype: 'image/png',
+      name: `${email('sig').split('@')[0]}.png`,
+      size: png.length,
+    },
+    overrideAccess: true,
+  })
+  cleanup(() => payload.delete({ collection: 'private-files', id: file.id, overrideAccess: true }))
+  const path = `/api/private-files/file/${file.filename}`
+  assert.equal((await http(path)).status, 403, 'a visitor gets nothing')
+  const customer = await makeCustomer('sigcust')
+  assert.equal((await http(path, { token: customer.token })).status, 403, 'nor a participant')
+  const admin = await makeAdmin()
+  const own = await http(path, { token: admin.token })
+  assert.equal(own.status, 200)
+  // Cloudflare keeps a .png without Cache-Control — and would hand it to anyone.
+  assert.match(own.headers.get('cache-control') ?? '', /no-store/)
+})
+
+test('a contract that went without the organiser’s signature is flagged for the school', async () => {
+  const config = await payload.findGlobal({ slug: 'camp-config', depth: 0, overrideAccess: true })
+  const before = config.contractSignature ?? null
+  await payload.updateGlobal({
+    slug: 'camp-config',
+    data: { contractSignature: null },
+    overrideAccess: true,
+  })
+  cleanup(() =>
+    payload.updateGlobal({
+      slug: 'camp-config',
+      data: { contractSignature: before as number | null },
+      overrideAccess: true,
+    }),
+  )
+  const { camp, child } = await signUp('unsigned', 'Zosia')
+  await payload.update({
+    collection: 'camps',
+    id: camp.id,
+    data: { price: 2500 },
+    overrideAccess: true,
+  })
+  const ctx = (await findByToken(payload, child.registrationToken!))!
+  const sent = await sendRegistrationEmails(
+    payload,
+    ctx,
+    await saveRegistration(payload, ctx, formFor(ctx)),
+  )
+  assert.equal(sent.contractAttached, true, 'the parent still gets the contract')
+  const after = await payload.findByID({
+    collection: 'bookings',
+    id: child.booking.id,
+    depth: 0,
+    overrideAccess: true,
+  })
+  assert.match(after.emailIssue ?? '', /bez podpisu/)
 })
