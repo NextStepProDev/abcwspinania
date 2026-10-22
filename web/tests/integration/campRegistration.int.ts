@@ -167,7 +167,7 @@ test('the form goes a month after its camp; a camp still ahead keeps it', async 
     overrideAccess: true,
     context: { recountingSpots: true },
   })
-  await deleteExpiredRegistrations(payload)
+  await deleteExpiredRegistrations(payload, [past.session.id, ahead.session.id])
   assert.equal((await registrationsOf(past.child.booking.id)).length, 0)
   assert.equal((await registrationsOf(ahead.child.booking.id)).length, 1)
 })
@@ -218,7 +218,7 @@ test('a child moved up from the waiting list gets the form link; a status change
 })
 
 test('the reminder goes once, only while the form is empty', async () => {
-  const { child } = await signUp('regremind', 'Zosia')
+  const { child, session } = await signUp('regremind', 'Zosia')
   const done = await signUp('regremdone', 'Staś')
   await fill(done.child.registrationToken!)
   // Both links "sent" five days ago.
@@ -230,8 +230,9 @@ test('the reminder goes once, only while the form is empty', async () => {
     })
   }
   outbox.length = 0
-  await sendRegistrationReminders(payload)
-  await sendRegistrationReminders(payload)
+  const mine = [session.id, done.session.id]
+  await sendRegistrationReminders(payload, mine)
+  await sendRegistrationReminders(payload, mine)
   const reminders = outbox.filter((m) => /^Przypomnienie/.test(m.subject))
   assert.deepEqual(
     reminders.map((m) => m.to),
@@ -323,8 +324,9 @@ test('a late deposit is reminded once; a paid one and a future deadline are not'
     data: { status: 'deposit' },
   })
   outbox.length = 0
-  await sendDepositReminders(payload)
-  await sendDepositReminders(payload)
+  const mine = [late, paid, early].map((s) => s.session.id)
+  await sendDepositReminders(payload, mine)
+  await sendDepositReminders(payload, mine)
   assert.deepEqual(
     outbox.filter((m) => /Przypomnienie o zaliczce/.test(m.subject)).map((m) => m.to),
     [email('deplate')],
@@ -417,8 +419,8 @@ test('siblings late with the form get one reminder between them', async () => {
     })
   }
   outbox.length = 0
-  await sendRegistrationReminders(payload)
-  await sendRegistrationReminders(payload)
+  await sendRegistrationReminders(payload, [session.id])
+  await sendRegistrationReminders(payload, [session.id])
   const reminders = outbox.filter((m) => m.to === email('sibremind'))
   assert.equal(reminders.length, 1)
   assert.match(reminders[0].text, /Zosia Test i Staś Test/)
@@ -631,6 +633,12 @@ test('"Zduplikuj" on a camp booking makes a new child, not a second copy of the 
   const { child } = await signUp('dupchild', 'Zosia')
   const ctx = (await findByToken(payload, child.registrationToken!))!
   await sendRegistrationEmails(payload, ctx, await saveRegistration(payload, ctx, formFor(ctx)))
+  // Already paid for: the copy must not inherit the deposit.
+  await payload.db.updateOne({
+    collection: 'bookings',
+    id: child.booking.id,
+    data: { status: 'deposit' },
+  })
   const copy = await payload.duplicate({
     collection: 'bookings',
     id: child.booking.id,
@@ -652,6 +660,7 @@ test('"Zduplikuj" on a camp booking makes a new child, not a second copy of the 
   assert.equal(after.childBirthDate ?? null, null)
   assert.equal(after.photoConsent, false, 'the first child’s photo consent is not this one’s')
   assert.equal(after.photoConsentText ?? null, null)
+  assert.equal(after.status, 'new', 'a new child starts as a new sign-up, not paid')
   const link = (await findByToken(payload, child.registrationToken!))!
   assert.equal(link.children.length, 1, 'the parent’s link still opens one child')
 })

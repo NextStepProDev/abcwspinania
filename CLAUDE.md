@@ -1254,7 +1254,8 @@ do 30 dni przed obozem. Cała ścieżka działa bez konta; konto dla chętnych.
 - **„Zduplikuj” zapisu obozowego = nowe dziecko** (od 22.10.2026): tak
   szkoła dopisze rodzeństwo przez telefon. Kopia zostawia rodzica, kontakt
   i turnus, a zeruje wszystko, co należało do PIERWSZEGO dziecka
-  (`beforeDuplicate` na polach): token formularza (inaczej kopia weszłaby
+  (`beforeDuplicate` na polach): status (wraca na „zgłoszony” — kopia
+  opłaconego zapisu była „opłacona”), token formularza (inaczej kopia weszłaby
   do cudzego formularza i umowy), „formularz wypełniony”, datę urodzenia,
   zgodę na zdjęcia, termin zaliczki, umowę i notkę o mailu. To samo przy
   terminie: kopia turnusu nie dziedziczy numeru z Kuratorium ani znacznika
@@ -1913,6 +1914,13 @@ maile, usunięcie konta.
   hurtowe `payload.delete` NIE rzuca, tylko zwraca odmowy w `errors` —
   wysyłki „w trakcie” zostawały w bazie po cichu i blokowały kolejkę
   następnego przebiegu.
+- **Sprzątanie dzienne w testach — tylko na własnych turnusach**
+  (`onlySessions` w `sendRegistrationReminders`, `sendDepositReminders`,
+  `deleteExpiredRegistrations`, `sendWaitingDepositEmails`,
+  `preparePreCampDrafts`; od 22.10.2026). Testy chodzą po bazie
+  deweloperskiej, na której leżą dane z `seed:test:camps`: przypomnienie
+  o zaliczce wysłane przez test „do outboxa” oznaczało zapis testera jako
+  przypomniany i krok scenariusza przestawał działać.
 - **Zmiana kolekcji = restart `npm run dev` przed testami HTTP.** Serwer
   deweloperski nie przeładowuje konfiguracji Payloada w locie (zmierzone
   04–05.10.2026: nowe pola nieznane, zmieniona reguła dostępu nadal stara),

@@ -7,6 +7,7 @@ import {
   killTransaction,
   type Payload,
   type PayloadRequest,
+  type Where,
 } from 'payload'
 
 import { isAdmin } from '@/lib/access'
@@ -577,15 +578,25 @@ export function movedUpFromWaitlist(
 
 // --- the daily sweep -------------------------------------------------------------
 
+/** A sweep's bookings, narrowed to some sessions when a test asks. */
+function onlyOn(where: Where, onlySessions?: number[]): Where {
+  return onlySessions ? { and: [where, { session: { in: onlySessions } }] } : where
+}
+
 /**
  * One reminder per sign-up whose form is still empty
  * (`registrationReminderWhere`) — siblings share a link, so they share the
  * reminder too.
  */
-export async function sendRegistrationReminders(payload: Payload): Promise<void> {
+export async function sendRegistrationReminders(
+  payload: Payload,
+  // Tests narrow every sweep to their own turnusy — the dev database has
+  // others, the tester's seeded data among them.
+  onlySessions?: number[],
+): Promise<void> {
   const { docs } = await payload.find({
     collection: 'bookings',
-    where: registrationReminderWhere(new Date()),
+    where: onlyOn(registrationReminderWhere(new Date()), onlySessions),
     pagination: false,
     depth: 0,
     overrideAccess: true,
@@ -611,10 +622,13 @@ export async function sendRegistrationReminders(payload: Payload): Promise<void>
  * transfer. Marked BEFORE the send: a reminder that failed is noted on the
  * booking for the school, and the next day does not send it twice.
  */
-export async function sendDepositReminders(payload: Payload): Promise<void> {
+export async function sendDepositReminders(
+  payload: Payload,
+  onlySessions?: number[],
+): Promise<void> {
   const { docs } = await payload.find({
     collection: 'bookings',
-    where: depositReminderWhere(new Date()),
+    where: onlyOn(depositReminderWhere(new Date()), onlySessions),
     pagination: false,
     sort: 'createdAt',
     depth: 0,
@@ -685,10 +699,14 @@ export async function sendDepositReminders(payload: Payload): Promise<void> {
  * (`CAMP_HEALTH_RETENTION_MONTHS`) — the PESEL and the health data, as the
  * consent clause and the privacy policy promise.
  */
-export async function deleteExpiredRegistrations(payload: Payload): Promise<void> {
+export async function deleteExpiredRegistrations(
+  payload: Payload,
+  onlySessions?: number[],
+): Promise<void> {
+  const expired = expiredRegistrationsWhere(new Date())
   const { docs, errors } = await payload.delete({
     collection: 'camp-registrations',
-    where: expiredRegistrationsWhere(new Date()),
+    where: onlySessions ? { and: [expired, { 'booking.session': { in: onlySessions } }] } : expired,
     overrideAccess: true,
     // Only the count is used — the deleted rows' health data stays unread.
     select: { label: true },

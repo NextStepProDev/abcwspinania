@@ -26,12 +26,15 @@ import {
 /**
  * "Zduplikuj" in the panel is how the school adds a sibling by phone: the
  * copy keeps the parent and the turnus, but everything of the FIRST child's
- * sign-up starts again — the form link (sharing it would put the copy into
- * the other child's form and contract), the form, the deposit, the contract
- * and the photo consent, which was given for that child only.
+ * sign-up starts again — the status (a copy of a paid booking was "paid"),
+ * the form link (sharing it would put the copy into the other child's form
+ * and contract), the form, the deposit, the contract and the photo consent,
+ * which was given for that child only.
  */
 const clearOnDuplicate: FieldHook = () => null
 const noOnDuplicate: FieldHook = () => false
+/** The copy is a new child: a new sign-up, not one already paid for. */
+const newOnDuplicate: FieldHook = () => 'new'
 
 /** A field the camp booking needs and the course booking does not have. */
 function requiredOnCamp(message: string) {
@@ -319,6 +322,7 @@ export const Bookings: CollectionConfig = {
     },
     {
       name: 'status',
+      hooks: { beforeDuplicate: [newOnDuplicate] },
       type: 'select',
       required: true,
       defaultValue: 'new',
