@@ -6,6 +6,7 @@ import {
   emailFailureReason,
   dedupeRecipients,
   hasEnglishVersion,
+  unfilledPlaceholders,
   versionFor,
 } from '@/lib/broadcasts'
 import { toBrevoBody } from '@/lib/email/brevo'
@@ -230,4 +231,30 @@ test('a failed booking email is explained in words, not in Brevo JSON', () => {
   )
   assert.match(emailFailureReason(new Error('fetch failed')), /brak połączenia/)
   assert.doesNotMatch(emailFailureReason(new Error('Brevo refused the email: 402 {"x":1}')), /\{/)
+})
+
+test('a broadcast with a [blank] left from the template is caught, in either version', () => {
+  assert.deepEqual(
+    unfilledPlaceholders({
+      subject: 'Przed obozem: Jura',
+      content: doc(paragraph(text('Spotykamy się w [miejsce zbiórki] o [godziny].'))),
+    }),
+    ['[miejsce zbiórki]', '[godziny]'],
+  )
+  assert.deepEqual(
+    unfilledPlaceholders({
+      subject: 'Before the camp [date]',
+      content: doc(paragraph(text('ok'))),
+      subjectEn: 'x',
+      contentEn: doc(paragraph(text('Meet at [place]'))),
+    }),
+    ['[date]', '[place]'],
+  )
+  assert.deepEqual(
+    unfilledPlaceholders({
+      subject: 'Przed obozem',
+      content: doc(paragraph(text('Zbiórka w Rzędkowicach.'))),
+    }),
+    [],
+  )
 })

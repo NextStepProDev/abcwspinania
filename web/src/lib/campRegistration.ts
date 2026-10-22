@@ -1,6 +1,4 @@
 import crypto from 'node:crypto'
-import { readFile } from 'node:fs/promises'
-import path from 'node:path'
 
 import {
   commitTransaction,
@@ -20,7 +18,7 @@ import {
   type ContractData,
 } from '@/lib/campContract'
 import { contractPdf } from '@/lib/contractPdf'
-import { privateFilesDir } from '@/lib/privateFiles'
+import { readPrivateFile } from '@/lib/privateFiles'
 import { idOf, recordEmailIssue } from '@/lib/bookingEffects'
 import {
   campActivitiesConsentForStorage,
@@ -310,10 +308,11 @@ async function contractSignature(
     .findGlobal({ slug: 'camp-config', depth: 1, overrideAccess: true })
     .catch(() => null)
   const file = config?.contractSignature
-  if (!file || typeof file !== 'object' || !file.filename) return null
-  const bytes = await readFile(path.join(privateFilesDir(), path.basename(file.filename))).catch(
-    () => null,
-  )
+  // "Pliki prywatne" take PDFs too (the qualification card): only a picture
+  // can be a signature — anything else counts as none, and is flagged.
+  if (!file || typeof file !== 'object') return null
+  if (file.mimeType !== 'image/png' && file.mimeType !== 'image/jpeg') return null
+  const bytes = await readPrivateFile(file)
   if (!bytes) return null
   return { bytes, type: file.mimeType === 'image/png' ? 'png' : 'jpg' }
 }

@@ -718,6 +718,10 @@ export interface Broadcast {
    * Domyślnie wiadomość dostają tylko osoby z miejscem. Zaznacz np. przy odwołaniu terminu albo zmianie dat.
    */
   includeWaitlist?: boolean | null;
+  /**
+   * Pusta karta z „Ustawień obozów” w załączniku do każdego maila.
+   */
+  attachQualificationCard?: boolean | null;
   status: 'draft' | 'sending' | 'sent';
   copyUnreviewed?: boolean | null;
   recipientsCount?: number | null;
@@ -921,7 +925,7 @@ export interface GalleryPhoto {
   };
 }
 /**
- * Pliki widoczne tylko w panelu, np. pieczątka z podpisem do umów obozowych. Strona ich nie pokazuje.
+ * Pliki widoczne tylko w panelu: pieczątka z podpisem do umów obozowych, pusta karta kwalifikacyjna do maila przed obozem. Strona ich nie pokazuje.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "private-files".
@@ -1350,6 +1354,7 @@ export interface BroadcastsSelect<T extends boolean = true> {
   audience?: T;
   session?: T;
   includeWaitlist?: T;
+  attachQualificationCard?: T;
   status?: T;
   copyUnreviewed?: T;
   recipientsCount?: T;
@@ -1847,6 +1852,10 @@ export interface CampConfig {
    */
   contractSignature?: (number | null) | PrivateFile;
   /**
+   * Plik PDF. Dołączana do maila przed obozem, gdy w szkicu zaznaczone jest „Dołącz kartę kwalifikacyjną”. Gdy Kuratorium zmieni wzór — wgraj nowy plik i wybierz go tutaj.
+   */
+  qualificationCard?: (number | null) | PrivateFile;
+  /**
    * Tyle dni przed początkiem turnusu dostaniesz mail z linkiem do gotowego szkicu wiadomości dla rodziców.
    */
   preCampReminderDays: number;
@@ -1982,6 +1991,7 @@ export interface EnglishPageSelect<T extends boolean = true> {
  */
 export interface CampConfigSelect<T extends boolean = true> {
   contractSignature?: T;
+  qualificationCard?: T;
   preCampReminderDays?: T;
   preCampTemplate?: T;
   updatedAt?: T;

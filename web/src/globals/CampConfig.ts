@@ -29,6 +29,18 @@ export const CampConfig: GlobalConfig = {
       },
     },
     {
+      // The Kuratorium's blank form, filled in on paper and brought to the camp
+      // (Krzysiek, 20.10.2026) — attached to the email before a camp.
+      name: 'qualificationCard',
+      type: 'upload',
+      relationTo: 'private-files',
+      label: 'Pusta karta kwalifikacyjna (PDF)',
+      admin: {
+        description:
+          'Plik PDF. Dołączana do maila przed obozem, gdy w szkicu zaznaczone jest „Dołącz kartę kwalifikacyjną”. Gdy Kuratorium zmieni wzór — wgraj nowy plik i wybierz go tutaj.',
+      },
+    },
+    {
       name: 'preCampReminderDays',
       type: 'number',
       min: 1,

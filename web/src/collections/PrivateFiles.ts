@@ -4,10 +4,11 @@ import { isAdmin } from '../lib/access'
 import { privateFilesDir } from '../lib/privateFiles'
 
 /**
- * Files for the school's eyes only — today the organiser's stamp and
- * signature that the system puts into every camp contract ("Ustawienia
- * obozów"). Not in `Media`: Media is public (the site shows it), and a
- * signature anyone could download would be one anyone could paste.
+ * Files for the school's eyes only — the organiser's stamp and signature
+ * that the system puts into every camp contract, and the blank qualification
+ * card attached to the email before a camp ("Ustawienia obozów"). Not in
+ * `Media`: Media is public (the site shows it), and a signature anyone could
+ * download would be one anyone could paste.
  *
  * Read only by a school account — Payload checks this rule when it serves
  * `/api/private-files/file/…`, so the file is not reachable from outside.
@@ -24,7 +25,7 @@ export const PrivateFiles: CollectionConfig = {
   admin: {
     group: 'Ustawienia',
     description:
-      'Pliki widoczne tylko w panelu, np. pieczątka z podpisem do umów obozowych. Strona ich nie pokazuje.',
+      'Pliki widoczne tylko w panelu: pieczątka z podpisem do umów obozowych, pusta karta kwalifikacyjna do maila przed obozem. Strona ich nie pokazuje.',
   },
   access: {
     read: isAdmin,
@@ -34,7 +35,8 @@ export const PrivateFiles: CollectionConfig = {
   },
   upload: {
     staticDir: privateFilesDir(),
-    mimeTypes: ['image/png', 'image/jpeg'],
+    // The stamp for contracts; the blank qualification card (PDF) for the email before a camp.
+    mimeTypes: ['image/png', 'image/jpeg', 'application/pdf'],
     crop: false,
     focalPoint: false,
     // Payload sends a file with no Cache-Control, and Cloudflare keeps a .png

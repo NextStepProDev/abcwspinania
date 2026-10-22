@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 
 import type { PayloadRequest } from 'payload'
+import { PDFDocument } from 'pdf-lib'
 
 import { createCampBookings } from '@/lib/bookingService'
 import {
@@ -588,6 +589,7 @@ test('before a camp the school gets a draft to its parents — once, never sent 
   assert.equal(docs.length, 1, 'one draft, for the turnus within 16 days')
   assert.equal(docs[0].session, soon.id)
   assert.equal(docs[0].status, 'draft')
+  assert.equal(docs[0].attachQualificationCard, true, 'the blank card goes with it')
   assert.match(docs[0].subject, new RegExp(`Przed obozem: ${camp.title}`))
   assert.ok(!outbox.some((m) => m.to === email('precamp')), 'nothing to the parents')
   const notices = outbox.filter((m) => /Mail przed obozem czeka/.test(m.subject))
@@ -914,4 +916,57 @@ test('the siblings’ deposit email that went at once is not sent again by the s
   })
   await sweep()
   assert.equal(depositMails('sibonce').length, 1)
+})
+
+test('a PDF chosen as the signature does not stop the contract — it goes unsigned, flagged', async () => {
+  const blank = await PDFDocument.create()
+  blank.addPage()
+  const pdf = Buffer.from(await blank.save())
+  const file = await payload.create({
+    collection: 'private-files',
+    data: { title: 'nie podpis' },
+    file: {
+      data: pdf,
+      mimetype: 'application/pdf',
+      name: `${email('pdfsig').split('@')[0]}.pdf`,
+      size: pdf.length,
+    },
+    overrideAccess: true,
+  })
+  cleanup(() => payload.delete({ collection: 'private-files', id: file.id, overrideAccess: true }))
+  const config = await payload.findGlobal({ slug: 'camp-config', depth: 0, overrideAccess: true })
+  const before = (config.contractSignature as number | null | undefined) ?? null
+  cleanup(() =>
+    payload.updateGlobal({
+      slug: 'camp-config',
+      data: { contractSignature: before },
+      overrideAccess: true,
+    }),
+  )
+  await payload.updateGlobal({
+    slug: 'camp-config',
+    data: { contractSignature: file.id },
+    overrideAccess: true,
+  })
+  const { camp, child } = await signUp('pdfsig', 'Zosia')
+  await payload.update({
+    collection: 'camps',
+    id: camp.id,
+    data: { price: 2500 },
+    overrideAccess: true,
+  })
+  const ctx = (await findByToken(payload, child.registrationToken!))!
+  const sent = await sendRegistrationEmails(
+    payload,
+    ctx,
+    await saveRegistration(payload, ctx, formFor(ctx)),
+  )
+  assert.equal(sent.contractAttached, true)
+  const after = await payload.findByID({
+    collection: 'bookings',
+    id: child.booking.id,
+    depth: 0,
+    overrideAccess: true,
+  })
+  assert.match(after.emailIssue ?? '', /bez podpisu/)
 })

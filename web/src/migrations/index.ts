@@ -18,6 +18,7 @@ import * as migration_20261020_111312_camp_deposit from './20261020_111312_camp_
 import * as migration_20261021_020703_camp_parent_address from './20261021_020703_camp_parent_address';
 import * as migration_20261022_000211_camp_contract from './20261022_000211_camp_contract';
 import * as migration_20261022_021324_camp_deposit_email from './20261022_021324_camp_deposit_email';
+import * as migration_20261022_220341_broadcast_qualification_card from './20261022_220341_broadcast_qualification_card';
 
 export const migrations = [
   {
@@ -118,6 +119,11 @@ export const migrations = [
   {
     up: migration_20261022_021324_camp_deposit_email.up,
     down: migration_20261022_021324_camp_deposit_email.down,
-    name: '20261022_021324_camp_deposit_email'
+    name: '20261022_021324_camp_deposit_email',
+  },
+  {
+    up: migration_20261022_220341_broadcast_qualification_card.up,
+    down: migration_20261022_220341_broadcast_qualification_card.down,
+    name: '20261022_220341_broadcast_qualification_card'
   },
 ];

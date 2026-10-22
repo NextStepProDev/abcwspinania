@@ -1270,6 +1270,23 @@ do 30 dni przed obozem. Cała ścieżka działa bez konta; konto dla chętnych.
   o śpiworze (tylko gdy obóz ma „własne śpiwory”). Raz na turnus
   (`preCampDraftAt`, oznaczany po założeniu szkicu, przed mailem); turnus
   bez nikogo z miejscem czeka do następnego dnia.
+  - **„Wyślij” odmawia, dopóki w treści został `[nawias]`** (od 22.10.2026,
+    `unfilledPlaceholders` w `lib/broadcasts.ts`, w KAŻDEJ wysyłce): temat
+    i treść, wersja angielska tylko gdy pójdzie. Krzysiek może szkic zmienić
+    w całości albo usunąć — blokuje wyłącznie to, co zostało w nawiasach.
+    „Wyślij próbnie” działa, żeby mógł zobaczyć szkic u siebie.
+  - **Pusta karta kwalifikacyjna w załączniku** (od 22.10.2026): PDF
+    w „Ustawieniach obozów” (`qualificationCard`, plik w `private-files`,
+    które od tego dnia przyjmują też PDF), w szkicu pole „Dołącz kartę
+    kwalifikacyjną” zaznaczone przez system. Bez karty w PDF „Wyślij”
+    i „Wyślij próbnie” odmawiają z instrukcją. Typ pliku sprawdza wysyłka, nie
+    `filterOptions` pola: Payload sprawdza je uprawnieniami żądania, więc
+    zapis bez zalogowanego konta szkoły (dane testowe) był odrzucany.
+  - **Wysyłka do turnusu obozu = mail obozowy**: nadawca „ABC Wspinania ·
+    Obozy” i `replyTo` na `CAMP_EMAIL` (`campTurnus` w `broadcastSender.ts`).
+    Do 22.10.2026 każda wysyłka miała zwykłego nadawcę i odpowiedzi na
+    `ADMIN_NOTIFY_EMAIL` — odpowiedzi rodziców nie trafiałyby na `obozy@`,
+    a filtr Gmaila przekazywałby mail przed obozem Krzyśkowi jak kursowy.
 - **Pulpit dzieli kafelki na kursy i obozy** (`SchoolDashboard`); przy obozach
   dodatkowo „Bez formularza” (miejsce jest, formularza nie ma) i „Zaliczka po
   terminie” — to, za czym Krzysiek dzwoni.

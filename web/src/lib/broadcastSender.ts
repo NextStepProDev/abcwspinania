@@ -15,6 +15,8 @@ import { isAdmin } from '@/lib/access'
 import { ACTIVE_STATUSES } from '@/lib/bookings'
 import { sessionSummary } from '@/lib/bookingEffects'
 import { txOf } from '@/lib/bookingService'
+import { campMailbox, campSender } from '@/lib/campPayment'
+import { readPrivateFile } from '@/lib/privateFiles'
 import {
   MAX_ATTEMPTS,
   PAUSE_MINUTES,
@@ -22,6 +24,7 @@ import {
   classifySendError,
   dedupeRecipients,
   hasEnglishVersion,
+  unfilledPlaceholders,
   versionFor,
   type Recipient,
 } from '@/lib/broadcasts'
@@ -175,6 +178,46 @@ async function reasonFor(
   return { kind: 'upcoming' }
 }
 
+/**
+ * A broadcast to a camp turnus is camp mail like the rest: the "ABC
+ * Wspinania · Obozy" sender (the name a mail filter tells camp email by) and
+ * replies to the camp mailbox, where the parents' answers belong.
+ */
+async function campTurnus(payload: Payload, broadcast: Broadcast): Promise<boolean> {
+  const sessionId =
+    typeof broadcast.session === 'object' ? broadcast.session?.id : broadcast.session
+  if (broadcast.audience !== 'session' || !sessionId) return false
+  const session = await payload
+    .findByID({
+      collection: 'sessions',
+      id: sessionId,
+      depth: 0,
+      joins: false,
+      overrideAccess: true,
+      disableErrors: true,
+    })
+    .catch(() => null)
+  return Boolean(session?.camp)
+}
+
+/**
+ * The blank qualification card from "Ustawienia obozów", or null when none is
+ * chosen or the file is not a PDF. Checked here, not by the field's
+ * `filterOptions`: Payload validates those with the request's own access, so
+ * a save without a logged-in school account (the test data) was refused.
+ */
+async function qualificationCard(payload: Payload): Promise<Uint8Array | null> {
+  const config = await payload
+    .findGlobal({ slug: 'camp-config', depth: 1, overrideAccess: true })
+    .catch(() => null)
+  const card = config?.qualificationCard
+  if (!card || typeof card !== 'object' || card.mimeType !== 'application/pdf') return null
+  return readPrivateFile(card)
+}
+
+const NO_CARD =
+  'Zaznaczone „Dołącz kartę kwalifikacyjną”, ale w „Ustawieniach obozów” nie ma karty w PDF — wgraj ją tam albo odznacz to pole.'
+
 async function sendOne(
   payload: Payload,
   broadcast: Broadcast,
@@ -188,12 +231,17 @@ async function sendOne(
     body: renderRichText(version.content),
     reason: await reasonFor(payload, broadcast, version.lang, token),
   })
+  const camp = await campTurnus(payload, broadcast)
+  const card = broadcast.attachQualificationCard ? await qualificationCard(payload) : null
+  if (broadcast.attachQualificationCard && !card) throw new Error(NO_CARD)
   await payload.sendEmail({
     to: to.email,
-    replyTo: process.env.ADMIN_NOTIFY_EMAIL || undefined,
+    ...(camp ? { from: campSender() } : {}),
+    replyTo: (camp ? campMailbox() : process.env.ADMIN_NOTIFY_EMAIL) || undefined,
     subject: email.subject,
     html: email.html,
     text: email.text,
+    ...(card ? { attachments: [{ filename: 'karta-kwalifikacyjna.pdf', content: card }] } : {}),
     // The mail client's own "Unsubscribe" button (RFC 8058) — newsletters only;
     // a message about a course someone is booked on is not marketing.
     headers: token
@@ -287,6 +335,9 @@ export const testHandler: PayloadHandler = async (req) => {
   if (missing) return missing
   const broadcast = await loadBroadcast(req)
   if (!broadcast) return Response.json({ error: 'Nie ma takiej wysyłki.' }, { status: 404 })
+  if (broadcast.attachQualificationCard && !(await qualificationCard(req.payload))) {
+    return Response.json({ error: NO_CARD }, { status: 400 })
+  }
   const languages: EmailLanguage[] = hasEnglishVersion(broadcast) ? ['pl', 'en'] : ['pl']
   try {
     for (const language of languages) {
@@ -346,6 +397,21 @@ export const sendHandler: PayloadHandler = async (req) => {
         { error: 'To kopia — sprawdź treść i odbiorców, kliknij „Zapisz”, potem wyślij.' },
         { status: 409 },
       )
+    }
+    // The blanks of the email before a camp ("[miejsce zbiórki]") — never to parents.
+    const blanks = unfilledPlaceholders(broadcast)
+    if (blanks.length) {
+      await commitTransaction(txReq)
+      return Response.json(
+        {
+          error: `Uzupełnij fragmenty w nawiasach: ${blanks.join(', ')} — potem „Zapisz” i wyślij.`,
+        },
+        { status: 409 },
+      )
+    }
+    if (broadcast.attachQualificationCard && !(await qualificationCard(payload))) {
+      await commitTransaction(txReq)
+      return Response.json({ error: NO_CARD }, { status: 400 })
     }
     const recipients = await recipientsOf(payload, broadcast, txReq)
     if (recipients.length === 0) {

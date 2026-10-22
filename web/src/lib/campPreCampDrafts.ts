@@ -65,6 +65,7 @@ export async function preparePreCampDrafts(
           audience: 'session',
           session: session.id,
           includeWaitlist: false,
+          attachQualificationCard: true,
           status: 'draft',
           subject: preCampSubject(camp.title),
           content: templateToRichText(
