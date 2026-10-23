@@ -62,7 +62,7 @@ export default async function SchedulePage({ searchParams }: Props) {
           options={FILTER_OPTIONS}
           active={show}
           baseHref="/terminarz"
-          param="pokaz"
+          param="show"
           summary={`${sessions.length} ${pluralPl(sessions.length, 'termin', 'terminy', 'terminów')}`}
         />
       </Container>
