@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { expiredBookingsWhere, finishedSessionsWhere } from '@/lib/expiry'
+import { expiredBookingsWhere, finishedSessionsWhere, msUntilDailySweep } from '@/lib/expiry'
 
 /**
  * Bookings are kept five years from the end of the year the course took
@@ -117,4 +117,53 @@ test('the registration reminder goes once, to a parent with a place and no form 
   assert.match(where, /"registeredAt":\{"exists":false\}/)
   assert.match(where, /"registrationReminderAt":\{"exists":false\}/)
   assert.doesNotMatch(where, /waitlist|cancelled/)
+})
+
+test('the daily sweep runs at 8:00 in Poland — later the same morning', () => {
+  // 6:30 in Poland (winter, UTC+1).
+  const now = new Date('2026-11-10T05:30:00Z')
+  assert.equal(
+    new Date(now.getTime() + msUntilDailySweep(now)).toISOString(),
+    '2026-11-10T07:00:00.000Z',
+  )
+})
+
+test('after 8:00 the next sweep is tomorrow morning, not right away', () => {
+  // A deploy at 23:40 must not send reminders to parents at night.
+  const now = new Date('2026-07-10T21:40:00Z') // 23:40 in Poland (summer, UTC+2)
+  assert.equal(
+    new Date(now.getTime() + msUntilDailySweep(now)).toISOString(),
+    '2026-07-11T06:00:00.000Z',
+  )
+})
+
+test('exactly at 8:00 the next sweep is a day later', () => {
+  const now = new Date('2026-07-11T06:00:00Z')
+  assert.equal(
+    new Date(now.getTime() + msUntilDailySweep(now)).toISOString(),
+    '2026-07-12T06:00:00.000Z',
+  )
+})
+
+test('across the clock change the sweep stays at 8:00 Polish time', () => {
+  // Night of 25 October 2026: clocks go back from 3:00 to 2:00.
+  const now = new Date('2026-10-25T00:30:00Z') // 2:30 summer time
+  assert.equal(
+    new Date(now.getTime() + msUntilDailySweep(now)).toISOString(),
+    '2026-10-25T07:00:00.000Z',
+  )
+  const spring = new Date('2027-03-28T00:30:00Z') // 1:30 winter time, clocks go forward at 2:00
+  assert.equal(
+    new Date(spring.getTime() + msUntilDailySweep(spring)).toISOString(),
+    '2027-03-28T06:00:00.000Z',
+  )
+})
+
+test('a timer that fires a moment early does not run the sweep twice', () => {
+  // Timers may fire a millisecond before the wall clock says 8:00.
+  const now = new Date('2026-07-11T05:59:59.999Z')
+  assert.equal(
+    new Date(now.getTime() + msUntilDailySweep(now)).toISOString(),
+    '2026-07-12T06:00:00.000Z',
+  )
 })

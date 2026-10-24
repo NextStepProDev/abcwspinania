@@ -13,11 +13,10 @@ import {
   expiredBookingsWhere,
   expiredMessagesWhere,
   finishedSessionsWhere,
+  msUntilDailySweep,
   stalePendingNewsletterWhere,
   staleUnverifiedWhere,
 } from '@/lib/expiry'
-
-const DAY_MS = 24 * 60 * 60 * 1000
 
 /** Deletes accounts nobody confirmed in time (`lib/expiry.ts`). */
 export async function deleteStaleUnverifiedAccounts(): Promise<void> {
@@ -153,7 +152,37 @@ export async function finishPastSessions(): Promise<void> {
 }
 
 /**
- * Runs the sweep a minute after the server starts, then once a day.
+ * Every step of the daily sweep, each failing on its own — one broken step
+ * (database hiccup, a bad row) must not stop the others. Resolves when all
+ * are done, so `npm run sweep` can exit after it.
+ */
+export async function runDailySweep(): Promise<void> {
+  const warn = (what: string) => (error: unknown) => {
+    console.warn(`${what} failed, will retry tomorrow:`, error)
+  }
+  await Promise.all([
+    deleteStaleUnverifiedAccounts().catch(warn('Unconfirmed-account cleanup')),
+    deleteStalePendingNewsletter().catch(warn('Unconfirmed-newsletter cleanup')),
+    deleteExpiredMessages().catch(warn('Contact-message cleanup')),
+    anonymizeExpiredBookings().catch(warn('Booking anonymization')),
+    finishPastSessions().catch(warn('Marking past sessions finished')),
+    getPayload({ config })
+      .then(async (payload) => {
+        await deleteExpiredRegistrations(payload).catch(warn('Registration form cleanup'))
+        await sendRegistrationReminders(payload).catch(warn('Registration reminders'))
+        await sendDepositReminders(payload).catch(warn('Deposit reminders'))
+        await sendWaitingDepositEmails(payload).catch(warn('Waiting deposit emails'))
+        await preparePreCampDrafts(payload).catch(warn('Pre-camp drafts'))
+      })
+      .catch(warn('Camp registration sweep')),
+  ])
+}
+
+/**
+ * Runs the sweep every day at `DAILY_SWEEP_HOUR` Polish time (`lib/expiry.ts`,
+ * decided 24.10.2026) — not at start-up: a deploy late in the evening would
+ * send parents their reminders then. `npm run sweep` runs it at once, for
+ * testing.
  *
  * Why not Payload's job queue: its cron starts only when something calls
  * `getPayload({ cron: true })` (a panel login, say), so after a restart the
@@ -161,47 +190,16 @@ export async function finishPastSessions(): Promise<void> {
  * endpoints for one daily delete. A timer in the server process is enough
  * while the site runs as one container.
  *
- * Timers are `unref`'d so they never keep a process alive on their own, and
- * a failure (database down) is a warning, not a crash — the next day tries
- * again.
+ * The timer is `unref`'d so it never keeps a process alive on its own, and a
+ * failure (database down) is a warning, not a crash — the next day tries
+ * again. A server down at that hour skips one day; nothing is lost, every
+ * step works from dates, not from "since the last run".
  */
 export function scheduleAccountCleanup(): void {
-  const run = () => {
-    deleteStaleUnverifiedAccounts().catch((error) => {
-      console.warn('Unconfirmed-account cleanup failed, will retry tomorrow:', error)
-    })
-    deleteStalePendingNewsletter().catch((error) => {
-      console.warn('Unconfirmed-newsletter cleanup failed, will retry tomorrow:', error)
-    })
-    deleteExpiredMessages().catch((error) => {
-      console.warn('Contact-message cleanup failed, will retry tomorrow:', error)
-    })
-    anonymizeExpiredBookings().catch((error) => {
-      console.warn('Booking anonymization failed, will retry tomorrow:', error)
-    })
-    finishPastSessions().catch((error) => {
-      console.warn('Marking past sessions finished failed, will retry tomorrow:', error)
-    })
-    getPayload({ config })
-      .then(async (payload) => {
-        await deleteExpiredRegistrations(payload).catch((error) => {
-          console.warn('Registration form cleanup failed, will retry tomorrow:', error)
-        })
-        await sendRegistrationReminders(payload).catch((error) => {
-          console.warn('Registration reminders failed, will retry tomorrow:', error)
-        })
-        await sendDepositReminders(payload).catch((error) => {
-          console.warn('Deposit reminders failed, will retry tomorrow:', error)
-        })
-        await sendWaitingDepositEmails(payload).catch((error) => {
-          console.warn('Waiting deposit emails failed, will retry tomorrow:', error)
-        })
-        await preparePreCampDrafts(payload).catch((error) => {
-          console.warn('Pre-camp drafts failed, will retry tomorrow:', error)
-        })
-      })
-      .catch((error) => console.warn('Camp registration sweep failed:', error))
+  const next = () => {
+    setTimeout(() => {
+      void runDailySweep().finally(next)
+    }, msUntilDailySweep(new Date())).unref()
   }
-  setTimeout(run, 60_000).unref()
-  setInterval(run, DAY_MS).unref()
+  next()
 }

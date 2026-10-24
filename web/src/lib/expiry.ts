@@ -246,3 +246,56 @@ export function depositReminderWhere(now: Date): Where {
     ],
   }
 }
+
+/**
+ * The hour of the daily sweep, Polish time (decided 24.10.2026). Until then
+ * the sweep ran a minute after the server started and every 24 h from there,
+ * so its hour was whenever the last deploy happened — and with the camps it
+ * sends reminders to parents and pre-camp notices to the school: a deploy at
+ * 23:40 meant those emails at 23:41 every night.
+ */
+export const DAILY_SWEEP_HOUR = 8
+
+const warsawParts = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Europe/Warsaw',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hourCycle: 'h23',
+})
+
+/** How far Polish wall-clock time is ahead of UTC at `instant`, in ms. */
+function warsawOffset(instant: number): number {
+  const part = Object.fromEntries(
+    warsawParts.formatToParts(new Date(instant)).map(({ type, value }) => [type, Number(value)]),
+  )
+  const wall = Date.UTC(part.year, part.month - 1, part.day, part.hour, part.minute, part.second)
+  return wall - Math.floor(instant / 1000) * 1000
+}
+
+/**
+ * Milliseconds from `now` to the next `DAILY_SWEEP_HOUR`:00 in Poland at
+ * least a minute away. Recomputed before every run, so the clock change in
+ * spring and autumn moves nothing (the change happens at night, the sweep
+ * runs in the morning). The minute: a timer may fire a moment before the
+ * wall clock reaches the hour, and "the next 8:00" would then be the same
+ * one — the sweep would run twice that morning.
+ */
+export function msUntilDailySweep(now: Date, hour = DAILY_SWEEP_HOUR): number {
+  const today = new Date(now.getTime() + warsawOffset(now.getTime()))
+  for (let days = 0; days <= 1; days++) {
+    const wall = Date.UTC(
+      today.getUTCFullYear(),
+      today.getUTCMonth(),
+      today.getUTCDate() + days,
+      hour,
+    )
+    const at = wall - warsawOffset(wall)
+    if (at - now.getTime() >= 60_000) return at - now.getTime()
+  }
+  // Unreachable: tomorrow's hour is always after now.
+  return 24 * 60 * 60 * 1000
+}

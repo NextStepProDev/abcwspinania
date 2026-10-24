@@ -847,9 +847,15 @@ zrobi z kursanta administratora. Koszt: zasada 28.
 - **Niepotwierdzone konto jest usuwane po 7 dniach** (ustalone 02.10.2026,
   `UNVERIFIED_ACCOUNT_DAYS` w `lib/expiry.ts`), liczonych od OSTATNIEGO
   wysłanego linku, nie od założenia — kto prosi o nowy link szóstego dnia,
-  nie straci konta, zanim link wygaśnie. Sprzątanie startuje z
-  `src/instrumentation.ts` (raz przy starcie serwera Next): minutę po
-  starcie, potem co 24 h. **Nie przez kolejkę zadań Payloada**: jej cron
+  nie straci konta, zanim link wygaśnie. Sprzątanie planuje
+  `src/instrumentation.ts` (raz przy starcie serwera Next): **codziennie
+  o 8:00 czasu polskiego** (`DAILY_SWEEP_HOUR`, `msUntilDailySweep` w
+  `lib/expiry.ts`, od 24.10.2026), bez biegu przy starcie. Do tego dnia
+  szło minutę po starcie i co 24 h — godzina zależała od ostatniego
+  wdrożenia, a od obozów sprzątanie wysyła przypomnienia rodzicom i mail
+  o szkicu przed obozem (wdrożenie o 23:40 = maile o 23:41 co noc).
+  Serwer wyłączony o 8:00 pomija dzień — kroki liczą od dat, następny
+  bieg nadrabia. Na żądanie (testy): `npm run sweep`. **Nie przez kolejkę zadań Payloada**: jej cron
   rusza dopiero po pierwszym `getPayload({ cron: true })` (np. logowanie do
   panelu), więc po restarcie czekałby na ruch, a dokłada tabelę, migrację
   i endpointy. Przy kilku instancjach aplikacji każda sprzątałaby osobno —

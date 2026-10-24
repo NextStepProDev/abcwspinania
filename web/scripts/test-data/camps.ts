@@ -15,7 +15,7 @@
  *   open   — in 35 days, 8 places: the parents below, the tester's sign-ups
  *   almost — in 49 days, 3 places with 2 taken: the warning for siblings
  *   soon   — in 10 days: the email before the camp is due (the daily sweep
- *            makes its draft a minute after the server starts)
+ *            makes its draft at 8:00, or at once with `npm run sweep`)
  *   past   — 40 days ago, finished: the archive in "Moje konto"
  *
  * States are written the way the site writes them — the registration form

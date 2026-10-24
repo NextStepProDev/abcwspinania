@@ -20,6 +20,7 @@
     "seed:test": "NODE_OPTIONS=--no-deprecation payload run scripts/test-data/courses.ts",
     "seed:test:courses": "NODE_OPTIONS=--no-deprecation payload run scripts/test-data/courses.ts",
     "seed:test:camps": "NODE_OPTIONS=--no-deprecation payload run scripts/test-data/camps.ts",
+    "sweep": "NODE_OPTIONS=--no-deprecation payload run scripts/sweep.ts",
     "audit": "node scripts/audit-gate.mjs",
     "test:integration": "BREVO_API_KEY= NODE_OPTIONS=--no-deprecation payload run tests/integration/run.ts"
   },
