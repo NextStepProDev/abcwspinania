@@ -1225,7 +1225,8 @@ do 30 dni przed obozem. Cała ścieżka działa bez konta; konto dla chętnych.
   fakturę): rodzic z adresem albo firma (nazwa, NIP, adres), dziecko, data
   urodzenia, termin, wpis do rejestru organizatorów
   (`CAMP_ORGANISER_REGISTRY`) i numer obozu w kuratorium (pole
-  `kuratoriumNumber` terminu, wpisuje szkoła). Fakturę Krzysiek wystawia sam
+  `kuratoriumNumber` terminu, wpisuje szkoła; bez numeru — link do
+  terminu, od 24.10.2026). Fakturę Krzysiek wystawia sam
   w swoim programie (na firmę — przez KSeF, 22.10.2026).
 - **Faktura na firmę w formularzu rejestracyjnym** (od 22.10.2026): pod
   „Potrzebuję faktury” pole „Na firmę”, a pod nim nazwa, NIP i adres —

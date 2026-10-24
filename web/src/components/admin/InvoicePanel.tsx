@@ -71,7 +71,15 @@ export function InvoicePanel() {
         ['Nabywca (rodzic)', parent],
         ['Adres', address || '— rodzic jeszcze nie podał (formularz rejestracyjny)'],
       ]
-  const rows: [string, string][] = [
+  // Missing number: straight to the turnus, where it is typed (asked for 24.10.2026).
+  const enterKuratorium = sessionId ? (
+    <>
+      — <a href={`/admin/collections/sessions/${sessionId}`}>wpisz w terminie obozu</a>
+    </>
+  ) : (
+    '— wpisz w terminie obozu'
+  )
+  const rows: [string, React.ReactNode][] = [
     ...buyer,
     ['Uczestnik', `${str(values.childFirstName)} ${str(values.childLastName)}`.trim()],
     ['Data urodzenia', birth || '— z formularza rejestracyjnego'],
@@ -80,7 +88,7 @@ export function InvoicePanel() {
     ['Wpis do rejestru organizatorów', CAMP_ORGANISER_REGISTRY],
     [
       'Numer obozu w kuratorium',
-      kuratorium === null ? 'Sprawdzam…' : kuratorium || '— wpisz w terminie obozu',
+      kuratorium === null ? 'Sprawdzam…' : kuratorium || enterKuratorium,
     ],
   ]
 
