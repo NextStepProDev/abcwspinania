@@ -1,7 +1,9 @@
 name: Test data
 
-# Data for the manual tests ON PRODUCTION (docs/testy-reczne.html), since
-# 13.10.2026. A manual workflow, like Migrate — and through the same SSH
+# Data for the manual tests ON PRODUCTION, since 13.10.2026 — courses
+# (docs/testy-reczne.html) or camps (docs/testy-obozy.html, from 25.10.2026),
+# two scripts with separate tags, so cleaning one leaves the other. A manual
+# workflow, like Migrate — and through the same SSH
 # tunnel to the database, for the same reason: the production image has
 # neither the scripts nor Payload's CLI.
 #
@@ -13,11 +15,16 @@ name: Test data
 # inbox and the test accounts' password are therefore secrets (TEST_INBOX,
 # TEST_PASSWORD), and the script prints no address, no token and no personal
 # data — only ids. It creates NO panel account on production (a known password
-# to the school's panel). Details: the header of web/scripts/test-data/courses.ts.
+# to the school's panel). Details: the headers of web/scripts/test-data/*.ts.
 
 on:
   workflow_dispatch:
     inputs:
+      data:
+        description: Which test data
+        type: choice
+        options: [courses, camps]
+        default: courses
       action:
         description: What to do
         type: choice
@@ -73,7 +80,7 @@ jobs:
           echo "ERROR: the tunnel did not come up within 30 s." >&2
           exit 1
 
-      - name: Test data — ${{ inputs.action }}
+      - name: Test data — ${{ inputs.data }} — ${{ inputs.action }}
         env:
           DATABASE_URI: postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@127.0.0.1:55432/${{ secrets.POSTGRES_DB }}
           PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
@@ -84,10 +91,15 @@ jobs:
           TEST_DATA_ON_PRODUCTION: 'yes'
           TEST_INBOX: ${{ secrets.TEST_INBOX }}
           TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
-          # Only for the course link in the summary.
+          # Only for the course or camp link in the summary.
           PUBLIC_URL: ${{ vars.SMOKE_URL || vars.SITE_URL }}
           ACTION: ${{ inputs.action }}
+          DATA: ${{ inputs.data }}
         run: |
+          case "$DATA" in
+            courses | camps) ;;
+            *) echo "ERROR: unknown data $DATA" >&2; exit 1 ;;
+          esac
           case "$ACTION" in
             seed) ARG="" ;;
             clean) ARG="clean" ;;
@@ -95,7 +107,7 @@ jobs:
             *) echo "ERROR: unknown action $ACTION" >&2; exit 1 ;;
           esac
           # shellcheck disable=SC2086 # an empty ARG must vanish, not be an empty word
-          timeout 300 npm run seed:test -- $ARG < /dev/null
+          timeout 300 npm run "seed:test:$DATA" -- $ARG < /dev/null
 
       - name: Close the tunnel
         if: always()

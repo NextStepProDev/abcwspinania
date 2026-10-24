@@ -1917,7 +1917,9 @@ repo). **Zmieniasz funkcję — zmień jej kroki w tym samym commicie.**
   uruchomienie najpierw je kasuje, `-- clean` tylko kasuje. Wysyłki usuwa,
   gdy WSZYSCY ich odbiorcy mają znacznik.
 - **Na produkcji (od 13.10.2026) — tylko workflow „Test data”**
-  (`test-data.yml`, potwierdzenie słowem `test-data`; akcje `seed`, `clean`,
+  (`test-data.yml`, potwierdzenie słowem `test-data`; wybór danych `courses`
+  albo `camps` — od 25.10.2026, domyślnie kursy, więc stary sposób z
+  `testy-reczne.html` działa bez zmian; akcje `seed`, `clean`,
   `clean-all`), tym samym tunelem co Migrate. Repozytorium jest
   PUBLICZNE, więc logi też: skrzynka i hasło kont to sekrety `TEST_INBOX`
   i `TEST_PASSWORD`, a skrypt nie wypisuje adresu, tokenu ani danych osoby —

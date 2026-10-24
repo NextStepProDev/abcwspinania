@@ -8,7 +8,8 @@
   voice of docs/testy-reczne.html: Mateusz writes for Krzysiek; the technical
   part (P, Z) is Mateusz's own appendix at the end. Walked through with
   Mateusz locally first (22.10.2026); production comes after his decision.
-  Test data: `npm run seed:test:camps` (web/scripts/test-data/camps.ts).
+  Test data: `npm run seed:test:camps` (web/scripts/test-data/camps.ts); on
+  production the "Test data" workflow with "camps" chosen.
   Change a camp feature — change its steps here in the same commit.
   PDF later, as for courses: from a COPY in which {{HASLO_TESTOWE}} and
   {{SKRZYNKA}} are replaced — never in this file (the repository is public).
@@ -284,13 +285,13 @@
     <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th></tr></thead>
     <tr><td>P1</td><td><b>Ustawienia obozów</b> (raz na serwer): panel → <span class="ui">Ustawienia obozów</span> → <span class="ui">Pieczątka z podpisem do umowy</span> (PNG) i <span class="ui">Pusta karta kwalifikacyjna (PDF)</span> — oba wgrane albo wybrane z istniejących → <span class="ui">Zapisz</span>.</td><td>Oba pola pokazują plik. Bez pieczątki umowy idą bez podpisu i każda zostawia notkę na pulpicie; bez karty „Wyślij” w G3–G5 odmawia.</td></tr>
     <tr><td>P2</td><td><b>Maile obozowe w czasie testów</b>: <code>CAMP_EMAIL</code> w <code>deploy/.env</code> zostaje <b>pusty</b> — maile „do szkoły” idą na <code>ADMIN_NOTIFY_EMAIL</code>. Filtr Gmaila przekazuje Krzyśkowi tylko maile kursowe (<code>from:(zapisy@szkolawspinaczkowa.pl -Obozy)</code>). <b>Przed rundą Krzyśka</b> dopisać przekazywanie maili obozowych.</td><td>Maile obozowe przychodzą od „ABC Wspinania · Obozy”.</td></tr>
-    <tr><td>P3</td><td><b>Wgranie danych</b> (przed każdą rundą; lokalnie — w katalogu <code>web</code>):
+    <tr><td>P3</td><td><b>Wgranie danych</b> (przed każdą rundą). Na produkcji: GitHub → <span class="ui">Actions</span> → <span class="ui">Test data</span> → <span class="ui">Run workflow</span>, <span class="ui">Which test data</span>: <b>camps</b>, akcja <b>seed</b>, potwierdzenie <code>test-data</code> — najlepiej wieczorem (maile poranne o 8:00). Lokalnie — w katalogu <code>web</code>:
       <span class="cmd">TEST_INBOX={{SKRZYNKA}}@gmail.com npm run seed:test:camps</span></td><td>Podsumowanie: tabela rodziców, link do obozu, daty turnusów i — tylko lokalnie — linki do formularzy Anny, Jana i Piotra. Żaden mail nie przychodzi. Każde wgranie najpierw usuwa poprzednie dane obozowe; dane kursów zostają.</td></tr>
     <tr><td>P4</td><td><b>Poranne sprzątanie na żądanie</b> (lokalnie): <code>npm run sweep</code> w <code>web/</code> — to samo, co strona robi o 8:00. Restart serwera już go nie uruchamia.</td><td>Przypomnienie Piotra (D5) i szkic przed obozem (G1) bez czekania do następnego dnia.</td></tr>
   </table>
 
   <h3>Z. Sprzątanie</h3>
-  <p>Usuwa wszystko z <code>+abctestoboz-</code> w adresie, wszystko na turnusach testowych (zapisy z formularzami, szkice i wysyłki do nich) i same turnusy. Dane testów kursów (<code>+abctest-</code>) zostają. Rzeczy wpisane bez znacznika <b>wypisuje</b> — usuwa je dopiero <code>clean-all</code>.</p>
+  <p>Na produkcji to samo workflow <span class="ui">Test data</span> z <b>camps</b> i akcją <b>clean</b> albo <b>clean-all</b>. Usuwa wszystko z <code>+abctestoboz-</code> w adresie, wszystko na turnusach testowych (zapisy z formularzami, szkice i wysyłki do nich) i same turnusy. Dane testów kursów (<code>+abctest-</code>) zostają. Rzeczy wpisane bez znacznika <b>wypisuje</b> — usuwa je dopiero <code>clean-all</code>.</p>
   <table class="steps">
     <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th></tr></thead>
     <tr><td>Z1</td><td><span class="cmd">TEST_INBOX={{SKRZYNKA}}@gmail.com npm run seed:test:camps -- clean</span></td><td>„Removed camp test data…”. Potem „nothing has appeared without the tag” albo lista id do sprawdzenia w panelu.</td></tr>
