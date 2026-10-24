@@ -140,8 +140,10 @@ export function campActivitiesConsentForStorage(): string {
 
 /**
  * Optional consent to publish photos of the child (decided 19.10.2026): the
- * school sees on the list whom not to show. Withdrawn by unticking it in the
- * form again, or by the school in the panel.
+ * school sees on the list whom not to show. The form asks for "yes" or "no",
+ * neither preselected (24.10.2026, `validateRegistrationChild`); this text is
+ * the "yes". Withdrawn by answering "no" in the form again, or by the school
+ * in the panel.
  */
 export const PHOTO_CONSENT_VERSION = '2026-10-20'
 

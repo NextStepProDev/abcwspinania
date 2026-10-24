@@ -126,7 +126,7 @@ test('the form saves once, corrects in place, and puts the birth date on the boo
     overrideAccess: true,
   })
   assert.equal(booking.childBirthDate, '2015-03-07T12:00:00.000Z')
-  assert.equal(booking.photoConsent, false, 'unticked again = withdrawn')
+  assert.equal(booking.photoConsent, false, '"no" on a correction = withdrawn')
   assert.equal(booking.photoConsentText, null)
   assert.equal(booking.invoiceRequested, true)
   assert.ok(booking.registeredAt)

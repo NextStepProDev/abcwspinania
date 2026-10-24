@@ -76,6 +76,13 @@ test('the height is whole centimetres within a child’s range', () => {
   assert.match(checkHeight('250') ?? '', /do 210/)
 })
 
+test('the photo question needs an answer, and "no" is one', () => {
+  const errors = validateRegistrationChild({ ...child, photoConsent: null })
+  assert.deepEqual(Object.keys(errors), ['photoConsent'])
+  assert.ok(isValid(validateRegistrationChild({ ...child, photoConsent: false })))
+  assert.ok(isValid(validateRegistrationChild({ ...child, photoConsent: true })))
+})
+
 test('a health answer is bounded', () => {
   assert.ok(validateRegistrationChild({ ...child, allergies: 'a'.repeat(2001) }).allergies)
 })

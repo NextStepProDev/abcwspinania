@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useId } from 'react'
+import { useActionState, useId, useState } from 'react'
 
 import { FormAlert, FormDone } from '@/components/AccountForm'
 import {
@@ -21,6 +21,7 @@ import { checkPesel } from '@/lib/pesel'
 import {
   ACTIVITIES_CONSENT_MISSING,
   HEALTH_TEXT_MAX,
+  PHOTO_CHOICE_MISSING,
   REGISTRATION_CONSENT_MISSING,
   checkCity,
   checkCompanyAddress,
@@ -104,6 +105,65 @@ function HealthField({
 }
 
 /**
+ * The photo consent as a required choice, neither answer preselected
+ * (`validateRegistrationChild`). The "yes" label is the consent text itself —
+ * the same words that go to the database.
+ */
+function PhotoChoice({
+  id,
+  name,
+  defaultValue,
+  error,
+}: {
+  id: string
+  name: string
+  defaultValue: 'yes' | 'no' | null
+  error?: string
+}) {
+  const [picked, setPicked] = useState(defaultValue !== null)
+  const [blocked, setBlocked] = useState(false)
+  // Picking an answer clears the error at once, as a ticked consent does.
+  const shownError = picked ? undefined : (error ?? (blocked ? PHOTO_CHOICE_MISSING : undefined))
+  const option = (value: 'yes' | 'no', label: React.ReactNode) => (
+    <label className="flex items-start gap-3 text-sm leading-6 text-rock-600">
+      <input
+        name={name}
+        type="radio"
+        value={value}
+        required
+        defaultChecked={defaultValue === value}
+        onChange={() => setPicked(true)}
+        onInvalid={() => setBlocked(true)}
+        className="mt-1 size-4 shrink-0"
+      />
+      <span>{label}</span>
+    </label>
+  )
+  return (
+    // The error is the group's — a radio does not take `aria-invalid`.
+    <fieldset
+      className="flex flex-col gap-2"
+      aria-describedby={shownError ? `${id}-error` : undefined}
+    >
+      <legend className="mb-1 font-medium">Zdjęcia i nagrania z obozu *</legend>
+      {option('yes', <ConsentText text={PHOTO_CONSENT_TEXT} />)}
+      {option(
+        'no',
+        <>
+          <strong className="text-rock-900">Nie wyrażam zgody</strong> — zdjęć i nagrań, na których
+          widać dziecko, nie publikujemy.
+        </>,
+      )}
+      {shownError && (
+        <p id={`${id}-error`} className="text-sm text-error">
+          {shownError}
+        </p>
+      )}
+    </fieldset>
+  )
+}
+
+/**
  * The registration form for a whole sign-up: a part per child (PESEL,
  * height, health, photo consent), then once for all of them the parent's
  * address, the invoice request and the two required consents. Field names
@@ -143,6 +203,11 @@ export function RegistrationForm({
   const text = (name: string, saved: string | undefined) => (v ? (v[name] ?? '') : (saved ?? ''))
   const ticked = (name: string, saved: boolean | undefined) =>
     v ? v[name] === 'on' : Boolean(saved)
+  // A form sent before has an answer: "no" was a choice too.
+  const answer = (name: string, saved: boolean | undefined): 'yes' | 'no' | null => {
+    const value = v ? v[name] : saved === undefined ? undefined : saved ? 'yes' : 'no'
+    return value === 'yes' || value === 'no' ? value : null
+  }
 
   return (
     <form action={action} onSubmit={stopInvalidSubmit} noValidate className="flex flex-col gap-8">
@@ -217,18 +282,12 @@ export function RegistrationForm({
               defaultValue={text(f('conditions'), child.saved?.conditions)}
               error={errors?.conditions}
             />
-            <label className="flex items-start gap-3 text-sm leading-6 text-rock-600">
-              <input
-                name={f('photoConsent')}
-                type="checkbox"
-                defaultChecked={ticked(f('photoConsent'), child.saved?.photoConsent)}
-                className="mt-1 size-4 shrink-0"
-              />
-              <span>
-                <strong className="text-rock-900">Nieobowiązkowe.</strong>{' '}
-                <ConsentText text={PHOTO_CONSENT_TEXT} />
-              </span>
-            </label>
+            <PhotoChoice
+              id={`${id}-${f('photoConsent')}`}
+              name={f('photoConsent')}
+              defaultValue={answer(f('photoConsent'), child.saved?.photoConsent)}
+              error={errors?.photoConsent}
+            />
           </fieldset>
         )
       })}

@@ -1161,8 +1161,16 @@ do 30 dni przed obozem. Cała ścieżka działa bez konta; konto dla chętnych.
   `bookings_camp_kind` przestawia na
   `camp` zapisy dodane wcześniej ręcznie na terminach obozów (ręczny `UPDATE`
   — nie kasować przy sklejaniu migracji).
-- **Zgoda na zdjęcia dziecka — opcjonalna** (`photoConsent` + treść
-  w `photoConsentText`). Odznaczenie w panelu = wycofanie zgody.
+- **Zgoda na zdjęcia dziecka — nieobowiązkowa, ale ODPOWIEDŹ obowiązkowa**
+  (`photoConsent` + treść w `photoConsentText`). Od 24.10.2026 formularz
+  rejestracyjny pyta „zgadzam się / nie zgadzam się”, bez niczego zaznaczonego
+  z góry, i bez wyboru się nie wysyła (`PhotoChoice`, `PHOTO_CHOICE_MISSING`).
+  Wcześniej było pole do zaznaczenia: obawa Mateusza, że rodzice je pomijają,
+  a Krzysiek odsiewa potem zdjęcia. Zgoda zaznaczona z góry albo „odznacz,
+  jeśli nie” nie jest zgodą w RODO (TSUE Planet49, motyw 32) — dlatego wybór,
+  nie domyślne „tak”. Przy „nie” zapisuje się `false` bez treści; formularz
+  wysłany wcześniej przy poprawce ma zaznaczone to, co zapisano. Odznaczenie
+  w panelu = wycofanie zgody.
 - **Formularz rejestracyjny (krok 2): `/obozy/rejestracja?token=…`**, bez
   konta — kluczem jest `registrationToken` z maila. Na dziecko: PESEL (data
   urodzenia liczona z niego, `lib/pesel.ts`, idzie do zapisu), wzrost,

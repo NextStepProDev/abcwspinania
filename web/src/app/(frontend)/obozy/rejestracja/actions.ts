@@ -51,6 +51,11 @@ function field(formData: FormData, name: string): string {
   return String(formData.get(name) ?? '')
 }
 
+/** A yes/no radio pair: anything else — nothing picked — is no answer. */
+function choice(value: FormDataEntryValue | null): boolean | null {
+  return value === 'yes' ? true : value === 'no' ? false : null
+}
+
 /** One child's fields: `<name>_<booking id>`, so the parts never mix. */
 function childOf(formData: FormData, id: number): RegistrationChildData {
   return {
@@ -60,7 +65,7 @@ function childOf(formData: FormData, id: number): RegistrationChildData {
     medications: field(formData, `medications_${id}`),
     diet: field(formData, `diet_${id}`),
     conditions: field(formData, `conditions_${id}`),
-    photoConsent: formData.get(`photoConsent_${id}`) === 'on',
+    photoConsent: choice(formData.get(`photoConsent_${id}`)),
   }
 }
 
@@ -137,7 +142,8 @@ export async function submitRegistration(
             medications: c.medications,
             diet: c.diet,
             conditions: c.conditions,
-            photoConsent: c.photoConsent,
+            // Validated above: never null here.
+            photoConsent: c.photoConsent === true,
           },
         ]),
       ),

@@ -439,7 +439,8 @@ export interface RegistrationChildData {
   medications: string
   diet: string
   conditions: string
-  photoConsent: boolean
+  /** Yes or no, chosen by the parent; null — not answered yet. */
+  photoConsent: boolean | null
 }
 
 export type RegistrationChildErrors = Partial<Record<keyof RegistrationChildData, string>>
@@ -472,6 +473,7 @@ const ADDRESS_MAX = 200
 
 export const ACTIVITIES_CONSENT_MISSING = 'Bez tej zgody dziecko nie może wziąć udziału w obozie.'
 export const REGISTRATION_CONSENT_MISSING = 'Bez tej zgody nie możemy przyjąć formularza.'
+export const PHOTO_CHOICE_MISSING = 'Zaznacz jedną z dwóch odpowiedzi.'
 
 /** The height the T-shirts are ordered by — whole centimetres, a child's range. */
 export function checkHeight(raw: string): string | undefined {
@@ -543,7 +545,10 @@ export function checkCity(raw: string): string | undefined {
 /**
  * One child's answers. The health questions may stay empty — "nothing to
  * report" is an answer — but each is bounded; the PESEL (`checkPesel`) and
- * the height are required.
+ * the height are required. The photo consent is a required CHOICE, not a
+ * required consent (decided 24.10.2026): an unticked optional box was mostly
+ * a box nobody read, and a consent ticked in advance is no consent under the
+ * GDPR — so the parent picks "yes" or "no", neither preselected.
  */
 export function validateRegistrationChild(data: RegistrationChildData): RegistrationChildErrors {
   const errors: RegistrationChildErrors = {}
@@ -551,6 +556,7 @@ export function validateRegistrationChild(data: RegistrationChildData): Registra
   if (pesel) errors.pesel = pesel
   const height = checkHeight(data.height)
   if (height) errors.height = height
+  if (data.photoConsent === null) errors.photoConsent = PHOTO_CHOICE_MISSING
   for (const key of ['allergies', 'medications', 'diet', 'conditions'] as const) {
     if (data[key].trim().length > HEALTH_TEXT_MAX)
       errors[key] = `To pole może mieć najwyżej ${HEALTH_TEXT_MAX} znaków.`
