@@ -721,7 +721,7 @@ export interface Broadcast {
    */
   includeWaitlist?: boolean | null;
   /**
-   * Pusta karta z „Ustawień obozów” w załączniku do każdego maila.
+   * Pusta karta z „Ustawień obozów” w załączniku do każdego maila, a na samej górze maila ramka „W ZAŁĄCZNIKU: PUSTA KARTA KWALIFIKACYJNA” — dokładana sama.
    */
   attachQualificationCard?: boolean | null;
   status: 'draft' | 'sending' | 'sent';

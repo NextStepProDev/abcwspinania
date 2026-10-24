@@ -239,7 +239,8 @@ export const Broadcasts: CollectionConfig = {
       label: 'Dołącz kartę kwalifikacyjną (PDF)',
       admin: {
         condition: (data) => data?.audience === 'session',
-        description: 'Pusta karta z „Ustawień obozów” w załączniku do każdego maila.',
+        description:
+          'Pusta karta z „Ustawień obozów” w załączniku do każdego maila, a na samej górze maila ramka „W ZAŁĄCZNIKU: PUSTA KARTA KWALIFIKACYJNA” — dokładana sama.',
       },
     },
     {
