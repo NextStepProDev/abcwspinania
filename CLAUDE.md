@@ -855,7 +855,8 @@ zrobi z kursanta administratora. Koszt: zasada 28.
   wdrożenia, a od obozów sprzątanie wysyła przypomnienia rodzicom i mail
   o szkicu przed obozem (wdrożenie o 23:40 = maile o 23:41 co noc).
   Serwer wyłączony o 8:00 pomija dzień — kroki liczą od dat, następny
-  bieg nadrabia. Na żądanie (testy): `npm run sweep`. **Nie przez kolejkę zadań Payloada**: jej cron
+  bieg nadrabia. Na żądanie (testy): `npm run sweep`. **Nie przez kolejkę
+  zadań Payloada**: jej cron
   rusza dopiero po pierwszym `getPayload({ cron: true })` (np. logowanie do
   panelu), więc po restarcie czekałby na ruch, a dokłada tabelę, migrację
   i endpointy. Przy kilku instancjach aplikacji każda sprzątałaby osobno —

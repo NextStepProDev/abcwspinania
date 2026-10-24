@@ -296,6 +296,6 @@ export function msUntilDailySweep(now: Date, hour = DAILY_SWEEP_HOUR): number {
     const at = wall - warsawOffset(wall)
     if (at - now.getTime() >= 60_000) return at - now.getTime()
   }
-  // Unreachable: tomorrow's hour is always after now.
+  // Unreachable: tomorrow's hour is always more than a minute away.
   return 24 * 60 * 60 * 1000
 }
