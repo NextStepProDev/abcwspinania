@@ -71,6 +71,10 @@ function emailAdapter() {
 export default buildConfig({
   admin: {
     user: Users.slug,
+    // Dates in lists and in "Utworzono / Zmieniono" — Payload's default
+    // "MMMM do yyyy, h:mm a" read as "października 23 2026, 2:05 PM".
+    // A date field shows its own `displayFormat` (see CLAUDE.md).
+    dateFormat: 'd.MM.yyyy, HH:mm',
     importMap: {
       baseDir: path.resolve(dirname),
     },

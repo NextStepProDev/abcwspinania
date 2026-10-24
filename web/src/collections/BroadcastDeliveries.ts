@@ -63,7 +63,12 @@ export const BroadcastDeliveries: CollectionConfig = {
       options: DELIVERY_STATUS_OPTIONS,
     },
     { name: 'attempts', type: 'number', defaultValue: 0, label: 'Próby' },
-    { name: 'nextAttemptAt', type: 'date', label: 'Następna próba' },
+    {
+      name: 'nextAttemptAt',
+      type: 'date',
+      label: 'Następna próba',
+      admin: { date: { pickerAppearance: 'dayAndTime', displayFormat: 'd.MM.yyyy, HH:mm' } },
+    },
     {
       name: 'sentAt',
       type: 'date',

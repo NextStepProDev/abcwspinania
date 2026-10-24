@@ -146,7 +146,10 @@ export const Newsletter: CollectionConfig = {
       type: 'date',
       required: true,
       label: 'Data zgody',
-      admin: { readOnly: true },
+      admin: {
+        readOnly: true,
+        date: { pickerAppearance: 'dayAndTime', displayFormat: 'd.MM.yyyy, HH:mm' },
+      },
     },
   ],
   timestamps: true,

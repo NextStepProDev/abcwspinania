@@ -161,7 +161,7 @@ export const Customers: CollectionConfig = {
       admin: {
         readOnly: true,
         position: 'sidebar',
-        date: { pickerAppearance: 'dayAndTime' },
+        date: { pickerAppearance: 'dayAndTime', displayFormat: 'd.MM.yyyy, HH:mm' },
         description: `Ostatnia wysyłka linku do potwierdzenia adresu. Link działa ${VERIFY_LINK_HOURS} godz.`,
       },
     },
@@ -181,7 +181,10 @@ export const Customers: CollectionConfig = {
       type: 'date',
       required: true,
       label: 'Data zgody',
-      admin: { readOnly: true },
+      admin: {
+        readOnly: true,
+        date: { pickerAppearance: 'dayAndTime', displayFormat: 'd.MM.yyyy, HH:mm' },
+      },
     },
   ],
   timestamps: true,

@@ -717,7 +717,10 @@ export const Bookings: CollectionConfig = {
       name: 'consentDate',
       type: 'date',
       label: 'Data zgody',
-      admin: { readOnly: true },
+      admin: {
+        readOnly: true,
+        date: { pickerAppearance: 'dayAndTime', displayFormat: 'd.MM.yyyy, HH:mm' },
+      },
     },
     {
       name: 'anonymizedAt',
@@ -726,6 +729,7 @@ export const Bookings: CollectionConfig = {
       label: 'Zanonimizowany',
       admin: {
         readOnly: true,
+        date: { pickerAppearance: 'dayAndTime', displayFormat: 'd.MM.yyyy, HH:mm' },
         position: 'sidebar',
         description:
           'Dane osobowe usunięte po okresie przechowywania — zostały termin i status, do statystyk.',

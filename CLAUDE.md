@@ -1361,6 +1361,13 @@ zasada 25), inaczej panel nie znajdzie komponentu.
   komórki zaczynające się od `= + - @` z apostrofem (formuła wpisana
   w formularz nie wykona się u Krzyśka), telefon jako `="+48 600 …"` (bez
   tego Excel robi z niego liczbę bez plusa).
+- **Każde widoczne pole daty ma `displayFormat`** (`d.MM.yyyy` albo
+  `d.MM.yyyy, HH:mm`). Bez niego Payload pokazuje datę po amerykańsku
+  („10/23/2026”) — mimo polskiego panelu. Znalezione 24.10.2026 przy
+  „Dacie zgody” w formularzu rejestracyjnym; poprawione we wszystkich
+  kolekcjach. Pole `hidden` go nie potrzebuje. Daty na listach i „Utworzono”
+  biorą `admin.dateFormat` z `payload.config.ts` — domyślny Payloada dawał
+  „października 23 2026, 2:05 PM”.
 - **`@payloadcms/ui` tylko jako JAWNA zależność** (od 12.10.2026 w
   `package.json`, przypięta co do numeru jak reszta Payloada, grupa `payload`
   w Dependabocie). Do tego dnia była wyłącznie zależnością Payloada i import
