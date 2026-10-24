@@ -768,3 +768,17 @@ test('siblings split between places and the waiting list read as one list in the
   })
   assert.match(email.subject, /Zosia Nowak, Staś Nowak i Ala Nowak/)
 })
+
+test('the payment email says when the blank qualification card comes, with or without the contract', () => {
+  for (const contractAttached of [true, false]) {
+    const pl = registrationReceivedEmail('pl', {
+      ...registration,
+      payment,
+      contractAttached,
+      contractEmail: 'obozy@abcwspinania.info',
+    }).text
+    assert.match(pl, /Pustą kartę kwalifikacyjną wyślemy[\s\S]*przed obozem[\s\S]*przywozisz/)
+    const en = registrationReceivedEmail('en', { ...registration, payment, contractAttached }).text
+    assert.match(en, /blank qualification card[\s\S]*before the camp/)
+  }
+})

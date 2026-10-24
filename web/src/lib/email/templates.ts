@@ -698,8 +698,12 @@ const REGISTRATION_RECEIVED = {
     body: (child: string, p: CampPaymentDetails) =>
       `Dziękujemy — mamy formularz rejestracyjny dla: ${child}. Teraz zaliczka: ${p.deposit} do ${p.dueDate}, przelewem na konto poniżej.`,
     contract: (email: string) =>
-      `W załączniku jest umowa, już podpisana przez nas. Wydrukuj ją, podpisz i odeślij skan albo zdjęcie na ${email}. Kartę kwalifikacyjną przywozisz na obóz.`,
+      `W załączniku jest umowa, już podpisana przez nas. Wydrukuj ją, podpisz i odeślij skan albo zdjęcie na ${email}.`,
     noContract: 'Umowę prześlemy w osobnym mailu.',
+    // Asked for 24.10.2026: "bring the card" alone left the parent asking
+    // where it comes from. It comes attached to the email before the camp
+    // (`preCampReminderDays`, about two weeks).
+    card: 'Pustą kartę kwalifikacyjną wyślemy mailem około dwóch tygodni przed obozem, razem z informacjami o wyjeździe — wypełnioną przywozisz na obóz.',
     change: 'Gdyby coś się zmieniło przed obozem (np. leki), popraw formularz tym samym linkiem.',
     action: 'Popraw formularz',
     note: 'Pytania? Odpowiedz na tę wiadomość.',
@@ -709,8 +713,9 @@ const REGISTRATION_RECEIVED = {
     body: (child: string, p: CampPaymentDetails) =>
       `Thank you — we have the registration form for ${child}. Next is the deposit: ${p.deposit} by ${p.dueDate}, by transfer to the account below.`,
     contract: (email: string) =>
-      `The contract is attached, already signed by us. Print it, sign it and send a scan or a photo back to ${email}. The qualification card comes with the child to the camp.`,
+      `The contract is attached, already signed by us. Print it, sign it and send a scan or a photo back to ${email}.`,
     noContract: 'The contract will follow in a separate email.',
+    card: 'We will email the blank qualification card about two weeks before the camp, with the camp details — bring it filled in to the camp.',
     change:
       'If anything changes before the camp (medication, say), correct the form with the same link.',
     action: 'Correct the form',
@@ -744,6 +749,7 @@ export function registrationReceivedEmail(
         data.contractAttached && data.contractEmail
           ? copy.contract(data.contractEmail)
           : copy.noContract,
+        copy.card,
         PAYMENT[lang].refund(data.payment.refundDays),
         copy.change,
       ],
