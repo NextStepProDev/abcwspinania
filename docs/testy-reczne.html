@@ -119,7 +119,7 @@
   <table>
     <thead><tr><th style="width:42mm">Słowo</th><th>Co to znaczy</th></tr></thead>
     <tr><td><b>Strona</b></td><td><code>https://szkolawspinaczkowa.pl</code> — to, co widzi klient.</td></tr>
-    <tr><td><b>Panel</b></td><td><code>https://szkolawspinaczkowa.pl/admin</code> — zaplecze szkoły. Menu jest po lewej, w grupach: <span class="ui">Zapisy</span> (Zapisy, Wysyłki, Uczestnicy), <span class="ui">Kontakt</span> (Wiadomości, Newsletter), <span class="ui">Treść</span> (Kursy, Terminy…), <span class="ui">System</span> (Konta panelu).</td></tr>
+    <tr><td><b>Panel</b></td><td><code>https://szkolawspinaczkowa.pl/admin</code> — zaplecze szkoły. Menu jest po lewej: na górze <span class="ui">Pulpit</span>, <span class="ui">Zapisy na kursy</span> i <span class="ui">Zapisy na obozy</span>, niżej grupy: <span class="ui">Zapisy</span> (Wysyłki, Uczestnicy, Formularze rejestracyjne), <span class="ui">Kontakt</span> (Wiadomości, Newsletter), <span class="ui">Treść</span> (Kursy, Terminy…), <span class="ui">Ustawienia</span> (Ustawienia serwisu, Ustawienia obozów, Pliki prywatne), <span class="ui">System</span> (Konta panelu).</td></tr>
     <tr><td><b>Przeglądarka kursanta / szkoły</b></td><td>Dwie <b>różne</b> przeglądarki (np. Chrome i Safari). Strona i panel używają jednego logowania: zalogowanie się jako kursant w tej samej przeglądarce <b>wylogowuje z panelu</b> i odwrotnie. To zamierzone.</td></tr>
     <tr><td><b>Stwórz nowy</b></td><td>Przycisk w panelu, u góry listy, obok jej tytułu — dodaje nową pozycję (zapis, wysyłkę, konto).</td></tr>
     <tr><td><b>„Wybierz wartość”</b></td><td>Szary napis w pustym polu wyboru w panelu. Znaczy „puste” — nic nie jest wybrane.</td></tr>
@@ -220,7 +220,7 @@
     <tr><td>C4</td><td>Zaloguj się jako <b>Ola</b> (hasło z B4) i zapisz się na <b>pełny</b> termin testowy.</td><td>Formularz pyta tylko o termin i zgodę (dane są z konta). Strona i mail mówią <b>lista rezerwowa</b>, nie „miejsce przyjęte” — bo termin jest pełny.</td></tr>
     <tr><td>C5</td><td>Otwórz <span class="ui">Terminarz</span>.</td><td>Otwarty termin testowy: <b>2 wolne</b> (było 4; ubyły C1 i C3 — C2 nie). Pełny: brak miejsc / lista rezerwowa.</td></tr>
     <tr><td>C6</td><td>W formularzu zapisu kliknij w słowa <span class="ui">polityce prywatności</span> przy zgodzie.</td><td>Polityka otwiera się w <b>nowej karcie</b>; formularz z wpisanymi danymi zostaje w starej, pole zgody się nie zaznaczyło.</td></tr>
-    <tr><td>C7</td><td>Przycisk <span class="ui">Zapisz się</span> w nagłówku (na telefonie: dolny pasek) na różnych stronach: główna, lista <span class="ui">Kursy</span>, lista <span class="ui">Obozy i wyjazdy</span>, strona jednego kursu, strona jednego obozu, formularz zapisu.</td><td>Główna → <b>Terminarz</b> (wszystko). Lista kursów → Terminarz z samymi kursami, lista obozów → z samymi obozami. Strona kursu → zapis na ten kurs. Strona obozu → formularz kontaktowy z wybranym tematem „Obóz lub wyjazd” (zapisy na obozy przez osobny formularz dojdą później). W formularzu zapisu, Kontakcie i Terminarzu przycisku <b>nie ma</b>.</td></tr>
+    <tr><td>C7</td><td>Przycisk <span class="ui">Zapisz się</span> w nagłówku (na telefonie: dolny pasek) na różnych stronach: główna, lista <span class="ui">Kursy</span>, lista <span class="ui">Obozy i wyjazdy</span>, strona jednego kursu, strona jednego obozu, formularz zapisu.</td><td>Główna → <b>Terminarz</b> (wszystko). Lista kursów → Terminarz z samymi kursami, lista obozów → z samymi obozami. Strona kursu → zapis na ten kurs. Strona obozu → formularz zapisu na obóz. Strona wyjazdu albo zajęć cyklicznych → formularz kontaktowy z wybranym tematem „Obóz lub wyjazd”. W formularzu zapisu, Kontakcie i Terminarzu przycisku <b>nie ma</b>.</td></tr>
   </table>
 </section>
 
@@ -268,10 +268,10 @@
     <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th></tr></thead>
     <tr><td>G1</td><td>Kliknij <span class="ui">Pulpit</span> w menu po lewej. Kliknij w każdą liczbę po kolei (i wróć <b>⌘[</b>).</td><td>Liczby zgadzają się z tym, co zrobiłeś (nowe zgłoszenia z C, lista rezerwowa — Marek i Ola, 1 mail, który nie doszedł). Każda liczba otwiera listę z <b>dokładnie</b> tymi pozycjami. Niżej 12 najbliższych terminów z „zajęte / limit”.</td></tr>
     <tr><td>G2</td><td><ol style="margin:0">
-      <li>Wejdź na <b>pulpit</b>: <span class="ui">☰</span> w lewym górnym rogu → <span class="ui">Pulpit</span>. Poznasz go po napisie „Do zrobienia” i pięciu kafelkach z liczbami.</li>
+      <li>Wejdź na <b>pulpit</b>: <span class="ui">☰</span> w lewym górnym rogu → <span class="ui">Pulpit</span>. Poznasz go po napisie „Do zrobienia” i kafelkach z liczbami (osobno dla kursów i dla obozów).</li>
       <li>Pod kafelkami, w tabeli <b>Najbliższe terminy</b>, znajdź wiersz z datą terminu, na który zapisywałeś się w C1 (Kurs wspinaczki skalnej PZA).</li>
       <li>Na <b>końcu</b> tego wiersza, po prawej, kliknij <span class="ui">zapisani</span>.</li>
-      <li>Otworzy się lista <b>Zapisy</b>. Nad nią, po prawej, kliknij <span class="ui">Kolumny</span> i zaznacz <span class="ui">E-mail</span> oraz <span class="ui">Konto uczestnika</span>.</li>
+      <li>Otworzy się lista <b>Zapisy</b> z opisem „Zapisy na kursy · Jeden termin”. Nad nią, po prawej, kliknij <span class="ui">Kolumny</span> i zaznacz <span class="ui">E-mail</span> oraz <span class="ui">Konto uczestnika</span>.</li>
     </ol></td><td><ul style="margin:0">
       <li>Na liście jest 5 osób: Ola, Gość, <code>{{SKRZYNKA}}+abctest-zapis@gmail.com</code>, <code>{{SKRZYNKA}}+abctest-zapis2@gmail.com</code>, Tom.</li>
       <li><code>{{SKRZYNKA}}+abctest-zapis@gmail.com</code> jest tylko <b>raz</b> (drugie wysłanie w C2 nie dodało zapisu).</li>
@@ -286,7 +286,7 @@
     </ul></td></tr>
     <tr><td>G6</td><td><ol style="margin:0">
       <li>Wejdź na pulpit i kliknij kafelek <b>Maile, które nie doszły</b> (liczba 1).</li>
-      <li>Na liście jest zapis Katarzyny Lewandowskiej (<code>{{SKRZYNKA}}+abctest-kasia@gmail.com</code>). W pierwszej kolumnie, „Zapis”, kliknij podkreślony tekst „Katarzyna Lewandowska · …”. Lista zniknie i otworzy się <b>strona jej zapisu</b> — dopiero tam da się coś zaznaczyć.</li>
+      <li>Na liście jest zapis Katarzyny Lewandowskiej (<code>{{SKRZYNKA}}+abctest-kasia@gmail.com</code>). W pierwszej kolumnie, „Uczestnik”, kliknij podkreślony tekst „Katarzyna Lewandowska”. Lista zniknie i otworzy się <b>strona jej zapisu</b> — dopiero tam da się coś zaznaczyć.</li>
       <li>W <b>prawej kolumnie</b> zapisu (w wąskim oknie — na dole) są pola „Mail, który nie doszedł”, „Kiedy” i „Załatwione”. Zaznacz <span class="ui">Załatwione</span>.</li>
       <li>Kliknij <span class="ui">Zapisz</span> w prawym górnym rogu.</li>
     </ol></td><td>Na pulpicie licznik „Maile, które nie doszły” spada do zera. (Przycisku „wyślij ponownie” nie ma celowo — przy takim mailu szkoła dzwoni do kursanta.)</td></tr>
@@ -298,16 +298,16 @@
     </ol></td><td>Kolumny rozdzielone, polskie litery w porządku (Wiśniewski, Zieliński, Lewandowska), telefon z plusem (<code>+48 600 …</code>), nie zamieniony na liczbę.</td></tr>
     <tr><td>G8</td><td>Wróć na stronę tego terminu (z G7). W prawym górnym rogu kliknij <span class="ui">⋮</span> (trzy kropki) → <span class="ui">Usuń</span> i potwierdź.</td><td>Panel odmawia: termin ma zapisy — zamiast usuwać, ustaw status „odwołany” albo „zakończony”. Termin zostaje.</td></tr>
     <tr><td>G9</td><td><b>Zapis przyjęty przez telefon</b> — ktoś dzwoni, a Ty wpisujesz go sam.<ol style="margin:4px 0 0">
-      <li>W menu po lewej, w grupie „Zapisy”, kliknij <span class="ui">Zapisy</span>.</li>
+      <li>W menu po lewej, na górze, kliknij <span class="ui">Zapisy na kursy</span>.</li>
       <li>Na górze, zaraz obok tytułu „Zapisy”, kliknij <span class="ui">Stwórz nowy</span>. Otworzy się pusty formularz zapisu.</li>
       <li><b>Termin</b>: rozwiń listę i wybierz termin z datą z C1 (otwarty termin testowy, Kurs wspinaczki skalnej PZA).</li>
       <li><b>Status</b>: potwierdzony.</li>
       <li><b>Imię</b>, <b>Nazwisko</b>: dowolne. <b>Telefon</b>: dowolny, z <code>+48</code>. Pole <b>E-mail zostaw puste</b> — przez telefon nie zawsze dostaniesz adres.</li>
       <li>Pole „Konto uczestnika” zostaw puste („Wybierz wartość”).</li>
       <li>Kliknij <span class="ui">Zapisz</span> w prawym górnym rogu.</li>
-      <li>Wróć do listy <span class="ui">Zapisy</span> (menu po lewej). W wierszu tej osoby, w kolumnie „Status”, wybierz z listy rozwijanej <b>opłacony</b>.</li>
+      <li>Wróć do listy <span class="ui">Zapisy na kursy</span> (menu po lewej). W wierszu tej osoby, w kolumnie „Status”, wybierz z listy rozwijanej <b>opłacony</b>.</li>
     </ol></td><td><ul style="margin:0">
-      <li>Po kroku 7 zapis jest zapisany i widać go na liście „Zapisy”.</li>
+      <li>Po kroku 7 zapis jest zapisany i widać go na liście „Zapisy na kursy”.</li>
       <li>Na pulpicie, w wierszu otwartego terminu, „Zajęte” rośnie o 1 — termin robi się pełny.</li>
       <li>W kroku 8 status zmienia się od razu, <b>bez pytania</b> (nie ma komu wysłać maila).</li>
       <li><b>Nie przychodzi żaden mail</b> — ani przy dodaniu (umówione przez telefon), ani przy zmianie statusu. Na pulpicie licznik „Maile, które nie doszły” zostaje na zerze.</li>
@@ -329,7 +329,7 @@
       <li>Zostań w ramce z G10 (jeśli się zwinęła — rozwiń, wpisz adres jeszcze raz, <span class="ui">Sprawdź, co mamy</span>).</li>
       <li>Zjedź niżej, do części „Usunięcie wszystkich danych”. W pole „Żeby potwierdzić, wpisz adres jeszcze raz” wpisz adres <b>z literówką</b> (np. bez jednej litery). Spójrz na przycisk <span class="ui">Usuń wszystkie dane tej osoby na zawsze</span>.</li>
       <li>Popraw adres na dokładnie <code>{{SKRZYNKA}}+abctest-zapis2@gmail.com</code>. Przycisk zrobi się czerwony — kliknij go.</li>
-      <li>Odśwież stronę (⌘R) i obejrzyj listę „Uczestnicy”. Potem otwórz <span class="ui">Zapisy</span> i na koniec <span class="ui">Pulpit</span>.</li>
+      <li>Odśwież stronę (⌘R) i obejrzyj listę „Uczestnicy”. Potem otwórz <span class="ui">Zapisy na kursy</span> i na koniec <span class="ui">Pulpit</span>.</li>
     </ol></td><td><ul style="margin:0">
       <li>W kroku 2 (literówka) przycisk jest wyblakły i nie da się go kliknąć — tak panel chroni przed usunięciem kogoś innego.</li>
       <li>Po kroku 3 komunikat „Usunięto wszystkie dane…”.</li>
