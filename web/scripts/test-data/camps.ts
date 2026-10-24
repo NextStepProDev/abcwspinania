@@ -246,8 +246,10 @@ const annaParent = { name: 'anna', firstName: 'Anna', lastName: 'Kowalska', cust
 const annaLink = token()
 await child(open.id, annaParent, { firstName: 'Zosia', lastName: 'Kowalska' }, 'new', annaLink)
 await child(open.id, annaParent, { firstName: 'Staś', lastName: 'Kowalski' }, 'new', annaLink)
-// … and last year's camp, in her archive.
-await child(past.id, annaParent, { firstName: 'Zosia', lastName: 'Kowalska' }, 'paid', null)
+// … and an earlier camp, in her archive — an older sister, not Zosia: two
+// "Zosia Kowalska" rows on the panel list sent a deposit to the wrong one
+// in the walk-through (24.10.2026).
+await child(past.id, annaParent, { firstName: 'Julka', lastName: 'Kowalska' }, 'paid', null)
 
 // Jan (no account): Ola on the open turnus, the form sent, the contract and
 // the payment details "emailed" — a correction, the contract, the deposit.
@@ -321,7 +323,7 @@ say()
 say('| Who | Address | For |')
 say('|---|---|---|')
 const rows: [string, string, string][] = [
-  ['Anna', 'anna', 'ACCOUNT: Zosia + Staś, form not sent; last year in the archive'],
+  ['Anna', 'anna', 'ACCOUNT: Zosia + Staś, form not sent; Julka in the archive'],
   ['Jan', 'jan', 'no account: Ola, form sent, contract and payment details'],
   ['Piotr', 'piotr', 'no account: Bartek, company invoice, deposit LATE'],
   ['Ewelina', 'ewelina', 'no account: Hania with a place, Tymek on the waiting list'],
