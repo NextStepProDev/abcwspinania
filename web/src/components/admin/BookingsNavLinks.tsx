@@ -4,6 +4,8 @@ import { Link, useConfig } from '@payloadcms/ui'
 import { usePathname, useSearchParams } from 'next/navigation'
 
 import type { BookingKind } from '@/lib/bookings'
+import { bookingsListUrl, type ListCondition } from '@/lib/adminListUrl'
+import { kindFromListQuery } from '@/lib/bookingsList'
 
 /**
  * "Zapisy na kursy" and "Zapisy na obozy" under "Pulpit" in the panel's menu.
@@ -22,26 +24,17 @@ const LINKS: { kind: BookingKind; label: string }[] = [
   { kind: 'camp', label: 'Zapisy na obozy' },
 ]
 
-const KIND_PARAM = 'where[kind][equals]'
-
 /**
- * The menu's view of a half (asked for 24.10.2026): by the session's date,
- * from a month back — older years would otherwise fill the first pages —
- * 100 rows a page. In the address, not only as the collection's defaults:
- * Payload keeps each user's last sort and page size and prefers them, so a
- * default alone never reached anyone who had opened the list before. The
- * date condition shows in the list's filters and can be removed there.
+ * The menu's view of a half (asked for 24.10.2026): by the session's date
+ * (`bookingsListUrl`), from a month back — older years would otherwise fill
+ * the first pages. The date condition shows in the list's filters and can
+ * be removed there.
  */
 export const LIST_DAYS_BACK = 30
 
-export function bookingsListQuery(kind: BookingKind, now: Date): string {
+export function bookingsMenuConditions(kind: BookingKind, now: Date): ListCondition[] {
   const from = new Date(now.getTime() - LIST_DAYS_BACK * 86_400_000).toISOString().slice(0, 10)
-  return new URLSearchParams({
-    [KIND_PARAM]: kind,
-    'where[sessionStart][greater_than_equal]': from,
-    sort: 'sessionStart',
-    limit: '100',
-  }).toString()
+  return [{ kind: { equals: kind } }, { sessionStart: { greater_than_equal: from } }]
 }
 
 export function BookingsNavLinks() {
@@ -57,10 +50,10 @@ export function BookingsNavLinks() {
   return (
     <div style={{ marginBottom: 'var(--base)' }}>
       {LINKS.map(({ kind, label }) => {
-        const href = `${list}?${bookingsListQuery(kind, new Date())}`
+        const href = bookingsListUrl(bookingsMenuConditions(kind, new Date()), admin)
         // Only on the list itself: an open booking does not say which half
         // it came from in its address.
-        const active = pathname === list && searchParams.get(KIND_PARAM) === kind
+        const active = pathname === list && kindFromListQuery(searchParams.entries()) === kind
         return (
           <Link
             className="nav__link"

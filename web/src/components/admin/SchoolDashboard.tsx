@@ -1,6 +1,8 @@
 import type { Payload, TypedUser } from 'payload'
 
+import { bookingsListUrl, listUrl, whereOf, type ListCondition } from '@/lib/adminListUrl'
 import { ACTIVE_STATUSES } from '@/lib/bookings'
+import { dashboardConditions, sessionBookingsConditions } from '@/lib/dashboardConditions'
 import { formatDateRange } from '@/lib/format'
 
 /**
@@ -11,21 +13,6 @@ import { formatDateRange } from '@/lib/format'
  * instead of setting filters by hand. Server component: it reads the
  * database directly, with no API round trip.
  */
-
-/** A list in the panel, pre-filtered through its own `where` query. */
-function listUrl(collection: string, where: Record<string, unknown>): string {
-  const params = new URLSearchParams()
-  const add = (prefix: string, value: unknown) => {
-    // Arrays by index (`where[and][0][…]`), the way Payload's list reads them.
-    if (value && typeof value === 'object') {
-      for (const [k, v] of Object.entries(value)) add(`${prefix}[${k}]`, v)
-    } else {
-      params.append(prefix, String(value))
-    }
-  }
-  add('where', where)
-  return `/admin/collections/${collection}?${params.toString()}`
-}
 
 function startOfTodayUtc(): string {
   const d = new Date()
@@ -51,29 +38,8 @@ export async function SchoolDashboard({ payload, user }: { payload: Payload; use
       })
     ).totalDocs
 
-  // An email to the participant that did not go out (`recordEmailIssue`)
-  // and that the school has not dealt with yet.
-  const lostEmails = {
-    and: [{ emailIssueAt: { exists: true } }, { emailIssueHandled: { not_equals: true } }],
-  }
-  const course = { kind: { equals: 'course' } }
-  const camp = { kind: { equals: 'camp' } }
-  const both = (a: Record<string, unknown>, b: Record<string, unknown>) => ({ and: [a, b] })
-  // A camp booking with a place whose parent has not sent the registration
-  // form yet, and one whose deposit deadline passed without the deposit
-  // (`lib/campPayment.ts`) — the two things Krzysiek follows up by phone.
-  // Only camps still ahead: after one starts, neither is anything to chase.
-  const ahead = { 'session.startDate': { greater_than: new Date().toISOString() } }
-  const withoutForm = both(camp, {
-    and: [{ status: { in: [...ACTIVE_STATUSES] } }, { registeredAt: { exists: false } }, ahead],
-  })
-  const lateDeposit = both(camp, {
-    and: [
-      { status: { in: ['new', 'confirmed'] } },
-      { depositDueAt: { less_than: new Date().toISOString() } },
-      ahead,
-    ],
-  })
+  const c = dashboardConditions(new Date())
+  const tally = (conditions: ListCondition[]) => count('bookings', whereOf(conditions))
   const [
     newCourse,
     awaitingDeposit,
@@ -85,15 +51,15 @@ export async function SchoolDashboard({ payload, user }: { payload: Payload; use
     newMessages,
     emailIssues,
   ] = await Promise.all([
-    count('bookings', both(course, { status: { equals: 'new' } })),
-    count('bookings', both(course, { status: { equals: 'confirmed' } })),
-    count('bookings', both(course, { status: { equals: 'waitlist' } })),
-    count('bookings', both(camp, { status: { equals: 'new' } })),
-    count('bookings', withoutForm),
-    count('bookings', lateDeposit),
-    count('bookings', both(camp, { status: { equals: 'waitlist' } })),
+    tally(c.newCourse),
+    tally(c.confirmedCourse),
+    tally(c.waitingCourse),
+    tally(c.newCamp),
+    tally(c.campWithoutForm),
+    tally(c.campLateDeposit),
+    tally(c.waitingCamp),
     count('messages', { status: { equals: 'new' } }),
-    count('bookings', lostEmails),
+    tally(c.lostEmails),
   ])
 
   const { docs: sessions } = await payload.find({
@@ -128,19 +94,19 @@ export async function SchoolDashboard({ payload, user }: { payload: Payload; use
       label: 'Nowe zgłoszenia',
       hint: 'do potwierdzenia',
       value: newCourse,
-      href: listUrl('bookings', both(course, { status: { equals: 'new' } })),
+      href: bookingsListUrl(c.newCourse),
     },
     {
       label: 'Potwierdzone',
       hint: 'czekają na zaliczkę',
       value: awaitingDeposit,
-      href: listUrl('bookings', both(course, { status: { equals: 'confirmed' } })),
+      href: bookingsListUrl(c.confirmedCourse),
     },
     {
       label: 'Lista rezerwowa',
       hint: 'czekają na miejsce',
       value: waitingCourse,
-      href: listUrl('bookings', both(course, { status: { equals: 'waitlist' } })),
+      href: bookingsListUrl(c.waitingCourse),
     },
   ]
   const campTiles: Tile[] = [
@@ -148,25 +114,25 @@ export async function SchoolDashboard({ payload, user }: { payload: Payload; use
       label: 'Nowe zgłoszenia',
       hint: 'dzieci zapisane na obóz',
       value: newCamp,
-      href: listUrl('bookings', both(camp, { status: { equals: 'new' } })),
+      href: bookingsListUrl(c.newCamp),
     },
     {
       label: 'Bez formularza',
       hint: 'rodzic nie wypełnił formularza rejestracyjnego',
       value: campWithoutForm,
-      href: listUrl('bookings', withoutForm),
+      href: bookingsListUrl(c.campWithoutForm),
     },
     {
       label: 'Zaliczka po terminie',
       hint: 'minęło 7 dni, zaliczki nie zaznaczono',
       value: campLateDeposit,
-      href: listUrl('bookings', lateDeposit),
+      href: bookingsListUrl(c.campLateDeposit),
     },
     {
       label: 'Lista rezerwowa',
       hint: 'dzieci czekają na miejsce',
       value: waitingCamp,
-      href: listUrl('bookings', both(camp, { status: { equals: 'waitlist' } })),
+      href: bookingsListUrl(c.waitingCamp),
     },
   ]
   const otherTiles: Tile[] = [
@@ -174,13 +140,13 @@ export async function SchoolDashboard({ payload, user }: { payload: Payload; use
       label: 'Maile, które nie doszły',
       hint: 'adresat nie wie — odezwij się sam',
       value: emailIssues,
-      href: listUrl('bookings', lostEmails),
+      href: bookingsListUrl(c.lostEmails),
     },
     {
       label: 'Nowe wiadomości',
       hint: 'z formularza',
       value: newMessages,
-      href: listUrl('messages', { status: { equals: 'new' } }),
+      href: listUrl('messages', [{ status: { equals: 'new' } }]),
     },
   ]
 
@@ -260,12 +226,9 @@ export async function SchoolDashboard({ payload, user }: { payload: Payload; use
                   <td style={{ padding: '6px 8px' }}>{onList || '—'}</td>
                   <td style={{ padding: '6px 8px' }}>
                     <a
-                      href={listUrl('bookings', {
-                        and: [
-                          { session: { equals: session.id } },
-                          { kind: { equals: camp ? 'camp' : 'course' } },
-                        ],
-                      })}
+                      href={bookingsListUrl(
+                        sessionBookingsConditions(session.id, camp ? 'camp' : 'course'),
+                      )}
                     >
                       zapisani
                     </a>

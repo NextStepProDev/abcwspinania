@@ -113,7 +113,7 @@ export const Bookings: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'label',
-    defaultColumns: ['label', 'status', 'phone', 'createdAt'],
+    defaultColumns: ['participant', 'session', 'status', 'phone', 'createdAt'],
     group: 'Zapisy',
     // Under the heading the list says which half it shows — courses or
     // camps, from the menu's filter (`BookingsListDescription`).
@@ -218,6 +218,7 @@ export const Bookings: CollectionConfig = {
         ]
           .filter(Boolean)
           .join(' ')
+        data.participant = name || null
         data.label = [name, sessionLabel].filter(Boolean).join(' · ')
         return data
       },
@@ -333,6 +334,17 @@ export const Bookings: CollectionConfig = {
       // filter, whose message would be "nieprawidłowe wybory: 1").
       filterOptions: ({ data }) => sessionFilterFor(data?.kind),
       validate: sessionMatchesKind,
+    },
+    {
+      // The list's first column — who (the child on a camp), apart from the
+      // date and camp in "Termin" (asked for 24.10.2026: the one label with
+      // both read badly). Set with the label; never shown in the form, which
+      // has the names themselves.
+      name: 'participant',
+      type: 'text',
+      index: true,
+      label: 'Uczestnik',
+      admin: { readOnly: true, condition: () => false },
     },
     {
       // A copy of the session's start (the label hook and `Sessions`

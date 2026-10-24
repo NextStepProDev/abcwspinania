@@ -4,6 +4,7 @@ import test from 'node:test'
 import { bookingsListDescription, kindFromListQuery } from '@/lib/bookingsList'
 
 test('the menu link’s filter says which half the list is', () => {
+  assert.equal(kindFromListQuery([['where[and][0][kind][equals]', 'camp']]), 'camp')
   assert.equal(kindFromListQuery([['where[kind][equals]', 'camp']]), 'camp')
   assert.equal(kindFromListQuery([['where[kind][equals]', 'course']]), 'course')
 })

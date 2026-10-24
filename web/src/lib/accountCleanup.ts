@@ -119,6 +119,7 @@ export async function anonymizeExpiredBookings(): Promise<void> {
         invoiceCompanyAddress: null,
         emailIssue: null,
         emailIssueAt: null,
+        participant: null,
         label: anonymizedLabel(booking.label),
         anonymizedAt: now,
       },

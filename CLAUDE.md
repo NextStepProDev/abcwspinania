@@ -1353,7 +1353,9 @@ zasada 25), inaczej panel nie znajdzie komponentu.
   Logo w rogu zostaje Payloada: własne `graphics.Icon` rysuje też obrazek
   podglądu `/api/og`, gdzie obrazek z adresu względnego się nie wczyta.
 - **Lista zapisów po terminach** (od 24.10.2026): linki „Zapisy na kursy /
-  na obozy” w menu (`bookingsListQuery` w `BookingsNavLinks`) otwierają ją
+  na obozy” w menu (`bookingsMenuConditions` w `BookingsNavLinks`, adres
+  z `lib/adminListUrl.ts`) i kafelki pulpitu (`lib/dashboardConditions.ts` —
+  te same warunki liczą i filtrują) otwierają ją
   posortowaną po `sessionStart`, od miesiąca wstecz (`LIST_DAYS_BACK`), po
   100 wierszy — wcześniej najnowsze zapisy na górze mieszały wszystkie
   terminy. **Parametry w adresie, nie tylko w `defaultSort`**: Payload
@@ -1362,12 +1364,25 @@ zasada 25), inaczej panel nie znajdzie komponentu.
   `sessionStart` to KOPIA daty terminu (hook etykiety zapisu i `afterChange`
   w `Sessions`, przez `db.updateMany`): sortowanie po `session.startDate`
   działa w Local API, ale warunku po polu relacji filtr panelu nie pokazuje —
-  działałby niewidocznie. Grupowanie Payloada (`admin.groupBy`, beta)
+  działałby niewidocznie. Z tego samego powodu warunki w linku to jedno
+  `where[and][N]…`, jedno pole na warunek (`whereParams` odmawia innego):
+  płaskie `where[a]…&where[b]…` albo zagnieżdżone `and` filtr pokazuje jako
+  mniej warunków, niż działa — lista trojga dzieci wyglądała jak cała lista.
+  NIE `where[or][0][and][N]` (format samego filtra): przy nim Payload
+  rozwija „Filtry” przy każdym otwarciu listy (`validateWhereQuery`
+  w `ListControls`). Test przechodzi przez każdy kafelek.
+  Grupowanie Payloada (`admin.groupBy`, beta)
   odrzucone: 10 wierszy na grupę i grupy w kolejności id terminu. Migracja
   `bookings_session_start` wypełnia kopię w istniejących zapisach (ręczny
   `UPDATE` — nie kasować przy sklejaniu migracji). Opis pod
   nagłówkiem zależy od filtra `kind` (`BookingsListDescription`,
   `lib/bookingsList.ts`).
+  Kolumny: „Uczestnik” (`participant` — dziecko przy obozie, osoba przy
+  kursie; składany z etykietą, w formularzu ukryty) i „Termin” osobno —
+  jedna etykieta z oboma czytała się źle. `participant` to dane osoby:
+  czyści go anonimizacja; w kopii danych go nie ma (to samo co imiona).
+  Linki z menu niosą też `columns` — kolumny wybrane ręcznie wracają do
+  tych przy następnym kliknięciu w menu.
 - **Status jako lista rozwijana na liście zapisów** (`BookingStatusCell`).
   Zapisuje przez REST, więc działa wszystko, co idzie za zmianą statusu
   (mail, przeliczenie miejsc). Status wysyłający kursantowi maila pyta

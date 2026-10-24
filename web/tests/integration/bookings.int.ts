@@ -10,6 +10,7 @@ import {
   email,
   failEmails,
   makeBooking,
+  makeCamp,
   makeCustomer,
   makeCourse,
   makeSession,
@@ -385,4 +386,20 @@ test('a booking carries its session’s start for the list order, also after the
     overrideAccess: true,
   })
   assert.equal(after.sessionStart, moved)
+})
+
+test('the list’s "Uczestnik" column: the person on a course, the child on a camp', async () => {
+  const course = await makeCourse()
+  const session = await makeSession(course.id)
+  const adult = await makeBooking(session.id, 'name-adult')
+  assert.equal(adult.participant, 'name-adult Test')
+
+  const camp = await makeCamp()
+  const turnus = await makeSession(camp.id, { camp: true })
+  const child = await makeBooking(turnus.id, 'name-parent', {
+    kind: 'camp',
+    childFirstName: 'Zosia',
+    childLastName: 'Testowa',
+  })
+  assert.equal(child.participant, 'Zosia Testowa', 'the child, not the parent')
 })

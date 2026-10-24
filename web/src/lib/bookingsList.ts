@@ -1,10 +1,11 @@
 import type { BookingKind } from '@/lib/bookings'
 
 /**
- * Which half of the bookings list the address filters on: `where[kind][equals]`
- * from the menu link, or the same condition nested by the panel's filter
- * builder (`where[or][0][and][0][kind][equals]`). Both kinds in one address,
- * or none, is the whole list.
+ * Which half of the bookings list the address filters on: the `kind`
+ * condition wherever it sits — `where[and][0][kind][equals]` from the links
+ * (`adminListUrl.ts`), `where[kind][equals]` typed by hand, or
+ * `where[or][0][and][0][kind][equals]` once the panel's filter builder
+ * rewrites it. Both kinds in one address, or none, is the whole list.
  */
 export function kindFromListQuery(params: Iterable<[string, string]>): BookingKind | null {
   const kinds = new Set<string>()
@@ -16,7 +17,7 @@ export function kindFromListQuery(params: Iterable<[string, string]>): BookingKi
   return kind === 'course' || kind === 'camp' ? kind : null
 }
 
-// The menu's view of each half (`bookingsListQuery` in `BookingsNavLinks`).
+// The menu's view of each half (`bookingsMenuConditions` in `BookingsNavLinks`).
 const ORDER =
   ' Lista z menu: terminy po kolei, od najbliższego, od miesiąca wstecz — starsze zobaczysz, usuwając warunek „Początek terminu” w Filtrach.'
 
