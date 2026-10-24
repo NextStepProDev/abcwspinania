@@ -1299,7 +1299,10 @@ do 30 dni przed obozem. Cała ścieżka działa bez konta; konto dla chętnych.
     w „Ustawieniach obozów” (`qualificationCard`, plik w `private-files`,
     które od tego dnia przyjmują też PDF), w szkicu pole „Dołącz kartę
     kwalifikacyjną” zaznaczone przez system. Bez karty w PDF „Wyślij”
-    i „Wyślij próbnie” odmawiają z instrukcją. Typ pliku sprawdza wysyłka, nie
+    i „Wyślij próbnie” odmawiają z instrukcją. Mail z kartą ma na górze ramkę
+    „W ZAŁĄCZNIKU: PUSTA KARTA KWALIFIKACYJNA” (`CARD_ATTACHED`, pole
+    `callout` w `layout.ts`, od 24.10.2026) — dokłada ją system, nie tekst
+    szkoły. Typ pliku sprawdza wysyłka, nie
     `filterOptions` pola: Payload sprawdza je uprawnieniami żądania, więc
     zapis bez zalogowanego konta szkoły (dane testowe) był odrzucany.
   - **Wysyłka do turnusu obozu = mail obozowy**: nadawca „ABC Wspinania ·

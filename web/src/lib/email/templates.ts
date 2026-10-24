@@ -1069,6 +1069,16 @@ export interface BroadcastEmailData {
   /** Rendered by `renderRichText` — escaped there. */
   body: { html: string; text: string }
   reason: BroadcastReason
+  /** The blank qualification card goes attached (`attachQualificationCard`). */
+  qualificationCard?: boolean
+}
+
+// Asked for 24.10.2026: an attachment under a long text is easy to miss, and
+// the card is the one thing the parent must bring. Added by the system, not
+// left to the school's text — ticking the box is enough.
+const CARD_ATTACHED: Record<EmailLanguage, string> = {
+  pl: 'W ZAŁĄCZNIKU: PUSTA KARTA KWALIFIKACYJNA (PDF). Wydrukuj ją, wypełnij i przywieź na obóz.',
+  en: 'ATTACHED: THE BLANK QUALIFICATION CARD (PDF). Print it, fill it in and bring it to the camp.',
 }
 
 /** A message the school writes in the panel ("Wysyłki") to a group of people. */
@@ -1082,12 +1092,14 @@ export function broadcastEmail(lang: EmailLanguage, data: BroadcastEmailData): E
         ? copy.upcoming
         : copy.newsletter
   const subject = oneLine(data.subject)
+  const callout = data.qualificationCard ? CARD_ATTACHED[lang] : undefined
   return {
     subject,
     ...renderEmail({
       lang,
-      preheader: data.body.text.slice(0, 120),
+      preheader: callout ?? data.body.text.slice(0, 120),
       heading: subject,
+      callout,
       paragraphs: [],
       body: data.body,
       secondaryAction:

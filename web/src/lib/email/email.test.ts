@@ -782,3 +782,24 @@ test('the payment email says when the blank qualification card comes, with or wi
     assert.match(en, /blank qualification card[\s\S]*before the camp/)
   }
 })
+
+import { broadcastEmail } from '@/lib/email/templates'
+
+test('a broadcast with the qualification card says so at the very top, in capitals', () => {
+  const base = {
+    subject: 'Przed obozem: Obóz',
+    body: { html: '<p>Treść</p>', text: 'Treść' },
+    reason: { kind: 'session' as const, label: '2–9 listopada' },
+  }
+  const withCard = broadcastEmail('pl', { ...base, qualificationCard: true })
+  assert.match(withCard.html, /W ZAŁĄCZNIKU: PUSTA KARTA KWALIFIKACYJNA/)
+  // Above the school's own text, so it is the first thing read — and in the preview line.
+  assert.ok(withCard.html.indexOf('W ZAŁĄCZNIKU') < withCard.html.indexOf('<p>Treść</p>'))
+  assert.match(withCard.text.split('\n').slice(0, 4).join('\n'), /W ZAŁĄCZNIKU/)
+  assert.match(withCard.html, /display:none[^>]*>W ZAŁĄCZNIKU/)
+  assert.match(
+    broadcastEmail('en', { ...base, qualificationCard: true }).text,
+    /ATTACHED: THE BLANK QUALIFICATION CARD/,
+  )
+  assert.doesNotMatch(broadcastEmail('pl', base).html, /ZAŁĄCZNIKU/)
+})

@@ -541,7 +541,8 @@ test('broadcasts: the qualification card goes attached when ticked — and only 
   const sent = await sendHandler(schoolRequest(broadcast.id, admin.email))
   assert.equal(sent.status, 200)
   await drainQueue(broadcast.id)
-  assert.deepEqual(outbox.find((m) => m.to === email('card-a'))?.attachments, [
-    'karta-kwalifikacyjna.pdf',
-  ])
+  const withCard = outbox.find((m) => m.to === email('card-a'))
+  assert.deepEqual(withCard?.attachments, ['karta-kwalifikacyjna.pdf'])
+  // Said at the top, in capitals — an attachment under a long text is easy to miss.
+  assert.match(withCard?.text ?? '', /W ZAŁĄCZNIKU: PUSTA KARTA KWALIFIKACYJNA/)
 })

@@ -226,14 +226,15 @@ async function sendOne(
   subjectPrefix = '',
 ): Promise<void> {
   const version = versionFor(to.language, broadcast)
+  const card = broadcast.attachQualificationCard ? await qualificationCard(payload) : null
+  if (broadcast.attachQualificationCard && !card) throw new Error(NO_CARD)
   const email = broadcastEmail(version.lang, {
     subject: subjectPrefix + version.subject,
     body: renderRichText(version.content),
     reason: await reasonFor(payload, broadcast, version.lang, token),
+    qualificationCard: Boolean(card),
   })
   const camp = await campTurnus(payload, broadcast)
-  const card = broadcast.attachQualificationCard ? await qualificationCard(payload) : null
-  if (broadcast.attachQualificationCard && !card) throw new Error(NO_CARD)
   await payload.sendEmail({
     to: to.email,
     ...(camp ? { from: campSender() } : {}),
