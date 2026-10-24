@@ -14,6 +14,7 @@ import {
   statusEmailForKind,
   type BookingStatus,
 } from '../lib/bookings'
+import { bookingsListDescription } from '../lib/bookingsList'
 import { idOf, recordEmailIssue, recountSession, sendStatusEmail } from '../lib/bookingEffects'
 import { LANGUAGE_OPTIONS_FOR_PAYLOAD } from '../lib/email/language'
 import {
@@ -114,13 +115,20 @@ export const Bookings: CollectionConfig = {
     useAsTitle: 'label',
     defaultColumns: ['label', 'status', 'phone', 'createdAt'],
     group: 'Zapisy',
-    description:
-      'Zapisy na kursy i obozy. Przy obozie imię, nazwisko i kontakt to dane rodzica, a uczestnik to dziecko. Zmiana statusu na „potwierdzony”, „opłacony” albo „rezygnacja” wysyła maila kursantowi albo rodzicowi (przy obozie także „zaliczka wpłacona”). Zapis telefoniczny dodaj tu ręcznie — wtedy liczy się do wolnych miejsc.',
+    // Under the heading the list says which half it shows — courses or
+    // camps, from the menu's filter (`BookingsListDescription`).
+    description: bookingsListDescription(null).text,
+    components: {
+      Description: '/components/admin/BookingsListDescription#BookingsListDescription',
+    },
     listSearchableFields: ['label', 'email', 'phone'],
     // Anonymized bookings (five years after the course, `lib/expiry.ts`) are
     // a trace for statistics, not work: rows with no name would only clutter
     // the list. They stay in the database.
     baseFilter: () => ({ anonymizedAt: { exists: false } }),
+    // Payload shows 10 rows a page; a turnus alone has more (asked for
+    // 24.10.2026: more of the list at once).
+    pagination: { defaultLimit: 100, limits: [25, 50, 100, 200] },
   },
   access: {
     create: isAdmin,
@@ -129,7 +137,10 @@ export const Bookings: CollectionConfig = {
     update: isAdmin,
     delete: isAdmin,
   },
-  defaultSort: '-createdAt',
+  // By the session's date, the nearest first — a turnus or a course is one
+  // block on the list (asked for 24.10.2026: the newest-first list mixed
+  // every date). New sign-ups are on the dashboard's tiles.
+  defaultSort: 'sessionStart',
   endpoints: [
     { path: '/:id/registration-link', method: 'post', handler: registrationLinkHandler },
     { path: '/:id/contract', method: 'get', handler: contractHandler },
@@ -187,6 +198,9 @@ export const Bookings: CollectionConfig = {
               overrideAccess: true,
             })
             sessionLabel = session?.label ?? ''
+            // A copy for the list order — a relationship's own date is no
+            // sort key the panel's list takes (see the field).
+            data.sessionStart = session?.startDate ?? null
           } catch {
             // A label is a convenience — never a reason to fail the save.
           }
@@ -319,6 +333,22 @@ export const Bookings: CollectionConfig = {
       // filter, whose message would be "nieprawidłowe wybory: 1").
       filterOptions: ({ data }) => sessionFilterFor(data?.kind),
       validate: sessionMatchesKind,
+    },
+    {
+      // A copy of the session's start (the label hook and `Sessions`
+      // afterChange keep it in step): the list sorts and filters by it.
+      // Sorting by "session.startDate" works in the Local API, but the
+      // panel's filter builder cannot show such a condition — it would be
+      // applied and invisible.
+      name: 'sessionStart',
+      type: 'date',
+      index: true,
+      label: 'Początek terminu',
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+        date: { pickerAppearance: 'dayOnly', displayFormat: 'd.MM.yyyy' },
+      },
     },
     {
       name: 'status',

@@ -347,3 +347,42 @@ test('bookings are anonymized five years after their course’s year; newer ones
     [onAccount.id],
   )
 })
+
+test('a booking carries its session’s start for the list order, also after the dates change', async () => {
+  const course = await makeCourse()
+  const later = await makeSession(course.id, { daysAhead: 40 })
+  const sooner = await makeSession(course.id, { daysAhead: 10 })
+  const a = await makeBooking(later.id, 'order-later')
+  const b = await makeBooking(sooner.id, 'order-sooner')
+  assert.equal(a.sessionStart, later.startDate)
+  assert.equal(b.sessionStart, sooner.startDate)
+
+  // The list sorts by it (`defaultSort`): the sooner session first.
+  const { docs } = await payload.find({
+    collection: 'bookings',
+    where: { id: { in: [a.id, b.id] } },
+    sort: 'sessionStart',
+    depth: 0,
+    overrideAccess: true,
+  })
+  assert.deepEqual(
+    docs.map((d) => d.id),
+    [b.id, a.id],
+  )
+
+  // The school moves the later session ahead of the other one.
+  const moved = new Date(Date.now() + 5 * 86_400_000).toISOString()
+  await payload.update({
+    collection: 'sessions',
+    id: later.id,
+    data: { startDate: moved },
+    overrideAccess: true,
+  })
+  const after = await payload.findByID({
+    collection: 'bookings',
+    id: a.id,
+    depth: 0,
+    overrideAccess: true,
+  })
+  assert.equal(after.sessionStart, moved)
+})

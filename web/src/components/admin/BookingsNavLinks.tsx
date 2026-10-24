@@ -24,6 +24,26 @@ const LINKS: { kind: BookingKind; label: string }[] = [
 
 const KIND_PARAM = 'where[kind][equals]'
 
+/**
+ * The menu's view of a half (asked for 24.10.2026): by the session's date,
+ * from a month back — older years would otherwise fill the first pages —
+ * 100 rows a page. In the address, not only as the collection's defaults:
+ * Payload keeps each user's last sort and page size and prefers them, so a
+ * default alone never reached anyone who had opened the list before. The
+ * date condition shows in the list's filters and can be removed there.
+ */
+export const LIST_DAYS_BACK = 30
+
+export function bookingsListQuery(kind: BookingKind, now: Date): string {
+  const from = new Date(now.getTime() - LIST_DAYS_BACK * 86_400_000).toISOString().slice(0, 10)
+  return new URLSearchParams({
+    [KIND_PARAM]: kind,
+    'where[sessionStart][greater_than_equal]': from,
+    sort: 'sessionStart',
+    limit: '100',
+  }).toString()
+}
+
 export function BookingsNavLinks() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -37,7 +57,7 @@ export function BookingsNavLinks() {
   return (
     <div style={{ marginBottom: 'var(--base)' }}>
       {LINKS.map(({ kind, label }) => {
-        const href = `${list}?${new URLSearchParams({ [KIND_PARAM]: kind }).toString()}`
+        const href = `${list}?${bookingsListQuery(kind, new Date())}`
         // Only on the list itself: an open booking does not say which half
         // it came from in its address.
         const active = pathname === list && searchParams.get(KIND_PARAM) === kind

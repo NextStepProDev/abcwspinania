@@ -1352,6 +1352,22 @@ zasada 25), inaczej panel nie znajdzie komponentu.
   (`nav__link`), więc przy jego podbiciu sprawdzić, czy menu ich nie zmieniło.
   Logo w rogu zostaje Payloada: własne `graphics.Icon` rysuje też obrazek
   podglądu `/api/og`, gdzie obrazek z adresu względnego się nie wczyta.
+- **Lista zapisów po terminach** (od 24.10.2026): linki „Zapisy na kursy /
+  na obozy” w menu (`bookingsListQuery` w `BookingsNavLinks`) otwierają ją
+  posortowaną po `sessionStart`, od miesiąca wstecz (`LIST_DAYS_BACK`), po
+  100 wierszy — wcześniej najnowsze zapisy na górze mieszały wszystkie
+  terminy. **Parametry w adresie, nie tylko w `defaultSort`**: Payload
+  zapamiętuje każdemu ostatnie sortowanie i liczbę wierszy i to one wygrywają
+  z ustawieniami kolekcji (zmierzone: `limit: 10` z preferencji).
+  `sessionStart` to KOPIA daty terminu (hook etykiety zapisu i `afterChange`
+  w `Sessions`, przez `db.updateMany`): sortowanie po `session.startDate`
+  działa w Local API, ale warunku po polu relacji filtr panelu nie pokazuje —
+  działałby niewidocznie. Grupowanie Payloada (`admin.groupBy`, beta)
+  odrzucone: 10 wierszy na grupę i grupy w kolejności id terminu. Migracja
+  `bookings_session_start` wypełnia kopię w istniejących zapisach (ręczny
+  `UPDATE` — nie kasować przy sklejaniu migracji). Opis pod
+  nagłówkiem zależy od filtra `kind` (`BookingsListDescription`,
+  `lib/bookingsList.ts`).
 - **Status jako lista rozwijana na liście zapisów** (`BookingStatusCell`).
   Zapisuje przez REST, więc działa wszystko, co idzie za zmianą statusu
   (mail, przeliczenie miejsc). Status wysyłający kursantowi maila pyta

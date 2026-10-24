@@ -71,6 +71,19 @@ export const Sessions: CollectionConfig = {
     afterChange: [
       // A new capacity changes the spots left. Skipped for the recount's own
       // write (`context.recountingSpots`), which would otherwise call itself.
+      // New dates move the session's bookings on the list (`sessionStart`),
+      // straight in the database: their own hooks would rebuild labels,
+      // recount and maybe email.
+      async ({ doc, previousDoc, operation, req }) => {
+        if (operation !== 'update' || previousDoc?.startDate === doc.startDate) return doc
+        await req.payload.db.updateMany({
+          collection: 'bookings',
+          where: { session: { equals: doc.id } },
+          data: { sessionStart: doc.startDate },
+          req,
+        })
+        return doc
+      },
       async ({ doc, previousDoc, operation, req, context }) => {
         if (context.recountingSpots) return doc
         if (operation === 'update' && previousDoc?.capacity === doc.capacity) return doc

@@ -25,6 +25,7 @@ import { SessionExportLink as SessionExportLink_1b5e838108c8abf745555d86e410b317
 import { BookingStatusCell as BookingStatusCell_9ca1a4f5c0ba98f89d83789886169772 } from '../../../components/admin/BookingStatusCell'
 import { RegistrationPanel as RegistrationPanel_0072ff89773bd7cd6e1d2959ea874462 } from '../../../components/admin/RegistrationPanel'
 import { InvoicePanel as InvoicePanel_43c7425d2f7db74988c6f7a240f57548 } from '../../../components/admin/InvoicePanel'
+import { BookingsListDescription as BookingsListDescription_d3fafc7e664960568556e2a30ad5fd5f } from '../../../components/admin/BookingsListDescription'
 import { FixedToolbarFeatureClient as FixedToolbarFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { BroadcastPanel as BroadcastPanel_2e31b951a72a8d8f46f82db3940b68c3 } from '../../../components/admin/BroadcastPanel'
 import { MessageStatusCell as MessageStatusCell_d331ab206ed08f2e8664da7c24f6b3a3 } from '../../../components/admin/MessageStatusCell'
@@ -63,6 +64,7 @@ export const importMap = {
   "/components/admin/BookingStatusCell#BookingStatusCell": BookingStatusCell_9ca1a4f5c0ba98f89d83789886169772,
   "/components/admin/RegistrationPanel#RegistrationPanel": RegistrationPanel_0072ff89773bd7cd6e1d2959ea874462,
   "/components/admin/InvoicePanel#InvoicePanel": InvoicePanel_43c7425d2f7db74988c6f7a240f57548,
+  "/components/admin/BookingsListDescription#BookingsListDescription": BookingsListDescription_d3fafc7e664960568556e2a30ad5fd5f,
   "@payloadcms/richtext-lexical/client#FixedToolbarFeatureClient": FixedToolbarFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "/components/admin/BroadcastPanel#BroadcastPanel": BroadcastPanel_2e31b951a72a8d8f46f82db3940b68c3,
   "/components/admin/MessageStatusCell#MessageStatusCell": MessageStatusCell_d331ab206ed08f2e8664da7c24f6b3a3,

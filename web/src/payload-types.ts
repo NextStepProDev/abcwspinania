@@ -523,6 +523,7 @@ export interface Booking {
    */
   kind: 'course' | 'camp';
   session: number | Session;
+  sessionStart?: string | null;
   /**
    * „Lista rezerwowa” i „rezygnacja” nie zajmują miejsca. Zmiana na „potwierdzony” lub „rezygnacja” wysyła maila (kursantowi albo rodzicowi); na „opłacony” — tylko przed pierwszym dniem. Przy obozie także „zaliczka wpłacona” — rodzic dostaje maila, ile zostało do zapłaty; przy rodzeństwie jeden mail, gdy zaznaczysz ostatnie dziecko ze zgłoszenia.
    */
@@ -1284,6 +1285,7 @@ export interface BookingsSelect<T extends boolean = true> {
   label?: T;
   kind?: T;
   session?: T;
+  sessionStart?: T;
   status?: T;
   firstName?: T;
   lastName?: T;
