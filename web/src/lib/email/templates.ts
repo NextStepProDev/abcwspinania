@@ -350,7 +350,7 @@ const NEW_ACCOUNT = {
     body: 'Przy zapisie zaznaczono „załóż mi konto”. Konto czeka — wystarczy ustawić hasło, a zobaczysz w nim swoje zapisy.',
     action: 'Ustaw hasło',
     note: (h: number) =>
-      `Link działa przez ${h} godz. Jeśli nie zakładasz konta, zignoruj tę wiadomość — zapis na kurs jest ważny i bez niego.`,
+      `Link działa przez ${h} godz. Jeśli nie zakładasz konta, zignoruj tę wiadomość — zapis jest ważny i bez niego.`,
   },
   en: {
     subject: 'Set your account password — ABC Wspinania',

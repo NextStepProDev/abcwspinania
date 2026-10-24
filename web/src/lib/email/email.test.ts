@@ -421,6 +421,11 @@ test('the new-account email is about SETTING a password, not resetting one', () 
   assert.match(email.text, /ustaw/i)
   assert.doesNotMatch(email.text, /nowe hasło|poprosił/)
   assert.match(email.text, /2 godz\./)
+  // The same email follows a camp booking: it may not speak of a course.
+  for (const lang of ['pl', 'en'] as const) {
+    const text = newAccountFromBookingEmail(lang, { url: 'u', validHours: 2 }).text
+    assert.doesNotMatch(text, /kurs|course/i, lang)
+  }
 })
 
 test('the school hears about every booking, with the waiting list flagged', () => {

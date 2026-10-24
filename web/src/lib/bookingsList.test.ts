@@ -96,3 +96,17 @@ test('a list filtered by hand says so; the mail rules stay per half', () => {
     /rodzic/,
   )
 })
+
+import { kindForNewBooking } from '@/lib/bookingsList'
+
+test('"Stwórz nowy" from the camp list starts a camp booking; nothing else moves', () => {
+  assert.equal(kindForNewBooking(true, 'camp', 'course'), 'camp')
+  assert.equal(kindForNewBooking(true, 'camp', 'camp'), null, 'already set')
+  assert.equal(
+    kindForNewBooking(false, 'camp', 'course'),
+    null,
+    'an existing booking keeps its kind',
+  )
+  assert.equal(kindForNewBooking(true, null, 'course'), null, 'no list seen: the default')
+  assert.equal(kindForNewBooking(true, 'trip', 'course'), null)
+})

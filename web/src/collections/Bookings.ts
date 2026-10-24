@@ -320,6 +320,8 @@ export const Bookings: CollectionConfig = {
       options: BOOKING_KIND_OPTIONS,
       admin: {
         description: 'Najpierw wybierz rodzaj — lista terminów pokaże tylko pasujące.',
+        // A new booking starts as the list it was created from.
+        components: { Field: '/components/admin/BookingKindField#BookingKindField' },
       },
     },
     {

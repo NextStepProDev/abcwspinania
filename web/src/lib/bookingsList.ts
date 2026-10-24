@@ -144,3 +144,21 @@ export function describeBookingsList(params: Iterable<[string, string]>): {
 
 /** The collection's own description — where no view applies (the API, a bare list). */
 export const BOOKINGS_DESCRIPTION = rulesOf(null)
+
+/**
+ * The half of the list last opened, kept for "Stwórz nowy" (`BookingKindField`):
+ * Payload's button opens a bare create form, which started as a course even
+ * from the camp list (decided 25.10.2026: start where the school came from).
+ */
+export const LAST_LIST_KIND_KEY = 'abc:bookings-list-kind'
+
+/** The kind a NEW booking starts with — never changes an existing one. */
+export function kindForNewBooking(
+  isNew: boolean,
+  remembered: string | null,
+  current: unknown,
+): BookingKind | null {
+  if (!isNew) return null
+  if (remembered !== 'course' && remembered !== 'camp') return null
+  return remembered === current ? null : remembered
+}

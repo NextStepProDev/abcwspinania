@@ -22,6 +22,7 @@ import { UnderlineFeatureClient as UnderlineFeatureClient_e70f5e05f09f93e00b997e
 import { BoldFeatureClient as BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { SessionExportLink as SessionExportLink_1b5e838108c8abf745555d86e410b317 } from '../../../components/admin/SessionExportLink'
+import { BookingKindField as BookingKindField_267870bce6b61dfe639a7fb25c224535 } from '../../../components/admin/BookingKindField'
 import { BookingStatusCell as BookingStatusCell_9ca1a4f5c0ba98f89d83789886169772 } from '../../../components/admin/BookingStatusCell'
 import { RegistrationPanel as RegistrationPanel_0072ff89773bd7cd6e1d2959ea874462 } from '../../../components/admin/RegistrationPanel'
 import { InvoicePanel as InvoicePanel_43c7425d2f7db74988c6f7a240f57548 } from '../../../components/admin/InvoicePanel'
@@ -61,6 +62,7 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#BoldFeatureClient": BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#ItalicFeatureClient": ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "/components/admin/SessionExportLink#SessionExportLink": SessionExportLink_1b5e838108c8abf745555d86e410b317,
+  "/components/admin/BookingKindField#BookingKindField": BookingKindField_267870bce6b61dfe639a7fb25c224535,
   "/components/admin/BookingStatusCell#BookingStatusCell": BookingStatusCell_9ca1a4f5c0ba98f89d83789886169772,
   "/components/admin/RegistrationPanel#RegistrationPanel": RegistrationPanel_0072ff89773bd7cd6e1d2959ea874462,
   "/components/admin/InvoicePanel#InvoicePanel": InvoicePanel_43c7425d2f7db74988c6f7a240f57548,

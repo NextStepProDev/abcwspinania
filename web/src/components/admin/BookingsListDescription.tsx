@@ -1,8 +1,9 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 
-import { describeBookingsList } from '@/lib/bookingsList'
+import { LAST_LIST_KIND_KEY, describeBookingsList, kindFromListQuery } from '@/lib/bookingsList'
 
 /**
  * The text under "Zapisy" on the bookings list: which half and which view
@@ -14,6 +15,16 @@ import { describeBookingsList } from '@/lib/bookingsList'
 export function BookingsListDescription() {
   const searchParams = useSearchParams()
   const { title, about, rules } = describeBookingsList(searchParams.entries())
+  const kind = kindFromListQuery(searchParams.entries())
+  // For "Stwórz nowy" (`BookingKindField`): the half this list shows.
+  useEffect(() => {
+    try {
+      if (kind) window.sessionStorage.setItem(LAST_LIST_KIND_KEY, kind)
+      else window.sessionStorage.removeItem(LAST_LIST_KIND_KEY)
+    } catch {
+      // Storage blocked: new bookings start at the default.
+    }
+  }, [kind])
   return (
     <div className="custom-view-description">
       <p style={{ margin: 0 }}>

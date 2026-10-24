@@ -1270,6 +1270,12 @@ do 30 dni przed obozem. Cała ścieżka działa bez konta; konto dla chętnych.
   prywatnych” samo czyści pole w „Ustawieniach obozów”** (klucz obcy) —
   znalezione przy audycie 22.10.2026: nowy plik wgrany, stary usunięty,
   umowy szły bez podpisu i nikt by o tym nie wiedział.
+- **„Stwórz nowy” zaczyna od rodzaju listy, z której przyszedłeś** (od
+  25.10.2026, `BookingKindField`): Payload otwiera goły formularz, który
+  zaczynał zawsze od „kurs”. Lista zapamiętuje swoją połowę w
+  `sessionStorage` (`BookingsListDescription`, `LAST_LIST_KIND_KEY`), pole
+  ustawia ją TYLKO w nowym zapisie (`kindForNewBooking`); zablokowana pamięć
+  przeglądarki = domyślny „kurs”, jak dawniej.
 - **„Zduplikuj” zapisu obozowego = nowe dziecko** (od 22.10.2026): tak
   szkoła dopisze rodzeństwo przez telefon. Kopia zostawia rodzica, kontakt
   i turnus, a zeruje wszystko, co należało do PIERWSZEGO dziecka
