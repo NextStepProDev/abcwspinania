@@ -282,10 +282,13 @@ export function Honeypot() {
 
 export function SubmitButton({
   pending,
+  disabled = false,
   label,
   busyLabel,
 }: {
   pending: boolean
+  /** Besides while sending — e.g. a correction with nothing changed. */
+  disabled?: boolean
   label: string
   busyLabel: string
 }) {
@@ -293,7 +296,7 @@ export function SubmitButton({
     <div>
       <button
         type="submit"
-        disabled={pending}
+        disabled={pending || disabled}
         className="rounded-lg bg-rope px-7 py-3.5 font-semibold text-white transition-colors hover:bg-rope-dark disabled:opacity-60"
       >
         {pending ? busyLabel : label}

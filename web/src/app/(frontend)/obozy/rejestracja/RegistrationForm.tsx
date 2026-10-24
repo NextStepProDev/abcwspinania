@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useId, useState } from 'react'
+import { useActionState, useEffect, useId, useRef, useState } from 'react'
 
 import { FormAlert, FormDone } from '@/components/AccountForm'
 import {
@@ -34,6 +34,15 @@ import {
 import { submitRegistration, type RegistrationState } from './actions'
 
 const INITIAL: RegistrationState = { status: 'idle' }
+
+/** The answers as they stand in the form — to tell a correction from no change. */
+function answersOf(form: HTMLFormElement): string {
+  return JSON.stringify(
+    Array.from(new FormData(form)).filter(
+      ([key]) => key !== 'token' && key !== 'website' && !key.startsWith('$'),
+    ),
+  )
+}
 
 // The server's rules, shown live (lib/pesel.ts, lib/validation.ts).
 const peselRule = (v: string) => checkPesel(v.replace(/\s+/g, ''))
@@ -185,6 +194,21 @@ export function RegistrationForm({
   const [state, action, pending] = useActionState(submitRegistration, INITIAL)
   const id = useId()
   const many = childrenToFill.length > 1
+  // A correction saves only when something differs from the saved answers
+  // (asked for 24.10.2026, as "Zapisz" in Moje konto). Enabled until the
+  // script runs — without JavaScript the form must still send.
+  const formRef = useRef<HTMLFormElement>(null)
+  const savedAnswers = useRef<string | null>(null)
+  const [modified, setModified] = useState(true)
+  const recheck = () => {
+    const form = formRef.current
+    if (!form || !shared) return
+    savedAnswers.current ??= answersOf(form)
+    setModified(answersOf(form) !== savedAnswers.current)
+  }
+  // On mount, and after a failed send (the form then shows what was typed).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(recheck, [state])
 
   if (state.status === 'done') {
     return (
@@ -214,7 +238,14 @@ export function RegistrationForm({
   }
 
   return (
-    <form action={action} onSubmit={stopInvalidSubmit} noValidate className="flex flex-col gap-8">
+    <form
+      ref={formRef}
+      action={action}
+      onSubmit={stopInvalidSubmit}
+      onChange={recheck}
+      noValidate
+      className="flex flex-col gap-8"
+    >
       {state.message && <FormAlert>{state.message}</FormAlert>}
       <input type="hidden" name="token" value={token} />
 
@@ -415,6 +446,7 @@ export function RegistrationForm({
 
       <SubmitButton
         pending={pending}
+        disabled={!modified}
         label={shared ? 'Zapisz zmiany' : 'Wyślij formularz'}
         busyLabel="Zapisuję…"
       />

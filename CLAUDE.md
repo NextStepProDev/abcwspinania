@@ -1180,6 +1180,9 @@ do 30 dni przed obozem. Cała ścieżka działa bez konta; konto dla chętnych.
   (wymagana), zgoda RODO na dane i zdrowie dziecka. Działa
   do dnia rozpoczęcia obozu — rodzic wraca tym samym linkiem i poprawia
   (leki w lutym vs w lipcu); zamknięty dla listy rezerwowej i rezygnacji.
+  „Zapisz zmiany” przy poprawce nieaktywny, dopóki odpowiedzi nie różnią
+  się od zapisanych (od 24.10.2026, `answersOf` — jak „Zapisz” w Moim
+  koncie); bez JS zostaje aktywny, żeby formularz dało się wysłać.
   Logika: `lib/campRegistration.ts`.
 - **PESEL i zdrowie w osobnej kolekcji `camp-registrations`** (czyta tylko
   szkoła): usuwane same miesiąc po obozie (`CAMP_HEALTH_RETENTION_MONTHS`,
