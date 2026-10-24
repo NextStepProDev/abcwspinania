@@ -173,9 +173,12 @@ export function RegistrationForm({
   token,
   childrenToFill,
   shared,
+  withAccount,
 }: {
   token: string
   childrenToFill: RegistrationFormChild[]
+  /** The sign-up is on an account, where "Popraw formularz" waits too. */
+  withAccount: boolean
   /** Null until the form was sent once. */
   shared: RegistrationFormShared | null
 }) {
@@ -192,7 +195,8 @@ export function RegistrationForm({
             : state.contractAttached
               ? 'Dziękujemy! Dane do przelewu zaliczki i umowę wysłaliśmy mailem.'
               : 'Dziękujemy! Dane do przelewu zaliczki wysłaliśmy mailem, a umowę prześlemy osobno.'}{' '}
-          Gdyby coś się zmieniło przed obozem, wróć tym samym linkiem z maila i popraw formularz.
+          Gdyby coś się zmieniło przed obozem, wróć tym samym linkiem z maila
+          {withAccount ? ' albo przez Moje konto' : ''} i popraw formularz.
         </p>
       </FormDone>
     )

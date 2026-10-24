@@ -78,6 +78,7 @@ export default async function RegistrationPage({ searchParams }: Props) {
                           }
                         : null,
                     }))}
+                    withAccount={open.some(({ booking }) => booking.customer != null)}
                     shared={
                       lead?.registeredAt
                         ? {
