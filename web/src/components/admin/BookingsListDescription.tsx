@@ -2,22 +2,24 @@
 
 import { useSearchParams } from 'next/navigation'
 
-import { bookingsListDescription, kindFromListQuery } from '@/lib/bookingsList'
+import { describeBookingsList } from '@/lib/bookingsList'
 
 /**
- * The line under "Zapisy" on the bookings list. The menu opens one list for
- * both halves ("Zapisy na kursy" / "na obozy", `BookingsNavLinks`), and
- * Payload's heading and description are the collection's — the same for
- * both, so a camp list read as a list of everything (reported 24.10.2026).
- * The kind comes from the filter in the address.
+ * The text under "Zapisy" on the bookings list: which half and which view
+ * (a dashboard tile, the menu, filters set by hand), what the rows are, then
+ * when a status change emails someone (`describeBookingsList`). Payload's
+ * heading and description are the collection's — the same for every view,
+ * so a camp list read as a list of everything (reported 24.10.2026).
  */
 export function BookingsListDescription() {
   const searchParams = useSearchParams()
-  const { title, text } = bookingsListDescription(kindFromListQuery(searchParams.entries()))
+  const { title, about, rules } = describeBookingsList(searchParams.entries())
   return (
     <div className="custom-view-description">
-      {title && <strong>{title}. </strong>}
-      {text}
+      <p style={{ margin: 0 }}>
+        <strong>{title}.</strong> {about}
+      </p>
+      <p style={{ margin: '4px 0 0', color: 'var(--theme-elevation-500)' }}>{rules}</p>
     </div>
   )
 }

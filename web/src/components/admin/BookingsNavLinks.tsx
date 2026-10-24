@@ -4,8 +4,9 @@ import { Link, useConfig } from '@payloadcms/ui'
 import { usePathname, useSearchParams } from 'next/navigation'
 
 import type { BookingKind } from '@/lib/bookings'
-import { bookingsListUrl, type ListCondition } from '@/lib/adminListUrl'
+import { bookingsListUrl } from '@/lib/adminListUrl'
 import { kindFromListQuery } from '@/lib/bookingsList'
+import { bookingsMenuConditions } from '@/lib/dashboardConditions'
 
 /**
  * "Zapisy na kursy" and "Zapisy na obozy" under "Pulpit" in the panel's menu.
@@ -23,19 +24,6 @@ const LINKS: { kind: BookingKind; label: string }[] = [
   { kind: 'course', label: 'Zapisy na kursy' },
   { kind: 'camp', label: 'Zapisy na obozy' },
 ]
-
-/**
- * The menu's view of a half (asked for 24.10.2026): by the session's date
- * (`bookingsListUrl`), from a month back — older years would otherwise fill
- * the first pages. The date condition shows in the list's filters and can
- * be removed there.
- */
-export const LIST_DAYS_BACK = 30
-
-export function bookingsMenuConditions(kind: BookingKind, now: Date): ListCondition[] {
-  const from = new Date(now.getTime() - LIST_DAYS_BACK * 86_400_000).toISOString().slice(0, 10)
-  return [{ kind: { equals: kind } }, { sessionStart: { greater_than_equal: from } }]
-}
 
 export function BookingsNavLinks() {
   const pathname = usePathname()

@@ -1353,7 +1353,7 @@ zasada 25), inaczej panel nie znajdzie komponentu.
   Logo w rogu zostaje Payloada: własne `graphics.Icon` rysuje też obrazek
   podglądu `/api/og`, gdzie obrazek z adresu względnego się nie wczyta.
 - **Lista zapisów po terminach** (od 24.10.2026): linki „Zapisy na kursy /
-  na obozy” w menu (`bookingsMenuConditions` w `BookingsNavLinks`, adres
+  na obozy” w menu (`BookingsNavLinks`, warunki `bookingsMenuConditions`, adres
   z `lib/adminListUrl.ts`) i kafelki pulpitu (`lib/dashboardConditions.ts` —
   te same warunki liczą i filtrują) otwierają ją
   posortowaną po `sessionStart`, od miesiąca wstecz (`LIST_DAYS_BACK`), po
@@ -1375,8 +1375,11 @@ zasada 25), inaczej panel nie znajdzie komponentu.
   odrzucone: 10 wierszy na grupę i grupy w kolejności id terminu. Migracja
   `bookings_session_start` wypełnia kopię w istniejących zapisach (ręczny
   `UPDATE` — nie kasować przy sklejaniu migracji). Opis pod
-  nagłówkiem zależy od filtra `kind` (`BookingsListDescription`,
-  `lib/bookingsList.ts`).
+  nagłówkiem mówi, gdzie jesteś (`describeBookingsList` w
+  `lib/bookingsList.ts`): połowa (kursy/obozy) i widok — który kafelek, menu,
+  jeden termin albo filtry ręczne — rozpoznany z SAMYCH warunków w adresie,
+  nie ze znacznika: zmiana filtra zmienia opis; pod spodem, kiedy status
+  wysyła maila.
   Kolumny: „Uczestnik” (`participant` — dziecko przy obozie, osoba przy
   kursie; składany z etykietą, w formularzu ukryty) i „Termin” osobno —
   jedna etykieta z oboma czytała się źle. `participant` to dane osoby:

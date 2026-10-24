@@ -47,3 +47,16 @@ export function dashboardConditions(now: Date) {
 export function sessionBookingsConditions(sessionId: number, k: BookingKind): ListCondition[] {
   return [{ session: { equals: sessionId } }, { kind: { equals: k } }]
 }
+
+/**
+ * The menu's view of a half (`BookingsNavLinks`, asked for 24.10.2026): by
+ * the session's date (`bookingsListUrl`), from a month back — older years
+ * would otherwise fill the first pages. The date condition shows in the
+ * list's filters and can be removed there.
+ */
+export const LIST_DAYS_BACK = 30
+
+export function bookingsMenuConditions(kind: BookingKind, now: Date): ListCondition[] {
+  const from = new Date(now.getTime() - LIST_DAYS_BACK * 86_400_000).toISOString().slice(0, 10)
+  return [{ kind: { equals: kind } }, { sessionStart: { greater_than_equal: from } }]
+}

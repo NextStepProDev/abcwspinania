@@ -14,7 +14,7 @@ import {
   statusEmailForKind,
   type BookingStatus,
 } from '../lib/bookings'
-import { bookingsListDescription } from '../lib/bookingsList'
+import { BOOKINGS_DESCRIPTION } from '../lib/bookingsList'
 import { idOf, recordEmailIssue, recountSession, sendStatusEmail } from '../lib/bookingEffects'
 import { LANGUAGE_OPTIONS_FOR_PAYLOAD } from '../lib/email/language'
 import {
@@ -117,7 +117,7 @@ export const Bookings: CollectionConfig = {
     group: 'Zapisy',
     // Under the heading the list says which half it shows — courses or
     // camps, from the menu's filter (`BookingsListDescription`).
-    description: bookingsListDescription(null).text,
+    description: BOOKINGS_DESCRIPTION,
     components: {
       Description: '/components/admin/BookingsListDescription#BookingsListDescription',
     },
