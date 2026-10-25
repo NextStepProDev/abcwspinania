@@ -141,4 +141,28 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default withPayload(nextConfig, { devBundleServerPackages: false })
+const withPayloadConfig = withPayload(nextConfig, { devBundleServerPackages: false })
+
+/**
+ * Payload's colour-scheme hint, for the panel only.
+ *
+ * `withPayload` adds `Accept-CH`, `Critical-CH` and `Vary:
+ * Sec-CH-Prefers-Color-Scheme` to EVERY address (`/:path*`), so the panel
+ * can pick its light or dark theme on the first paint. On the site that hint
+ * means nothing, and `Critical-CH` costs: Chrome, seeing the hint missing
+ * from its request, throws the answer away and asks for the page again — the
+ * server renders it twice and the visitor waits for both. Lighthouse counted
+ * it as a 600 ms redirect on every page (audit, 25.10.2026); production sent
+ * the headers too. Narrowed to `/admin`; re-check the rule's shape on every
+ * Payload upgrade — when it changes, this finds nothing and the site goes
+ * back to the double request, silently.
+ */
+const payloadHeaders = withPayloadConfig.headers
+withPayloadConfig.headers = async () =>
+  (payloadHeaders ? await payloadHeaders() : []).map((rule) =>
+    rule.source === '/:path*' && rule.headers.some((h) => h.key === 'Critical-CH')
+      ? { ...rule, source: '/admin/:path*' }
+      : rule,
+  )
+
+export default withPayloadConfig

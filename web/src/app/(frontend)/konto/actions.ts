@@ -7,6 +7,7 @@ import config from '@payload-config'
 
 import { VERIFY_LINK_HOURS } from '@/collections/Customers'
 import { sendAccountExistsEmail, sendPasswordLink, sendVerificationLink } from '@/lib/accountEmails'
+import { actionAllowed, TOO_MANY_ATTEMPTS } from '@/lib/actionLimit'
 import { clearLoginCookie, getCurrentCustomer, setLoginCookie } from '@/lib/auth'
 import { claimBookings } from '@/lib/bookingEffects'
 import { saveAccountDetails } from '@/lib/accountDetails'
@@ -102,6 +103,7 @@ export async function registerAccount(
   const errors = validateRegistration(data)
   if (!isValid(errors))
     return { status: 'error', errors, values, message: 'Popraw zaznaczone pola.' }
+  if (!(await actionAllowed())) return { status: 'error', values, message: TOO_MANY_ATTEMPTS }
 
   const email = data.email.trim().toLowerCase()
 
@@ -170,6 +172,7 @@ export async function logIn(
   const values = { email: data.email }
   const errors = validateLogin(data)
   if (!isValid(errors)) return { status: 'error', errors, values }
+  if (!(await actionAllowed())) return { status: 'error', values, message: TOO_MANY_ATTEMPTS }
 
   let target: string
   try {
@@ -229,6 +232,8 @@ export async function requestPasswordReset(
 
   const errors = validateEmailOnly(email)
   if (!isValid(errors)) return { status: 'error', errors, values: { email } }
+  if (!(await actionAllowed()))
+    return { status: 'error', values: { email }, message: TOO_MANY_ATTEMPTS }
 
   try {
     const payload = await getPayload({ config })
@@ -271,6 +276,8 @@ export async function resendVerification(
     const errors = validateEmailOnly(email)
     if (!isValid(errors)) return { status: 'error', errors, values: { email } }
   }
+  if (!(await actionAllowed()))
+    return { status: 'error', values: { email }, message: TOO_MANY_ATTEMPTS }
   try {
     const payload = await getPayload({ config })
     // ⚠️ overrideAccess / showHiddenFields: anonymous visitors read no
@@ -310,6 +317,7 @@ export async function setNewPassword(
   const password = field(formData, 'password')
   const errors = validateNewPassword(password)
   if (!isValid(errors)) return { status: 'error', errors }
+  if (!(await actionAllowed())) return { status: 'error', message: TOO_MANY_ATTEMPTS }
 
   try {
     const payload = await getPayload({ config })
@@ -448,6 +456,7 @@ export async function deleteAccount(
 
   const password = field(formData, 'password')
   if (!password) return { status: 'error', errors: { password: 'Wpisz hasło.' } }
+  if (!(await actionAllowed())) return { status: 'error', message: TOO_MANY_ATTEMPTS }
 
   try {
     const payload = await getPayload({ config })

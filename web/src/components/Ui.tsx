@@ -177,7 +177,7 @@ export function ImagePlaceholder({
       ].join(' ')}
     >
       <span
-        className={`px-4 text-[11px] font-semibold uppercase tracking-[0.06em] ${dark ? 'text-rock-500' : 'text-rock-400'}`}
+        className={`px-4 text-[11px] font-semibold uppercase tracking-[0.06em] ${dark ? 'text-rock-300' : 'text-rock-600'}`}
       >
         {caption}
       </span>

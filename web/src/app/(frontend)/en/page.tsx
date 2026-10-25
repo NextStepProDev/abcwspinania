@@ -211,48 +211,50 @@ export default async function EnglishPage() {
             )}
           </div>
 
-          <dl className="flex flex-col gap-4 text-[15px]">
-            {siteConfig.phone && tel && (
-              <div>
-                <dt className="text-[13px] uppercase tracking-[0.04em] text-rock-500">Phone</dt>
-                <dd className="mt-1">
-                  <a href={tel} className="font-semibold text-white hover:text-rope-light">
-                    {siteConfig.phoneE164 || siteConfig.phone}
-                  </a>
-                </dd>
-              </div>
-            )}
-            {siteConfig.email && (
-              <div>
-                <dt className="text-[13px] uppercase tracking-[0.04em] text-rock-500">Email</dt>
-                <dd className="mt-1">
-                  <a
-                    href={`mailto:${siteConfig.email}`}
-                    className="break-all text-rock-fg hover:text-rope-light"
-                  >
-                    {siteConfig.email}
-                  </a>
-                </dd>
-              </div>
-            )}
-            {address.length > 1 && (
-              <div>
-                <dt className="text-[13px] uppercase tracking-[0.04em] text-rock-500">Address</dt>
-                <dd className="mt-1">
-                  <address className="not-italic leading-6 text-rock-fg">
-                    {address.map((line) => (
-                      <span key={line} className="block">
-                        {line}
-                      </span>
-                    ))}
-                  </address>
-                </dd>
-              </div>
-            )}
-            <div className="mt-2">
+          <div>
+            <dl className="flex flex-col gap-4 text-[15px]">
+              {siteConfig.phone && tel && (
+                <div>
+                  <dt className="text-[13px] uppercase tracking-[0.04em] text-rock-400">Phone</dt>
+                  <dd className="mt-1">
+                    <a href={tel} className="font-semibold text-white hover:text-rope-light">
+                      {siteConfig.phoneE164 || siteConfig.phone}
+                    </a>
+                  </dd>
+                </div>
+              )}
+              {siteConfig.email && (
+                <div>
+                  <dt className="text-[13px] uppercase tracking-[0.04em] text-rock-400">Email</dt>
+                  <dd className="mt-1">
+                    <a
+                      href={`mailto:${siteConfig.email}`}
+                      className="break-all text-rock-fg hover:text-rope-light"
+                    >
+                      {siteConfig.email}
+                    </a>
+                  </dd>
+                </div>
+              )}
+              {address.length > 1 && (
+                <div>
+                  <dt className="text-[13px] uppercase tracking-[0.04em] text-rock-400">Address</dt>
+                  <dd className="mt-1">
+                    <address className="not-italic leading-6 text-rock-fg">
+                      {address.map((line) => (
+                        <span key={line} className="block">
+                          {line}
+                        </span>
+                      ))}
+                    </address>
+                  </dd>
+                </div>
+              )}
+            </dl>
+            <div className="mt-6">
               <Button href="/kontakt">Send an enquiry</Button>
             </div>
-          </dl>
+          </div>
         </div>
 
         <p className="mt-6 text-[15px] text-rock-600">

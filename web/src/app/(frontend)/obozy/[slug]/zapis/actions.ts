@@ -3,6 +3,7 @@
 import { getPayload } from 'payload'
 import config from '@payload-config'
 
+import { actionAllowed, TOO_MANY_ATTEMPTS } from '@/lib/actionLimit'
 import { getCurrentCustomer } from '@/lib/auth'
 import { MAX_CHILDREN, formatSessionDates } from '@/lib/bookings'
 import { recordEmailIssue, sessionSummary } from '@/lib/bookingEffects'
@@ -113,6 +114,8 @@ export async function bookCamp(
   if (!isValid(errors)) {
     return { status: 'error', errors, values, children, message: 'Popraw zaznaczone pola.' }
   }
+  if (!(await actionAllowed()))
+    return { status: 'error', values, children, message: TOO_MANY_ATTEMPTS }
 
   try {
     const payload = await getPayload({ config })

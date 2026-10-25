@@ -3,6 +3,7 @@ import path from 'path'
 import type { CollectionConfig } from 'payload'
 
 import { anyone, isAdmin } from '../lib/access'
+import { WEB_IMAGE_HINT, WEB_IMAGE_TYPES } from './Media'
 
 /**
  * Photos for the /galeria page — a collection of its own, not a flag on Media.
@@ -37,7 +38,8 @@ export const GalleryPhotos: CollectionConfig = {
     description:
       'Zdjęcia pokazywane na podstronie „Galeria”. Najnowsze są u góry. ' +
       'Uwaga: zapisane przycięcie zastępuje oryginał na serwerze — żeby go ' +
-      'odzyskać, trzeba wgrać zdjęcie ponownie.',
+      'odzyskać, trzeba wgrać zdjęcie ponownie. ' +
+      WEB_IMAGE_HINT,
     defaultColumns: ['filename', 'alt', 'createdAt'],
   },
   // Newest first, matching the order the gallery page renders them in, so the
@@ -73,7 +75,7 @@ export const GalleryPhotos: CollectionConfig = {
         position: 'centre',
       },
     ],
-    mimeTypes: ['image/*'],
+    mimeTypes: WEB_IMAGE_TYPES,
     // No focal point: the gallery never crops (columns keep each photo's own
     // shape, the lightbox uses object-contain), so the point set in the panel
     // changed nothing on the site and only misled the client. The crop tool

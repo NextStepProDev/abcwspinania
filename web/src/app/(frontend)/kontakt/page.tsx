@@ -70,7 +70,7 @@ export default async function Kontakt({ searchParams }: Props) {
         <aside className="flex flex-col gap-6">
           <div className="rounded-2xl border border-rock-200 bg-white p-6">
             <h2 className="text-lg font-semibold">Dane kontaktowe</h2>
-            <dl className="mt-4 flex flex-col gap-4">
+            <div className="mt-4 flex flex-col gap-4">
               {siteConfig.phone && tel && (
                 <ContactRow icon={<Phone size={18} />} label="Telefon">
                   <a href={tel} className="font-semibold text-rock-900 hover:text-rope">
@@ -100,7 +100,7 @@ export default async function Kontakt({ searchParams }: Props) {
                   <span className="whitespace-pre-line leading-6">{siteConfig.openingHours}</span>
                 </ContactRow>
               )}
-            </dl>
+            </div>
 
             {siteConfig.contactNote && (
               <p className="mt-5 border-t border-rock-100 pt-4 text-[14px] leading-6 text-rock-600">
@@ -147,10 +147,12 @@ function ContactRow({
       <span aria-hidden="true" className="mt-0.5 shrink-0 text-rope">
         {icon}
       </span>
-      <div>
+      {/* A list of one pair: a `<dl>` holds only `dt`/`dd` (or a `div` of
+          them), never the icon beside them. */}
+      <dl>
         <dt className="text-[13px] uppercase tracking-[0.04em] text-rock-600">{label}</dt>
         <dd className="mt-0.5">{children}</dd>
-      </div>
+      </dl>
     </div>
   )
 }

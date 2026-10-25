@@ -38,7 +38,7 @@ function requireSecret(): string {
   const secret = process.env.PAYLOAD_SECRET
   if (secret) return secret
   throw new Error(
-    'Brak PAYLOAD_SECRET. Wygeneruj: openssl rand -base64 32 — i ustaw w .env (lokalnie) ' +
+    'Brak PAYLOAD_SECRET. Wygeneruj: openssl rand -hex 32 — i ustaw w .env (lokalnie) ' +
       'albo w deploy/.env (produkcja).',
   )
 }
