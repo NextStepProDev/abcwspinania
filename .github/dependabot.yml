@@ -58,7 +58,10 @@ updates:
       # the exact-number peer. The exclusion removes the only place they could
       # escape to; whether that is enough, the next Payload release will show.
       # If the `payload` group again comes incomplete (or not at all), bump by
-      # hand: every number in package.json at once, then `npm install`.
+      # hand: every number in package.json at once, then `npm install`. If
+      # that is ERESOLVE too (25.10.2026, 3.90.2 -> 3.92.0: the lockfile's old
+      # pair held it), drop `node_modules/payload` and `node_modules/@payloadcms/*`
+      # from package-lock.json and run `npm install` again (CLAUDE.md).
       minor-and-patch:
         update-types:
           - minor

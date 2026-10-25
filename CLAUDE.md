@@ -23,8 +23,8 @@ z zakresu. Zmienia się zakres — najpierw tamten plik.
 
 | Warstwa | Technologia |
 |---|---|
-| Aplikacja | Next.js 16.4.2 — App Router, TypeScript, Tailwind 4, Turbopack |
-| CMS | **Payload 3.90.1**, działający WEWNĄTRZ aplikacji Next |
+| Aplikacja | Next.js 16.4.3 — App Router, TypeScript, Tailwind 4, Turbopack |
+| CMS | **Payload 3.92.0**, działający WEWNĄTRZ aplikacji Next |
 | Baza | PostgreSQL 18 |
 | Wdrożenie | Docker Compose + nginx, obraz z GHCR, Oracle Cloud **Ampere A1** |
 
@@ -319,8 +319,15 @@ a Payload zapytałby wtedy o zgodę na utratę danych. Drugą linią obrony jest
   `context.getFilename()` — API usunięte w 10.
 - **Wszystkie pakiety Payloada muszą iść w jednej wersji.** `@payloadcms/next`
   deklaruje peer `payload` **co do numeru**, więc rozjazd wywala `npm ci`.
-  Dlatego są przypięte dokładnie (`3.90.1`, bez `^`) i podbijane jednym PR-em
+  Dlatego są przypięte dokładnie (`3.92.0`, bez `^`) i podbijane jednym PR-em
   przez grupę `payload` w Dependabocie. Nigdy osobno.
+  **Ręcznie** (25.10.2026, 3.90.2 → 3.92.0): same nowe numery w
+  `package.json` i `npm install` dawały ERESOLVE (`Conflicting peer
+  dependency: payload@3.92.0`) — trzymała stara para z pliku blokady. Pomogło
+  usunięcie z `package-lock.json` wpisów `node_modules/payload`
+  i `node_modules/@payloadcms/*`, potem `npm install`; reszta drzewa została
+  nietknięta (zmienił się tylko Payload, Next, React i `tsx` z Payloada).
+  Instaluj na Node z `.nvmrc` — Payload 3.92 wymaga ≥ 24.22.1.
 - **Next zostaje na 16, `graphql` na 16.** Oba majory blokuje Payload:
   `@payloadcms/next` ma peer `next <17.0.0`, a `payload` peer `graphql ^16.8.1`.
   Major którejkolwiek wywala `npm ci`, więc w Dependabocie są zablokowane
@@ -347,8 +354,8 @@ a Payload zapytałby wtedy o zgodę na utratę danych. Drugą linią obrony jest
   - **`undici` 7.29.0** (poprawka w 7.29.1) — `payload` przypina go **co do
     numeru**. Dziura dotyczy klienta WebSocket (`permessage-deflate`),
     a Payload używa `undici` wyłącznie w `uploads/safeFetch` — `Agent` i `fetch`
-    przy wgrywaniu pliku z adresu. WebSocketu nigdzie. **Od 30.09.2026
-    wymuszony** (dziś na 7.30.1) — patrz niżej.
+    przy wgrywaniu pliku z adresu. WebSocketu nigdzie. Od 30.09 do
+    25.10.2026 wymuszony przez `overrides` — patrz niżej.
   - **`esbuild` 0.18** (poprawka w 0.25) — przychodzi przez `drizzle-kit` →
     `@esbuild-kit`, czyli narzędzie do generowania migracji na maszynie
     programisty. Nie ma go w obrazie, a dziura dotyczy serwera deweloperskiego
@@ -358,11 +365,11 @@ a Payload zapytałby wtedy o zgodę na utratę danych. Drugą linią obrony jest
   blokuje CI: to ingerencja w to, co Payload przypiął, do odkręcenia przy
   jego podbiciu — za dziurę, której tu nie da się wywołać.
 
-  **Wyjątek: `undici` jest wymuszony na 7.30.1** (`overrides.payload.undici`
-  w `web/package.json`, od 30.09.2026 na 7.29.1, od 25.10.2026 na 7.30.1 —
+  **Wyjątek (30.09–25.10.2026): `undici` był wymuszony** (`overrides.payload.undici`
+  w `web/package.json`, najpierw na 7.29.1, od 25.10.2026 na 7.30.1 —
   23.10 wieczorem alert **high** `GHSA-xjj6-f33q-929c`, DoS przy nadmiarze
-  `content-encoding`; tym razem środkowa cyfra, ale Payload 3.92 sam przypina
-  już 7.30.1). 29.09 wieczorem opublikowano dwa
+  `content-encoding`). **Zdjęty 25.10.2026 przy Payloadzie 3.92.0**, który sam
+  przypina 7.30.1. 29.09 wieczorem opublikowano dwa
   alerty **high** w 7.29.0 — WebSocket (`GHSA-rfgv-xxqx-mfg5`) i `BalancedPool`
   (`GHSA-w293-vg96-wgc3`). Żaden nas nie dotyczy (Payload woła tylko `Agent`
   i `fetch`), ale bramka `npm audit --audit-level=high` w CI **nie odróżnia
@@ -370,11 +377,12 @@ a Payload zapytałby wtedy o zgodę na utratę danych. Drugą linią obrony jest
   Czekanie na Payload (3.90.2, najnowszy, wciąż przypina 7.29.0) znaczyło
   brak wdrożeń na czas nieokreślony. Poprawka to sama łatka (ostatnia cyfra).
 
-  **Przy podbiciu Payloada:** `npm view payload@<nowa> dependencies.undici`.
-  Jeśli ≥ 7.30.1 — **usunąć wpis `undici` z `overrides`** z `web/package.json` (inaczej
-  zostanie po cichu i kiedyś cofnie Payload do starszego `undici`) i ten
-  akapit. Potem `npm ls undici esbuild` w `web/`; jeśli `esbuild` wciąż
-  sprzed poprawki — sprawdzić, czy nie wszedł do obrazu.
+  Gdy znów trzeba będzie coś wymusić: wpis w `overrides` pod pakietem, który
+  przypina zależność, i **usunięcie go przy podbiciu Payloada, gdy ten
+  przypnie wersję z poprawką** — zostawiony po cichu kiedyś cofnąłby Payload
+  do starszej. **Przy podbiciu Payloada:** `npm ls undici esbuild` w `web/`;
+  jeśli `esbuild` wciąż sprzed poprawki (w 3.92.0: 0.18 przez `drizzle-kit`)
+  — sprawdzić, czy nie wszedł do obrazu.
 - **`dompurify` wymuszony na 3.4.17** (`overrides["monaco-editor"].dompurify`
   w `web/package.json`, od 22.10.2026) — ten sam powód i ta sama forma co
   `undici`: tego dnia opublikowano alerty **critical** i **high** w 3.4.15,
@@ -382,8 +390,8 @@ a Payload zapytałby wtedy o zgodę na utratę danych. Drugą linią obrony jest
   u nas się nie uruchamia (zasada 19), ale bramka audytu zatrzymywała każdy
   PR, w tym łatkę Next-a. Poprawka to sama łatka. **Przy podbiciu Payloada:**
   `npm ls dompurify`; gdy `monaco-editor` przyjdzie z ≥ 3.4.17 — usunąć ten
-  wpis `overrides` i ten akapit.
-- **Next 16.4.2** (od 22.10.2026): w 16.4.0 tego dnia opublikowano dwie dziury
+  wpis `overrides` i ten akapit (w Payloadzie 3.92.0 wciąż 3.4.15).
+- **Next 16.4.3** (od 25.10.2026; 16.4.2 od 22.10.2026): 22.10 w 16.4.0 opublikowano dwie dziury
   krytyczne (`GHSA-2464-fhr4-w9xw` — optymalizator obrazków z SVG,
   `GHSA-673q-mjm6-r5xr`). Dependabot nie zrobił PR-a w pierwszych godzinach —
   GitHub nie założył jeszcze alertu, a PR z łatką powstaje dopiero po nim.
@@ -503,7 +511,8 @@ pokazuje, co Next faktycznie wystawił.
 ### Boilerplate w `(payload)/`
 
 Pliki z nagłówkiem „GENERATED AUTOMATICALLY BY PAYLOAD" pochodzą wprost
-z szablonu `templates/blank` w wersji **v3.90.1**. Jedna świadoma zmiana:
+z szablonu `templates/blank` w wersji **v3.92.0** (te same co w v3.90.1,
+sprawdzone 25.10.2026). Jedna świadoma zmiana:
 `layout.tsx` importuje `./custom.css` zamiast `./custom.scss`, bo nie dokładamy
 pipeline'u SCSS dla jednego pustego arkusza.
 
