@@ -319,10 +319,22 @@ export function validateNewPassword(password: string): { password?: string } {
  * Where to go after logging in. Only a path on THIS site: `?next=` comes from
  * the address bar, and accepting `//evil.example` or `https://…` would turn
  * the login page into an open redirect for phishing.
+ *
+ * No control character, space or backslash anywhere: a browser drops tabs and
+ * line breaks from a URL and reads `\` as `/`, so `/<tab>/evil.example` passed
+ * the prefix checks and was followed as `//evil.example` (found in the audit,
+ * 25.10.2026); a line break made Next answer 500. The parse at the end is the
+ * last word: whatever the string, it must stay on this origin.
  */
 export function safeNextPath(raw: unknown, fallback = '/konto'): string {
   if (typeof raw !== 'string') return fallback
-  if (!raw.startsWith('/') || raw.startsWith('//') || raw.startsWith('/\\')) return fallback
+  if (!raw.startsWith('/') || /[\u0000- \u007f\\]/.test(raw)) return fallback
+  const base = 'http://site.invalid'
+  try {
+    if (new URL(raw, base).origin !== base) return fallback
+  } catch {
+    return fallback
+  }
   return raw
 }
 

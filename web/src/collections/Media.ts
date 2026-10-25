@@ -24,6 +24,29 @@ import { anyone, isAdmin } from '../lib/access'
  * the site points at: course and camp covers, instructor portraits, images in
  * articles.
  */
+/**
+ * The image types a browser shows everywhere — not `image/*`. HEIC (an
+ * iPhone photo copied off the phone as is) went in without an error, got no
+ * `medium` variant (sharp here cannot read it), and was served as
+ * `image/heic`, which only Safari displays: Chrome, Firefox and Edge showed a
+ * hole where the photo was (audit, 25.10.2026). Now the panel refuses it, and
+ * the collection's description says what to do instead. SVG stays: Payload
+ * refuses one carrying a script, and `next/image` serves SVG untouched.
+ */
+export const WEB_IMAGE_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/avif',
+  'image/gif',
+  'image/svg+xml',
+]
+
+/** Under the list heading in the panel — why an iPhone photo is refused. */
+export const WEB_IMAGE_HINT =
+  'Pliki JPG, PNG, WebP lub AVIF. Zdjęcie z iPhone’a w formacie HEIC najpierw ' +
+  'zapisz jako JPG (np. „Eksportuj” w Zdjęciach na Macu) — HEIC pokazuje tylko Safari.'
+
 export const Media: CollectionConfig = {
   slug: 'media',
   // The plural deliberately stays "Media" — that is what the menu says and it
@@ -36,6 +59,7 @@ export const Media: CollectionConfig = {
   },
   admin: {
     group: 'Treść',
+    description: WEB_IMAGE_HINT,
     // Without an explicit column list the gallery tick is invisible on the list
     // view, and the whole point of it is being set on many rows at once.
     defaultColumns: ['filename', 'alt', 'createdAt'],
@@ -70,7 +94,7 @@ export const Media: CollectionConfig = {
         position: 'centre',
       },
     ],
-    mimeTypes: ['image/*'],
+    mimeTypes: WEB_IMAGE_TYPES,
     // No crop tool: saving a crop REPLACES the stored file, so the cut-off
     // part is gone for every other place the photo appears in a different
     // shape. Framing is done with the focal point instead (left on — it still

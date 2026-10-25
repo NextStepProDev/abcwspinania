@@ -3,6 +3,7 @@
 import { getPayload } from 'payload'
 import config from '@payload-config'
 
+import { actionAllowed, TOO_MANY_ATTEMPTS } from '@/lib/actionLimit'
 import { DEFAULT_LANGUAGE } from '@/lib/email/language'
 import { consentForStorage } from '@/lib/consent'
 import { subscribe } from '@/lib/newsletter'
@@ -96,6 +97,9 @@ export async function sendMessage(
       message: 'Popraw zaznaczone pola.',
     }
   }
+  if (!(await actionAllowed())) {
+    return { status: 'error', values: valuesOf(data, courseValue), message: TOO_MANY_ATTEMPTS }
+  }
 
   try {
     const payload = await getPayload({ config })
@@ -178,6 +182,14 @@ export async function subscribeToNewsletter(
       status: 'error',
       errors,
       values: { email: data.email, consent: data.consent ? 'on' : '' },
+    }
+  }
+
+  if (!(await actionAllowed())) {
+    return {
+      status: 'error',
+      values: { email: data.email, consent: data.consent ? 'on' : '' },
+      message: TOO_MANY_ATTEMPTS,
     }
   }
 

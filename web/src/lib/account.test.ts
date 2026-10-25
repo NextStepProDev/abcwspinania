@@ -119,6 +119,16 @@ test('after login only a path on this site is followed', () => {
   assert.equal(safeNextPath(['/a']), '/konto')
 })
 
+test('a hidden character cannot turn the path into another site', () => {
+  // A browser drops tabs and line breaks from a URL: "/\t/evil" is "//evil".
+  assert.equal(safeNextPath('/\t/evil.example'), '/konto')
+  assert.equal(safeNextPath('/\n/evil.example'), '/konto')
+  assert.equal(safeNextPath('/\r/evil.example'), '/konto')
+  assert.equal(safeNextPath('/ /evil.example'), '/konto')
+  assert.equal(safeNextPath('/a\\..\\/evil.example'), '/konto')
+  assert.equal(safeNextPath('/kursy?level=beginner#terminy'), '/kursy?level=beginner#terminy')
+})
+
 import { isExpired } from '@/lib/expiry'
 
 test('a link expires exactly when its hours are up, not a moment before', () => {

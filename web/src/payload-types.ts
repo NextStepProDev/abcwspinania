@@ -322,6 +322,8 @@ export interface Course {
   _status?: ('draft' | 'published') | null;
 }
 /**
+ * Pliki JPG, PNG, WebP lub AVIF. Zdjęcie z iPhone’a w formacie HEIC najpierw zapisz jako JPG (np. „Eksportuj” w Zdjęciach na Macu) — HEIC pokazuje tylko Safari.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media".
  */
@@ -893,7 +895,7 @@ export interface Instructor {
   createdAt: string;
 }
 /**
- * Zdjęcia pokazywane na podstronie „Galeria”. Najnowsze są u góry. Uwaga: zapisane przycięcie zastępuje oryginał na serwerze — żeby go odzyskać, trzeba wgrać zdjęcie ponownie.
+ * Zdjęcia pokazywane na podstronie „Galeria”. Najnowsze są u góry. Uwaga: zapisane przycięcie zastępuje oryginał na serwerze — żeby go odzyskać, trzeba wgrać zdjęcie ponownie. Pliki JPG, PNG, WebP lub AVIF. Zdjęcie z iPhone’a w formacie HEIC najpierw zapisz jako JPG (np. „Eksportuj” w Zdjęciach na Macu) — HEIC pokazuje tylko Safari.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "gallery-photos".

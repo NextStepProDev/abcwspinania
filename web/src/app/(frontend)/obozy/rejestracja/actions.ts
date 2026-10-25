@@ -3,6 +3,7 @@
 import { getPayload } from 'payload'
 import config from '@payload-config'
 
+import { actionAllowed, TOO_MANY_ATTEMPTS } from '@/lib/actionLimit'
 import {
   findByToken,
   openChildren,
@@ -93,6 +94,7 @@ export async function submitRegistration(
   }
 
   if (looksLikeBot(field(formData, 'website'))) return { status: 'done' }
+  if (!(await actionAllowed())) return { status: 'error', values, message: TOO_MANY_ATTEMPTS }
 
   try {
     const payload = await getPayload({ config })

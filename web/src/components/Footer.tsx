@@ -85,7 +85,7 @@ export function Footer({ config }: { config: SiteConfig }) {
           <LinkColumn title="Szkoła" items={SCHOOL_NAV} />
 
           <div className="col-span-2 md:col-span-1">
-            <h2 className="mb-3.5 text-[13px] font-semibold uppercase tracking-[0.06em] text-rock-500">
+            <h2 className="mb-3.5 text-[13px] font-semibold uppercase tracking-[0.06em] text-rock-400">
               Kontakt
             </h2>
             <ul className="flex flex-col gap-2.5 text-[15px]">
@@ -119,7 +119,7 @@ export function Footer({ config }: { config: SiteConfig }) {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-6 text-sm text-rock-500">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-6 text-sm text-rock-400">
           <span>
             © {year} {config.legalName || 'ABC Wspinania'}
           </span>
@@ -138,7 +138,7 @@ export function Footer({ config }: { config: SiteConfig }) {
 function LinkColumn({ title, items }: { title: string; items: NavItem[] }) {
   return (
     <div>
-      <h2 className="mb-3.5 text-[13px] font-semibold uppercase tracking-[0.06em] text-rock-500">
+      <h2 className="mb-3.5 text-[13px] font-semibold uppercase tracking-[0.06em] text-rock-400">
         {title}
       </h2>
       <ul className="flex flex-col gap-2.5 text-[15px]">

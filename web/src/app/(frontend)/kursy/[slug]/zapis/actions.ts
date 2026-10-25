@@ -5,6 +5,7 @@ import config from '@payload-config'
 
 import { RESET_LINK_HOURS } from '@/collections/Customers'
 import { sendVerificationLink } from '@/lib/accountEmails'
+import { actionAllowed, TOO_MANY_ATTEMPTS } from '@/lib/actionLimit'
 import { getCurrentCustomer } from '@/lib/auth'
 import { formatSessionDates } from '@/lib/bookings'
 import { recordEmailIssue, sessionSummary } from '@/lib/bookingEffects'
@@ -149,6 +150,7 @@ export async function bookCourse(
   if (!isValid(errors)) {
     return { status: 'error', errors, values, message: 'Popraw zaznaczone pola.' }
   }
+  if (!(await actionAllowed())) return { status: 'error', values, message: TOO_MANY_ATTEMPTS }
 
   try {
     const payload = await getPayload({ config })

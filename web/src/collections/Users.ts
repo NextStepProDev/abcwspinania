@@ -30,7 +30,18 @@ export const Users: CollectionConfig = {
     useAsTitle: 'email',
     group: 'System',
   },
-  auth: true,
+  auth: {
+    // Payload's default cookie has no `Secure` flag (`collections/config/
+    // defaults.js`): the panel's login, unlike a participant's
+    // (`Customers.ts`), could be sent over plain http. HSTS makes that
+    // unlikely, not impossible — the temporary domain has no
+    // `includeSubDomains` and a first visit comes before any HSTS (audit,
+    // 25.10.2026). Locally the panel runs on plain http, hence the condition.
+    cookies: {
+      sameSite: 'Lax',
+      secure: process.env.NODE_ENV === 'production',
+    },
+  },
   // School accounts only. Payload's default would be "anyone logged in",
   // which from the booking stage on includes participants. The very first
   // account is still created through the panel's first-user screen: Payload

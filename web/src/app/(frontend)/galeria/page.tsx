@@ -52,7 +52,7 @@ export default async function GalleryPage({ searchParams }: Props) {
           Zdjęcia z kursów, obozów i wyjazdów w skały Jury Krakowsko-Częstochowskiej.
         </p>
         {photos.length > 0 && (
-          <p className="mt-3 text-sm text-rock-500">
+          <p className="mt-3 text-sm text-rock-600">
             {photos.length} {pluralPl(photos.length, 'zdjęcie', 'zdjęcia', 'zdjęć')}
           </p>
         )}

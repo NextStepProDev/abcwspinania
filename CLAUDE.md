@@ -518,6 +518,19 @@ sprawdzone 25.10.2026). Jedna świadoma zmiana:
 `layout.tsx` importuje `./custom.css` zamiast `./custom.scss`, bo nie dokładamy
 pipeline'u SCSS dla jednego pustego arkusza.
 
+### ⚠️ Nagłówki `withPayload` — `Critical-CH` tylko w panelu
+
+Od 25.10.2026 (audyt). `withPayload` dokleja `Accept-CH`, `Critical-CH`
+i `Vary: Sec-CH-Prefers-Color-Scheme` do **każdego** adresu (`/:path*`) —
+panel potrzebuje tego do motywu jasny/ciemny. Na stronie `Critical-CH`
+kosztował: Chrome przy pierwszej wizycie odrzucał odpowiedź i pytał o stronę
+drugi raz (dwa renderowania, podwójny TTFB; Lighthouse liczył to jako
+„przekierowanie” 600 ms na każdej stronie, produkcja wysyłała te nagłówki).
+`next.config.ts` zawęża tę regułę do `/admin/:path*`. **Przy podbiciu
+Payloada:** `curl -sI localhost:3000/ | grep -i critical-ch` musi być pusty,
+a `/admin` musi go mieć — gdy Payload zmieni kształt reguły, zawężenie
+przestanie ją rozpoznawać po cichu.
+
 ---
 
 ## Zasady kodu
@@ -756,6 +769,15 @@ pipeline'u SCSS dla jednego pustego arkusza.
     `20261002_090000_publish_existing_content` (pisana ręcznie — **nie kasować
     jej przy sklejaniu migracji schematu**), a seed publikuje od razu.
 
+30. **Media i Galeria przyjmują tylko typy, które pokaże każda
+    przeglądarka** (`WEB_IMAGE_TYPES` w `Media.ts`), nie `image/*`.
+    Zmierzone 25.10.2026 (audyt): HEIC z iPhone'a wchodził bez błędu, bez
+    wariantu `medium` (sharp go tu nie czyta) i szedł jako `image/heic` —
+    Chrome, Firefox i Edge pokazywały dziurę. Teraz panel go odrzuca, a opis
+    kolekcji mówi, jak zapisać zdjęcie jako JPG. SVG zostaje: Payload sam
+    odrzuca plik ze skryptem („SVG file contains potentially harmful content”),
+    a `next/image` podaje SVG bez optymalizacji.
+
 ---
 
 ## Polityka prywatności i administrator danych
@@ -897,6 +919,22 @@ zrobi z kursanta administratora. Koszt: zasada 28.
   `login`; WYSŁANIA formularzy na `/logowanie`, `/rejestracja`, `/konto/…` —
   strefa `account_forms` (10/min; GET nie jest liczony). Bez tego rejestracja
   i reset hasła byłyby darmową wysyłką maili na dowolny adres z naszej domeny.
+- **⚠️ Limit akcji także w aplikacji** (`lib/actionLimit.ts`, od 25.10.2026,
+  audyt). Next uruchamia akcję serwerową wysłaną na DOWOLNĄ stronę, nie tylko
+  na tę z formularzem, a `/admin` jest zwolniony ze strefy `site_actions`
+  (akcje Payloada przy edycji). Reset hasła, rejestracja, newsletter, kontakt
+  i zapisy posłane z nagłówkiem `Next-Action` na `/admin` szły więc bez
+  żadnego limitu — darmowa wysyłka maili i dzienny limit Brevo zjedzony
+  w minutę. Sprawdzone na buildzie za nginx z repo: nginx odcina po 11 na
+  właściwej ścieżce, przez `/admin` — dopiero aplikacja. Jeden budżet na
+  adres (`X-Real-IP` z nginx; port aplikacji nie jest wystawiony), 20 naraz
+  i 10/min — większy niż nginx, więc zwykły użytkownik spotyka nginx
+  pierwszy. Bez nagłówka (`npm run dev`, testy) limitu nie ma. **Nowa akcja,
+  która wysyła maila albo sprawdza hasło — `actionAllowed()` po walidacji.**
+  Wyjątku w nginx nie da się oprzeć na ID akcji: zmienia się przy buildzie.
+- **`?next=` po zalogowaniu bez znaków sterujących** (`safeNextPath`, od
+  25.10.2026, audyt): `/%09/evil.com` przechodziło (przeglądarka usuwa
+  tabulator i czyta `//evil.com` — otwarte przekierowanie), `%0a` dawało 500.
 - **Panel i strona dzielą ciasteczko** `payload-token` (jeden
   `cookiePrefix`). Zalogowanie się jako kursant w tej samej przeglądarce
   wylogowuje z panelu i odwrotnie. Dla strony konto panelu to „nie kursant”
@@ -1003,6 +1041,10 @@ zrobi z kursanta administratora. Koszt: zasada 28.
 
 Wszystkie równorzędne — bez ról (każde może zmienić i usunąć każde inne).
 Role dopiero, gdy dojdzie osoba z mniejszym dostępem.
+
+- **Ciasteczko panelu ma `Secure` na produkcji** (od 25.10.2026, audyt) —
+  domyślne Payloada go nie ma (`collections/config/defaults.js`), ciasteczko
+  kursanta miało od początku.
 
 - **Mail po zmianie hasła albo adresu konta panelu** (od 13.10.2026, hooki
   w `Users.ts`, szablon `panelAccountChangedEmail`). „Zmień hasło” w Payloadzie

@@ -33,6 +33,11 @@ export function GalleryGrid({ photos }: { photos: Photo[] }) {
               id={tileDomId(photo.id)}
               href={photoHref(photo.id)}
               scroll={false}
+              // A photo left without a description has `alt=""` (rule 20),
+              // and then the link — the photo is all it holds — had no name:
+              // a screen reader said only "link" fifty times (audit,
+              // 25.10.2026). The description, when there is one, names it.
+              aria-label={photo.alt ? undefined : `Powiększ zdjęcie ${index + 1}`}
               className="block overflow-hidden rounded-xl border border-rock-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rope"
             >
               <Image
