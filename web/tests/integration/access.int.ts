@@ -12,7 +12,7 @@ import {
 } from './harness'
 
 /**
- * Who reads what over the REST API — the promise of ZAKRES pkt 8: a
+ * Who reads what over the REST API — a promise to the client: a
  * participant must not read other people's data through `/api/*`. The
  * site reads through the Local API and skips these rules; they guard the
  * API only (CLAUDE.md, rule 28).

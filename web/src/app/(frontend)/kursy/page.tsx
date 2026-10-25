@@ -55,7 +55,7 @@ export default async function CoursesPage({ searchParams }: Props) {
         {/* The PZA logo stands beside the sentence it backs up — "według
             programu Polskiego Związku Alpinizmu" — level with the paragraph's
             last line from `lg`, under it on narrower screens. The association's
-            permission is still to be confirmed (`ZAKRES.md`, item 10). */}
+            permission is still to be confirmed. */}
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-12">
           <div>
             <h1 className="mt-5 max-w-[800px] text-balance text-[36px] leading-[1.05] lg:text-[52px]">

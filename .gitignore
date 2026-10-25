@@ -4,6 +4,8 @@ node_modules/
 
 # Prywatne notatki robocze — nigdy nie trafiają do repozytorium klienta.
 pytania.md
+# Zobowiązania wobec klienta (od 25.10.2026 poza repo, które jest publiczne).
+ZAKRES.md
 
 # Artefakty deployu żyjące wyłącznie na serwerze
 deploy/.env

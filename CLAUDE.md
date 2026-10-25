@@ -12,10 +12,8 @@ Nie ma w nim sekretów, a jest wszystko, czego potrzebuje ktoś wchodzący do
 projektu. Prywatne notatki idą do `pytania.md` — ignorowanego i nigdy niescalanego
 z plikiem publicznym.
 
-**Co jest obiecane klientowi, siedzi w `ZAKRES.md`** — osobno, bo to inny rodzaj
-wiedzy. Tutaj są decyzje techniczne i ich powody; tam zobowiązania z terminami,
-definicją „zrobione" dla każdej pozycji i listą rzeczy świadomie wyłączonych
-z zakresu. Zmienia się zakres — najpierw tamten plik.
+**Zobowiązania wobec klienta nie są w repo** — to prywatne notatki Mateusza,
+poza gitem (jak `pytania.md`). Tutaj są decyzje techniczne i ich powody.
 
 ---
 
@@ -425,6 +423,10 @@ a Payload zapytałby wtedy o zgodę na utratę danych. Drugą linią obrony jest
     (`security_update_not_possible`) — `dompurify` przypina `monaco-editor`
     z Payloada (zasada 19), alert jest `low`, nie blokuje CI. Na produkcję
     nie wpływa; zniknie przy podbiciu Payloada.
+  - Tak samo zadanie „happy-dom” (od 25.10.2026, przy każdym przebiegu):
+    łatka jest tylko w happy-dom 21, a Dependabot musiałby cofnąć
+    `@payloadcms/richtext-lexical` do 3.78, więc rezygnuje. Oczekiwany szum —
+    zniknie razem z wyjątkiem w bramce audytu.
 - **PostgreSQL 18** (`postgres:18-alpine`). 19 istnieje tylko jako beta.
   Ta sama wersja stoi w `services:` joba `integration` w `ci.yml` —
   Dependabot jej tam nie widzi, więc przy podbiciu majora zmienić ręcznie,
@@ -763,7 +765,7 @@ pipeline'u SCSS dla jednego pustego arkusza.
 = zmiana drugiej w tym samym commicie. Przełącznik PL/EN na stronach z listy
 `TRANSLATED_PAGES` (`components/navigation.ts`) prowadzi do tej samej strony
 w drugim języku, na pozostałych — na stronę główną drugiego języka (serwis
-nie jest tłumaczony, ZAKRES). Wspólny wygląd: `components/PolicyParts.tsx`.
+nie jest tłumaczony). Wspólny wygląd: `components/PolicyParts.tsx`.
 Serwer w polityce jest kategorią („dostawca serwera w UE”), bez nazwy firmy —
 decyzja 10.10.2026, żeby nie podawać, gdzie stoi.
 
@@ -1018,7 +1020,7 @@ Role dopiero, gdy dojdzie osoba z mniejszym dostępem.
 
 ## Zapisy na kursy
 
-Od 03.10.2026 (etap 2, ZAKRES 4b). Formularz `/kursy/[slug]/zapis`,
+Od 03.10.2026 (etap 2). Formularz `/kursy/[slug]/zapis`,
 kolekcja `Bookings`, logika w `lib/bookings.ts` (czyste funkcje)
 i `lib/bookingEffects.ts` (skutki uboczne).
 
@@ -1111,7 +1113,7 @@ i `lib/bookingEffects.ts` (skutki uboczne).
 
 ## Zapisy na obozy
 
-Od 19.10.2026 (etap 4, ZAKRES pkt 2), gotowe 25.10.2026 (0.11.0).
+Od 19.10.2026 (etap 4), wdrożone 25.10.2026 (0.11.0).
 Procedura Krzyśka (20.10.2026): (1) krótki zapis rezerwuje miejsce, (2) mail
 z linkiem do formularza rejestracyjnego, (3) po formularzu umowa do podpisania
 i dane do przelewu — od tego maila 7 dni na zaliczkę 500 zł, reszta do dnia
@@ -1577,7 +1579,7 @@ Od 01.10.2026 aplikacja wysyła maile przez **Brevo, przez jego HTTP API**
   (w kodzie) **i** „Anonymous email tracking: Yes” na ekranie „Tracking”
   w ustawieniach Brevo. Ustawienie w panelu jest per konto — **nowe konto
   Brevo trzeba przestawić ręcznie**; kod chroni i bez tego. Musi to znaleźć
-  się w polityce prywatności i w obietnicy z `ZAKRES.md` pkt 6.
+  się w polityce prywatności.
 - **Mail po zapisie, nie zamiast zapisu.** Hook `afterChange` wysyła po
   zapisaniu do bazy; błąd wysyłki jest logowany i nie psuje formularza.
   Brevo niedostępny = wiadomość czeka w panelu, nie ginie.
@@ -1697,7 +1699,7 @@ Są w kodzie i jadą z deployem.
 
 ## Przekierowania ze starej strony
 
-Od 05.10.2026 (ZAKRES pkt 1b). Stare adresy Joomli → nowe odpowiedniki,
+Od 05.10.2026. Stare adresy Joomli → nowe odpowiedniki,
 `redirects()` w `next.config.ts` z listy w `src/lib/legacyRedirects.ts`,
 na stałe (308). Działają na każdej domenie — na tymczasowej nikt z nich
 nie przychodzi, więc ożyją same w dniu przełączenia.
@@ -1731,7 +1733,7 @@ własnego. Teraz `revalidate = 3600`.
 
 ## Kopie zapasowe
 
-Od 06.10.2026 (ZAKRES pkt 7). Wzór: Next Step Pro (`nsp-backup.sh`), działający
+Od 06.10.2026. Wzór: Next Step Pro (`nsp-backup.sh`), działający
 tam od 09.2026 — powody każdego kroku przeniesione razem z kodem.
 
 - **Co noc o 03:00** (`/etc/cron.d/abc-backup`) `deploy/abc-backup.sh`: zrzut bazy
@@ -1901,7 +1903,7 @@ docker run --rm -v "$PWD/..:/repo" -w /repo rhysd/actionlint:latest -color
 
 ### Testy ręczne
 
-Od 06.10.2026 (ZAKRES pkt 10). Scenariusz: `docs/testy-reczne.html` — źródło
+Od 06.10.2026. Scenariusz: `docs/testy-reczne.html` — źródło
 PDF-a (Chrome headless, `--print-to-pdf --no-pdf-header-footer`; PDF poza
 repo). **Zmieniasz funkcję — zmień jej kroki w tym samym commicie.**
 
@@ -1989,7 +1991,7 @@ serwer `.next/standalone/server.js` jak w obrazie; job `docker` czeka na niego):
 prawdziwa baza i działający serwer (`TEST_BASE_URL`, domyślnie
 `http://localhost:3000`). Sprawdza to, czego nie widzą testy jednostkowe:
 kto czyta co przez REST (kursant nie widzi cudzych zapisów ani danych
-szkoły — obietnica ZAKRES pkt 8), wyścig o ostatnie miejsce i podwójne
+szkoły), wyścig o ostatnie miejsce i podwójne
 kliknięcie, newsletter z potwierdzeniem, kolejkę wysyłek, odnotowane
 maile, usunięcie konta.
 

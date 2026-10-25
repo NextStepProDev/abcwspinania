@@ -20,7 +20,7 @@ import {
 } from '@/components/PolicyParts'
 
 /**
- * The privacy policy (ZAKRES item 5).
+ * The privacy policy.
  *
  * Written from what the site actually does, not from a template: every
  * period below is one the code enforces (the daily sweep in
