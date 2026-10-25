@@ -1,8 +1,20 @@
 import assert from 'node:assert/strict'
 
 import { createCampBookings, type CampBookingInput } from '@/lib/bookingService'
+import { sendCampAccountEmails } from '@/lib/campAccountEmails'
+import { CAMP_SENDER_NAME } from '@/lib/campPayment'
 
-import { cleanup, email, makeCamp, makeSession, payload, removeWhere, test } from './harness'
+import {
+  cleanup,
+  email,
+  makeCamp,
+  makeCustomer,
+  makeSession,
+  outbox,
+  payload,
+  removeWhere,
+  test,
+} from './harness'
 
 /**
  * Signing children up for a camp (`createCampBookings`): one booking per
@@ -204,4 +216,14 @@ test('"create an account" on a camp sign-up makes one account for the parent', a
   assert.equal(result.newAccount.firstName, 'campaccount')
   const docs = await bookingsOf('campaccount')
   assert.ok(docs.every((b) => b.customer === result.newAccount!.id))
+})
+
+test('the set-password email after a camp booking comes from the camp sender', async () => {
+  const customer = await makeCustomer('camp-new-account')
+  outbox.length = 0
+  await sendCampAccountEmails(payload, 0, 'pl', customer as never, null)
+  const sent = outbox.find((m) => m.to === customer.email)
+  assert.match(sent?.subject ?? '', /Ustaw hasło do konta/)
+  // As every camp email: the school's test forwarding passes course mail only.
+  assert.equal(sent?.fromName, CAMP_SENDER_NAME)
 })

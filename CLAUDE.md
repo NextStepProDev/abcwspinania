@@ -1332,6 +1332,13 @@ do 30 dni przed obozem. Cała ścieżka działa bez konta; konto dla chętnych.
   formularz rejestracyjny (PESEL i zdrowie na zgodę z art. 9 ust. 2 lit. a,
   kasowane miesiąc po obozie), zgodę na zdjęcia, adres rodzica i dane firmy
   do faktury.
+- **Mail „Ustaw hasło do konta” po zapisie na obóz to mail obozowy**
+  (od 25.10.2026, `lib/campAccountEmails.ts`): nadawca „ABC Wspinania ·
+  Obozy”, odpowiedzi na `CAMP_EMAIL` — jak reszta maili z zapisu na obóz,
+  a filtr przekazywania w testach puszcza tylko kursowe. Ten sam mail po
+  kursie idzie od zwykłego nadawcy; link potwierdzający i inne maile o
+  koncie zostają zwykłe. Poza `actions.ts`, bo każdy eksport pliku
+  `"use server"` to akcja, którą może wywołać każdy.
 - **Maile o statusie zapisu obozowego mówią o obozie i dziecku**
   (`campStatusEmail`), nie o kursie, i mają `replyTo` na `CAMP_EMAIL`.
 - **Testy integracyjne nie wołają przez HTTP niczego, co wysyła mail** —

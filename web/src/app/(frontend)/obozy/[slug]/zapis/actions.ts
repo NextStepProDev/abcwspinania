@@ -1,23 +1,18 @@
 'use server'
 
-import { getPayload, type Payload } from 'payload'
+import { getPayload } from 'payload'
 import config from '@payload-config'
 
-import { RESET_LINK_HOURS } from '@/collections/Customers'
-import { sendVerificationLink } from '@/lib/accountEmails'
 import { getCurrentCustomer } from '@/lib/auth'
 import { MAX_CHILDREN, formatSessionDates } from '@/lib/bookings'
 import { recordEmailIssue, sessionSummary } from '@/lib/bookingEffects'
 import { createCampBookings } from '@/lib/bookingService'
+import { sendCampAccountEmails } from '@/lib/campAccountEmails'
 import { campMailbox, campSender } from '@/lib/campPayment'
 import { registrationUrl } from '@/lib/campRegistration'
-import { DEFAULT_LANGUAGE, type EmailLanguage } from '@/lib/email/language'
-import { publicUrl, tokenLink } from '@/lib/email/links'
-import {
-  campBookingReceivedEmail,
-  newAccountFromBookingEmail,
-  newCampBookingNotification,
-} from '@/lib/email/templates'
+import { DEFAULT_LANGUAGE } from '@/lib/email/language'
+import { publicUrl } from '@/lib/email/links'
+import { campBookingReceivedEmail, newCampBookingNotification } from '@/lib/email/templates'
 import {
   isValid,
   looksLikeBot,
@@ -26,7 +21,6 @@ import {
   type CampBookingErrors,
   type ChildData,
 } from '@/lib/validation'
-import type { Customer } from '@/payload-types'
 
 /**
  * Camp booking — from `/obozy/[slug]/zapis`: the parent signs up one or more
@@ -71,44 +65,6 @@ function childrenOf(formData: FormData): ChildData[] {
   return firstNames
     .map((firstName, i) => ({ firstName, lastName: lastNames[i] ?? '' }))
     .filter((c) => c.firstName.trim() || c.lastName.trim())
-}
-
-/** As on a course: the set-password link for a new account, or a fresh confirmation link. */
-async function sendAccountEmails(
-  payload: Payload,
-  bookingId: number,
-  language: EmailLanguage,
-  newAccount: Customer | null,
-  unconfirmedAccount: Customer | null,
-) {
-  if (newAccount) {
-    try {
-      const token = await payload.forgotPassword({
-        collection: 'customers',
-        data: { email: newAccount.email },
-        disableEmail: true,
-      })
-      if (token) {
-        await payload.sendEmail({
-          to: newAccount.email,
-          ...pick(
-            newAccountFromBookingEmail(language, {
-              firstName: newAccount.firstName,
-              url: tokenLink('/konto/ustaw-haslo', token),
-              validHours: RESET_LINK_HOURS,
-            }),
-          ),
-        })
-      }
-    } catch (error) {
-      await recordEmailIssue(payload, bookingId, 'Link do ustawienia hasła (nowe konto)', error)
-    }
-  }
-  if (unconfirmedAccount) {
-    await sendVerificationLink(payload, unconfirmedAccount).catch((error) =>
-      console.error('Failed to resend a confirmation link from a camp booking:', error),
-    )
-  }
 }
 
 export async function bookCamp(
@@ -247,7 +203,7 @@ export async function bookCamp(
     // The account's email once per sign-up, noted on its first booking.
     const anchor = created[0]?.booking ?? result.children[0]?.booking
     if (anchor) {
-      await sendAccountEmails(
+      await sendCampAccountEmails(
         payload,
         anchor.id,
         anchor.language ?? language,
