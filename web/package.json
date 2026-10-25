@@ -49,7 +49,7 @@
   },
   "overrides": {
     "payload": {
-      "undici": "7.29.1"
+      "undici": "7.30.1"
     },
     "monaco-editor": {
       "dompurify": "3.4.17"
