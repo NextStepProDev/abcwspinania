@@ -35,8 +35,8 @@ Numeracja jak w wiadomości do Krzyśka.
 |---|---|---|---|
 | 1 | Strona z panelem, przeniesienie treści | 13 tras, panel po polsku, treść ze starej strony | **gotowe** |
 | 1b | Przekierowania 301 ze **starych adresów Joomli** | każdy adres starej strony kieruje na odpowiednik; sprawdzone w Search Console | **częściowo** — od 05.10.2026 (czeka na wdrożenie) wszystkie znalezione stare adresy przekierowane i sprawdzone testem; zostaje sprawdzenie w Search Console po przełączeniu domeny |
-| 2 | System zarządzania obozami | formularz zapisu + obsługa zgłoszeń w panelu (rozbicie niżej) | **do zrobienia** |
-| 3 | Powiadomienia mailowe | mail wychodzi przy nowym zgłoszeniu i zapisie na obóz | **częściowo** — od 01.10.2026 mail do szkoły przy wiadomości z formularza (Brevo, PL/EN); zapis na obóz dojdzie z pozycją 2 |
+| 2 | System zarządzania obozami | formularz zapisu + obsługa zgłoszeń w panelu (rozbicie niżej) | **gotowe — z trzema odstępstwami (niżej)** (25.10.2026, czeka na wdrożenie i testy ręczne) |
+| 3 | Powiadomienia mailowe | mail wychodzi przy nowym zgłoszeniu i zapisie na obóz | **gotowe** — od 01.10.2026 mail do szkoły przy wiadomości z formularza (Brevo, PL/EN); od 25.10.2026 (czeka na wdrożenie) mail do szkoły i do rodzica przy zapisie na obóz, potem przy formularzu, umowie, zaliczce i zmianie statusu |
 | 4 | Newsletter | zapis działa, zgoda wersjonowana | **gotowe** — od 03.10.2026 (czeka na wdrożenie): potwierdzenie zapisu mailem, wysyłka z panelu („Wysyłki”), wypisanie jednym kliknięciem; poza obietnicą: wiadomości do zapisanych na termin i do wszystkich z nadchodzącymi zapisami |
 | 4b | Zapis na kurs „w 10 sekund" | skrócona ścieżka zapisu z podstrony kursu | **gotowe** (03.10.2026, czeka na wdrożenie) — zalogowany: termin + zgoda; bez konta: dane + opcja „załóż konto” |
 | 5 | RODO i polityka prywatności | rozbicie niżej | **częściowo** |
@@ -44,7 +44,7 @@ Numeracja jak w wiadomości do Krzyśka.
 | 7 | Backupy szyfrowane dwupoziomowo | skrypt na serwerze + wysyłka na Drive + **odtworzenie przetestowane** | **gotowe** (06.10.2026) — co noc: serwer 7 dni + zaszyfrowany Google Drive 40 dni (od 09.10.2026; wcześniej 90), archiwum zdjęć tylko gdy się zmieniły (alarm healthchecks.io gotowy w skrypcie, adres do podpięcia); odtworzenie z kopii pobranej z Drive przećwiczone, zgodne z produkcją (`deploy/RESTORE.md`) |
 | 8 | Testy automatyczne | jednostkowe **i integracyjne** | **częściowo** |
 | 9 | Testy wydajnościowe i na wycieki pamięci | raport z liczbami | **do zrobienia** |
-| 10 | Testy manualne | spisany scenariusz + wynik przejścia | **częściowo** — scenariusz spisany 06.10.2026 (`docs/testy-reczne.html`, 69 kroków, dane testowe `npm run seed:test`); czeka na wynik przejścia |
+| 10 | Testy manualne | spisany scenariusz + wynik przejścia | **częściowo** — scenariusz kursów spisany 06.10.2026 (`docs/testy-reczne.html`, dane testowe `npm run seed:test:courses`), w trakcie przejścia przez Krzyśka; scenariusz obozów 25.10.2026 (`docs/testy-obozy.html`, `npm run seed:test:camps`); czekają na wynik przejścia |
 | 11 | Security | rozbicie niżej | **częściowo** |
 | 12 | Szybkość działania | zmierzone Core Web Vitals, wynik zielony na telefonie | **do zrobienia** |
 | 13 | Analityka bez ciasteczek | Plausible albo Umami na własnym serwerze | **do zrobienia** |
@@ -69,15 +69,30 @@ przekazywania danych”). Brevo jest ujęty w polityce prywatności (06.10.2026)
 
 Obiecane wprost w wiadomości, więc żadnego z tych punktów nie da się pominąć:
 
-- [ ] formularz zbiera **dane rodzica** i jego zgodę na udział dziecka, osobno od danych uczestnika
-- [ ] **dane o zdrowiu** (alergie, leki, czy dziecko pływa) jako osobna kategoria: odrębna zgoda, szyfrowanie, krótszy okres przechowywania
-- [ ] system składa **gotową kartę kwalifikacyjną uczestnika** z danych wpisanych przez rodzica
-- [ ] statusy zgłoszenia: zgłoszony → potwierdzony → zaliczka → opłacony → rezygnacja
-- [ ] obsługa rezygnacji i **listy rezerwowej** (kto dostaje zwolnione miejsce)
-- [ ] w panelu: statystyki, powiadomienia, lista rzeczy do zrobienia —
-  **częściowo** (03.10.2026, dla kursów): pulpit „Do zrobienia” z obłożeniem
-  terminów, maile o zapisach i zwolnionych miejscach, eksport listy do
-  Excela; obozowa część dojdzie z formularzem obozów
+Stan na 25.10.2026 (czeka na wdrożenie i testy ręczne):
+
+- [x] formularz zbiera **dane rodzica** i jego zgodę na udział dziecka, osobno
+  od danych uczestnika — krótki zapis (rodzic + imiona dzieci, rodzeństwo
+  naraz), potem formularz rejestracyjny z linku w mailu, osobno dla
+  każdego dziecka
+- [x] **dane o zdrowiu** jako osobna kategoria: odrębna zgoda (art. 9),
+  osobna kolekcja czytana tylko przez szkołę, usuwane same miesiąc po
+  obozie, bez treści w mailach — **⚠️ odstępstwa:** bez dodatkowego
+  szyfrowania w bazie (szyfrowane są kopie na Drive) i **bez pytania
+  „czy dziecko pływa”** — oba do potwierdzenia z Krzyśkiem
+- [x] ~~system składa gotową kartę kwalifikacyjną z danych~~ — **⚠️ odstępstwo
+  na prośbę Krzyśka (20.10.2026):** karta zostaje papierowa (wzór
+  Kuratorium); pusta karta w PDF idzie w załączniku maila przed obozem.
+  Zamiast niej system składa **umowę** z danych rodzica (PDF z podpisem
+  organizatora)
+- [x] statusy zgłoszenia: zgłoszony → potwierdzony → zaliczka → opłacony →
+  rezygnacja; zaliczka 500 zł w 7 dni z przypomnieniem
+- [x] obsługa rezygnacji i **listy rezerwowej** (kto dostaje zwolnione
+  miejsce) — rodzeństwo razem albo wcale, przeniesione dziecko dostaje
+  własny link do formularza
+- [x] w panelu: statystyki, powiadomienia, lista rzeczy do zrobienia —
+  pulpit „Do zrobienia” osobno dla kursów i obozów, dane do faktury,
+  eksport do Excela z danymi formularza, szkic maila przed obozem
 
 Płatności **przelewem na konto**, bez operatora online — patrz „Poza zakresem".
 
@@ -98,8 +113,8 @@ adresy przechodzą na nowe, bez błędów 404).
 | Osobna klauzula marketingowa dla newslettera | gotowe |
 | Newsletter: potwierdzenie zapisu (double opt-in), wypisanie jednym kliknięciem, niepotwierdzone usuwane po 7 dniach | gotowe (03.10.2026) |
 | Strona z polityką prywatności | **wersja robocza** (06.10.2026, czeka na wdrożenie) — `/polityka-prywatnosci` i tłumaczenie `/en/privacy-policy`, link w stopce i przy każdej zgodzie; dane administratora z rejestrów (`lib/legal.ts`) do potwierdzenia przez Krzyśka |
-| Okresy przechowywania (zgłoszenia, zapisy, dane zdrowotne) | **częściowo** — wpisane w politykę; automatycznie: wiadomości z formularza po 12 miesiącach, niepotwierdzone konta i zapisy do newslettera po 7 dniach, zapisy na kursy anonimizowane po 5 latach od końca roku kursu (zostaje ślad do statystyk), poza przypiętymi do istniejącego konta (od 10.10.2026), logi kontenerów rotowane (3 × 10 MB); ręcznie (na razie): wypisani z newslettera; dane zdrowotne — z obozami |
-| Podwyższone wymagania przy danych dzieci i danych o zdrowiu | **do zrobienia** |
+| Okresy przechowywania (zgłoszenia, zapisy, dane zdrowotne) | **częściowo** — wpisane w politykę; automatycznie: wiadomości z formularza po 12 miesiącach, niepotwierdzone konta i zapisy do newslettera po 7 dniach, zapisy na kursy anonimizowane po 5 latach od końca roku kursu (zostaje ślad do statystyk), poza przypiętymi do istniejącego konta (od 10.10.2026), logi kontenerów rotowane (3 × 10 MB); PESEL i dane o zdrowiu z obozów miesiąc po obozie (od 25.10.2026, czeka na wdrożenie); ręcznie (na razie): wypisani z newslettera |
+| Podwyższone wymagania przy danych dzieci i danych o zdrowiu | **częściowo** (25.10.2026, czeka na wdrożenie) — dane zdrowia i PESEL w osobnej kolekcji, odrębna zgoda, usuwane miesiąc po obozie, nie wychodzą mailem; zgoda na zdjęcia dziecka jako wybór tak/nie bez domyślnej; bez dodatkowego szyfrowania w bazie (do decyzji) |
 | Umowa powierzenia przetwarzania między Krzyśkiem a wykonawcą | **do zrobienia** |
 | Mechanizm usunięcia danych na żądanie | **gotowe** — „Usuń konto” samodzielnie w Moim koncie (04.10.2026); w panelu (Uczestnicy) po adresie e-mail: kopia danych do pobrania i „Usuń wszystkie dane osoby” z podglądem i potwierdzeniem przepisanym adresem (10.10.2026) |
 
@@ -125,7 +140,9 @@ adresy przechodzą na nowe, bez błędów 404).
   przez API), zapis na kurs (wyścig o miejsce, podwójne kliknięcie),
   newsletter, wysyłki, niedostarczone maile, usunięcie konta
   — uruchamiane w CI przy każdym PR-ze, na bazie postawionej z samych migracji
-- **do zrobienia:** zapis na obóz (etap obozów)
+- **gotowe (25.10.2026):** zapis na obóz — rodzeństwo, formularz
+  rejestracyjny, umowa, zaliczka, lista rezerwowa, wysyłka do turnusu
+  z kartą kwalifikacyjną; w CI razem z resztą
 
 ---
 

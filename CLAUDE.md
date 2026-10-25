@@ -1102,7 +1102,7 @@ i `lib/bookingEffects.ts` (skutki uboczne).
 
 ## Zapisy na obozy
 
-Od 19.10.2026 (etap 4, ZAKRES pkt 2), gałąź `feat/camp-bookings`, w budowie.
+Od 19.10.2026 (etap 4, ZAKRES pkt 2), gotowe 25.10.2026 (0.11.0).
 Procedura Krzyśka (20.10.2026): (1) krótki zapis rezerwuje miejsce, (2) mail
 z linkiem do formularza rejestracyjnego, (3) po formularzu umowa do podpisania
 i dane do przelewu — od tego maila 7 dni na zaliczkę 500 zł, reszta do dnia
