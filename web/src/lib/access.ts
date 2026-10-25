@@ -105,9 +105,9 @@ export function publishedOrAdmin(args: AccessArgs) {
 
 /**
  * Testimonials carry a `published` checkbox instead of drafts: an opinion
- * stays unpublished until its author agrees to it being shown (ZAKRES.md,
- * "Do potwierdzenia" 3). A public `read: () => true` handed every unpublished
- * opinion to anyone asking `/api/testimonials`, consent or not.
+ * stays unpublished until its author agrees to it being shown. A public
+ * `read: () => true` handed every unpublished opinion to anyone asking
+ * `/api/testimonials`, consent or not.
  */
 export function publishedFlagOrAdmin(args: AccessArgs) {
   return isAdmin(args) ? true : { published: { equals: true } }

@@ -20,7 +20,7 @@ type Props = {
 }
 
 /**
- * The course booking form (ZAKRES 4b, "zapis w 10 sekund"). Logged in, it is
+ * The course booking form ("zapis w 10 sekund"). Logged in, it is
  * the session and one tick; without an account, the contact fields too, with
  * an option to create one from them.
  */

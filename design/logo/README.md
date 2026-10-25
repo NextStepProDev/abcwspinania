@@ -57,14 +57,14 @@ transparency, cropped to a clean circle and turned grayscale (a choice, so its
 teal does not tint the warm near-black), 900 × 900.
 
 The photo in it looks like stock (the Alps, not the Jura); whether the school
-has the rights to it is to be confirmed (`ZAKRES.md`).
+has the rights to it is to be confirmed with the client.
 
 ## The "Instruktor PZA" badge
 
 `web/public/images/pza/instruktor-pza.png`, used in the footer beside the
 logo (until 13.10.2026 also in the home page hero). Added 30.09.2026 at the
 client's request; whether PZA's rules allow it on the school's site is still
-to be confirmed (`ZAKRES.md`).
+to be confirmed with the client.
 
 Cut from `FB_IMG_1577089284290.jpg` (1762 × 1756, the badge on white), not
 from the 500 px remove.bg preview that came with it: the badge is a clean
@@ -78,6 +78,6 @@ give the file a new name (rule 13 in `CLAUDE.md`).
 `web/public/images/pza/pza-logo.png`, on `/kursy` beside the sentence about
 the PZA programme. Added 30.09.2026 at the client's request — this is the
 ASSOCIATION's own logo, not the instructor badge, and on a school's site it
-reads as "partner of PZA"; the association's permission is item 10 in
-`ZAKRES.md`. From `PZA-logo.png` (1155 × 722, already transparent — only the
+reads as "partner of PZA"; the association's permission is still to be
+confirmed. From `PZA-logo.png` (1155 × 722, already transparent — only the
 empty margins were cropped, to 1108 × 632).

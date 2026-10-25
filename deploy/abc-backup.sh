@@ -9,7 +9,7 @@
 #   4. prune: 7 days locally, 40 days on the remote — /backups/milestones is
 #      exempt, and the newest uploads archive is always kept locally
 #
-# Two levels, as promised in ZAKRES.md (item 7): the server's own disk for a
+# Two levels: the server's own disk for a
 # quick restore, and an encrypted copy off the server for when the server
 # itself is gone. Encrypted BEFORE upload by rclone's crypt remote: what sits
 # on Google Drive is unreadable without the passwords in rclone.conf.
