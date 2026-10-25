@@ -25,6 +25,13 @@ x-logging: &logging
     max-size: '10m'
     max-file: '3'
 
+# No process in a container may gain privileges it did not start with
+# (setuid binaries, file capabilities) — a cheap belt in case one is taken
+# over (audit, 25.10.2026). Postgres and nginx start as root and drop to their
+# own users, which this allows; checked on both images before adding it.
+x-security: &security
+  - no-new-privileges:true
+
 services:
   postgres:
     # WERSJA GŁÓWNA musi się zgadzać z docker-compose.yml w korzeniu repo.
@@ -33,6 +40,7 @@ services:
     image: postgres:18-alpine
     container_name: abcwspinania-postgres-prod
     logging: *logging
+    security_opt: *security
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
@@ -75,6 +83,7 @@ services:
     image: ghcr.io/${GHCR_OWNER}/abcwspinania:${VERSION:-latest}
     container_name: abcwspinania-app-prod
     logging: *logging
+    security_opt: *security
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -111,6 +120,7 @@ services:
     image: nginx:1.31-alpine
     container_name: abcwspinania-nginx-prod
     logging: *logging
+    security_opt: *security
     restart: unless-stopped
     ports:
       - "80:80"

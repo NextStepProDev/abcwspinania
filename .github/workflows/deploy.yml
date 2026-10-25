@@ -26,6 +26,12 @@ on:
         required: false
         default: ''
 
+# The job token reads the repository and nothing else (audit, 25.10.2026):
+# the image is pulled on the server without it, and a workflow with no
+# `permissions` gets whatever the repository default allows.
+permissions:
+  contents: read
+
 jobs:
   prepare:
     runs-on: ubuntu-latest
@@ -33,24 +39,34 @@ jobs:
       version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Resolve deploy version
         id: version
+        # Through the environment, not `${{ }}` in the script: an expression is
+        # pasted into the shell before it runs, so a quote or `$(…)` typed in
+        # the field would run as code — here and, through the output, in the
+        # script on the server. The format check stops it before either.
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
           # One source of truth: the VERSION file in the repo. The input field
           # overrides it only for one-off deploys (e.g. a specific sha- tag).
-          if [ -n "${{ inputs.version }}" ]; then
-            VERSION="${{ inputs.version }}"
+          if [ -n "$INPUT_VERSION" ]; then
+            VERSION="$INPUT_VERSION"
           elif [ -f VERSION ]; then
             VERSION=$(cat VERSION)
           else
             echo "ERROR: no input field and no VERSION file." >&2
             exit 1
           fi
+          if [[ ! "$VERSION" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]]; then
+            echo "ERROR: not an image tag: letters, digits, dot, dash, underscore only." >&2
+            exit 1
+          fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Deploying version: $VERSION"
-          if [ -n "${{ inputs.version }}" ]; then
+          if [ -n "$INPUT_VERSION" ]; then
             echo "Version given by hand — migrations SKIPPED. Needed? The Migrate workflow."
           fi
 
@@ -67,7 +83,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Upload config and pull image
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         env:
           COMPOSE_B64: ${{ steps.cfg.outputs.compose }}
           NGINX_B64: ${{ steps.cfg.outputs.nginx }}
@@ -168,7 +184,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Start new version
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
@@ -194,7 +210,7 @@ jobs:
             docker compose -f docker-compose.prod.yml exec -T nginx nginx -s reload
 
       - name: Verify deployment health
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}

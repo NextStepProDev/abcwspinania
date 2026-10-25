@@ -40,6 +40,12 @@ concurrency:
   group: test-data
   cancel-in-progress: false
 
+# The job token reads the repository and nothing else (audit, 25.10.2026):
+# nothing here writes to GitHub — the work goes through the SSH tunnel — and
+# a workflow with no `permissions` gets whatever the repository default allows.
+permissions:
+  contents: read
+
 jobs:
   test-data:
     runs-on: ubuntu-latest
@@ -54,8 +60,8 @@ jobs:
           echo "ERROR: not confirmed. Type exactly: test-data" >&2
           exit 1
 
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: npm
