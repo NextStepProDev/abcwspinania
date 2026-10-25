@@ -11,6 +11,16 @@ import * as migration_20261010_152334_bookings_anonymized_at from './20261010_15
 import * as migration_20261010_182558_messages_general_topics from './20261010_182558_messages_general_topics';
 import * as migration_20261012_162239_bookings_email_optional from './20261012_162239_bookings_email_optional';
 import * as migration_20261012_181845_broadcasts_copy_unreviewed from './20261012_181845_broadcasts_copy_unreviewed';
+import * as migration_20261019_192951_bookings_camp_kind from './20261019_192951_bookings_camp_kind';
+import * as migration_20261020_001006_bookings_camp_registration from './20261020_001006_bookings_camp_registration';
+import * as migration_20261020_035727_camp_registrations from './20261020_035727_camp_registrations';
+import * as migration_20261020_111312_camp_deposit from './20261020_111312_camp_deposit';
+import * as migration_20261021_020703_camp_parent_address from './20261021_020703_camp_parent_address';
+import * as migration_20261022_000211_camp_contract from './20261022_000211_camp_contract';
+import * as migration_20261022_021324_camp_deposit_email from './20261022_021324_camp_deposit_email';
+import * as migration_20261022_220341_broadcast_qualification_card from './20261022_220341_broadcast_qualification_card';
+import * as migration_20261024_184632_bookings_session_start from './20261024_184632_bookings_session_start';
+import * as migration_20261024_185634_bookings_participant from './20261024_185634_bookings_participant';
 
 export const migrations = [
   {
@@ -76,6 +86,56 @@ export const migrations = [
   {
     up: migration_20261012_181845_broadcasts_copy_unreviewed.up,
     down: migration_20261012_181845_broadcasts_copy_unreviewed.down,
-    name: '20261012_181845_broadcasts_copy_unreviewed'
+    name: '20261012_181845_broadcasts_copy_unreviewed',
+  },
+  {
+    up: migration_20261019_192951_bookings_camp_kind.up,
+    down: migration_20261019_192951_bookings_camp_kind.down,
+    name: '20261019_192951_bookings_camp_kind',
+  },
+  {
+    up: migration_20261020_001006_bookings_camp_registration.up,
+    down: migration_20261020_001006_bookings_camp_registration.down,
+    name: '20261020_001006_bookings_camp_registration',
+  },
+  {
+    up: migration_20261020_035727_camp_registrations.up,
+    down: migration_20261020_035727_camp_registrations.down,
+    name: '20261020_035727_camp_registrations',
+  },
+  {
+    up: migration_20261020_111312_camp_deposit.up,
+    down: migration_20261020_111312_camp_deposit.down,
+    name: '20261020_111312_camp_deposit',
+  },
+  {
+    up: migration_20261021_020703_camp_parent_address.up,
+    down: migration_20261021_020703_camp_parent_address.down,
+    name: '20261021_020703_camp_parent_address',
+  },
+  {
+    up: migration_20261022_000211_camp_contract.up,
+    down: migration_20261022_000211_camp_contract.down,
+    name: '20261022_000211_camp_contract',
+  },
+  {
+    up: migration_20261022_021324_camp_deposit_email.up,
+    down: migration_20261022_021324_camp_deposit_email.down,
+    name: '20261022_021324_camp_deposit_email',
+  },
+  {
+    up: migration_20261022_220341_broadcast_qualification_card.up,
+    down: migration_20261022_220341_broadcast_qualification_card.down,
+    name: '20261022_220341_broadcast_qualification_card',
+  },
+  {
+    up: migration_20261024_184632_bookings_session_start.up,
+    down: migration_20261024_184632_bookings_session_start.down,
+    name: '20261024_184632_bookings_session_start',
+  },
+  {
+    up: migration_20261024_185634_bookings_participant.up,
+    down: migration_20261024_185634_bookings_participant.down,
+    name: '20261024_185634_bookings_participant'
   },
 ];

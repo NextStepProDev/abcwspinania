@@ -72,6 +72,7 @@ export interface Config {
     camps: Camp;
     sessions: Session;
     bookings: Booking;
+    'camp-registrations': CampRegistration;
     broadcasts: Broadcast;
     'broadcast-deliveries': BroadcastDelivery;
     posts: Post;
@@ -79,6 +80,7 @@ export interface Config {
     instructors: Instructor;
     media: Media;
     'gallery-photos': GalleryPhoto;
+    'private-files': PrivateFile;
     messages: Message;
     newsletter: Newsletter;
     customers: Customer;
@@ -101,6 +103,7 @@ export interface Config {
     camps: CampsSelect<false> | CampsSelect<true>;
     sessions: SessionsSelect<false> | SessionsSelect<true>;
     bookings: BookingsSelect<false> | BookingsSelect<true>;
+    'camp-registrations': CampRegistrationsSelect<false> | CampRegistrationsSelect<true>;
     broadcasts: BroadcastsSelect<false> | BroadcastsSelect<true>;
     'broadcast-deliveries': BroadcastDeliveriesSelect<false> | BroadcastDeliveriesSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
@@ -108,6 +111,7 @@ export interface Config {
     instructors: InstructorsSelect<false> | InstructorsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     'gallery-photos': GalleryPhotosSelect<false> | GalleryPhotosSelect<true>;
+    'private-files': PrivateFilesSelect<false> | PrivateFilesSelect<true>;
     messages: MessagesSelect<false> | MessagesSelect<true>;
     newsletter: NewsletterSelect<false> | NewsletterSelect<true>;
     customers: CustomersSelect<false> | CustomersSelect<true>;
@@ -127,6 +131,7 @@ export interface Config {
     'about-page': AboutPage;
     'camps-page': CampsPage;
     'english-page': EnglishPage;
+    'camp-config': CampConfig;
   };
   globalsSelect: {
     'site-config': SiteConfigSelect<false> | SiteConfigSelect<true>;
@@ -134,6 +139,7 @@ export interface Config {
     'about-page': AboutPageSelect<false> | AboutPageSelect<true>;
     'camps-page': CampsPageSelect<false> | CampsPageSelect<true>;
     'english-page': EnglishPageSelect<false> | EnglishPageSelect<true>;
+    'camp-config': CampConfigSelect<false> | CampConfigSelect<true>;
   };
   locale: null;
   widgets: {
@@ -405,6 +411,10 @@ export interface Camp {
   duration?: string | null;
   maxGroupSize?: number | null;
   location?: string | null;
+  /**
+   * Zaznacz, gdy na miejscu nie ma pościeli — umowa wpisze wtedy „własne śpiwory”.
+   */
+  ownSleepingBags?: boolean | null;
   accommodation?: boolean | null;
   meals?: boolean | null;
   highlights?:
@@ -481,6 +491,11 @@ export interface Session {
    */
   note?: string | null;
   /**
+   * Wpisz, gdy Kuratorium przyjmie zgłoszenie — pojawi się w danych do faktury.
+   */
+  kuratoriumNumber?: string | null;
+  preCampDraftAt?: string | null;
+  /**
    * Wszystkie zapisy na ten termin — także rezerwowe i rezygnacje.
    */
   bookings?: {
@@ -492,7 +507,7 @@ export interface Session {
   createdAt: string;
 }
 /**
- * Zapisy na kursy. Zmiana statusu na „potwierdzony”, „opłacony” albo „rezygnacja” wysyła kursantowi maila. Zapis telefoniczny dodaj tu ręcznie — wtedy liczy się do wolnych miejsc.
+ * Zapisy na kursy i obozy. Przy obozie imię, nazwisko i kontakt to dane rodzica, a uczestnik to dziecko. Zmiana statusu na „potwierdzony”, „opłacony” albo „rezygnacja” wysyła maila kursantowi albo rodzicowi (przy obozie także „zaliczka wpłacona”). Zapis telefoniczny dodaj tu ręcznie — wtedy liczy się do wolnych miejsc.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "bookings".
@@ -503,9 +518,15 @@ export interface Booking {
    * Składany automatycznie z imienia, nazwiska i terminu.
    */
   label?: string | null;
-  session: number | Session;
   /**
-   * „Lista rezerwowa” i „rezygnacja” nie zajmują miejsca. Zmiana na „potwierdzony” lub „rezygnacja” wysyła kursantowi maila; na „opłacony” — tylko przed pierwszym dniem kursu.
+   * Najpierw wybierz rodzaj — lista terminów pokaże tylko pasujące.
+   */
+  kind: 'course' | 'camp';
+  session: number | Session;
+  participant?: string | null;
+  sessionStart?: string | null;
+  /**
+   * „Lista rezerwowa” i „rezygnacja” nie zajmują miejsca. Zmiana na „potwierdzony” lub „rezygnacja” wysyła maila (kursantowi albo rodzicowi); na „opłacony” — tylko przed pierwszym dniem. Przy obozie także „zaliczka wpłacona” — rodzic dostaje maila, ile zostało do zapłaty; przy rodzeństwie jeden mail, gdy zaznaczysz ostatnie dziecko ze zgłoszenia.
    */
   status: 'new' | 'confirmed' | 'deposit' | 'paid' | 'waitlist' | 'cancelled';
   firstName: string;
@@ -515,6 +536,36 @@ export interface Booking {
    */
   email?: string | null;
   phone: string;
+  addressStreet?: string | null;
+  addressPostcode?: string | null;
+  addressCity?: string | null;
+  childFirstName?: string | null;
+  childLastName?: string | null;
+  /**
+   * Rodzic podaje ją w formularzu rejestracyjnym.
+   */
+  childBirthDate?: string | null;
+  /**
+   * Na stronie i w mediach społecznościowych. Bez zaznaczenia — nie publikować zdjęć, na których dziecko da się rozpoznać.
+   */
+  photoConsent?: boolean | null;
+  photoConsentText?: string | null;
+  registrationToken?: string | null;
+  registrationSentAt?: string | null;
+  registrationReminderAt?: string | null;
+  registeredAt?: string | null;
+  /**
+   * Ustawia się sam po wypełnieniu formularza (7 dni). Można przesunąć, np. po rozmowie z rodzicem.
+   */
+  depositDueAt?: string | null;
+  depositEmailAt?: string | null;
+  depositReminderAt?: string | null;
+  invoiceRequested?: boolean | null;
+  invoiceCompanyName?: string | null;
+  invoiceNip?: string | null;
+  invoiceCompanyAddress?: string | null;
+  contractSentAt?: string | null;
+  contractPrice?: number | null;
   notes?: string | null;
   /**
    * Widoczne tylko w panelu — kursant ich nie widzi.
@@ -593,6 +644,34 @@ export interface Customer {
   collection: 'customers';
 }
 /**
+ * Dane z formularza rejestracyjnego obozu — PESEL i zdrowie dziecka. Usuwane same miesiąc po zakończeniu obozu.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-registrations".
+ */
+export interface CampRegistration {
+  id: number;
+  label?: string | null;
+  booking: number | Booking;
+  pesel: string;
+  /**
+   * Do zamówienia koszulek.
+   */
+  heightCm?: number | null;
+  allergies?: string | null;
+  medications?: string | null;
+  diet?: string | null;
+  /**
+   * Co może mieć wpływ na bezpieczeństwo albo zachowanie dziecka na obozie.
+   */
+  conditions?: string | null;
+  activitiesConsentText?: string | null;
+  consentText?: string | null;
+  consentDate?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Wiadomości do grup: zapisanych na termin, wszystkich z nadchodzącymi zapisami albo newslettera. Zapisz, wyślij próbnie do siebie, potem „Wyślij”.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -641,6 +720,10 @@ export interface Broadcast {
    * Domyślnie wiadomość dostają tylko osoby z miejscem. Zaznacz np. przy odwołaniu terminu albo zmianie dat.
    */
   includeWaitlist?: boolean | null;
+  /**
+   * Pusta karta z „Ustawień obozów” w załączniku do każdego maila, a na samej górze maila ramka „W ZAŁĄCZNIKU: PUSTA KARTA KWALIFIKACYJNA” — dokładana sama.
+   */
+  attachQualificationCard?: boolean | null;
   status: 'draft' | 'sending' | 'sent';
   copyUnreviewed?: boolean | null;
   recipientsCount?: number | null;
@@ -844,6 +927,28 @@ export interface GalleryPhoto {
   };
 }
 /**
+ * Pliki widoczne tylko w panelu: pieczątka z podpisem do umów obozowych, pusta karta kwalifikacyjna do maila przed obozem. Strona ich nie pokazuje.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "private-files".
+ */
+export interface PrivateFile {
+  id: number;
+  /**
+   * Np. „Pieczątka z podpisem — umowy obozowe”.
+   */
+  title?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+}
+/**
  * Zgłoszenia z formularza na stronie. Nowe są u góry.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -945,6 +1050,10 @@ export interface PayloadLockedDocument {
         value: number | Booking;
       } | null)
     | ({
+        relationTo: 'camp-registrations';
+        value: number | CampRegistration;
+      } | null)
+    | ({
         relationTo: 'broadcasts';
         value: number | Broadcast;
       } | null)
@@ -971,6 +1080,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'gallery-photos';
         value: number | GalleryPhoto;
+      } | null)
+    | ({
+        relationTo: 'private-files';
+        value: number | PrivateFile;
       } | null)
     | ({
         relationTo: 'messages';
@@ -1119,6 +1232,7 @@ export interface CampsSelect<T extends boolean = true> {
   duration?: T;
   maxGroupSize?: T;
   location?: T;
+  ownSleepingBags?: T;
   accommodation?: T;
   meals?: T;
   highlights?:
@@ -1158,6 +1272,8 @@ export interface SessionsSelect<T extends boolean = true> {
   spotsLeft?: T;
   status?: T;
   note?: T;
+  kuratoriumNumber?: T;
+  preCampDraftAt?: T;
   bookings?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -1168,12 +1284,36 @@ export interface SessionsSelect<T extends boolean = true> {
  */
 export interface BookingsSelect<T extends boolean = true> {
   label?: T;
+  kind?: T;
   session?: T;
+  participant?: T;
+  sessionStart?: T;
   status?: T;
   firstName?: T;
   lastName?: T;
   email?: T;
   phone?: T;
+  addressStreet?: T;
+  addressPostcode?: T;
+  addressCity?: T;
+  childFirstName?: T;
+  childLastName?: T;
+  childBirthDate?: T;
+  photoConsent?: T;
+  photoConsentText?: T;
+  registrationToken?: T;
+  registrationSentAt?: T;
+  registrationReminderAt?: T;
+  registeredAt?: T;
+  depositDueAt?: T;
+  depositEmailAt?: T;
+  depositReminderAt?: T;
+  invoiceRequested?: T;
+  invoiceCompanyName?: T;
+  invoiceNip?: T;
+  invoiceCompanyAddress?: T;
+  contractSentAt?: T;
+  contractPrice?: T;
   notes?: T;
   adminNotes?: T;
   emailIssue?: T;
@@ -1189,6 +1329,25 @@ export interface BookingsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-registrations_select".
+ */
+export interface CampRegistrationsSelect<T extends boolean = true> {
+  label?: T;
+  booking?: T;
+  pesel?: T;
+  heightCm?: T;
+  allergies?: T;
+  medications?: T;
+  diet?: T;
+  conditions?: T;
+  activitiesConsentText?: T;
+  consentText?: T;
+  consentDate?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "broadcasts_select".
  */
 export interface BroadcastsSelect<T extends boolean = true> {
@@ -1199,6 +1358,7 @@ export interface BroadcastsSelect<T extends boolean = true> {
   audience?: T;
   session?: T;
   includeWaitlist?: T;
+  attachQualificationCard?: T;
   status?: T;
   copyUnreviewed?: T;
   recipientsCount?: T;
@@ -1339,6 +1499,22 @@ export interface GalleryPhotosSelect<T extends boolean = true> {
               filename?: T;
             };
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "private-files_select".
+ */
+export interface PrivateFilesSelect<T extends boolean = true> {
+  title?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1671,6 +1847,31 @@ export interface EnglishPage {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-config".
+ */
+export interface CampConfig {
+  id: number;
+  /**
+   * Wstawiana do każdej umowy obozowej w miejsce podpisu organizatora. PNG albo JPG, najlepiej na białym tle. Bez niej umowa wychodzi z pustym miejscem na podpis, a zapis dostaje notkę na pulpicie. Usunięcie pliku w „Plikach prywatnych” czyści to pole — wtedy wybierz nowy plik tutaj.
+   */
+  contractSignature?: (number | null) | PrivateFile;
+  /**
+   * Plik PDF. Dołączana do maila przed obozem, gdy w szkicu zaznaczone jest „Dołącz kartę kwalifikacyjną”. Gdy Kuratorium zmieni wzór — wgraj nowy plik i wybierz go tutaj.
+   */
+  qualificationCard?: (number | null) | PrivateFile;
+  /**
+   * Tyle dni przed początkiem turnusu dostaniesz mail z linkiem do gotowego szkicu wiadomości dla rodziców.
+   */
+  preCampReminderDays: number;
+  /**
+   * Wstawiana do szkicu wysyłki dla rodziców z danego turnusu. Fragmenty w nawiasach kwadratowych, np. [miejsce zbiórki], uzupełniasz w szkicu. Pusta linia = nowy akapit, linia zaczynająca się od „- ” = punkt listy.
+   */
+  preCampTemplate?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "site-config_select".
  */
 export interface SiteConfigSelect<T extends boolean = true> {
@@ -1784,6 +1985,19 @@ export interface EnglishPageSelect<T extends boolean = true> {
   season?: T;
   directions?: T;
   coursesNote?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-config_select".
+ */
+export interface CampConfigSelect<T extends boolean = true> {
+  contractSignature?: T;
+  qualificationCard?: T;
+  preCampReminderDays?: T;
+  preCampTemplate?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

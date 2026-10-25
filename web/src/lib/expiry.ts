@@ -165,3 +165,137 @@ export function finishedSessionsWhere(now: Date): Where {
     ],
   }
 }
+
+/**
+ * Months after a camp ends that the registration form's data — the PESEL
+ * and the health data — is kept (Krzysiek, 19.10.2026: "miesiąc po obozie").
+ * The rest of the booking follows `BOOKING_RETENTION_YEARS`. The consent
+ * clause (`CAMP_REGISTRATION_CONSENT_TEXT`) and the privacy policy say this
+ * period in words — change them with it.
+ */
+export const CAMP_HEALTH_RETENTION_MONTHS = 1
+
+/**
+ * Which registration forms the daily sweep deletes: their camp's last day is
+ * more than the retention ago. The cutoff is a day earlier than the exact
+ * month, the same allowance as `finishedSessionsWhere`: a last day stored as
+ * Polish midnight is 22:00–23:00 UTC the day before. A camp without an end
+ * counts by its start.
+ */
+export function expiredRegistrationsWhere(now: Date, months = CAMP_HEALTH_RETENTION_MONTHS): Where {
+  const cutoff = new Date(now)
+  cutoff.setUTCHours(0, 0, 0, 0)
+  cutoff.setUTCMonth(cutoff.getUTCMonth() - months)
+  cutoff.setUTCDate(cutoff.getUTCDate() - 1)
+  const before = cutoff.toISOString()
+  return {
+    or: [
+      { 'booking.session.endDate': { less_than: before } },
+      {
+        and: [
+          { 'booking.session.endDate': { exists: false } },
+          { 'booking.session.startDate': { less_than: before } },
+        ],
+      },
+    ],
+  }
+}
+
+/**
+ * Days after the registration link before the parent is reminded once
+ * (decided 20.10.2026: "po kilku dniach"). Then the school calls.
+ */
+export const REGISTRATION_REMINDER_DAYS = 4
+
+/**
+ * Camp bookings whose parent gets the reminder: a place (not the waiting
+ * list, not cancelled), an address to write to, the link sent more than the
+ * grace period ago, no form yet, no reminder yet, and a camp still ahead.
+ */
+export function registrationReminderWhere(now: Date, days = REGISTRATION_REMINDER_DAYS): Where {
+  const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString()
+  return {
+    and: [
+      { kind: { equals: 'camp' } },
+      { status: { in: ['new', 'confirmed', 'deposit', 'paid'] } },
+      { email: { exists: true } },
+      { registeredAt: { exists: false } },
+      { registrationReminderAt: { exists: false } },
+      { registrationSentAt: { less_than: cutoff } },
+      { 'session.startDate': { greater_than: now.toISOString() } },
+    ],
+  }
+}
+
+/**
+ * Camp bookings whose parent gets the deposit reminder (decided 20.10.2026:
+ * the system reminds, Krzysiek marks the payment himself): the deadline
+ * passed, no deposit marked (still "zgłoszony" or "potwierdzony"), an
+ * address, no reminder yet, the camp still ahead. Nothing is released — the
+ * school decides.
+ */
+export function depositReminderWhere(now: Date): Where {
+  return {
+    and: [
+      { kind: { equals: 'camp' } },
+      { status: { in: ['new', 'confirmed'] } },
+      { email: { exists: true } },
+      { depositDueAt: { less_than: now.toISOString() } },
+      { depositReminderAt: { exists: false } },
+      { 'session.startDate': { greater_than: now.toISOString() } },
+    ],
+  }
+}
+
+/**
+ * The hour of the daily sweep, Polish time (decided 24.10.2026). Until then
+ * the sweep ran a minute after the server started and every 24 h from there,
+ * so its hour was whenever the last deploy happened — and with the camps it
+ * sends reminders to parents and pre-camp notices to the school: a deploy at
+ * 23:40 meant those emails at 23:41 every night.
+ */
+export const DAILY_SWEEP_HOUR = 8
+
+const warsawParts = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Europe/Warsaw',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hourCycle: 'h23',
+})
+
+/** How far Polish wall-clock time is ahead of UTC at `instant`, in ms. */
+function warsawOffset(instant: number): number {
+  const part = Object.fromEntries(
+    warsawParts.formatToParts(new Date(instant)).map(({ type, value }) => [type, Number(value)]),
+  )
+  const wall = Date.UTC(part.year, part.month - 1, part.day, part.hour, part.minute, part.second)
+  return wall - Math.floor(instant / 1000) * 1000
+}
+
+/**
+ * Milliseconds from `now` to the next `DAILY_SWEEP_HOUR`:00 in Poland at
+ * least a minute away. Recomputed before every run, so the clock change in
+ * spring and autumn moves nothing (the change happens at night, the sweep
+ * runs in the morning). The minute: a timer may fire a moment before the
+ * wall clock reaches the hour, and "the next 8:00" would then be the same
+ * one — the sweep would run twice that morning.
+ */
+export function msUntilDailySweep(now: Date, hour = DAILY_SWEEP_HOUR): number {
+  const today = new Date(now.getTime() + warsawOffset(now.getTime()))
+  for (let days = 0; days <= 1; days++) {
+    const wall = Date.UTC(
+      today.getUTCFullYear(),
+      today.getUTCMonth(),
+      today.getUTCDate() + days,
+      hour,
+    )
+    const at = wall - warsawOffset(wall)
+    if (at - now.getTime() >= 60_000) return at - now.getTime()
+  }
+  // Unreachable: tomorrow's hour is always more than a minute away.
+  return 24 * 60 * 60 * 1000
+}

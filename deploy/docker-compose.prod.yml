@@ -87,6 +87,7 @@ services:
       EMAIL_FROM: ${EMAIL_FROM:-}
       EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-ABC Wspinania}
       ADMIN_NOTIFY_EMAIL: ${ADMIN_NOTIFY_EMAIL:-}
+      CAMP_EMAIL: ${CAMP_EMAIL:-}
       # Adres, pod którym strona FAKTYCZNIE działa — z niego idą linki
       # w mailach (potwierdzenie konta, nowe hasło). Opis: deploy/.env.example.
       PUBLIC_URL: ${PUBLIC_URL:-}

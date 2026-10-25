@@ -26,6 +26,10 @@ export interface SentEmail {
   subject: string
   text: string
   headers?: Record<string, string>
+  /** The sender's display name, when the code set one (camp emails do). */
+  fromName?: string
+  /** File names of the attachments (the camp contract). */
+  attachments: string[]
 }
 
 type Cleanup = () => Promise<unknown>
@@ -52,6 +56,10 @@ payload.sendEmail = (async (message: Record<string, unknown>) => {
     subject: String(message.subject),
     text: String(message.text ?? ''),
     headers: message.headers as Record<string, string> | undefined,
+    fromName: (message.from as { name?: string } | undefined)?.name,
+    attachments: ((message.attachments as { filename: string }[] | undefined) ?? []).map(
+      (a) => a.filename,
+    ),
   })
 }) as Payload['sendEmail']
 
@@ -161,14 +169,44 @@ export async function makeCourse(published = true) {
   return course
 }
 
+let campNumber = 0
+
+export async function makeCamp({
+  published = true,
+  kind = 'camp',
+}: { published?: boolean; kind?: 'camp' | 'trip' | 'classes' } = {}) {
+  campNumber += 1
+  const camp = await payload.create({
+    collection: 'camps',
+    data: {
+      title: `Obóz testowy ${tag} ${campNumber}`,
+      slug: `${tag}-camp-${campNumber}`,
+      kind,
+      _status: published ? 'published' : 'draft',
+    } as never,
+    overrideAccess: true,
+  })
+  cleanup(() => payload.delete({ collection: 'camps', id: camp.id, overrideAccess: true }))
+  return camp
+}
+
 export async function makeSession(
   courseId: number,
-  { capacity = 5, daysAhead = 20 }: { capacity?: number | null; daysAhead?: number } = {},
+  {
+    capacity = 5,
+    daysAhead = 20,
+    camp = false,
+  }: { capacity?: number | null; daysAhead?: number; camp?: boolean } = {},
 ) {
   const start = new Date(Date.now() + daysAhead * 86_400_000)
   const session = await payload.create({
     collection: 'sessions',
-    data: { course: courseId, startDate: start.toISOString(), status: 'open', capacity } as never,
+    data: {
+      [camp ? 'camp' : 'course']: courseId,
+      startDate: start.toISOString(),
+      status: 'open',
+      capacity,
+    } as never,
     overrideAccess: true,
   })
   // Bookings first (the session refuses deletion while it has any), then the session.

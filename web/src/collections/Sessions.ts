@@ -1,9 +1,12 @@
-import { APIError, type CollectionConfig } from 'payload'
+import { APIError, type CollectionConfig, type FieldHook } from 'payload'
 
 import { recountSession } from '../lib/bookingEffects'
 import { exportSessionHandler } from '../lib/sessionExport'
 
 import { anyone, isAdmin } from '../lib/access'
+
+/** "Zduplikuj" makes the next turnus: what belongs to this one starts again. */
+const clearOnDuplicate: FieldHook = () => null
 
 /**
  * Scheduled runs of courses and camps — one source for the schedule page, the
@@ -68,6 +71,19 @@ export const Sessions: CollectionConfig = {
     afterChange: [
       // A new capacity changes the spots left. Skipped for the recount's own
       // write (`context.recountingSpots`), which would otherwise call itself.
+      // New dates move the session's bookings on the list (`sessionStart`),
+      // straight in the database: their own hooks would rebuild labels,
+      // recount and maybe email.
+      async ({ doc, previousDoc, operation, req }) => {
+        if (operation !== 'update' || previousDoc?.startDate === doc.startDate) return doc
+        await req.payload.db.updateMany({
+          collection: 'bookings',
+          where: { session: { equals: doc.id } },
+          data: { sessionStart: doc.startDate },
+          req,
+        })
+        return doc
+      },
       async ({ doc, previousDoc, operation, req, context }) => {
         if (context.recountingSpots) return doc
         if (operation === 'update' && previousDoc?.capacity === doc.capacity) return doc
@@ -231,6 +247,28 @@ export const Sessions: CollectionConfig = {
       type: 'text',
       label: 'Dopisek',
       admin: { description: 'Np. „wariant weekendowy” albo „grupa w tygodniu”.' },
+    },
+    {
+      // Krzysiek, 22.10.2026: each turnus gets its own number once the
+      // Kuratorium accepts the notification; parents need it on the invoice
+      // ("Dane do faktury" on a booking shows it).
+      name: 'kuratoriumNumber',
+      hooks: { beforeDuplicate: [clearOnDuplicate] },
+      type: 'text',
+      maxLength: 100,
+      label: 'Numer zgłoszenia wypoczynku (Kuratorium)',
+      admin: {
+        condition: (data) => Boolean(data?.camp),
+        description: 'Wpisz, gdy Kuratorium przyjmie zgłoszenie — pojawi się w danych do faktury.',
+      },
+    },
+    {
+      // When the school was reminded about the email before this turnus and
+      // its draft was made (`preparePreCampDrafts`) — once per turnus.
+      name: 'preCampDraftAt',
+      hooks: { beforeDuplicate: [clearOnDuplicate] },
+      type: 'date',
+      hidden: true,
     },
     {
       name: 'bookings',

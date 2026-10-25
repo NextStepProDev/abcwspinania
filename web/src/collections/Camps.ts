@@ -141,6 +141,19 @@ export const Camps: CollectionConfig = {
     },
     { name: 'location', type: 'text', label: 'Miejsce' },
     {
+      // Krzysiek, 22.10.2026: some camps have no bedding — then the contract
+      // says so (`campContract.ts`, § 2) instead of "łóżka z pościelą".
+      name: 'ownSleepingBags',
+      type: 'checkbox',
+      defaultValue: false,
+      label: 'Uczestnicy biorą własne śpiwory',
+      admin: {
+        condition: (data) => data?.kind === 'camp',
+        description:
+          'Zaznacz, gdy na miejscu nie ma pościeli — umowa wpisze wtedy „własne śpiwory”.',
+      },
+    },
+    {
       type: 'row',
       fields: [
         {

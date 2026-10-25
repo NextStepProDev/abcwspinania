@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { expiredBookingsWhere, finishedSessionsWhere } from '@/lib/expiry'
+import { expiredBookingsWhere, finishedSessionsWhere, msUntilDailySweep } from '@/lib/expiry'
 
 /**
  * Bookings are kept five years from the end of the year the course took
@@ -79,4 +79,91 @@ test('a session without an end date counts by its start', () => {
   const where = JSON.stringify(finishedSessionsWhere(new Date('2026-10-17T06:00:00Z')))
   assert.match(where, /"endDate":\{"exists":false\}/)
   assert.match(where, /"startDate":\{"less_than"/)
+})
+
+// --- camp registration forms ---------------------------------------------------
+
+import {
+  CAMP_HEALTH_RETENTION_MONTHS,
+  expiredRegistrationsWhere,
+  registrationReminderWhere,
+} from '@/lib/expiry'
+import { CAMP_REGISTRATION_CONSENT_TEXT } from '@/lib/consent'
+
+const registrationCutoff = (now: string) =>
+  JSON.stringify(expiredRegistrationsWhere(new Date(now))).match(/"less_than":"([^"]+)"/)?.[1]
+
+test('a camp’s health data goes a month after its last day, not before', () => {
+  // A camp ending 3 July (stored as Polish midnight, 22:00 UTC on 2 July).
+  const lastDay = Date.parse('2027-07-02T22:00:00.000Z')
+  assert.ok(lastDay >= Date.parse(registrationCutoff('2027-08-03T12:00:00Z')!), 'kept on 3 August')
+  assert.ok(lastDay < Date.parse(registrationCutoff('2027-08-05T12:00:00Z')!), 'gone by 5 August')
+})
+
+test('a camp without an end date counts by its start for the health data too', () => {
+  const where = JSON.stringify(expiredRegistrationsWhere(new Date('2027-08-05T12:00:00Z')))
+  assert.match(where, /"booking.session.endDate":\{"exists":false\}/)
+  assert.match(where, /"booking.session.startDate":\{"less_than"/)
+})
+
+test('the consent clause states the same health-data period as the sweep', () => {
+  assert.equal(CAMP_HEALTH_RETENTION_MONTHS, 1)
+  assert.match(CAMP_REGISTRATION_CONSENT_TEXT, /miesiąc po zakończeniu obozu/)
+})
+
+test('the registration reminder goes once, to a parent with a place and no form yet', () => {
+  const where = JSON.stringify(registrationReminderWhere(new Date('2027-05-10T12:00:00Z')))
+  assert.match(where, /"registrationSentAt":\{"less_than":"2027-05-06T12:00:00.000Z"\}/)
+  assert.match(where, /"registeredAt":\{"exists":false\}/)
+  assert.match(where, /"registrationReminderAt":\{"exists":false\}/)
+  assert.doesNotMatch(where, /waitlist|cancelled/)
+})
+
+test('the daily sweep runs at 8:00 in Poland — later the same morning', () => {
+  // 6:30 in Poland (winter, UTC+1).
+  const now = new Date('2026-11-10T05:30:00Z')
+  assert.equal(
+    new Date(now.getTime() + msUntilDailySweep(now)).toISOString(),
+    '2026-11-10T07:00:00.000Z',
+  )
+})
+
+test('after 8:00 the next sweep is tomorrow morning, not right away', () => {
+  // A deploy at 23:40 must not send reminders to parents at night.
+  const now = new Date('2026-07-10T21:40:00Z') // 23:40 in Poland (summer, UTC+2)
+  assert.equal(
+    new Date(now.getTime() + msUntilDailySweep(now)).toISOString(),
+    '2026-07-11T06:00:00.000Z',
+  )
+})
+
+test('exactly at 8:00 the next sweep is a day later', () => {
+  const now = new Date('2026-07-11T06:00:00Z')
+  assert.equal(
+    new Date(now.getTime() + msUntilDailySweep(now)).toISOString(),
+    '2026-07-12T06:00:00.000Z',
+  )
+})
+
+test('across the clock change the sweep stays at 8:00 Polish time', () => {
+  // Night of 25 October 2026: clocks go back from 3:00 to 2:00.
+  const now = new Date('2026-10-25T00:30:00Z') // 2:30 summer time
+  assert.equal(
+    new Date(now.getTime() + msUntilDailySweep(now)).toISOString(),
+    '2026-10-25T07:00:00.000Z',
+  )
+  const spring = new Date('2027-03-28T00:30:00Z') // 1:30 winter time, clocks go forward at 2:00
+  assert.equal(
+    new Date(spring.getTime() + msUntilDailySweep(spring)).toISOString(),
+    '2027-03-28T06:00:00.000Z',
+  )
+})
+
+test('a timer that fires a moment early does not run the sweep twice', () => {
+  // Timers may fire a millisecond before the wall clock says 8:00.
+  const now = new Date('2026-07-11T05:59:59.999Z')
+  assert.equal(
+    new Date(now.getTime() + msUntilDailySweep(now)).toISOString(),
+    '2026-07-12T06:00:00.000Z',
+  )
 })

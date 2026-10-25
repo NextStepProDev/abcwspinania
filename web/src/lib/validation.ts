@@ -1,4 +1,6 @@
+import { childKey } from '@/lib/bookings'
 import { pluralPl } from '@/lib/format'
+import { checkPesel } from '@/lib/pesel'
 import { TOPIC_VALUES } from '@/lib/topics'
 
 /**
@@ -367,5 +369,220 @@ export function validateBooking(data: BookingData, loggedIn: boolean): BookingEr
 
   if (!data.consent) errors.consent = BOOKING_CONSENT_MISSING
 
+  return errors
+}
+
+// --- Camp bookings -----------------------------------------------------------
+
+export interface ChildData {
+  firstName: string
+  lastName: string
+}
+
+/** The parent's details (the contact, as on a course) and the children. */
+export interface CampBookingData extends BookingData {
+  children: ChildData[]
+}
+
+export type ChildErrors = Partial<Record<keyof ChildData, string>>
+
+export type CampBookingErrors = BookingErrors & {
+  /** Per child, in the form's order; an empty slot is a child without errors. */
+  children?: (ChildErrors | undefined)[]
+  /** No child at all, or more than the form allows. */
+  childrenCount?: string
+}
+
+/**
+ * A camp booking: the parent as on a course booking (`validateBooking`), and
+ * one to `maxChildren` children with a first and last name each — the rest
+ * of the child's details come later, in the registration form. The same
+ * child twice is caught here; the service would store it once anyway.
+ */
+export function validateCampBooking(
+  data: CampBookingData,
+  loggedIn: boolean,
+  maxChildren: number,
+): CampBookingErrors {
+  const errors: CampBookingErrors = validateBooking(data, loggedIn)
+
+  if (data.children.length === 0) errors.childrenCount = 'Wpisz dane dziecka.'
+  else if (data.children.length > maxChildren)
+    errors.childrenCount = `Jednym zgłoszeniem zapiszesz najwyżej ${maxChildren} dzieci.`
+
+  const seen = new Set<string>()
+  const children = data.children.map((child) => {
+    const childErrors: ChildErrors = {}
+    const firstName = checkName(child.firstName, 'Podaj imię dziecka.')
+    if (firstName) childErrors.firstName = firstName
+    const lastName = checkName(child.lastName, 'Podaj nazwisko dziecka.')
+    if (lastName) childErrors.lastName = lastName
+    const key = childKey(child.firstName, child.lastName)
+    if (!firstName && !lastName && seen.has(key))
+      childErrors.firstName = 'To dziecko jest już wpisane wyżej.'
+    seen.add(key)
+    return isValid(childErrors) ? undefined : childErrors
+  })
+  if (children.some(Boolean)) errors.children = children
+
+  return errors
+}
+
+// --- Camp registration form --------------------------------------------------
+
+/** One child's part of the registration form. */
+export interface RegistrationChildData {
+  pesel: string
+  /** Centimetres, as typed. */
+  height: string
+  allergies: string
+  medications: string
+  diet: string
+  conditions: string
+  /** Yes or no, chosen by the parent; null — not answered yet. */
+  photoConsent: boolean | null
+}
+
+export type RegistrationChildErrors = Partial<Record<keyof RegistrationChildData, string>>
+
+/**
+ * What the form asks once for the whole sign-up (one form, one contract,
+ * decided 21.10.2026): the parent's address for the contract and the
+ * invoice, the invoice request and the two required consents.
+ */
+export interface RegistrationSharedData {
+  street: string
+  postcode: string
+  city: string
+  invoiceRequested: boolean
+  /** The invoice goes to a company — then with its name, NIP and address. */
+  invoiceCompany: boolean
+  invoiceCompanyName: string
+  invoiceNip: string
+  invoiceCompanyAddress: string
+  activitiesConsent: boolean
+  consent: boolean
+}
+
+export type RegistrationSharedErrors = Partial<Record<keyof RegistrationSharedData, string>>
+
+export const HEALTH_TEXT_MAX = 2000
+export const HEIGHT_MIN_CM = 80
+export const HEIGHT_MAX_CM = 210
+const ADDRESS_MAX = 200
+
+export const ACTIVITIES_CONSENT_MISSING = 'Bez tej zgody dziecko nie może wziąć udziału w obozie.'
+export const REGISTRATION_CONSENT_MISSING = 'Bez tej zgody nie możemy przyjąć formularza.'
+export const PHOTO_CHOICE_MISSING = 'Zaznacz jedną z dwóch odpowiedzi.'
+
+/** The height the T-shirts are ordered by — whole centimetres, a child's range. */
+export function checkHeight(raw: string): string | undefined {
+  const value = raw.trim()
+  if (!value) return 'Podaj wzrost dziecka.'
+  if (!/^\d{2,3}$/.test(value)) return 'Wpisz wzrost w centymetrach, np. 142.'
+  const cm = Number(value)
+  if (cm < HEIGHT_MIN_CM || cm > HEIGHT_MAX_CM)
+    return `Wzrost w centymetrach, od ${HEIGHT_MIN_CM} do ${HEIGHT_MAX_CM}.`
+  return undefined
+}
+
+/** Street and number, as the contract prints it. */
+export function checkStreet(raw: string): string | undefined {
+  const value = raw.trim()
+  if (!value) return 'Podaj ulicę i numer domu.'
+  if (value.length > ADDRESS_MAX) return 'Ten adres jest za długi.'
+  return undefined
+}
+
+/**
+ * A postcode — Polish "42-421" is what nearly everyone types, but a family
+ * from abroad has another shape, so only its length is a rule.
+ */
+export function checkPostcode(raw: string): string | undefined {
+  const value = raw.trim()
+  if (!value) return 'Podaj kod pocztowy.'
+  if (value.length < 3 || value.length > 12) return 'Ten kod pocztowy wygląda na niepełny.'
+  return undefined
+}
+
+/** "631-172-65-35", "PL6311726535" → the ten digits; spaces and dashes dropped. */
+export function normalizeNip(raw: string): string {
+  return raw.replace(/[\s-]/g, '').replace(/^PL/i, '')
+}
+
+/** A Polish NIP: ten digits with its check digit (weights 6 5 7 2 3 4 5 6 7). */
+export function checkNip(raw: string): string | undefined {
+  const value = normalizeNip(raw.trim())
+  if (!value) return 'Podaj NIP firmy.'
+  if (!/^\d{10}$/.test(value)) return 'NIP ma 10 cyfr, np. 631-172-65-35.'
+  const weights = [6, 5, 7, 2, 3, 4, 5, 6, 7]
+  const sum = weights.reduce((total, w, i) => total + w * Number(value[i]), 0)
+  if (sum % 11 !== Number(value[9])) return 'Ten NIP ma błąd — sprawdź cyfry.'
+  return undefined
+}
+
+export function checkCompanyName(raw: string): string | undefined {
+  const value = raw.trim()
+  if (!value) return 'Podaj nazwę firmy.'
+  if (value.length > 300) return 'Ta nazwa jest za długa.'
+  return undefined
+}
+
+export function checkCompanyAddress(raw: string): string | undefined {
+  const value = raw.trim()
+  if (!value) return 'Podaj adres firmy.'
+  if (value.length > 300) return 'Ten adres jest za długi.'
+  return undefined
+}
+
+export function checkCity(raw: string): string | undefined {
+  const value = raw.trim()
+  if (!value) return 'Podaj miejscowość.'
+  if (value.length > ADDRESS_MAX) return 'Ta nazwa jest za długa.'
+  return undefined
+}
+
+/**
+ * One child's answers. The health questions may stay empty — "nothing to
+ * report" is an answer — but each is bounded; the PESEL (`checkPesel`) and
+ * the height are required. The photo consent is a required CHOICE, not a
+ * required consent (decided 24.10.2026): an unticked optional box was mostly
+ * a box nobody read, and a consent ticked in advance is no consent under the
+ * GDPR — so the parent picks "yes" or "no", neither preselected.
+ */
+export function validateRegistrationChild(data: RegistrationChildData): RegistrationChildErrors {
+  const errors: RegistrationChildErrors = {}
+  const pesel = checkPesel(data.pesel)
+  if (pesel) errors.pesel = pesel
+  const height = checkHeight(data.height)
+  if (height) errors.height = height
+  if (data.photoConsent === null) errors.photoConsent = PHOTO_CHOICE_MISSING
+  for (const key of ['allergies', 'medications', 'diet', 'conditions'] as const) {
+    if (data[key].trim().length > HEALTH_TEXT_MAX)
+      errors[key] = `To pole może mieć najwyżej ${HEALTH_TEXT_MAX} znaków.`
+  }
+  return errors
+}
+
+/** The sign-up's shared part: the address and both consents are required. */
+export function validateRegistrationShared(data: RegistrationSharedData): RegistrationSharedErrors {
+  const errors: RegistrationSharedErrors = {}
+  const street = checkStreet(data.street)
+  if (street) errors.street = street
+  const postcode = checkPostcode(data.postcode)
+  if (postcode) errors.postcode = postcode
+  const city = checkCity(data.city)
+  if (city) errors.city = city
+  // Company details only matter when the invoice goes to a company.
+  if (data.invoiceRequested && data.invoiceCompany) {
+    const name = checkCompanyName(data.invoiceCompanyName)
+    if (name) errors.invoiceCompanyName = name
+    const nip = checkNip(data.invoiceNip)
+    if (nip) errors.invoiceNip = nip
+    const address = checkCompanyAddress(data.invoiceCompanyAddress)
+    if (address) errors.invoiceCompanyAddress = address
+  }
+  if (!data.activitiesConsent) errors.activitiesConsent = ACTIVITIES_CONSENT_MISSING
+  if (!data.consent) errors.consent = REGISTRATION_CONSENT_MISSING
   return errors
 }

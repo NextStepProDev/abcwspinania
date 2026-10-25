@@ -83,3 +83,76 @@ export const BOOKING_CONSENT_TEXT =
 export function bookingConsentForStorage(): string {
   return `[${BOOKING_CONSENT_VERSION}] ${BOOKING_CONSENT_TEXT}`
 }
+
+/**
+ * Accepted with every camp booking — given by the PARENT, for their own
+ * details and the children's names (the rest of the child's details come
+ * with the registration form, under its own clause). Its own purpose
+ * (signing a child up for a camp), so its own text and version.
+ */
+export const CAMP_BOOKING_CONSENT_VERSION = '2026-10-20'
+
+export const CAMP_BOOKING_CONSENT_TEXT =
+  'Wyrażam zgodę na przetwarzanie moich danych (imię, nazwisko, adres e-mail, ' +
+  'numer telefonu) oraz imienia i nazwiska dziecka w celu zapisu dziecka na ' +
+  'wybrany obóz, kontaktu w jego sprawie i jego organizacji. ' +
+  `Administratorem danych jest ${CONTROLLER_SHORT}. Szczegóły w polityce prywatności.`
+
+export function campBookingConsentForStorage(): string {
+  return `[${CAMP_BOOKING_CONSENT_VERSION}] ${CAMP_BOOKING_CONSENT_TEXT}`
+}
+
+/**
+ * The camp registration form (step 2): the child's details and HEALTH data.
+ * Health data is a special category (art. 9 GDPR) and needs explicit
+ * consent; the clause says what is collected, why, and when the health data
+ * and the PESEL go (`CAMP_HEALTH_RETENTION_MONTHS` in `lib/expiry.ts` — the
+ * sentence below repeats it, change both).
+ */
+export const CAMP_REGISTRATION_CONSENT_VERSION = '2026-10-20'
+
+export const CAMP_REGISTRATION_CONSENT_TEXT =
+  'Wyrażam zgodę na przetwarzanie danych mojego dziecka podanych w tym formularzu ' +
+  '(PESEL, data urodzenia, wzrost) oraz informacji o jego zdrowiu (uczulenia, ' +
+  'przyjmowane leki, dieta, choroby) w celu zawarcia umowy, organizacji obozu ' +
+  'i zapewnienia dziecku bezpieczeństwa i opieki. PESEL i informacje o zdrowiu ' +
+  'usuwamy miesiąc po zakończeniu obozu. ' +
+  `Administratorem danych jest ${CONTROLLER_SHORT}. Szczegóły w polityce prywatności.`
+
+export function campRegistrationConsentForStorage(): string {
+  return `[${CAMP_REGISTRATION_CONSENT_VERSION}] ${CAMP_REGISTRATION_CONSENT_TEXT}`
+}
+
+/**
+ * The parent's consent to the camp's activities — required (Krzysiek,
+ * 20.10.2026). Not a data clause: it is what the child will do, stored as
+ * text like the others so the wording at the time can be shown.
+ */
+export const CAMP_ACTIVITIES_CONSENT_VERSION = '2026-10-20'
+
+export const CAMP_ACTIVITIES_CONSENT_TEXT =
+  'Wyrażam zgodę na udział mojego dziecka w zajęciach wspinaczkowych, linowych ' +
+  'i sportowych prowadzonych w czasie obozu przez instruktorów ABC Wspinania.'
+
+export function campActivitiesConsentForStorage(): string {
+  return `[${CAMP_ACTIVITIES_CONSENT_VERSION}] ${CAMP_ACTIVITIES_CONSENT_TEXT}`
+}
+
+/**
+ * Optional consent to publish photos of the child (decided 19.10.2026): the
+ * school sees on the list whom not to show. The form asks for "yes" or "no",
+ * neither preselected (24.10.2026, `validateRegistrationChild`); this text is
+ * the "yes". Withdrawn by answering "no" in the form again, or by the school
+ * in the panel.
+ */
+export const PHOTO_CONSENT_VERSION = '2026-10-20'
+
+export const PHOTO_CONSENT_TEXT =
+  'Wyrażam zgodę na publikowanie zdjęć i nagrań z obozu, na których widać moje ' +
+  'dziecko, na stronie ABC Wspinania i w jej mediach społecznościowych. Zgodę mogę ' +
+  `wycofać w każdej chwili. Administratorem danych jest ${CONTROLLER_SHORT}. ` +
+  'Szczegóły w polityce prywatności.'
+
+export function photoConsentForStorage(): string {
+  return `[${PHOTO_CONSENT_VERSION}] ${PHOTO_CONSENT_TEXT}`
+}

@@ -2,6 +2,7 @@ import { TOPICS } from '@/lib/topics'
 
 import type { EmailLanguage } from '@/lib/email/language'
 import { renderEmail, type RenderedEmail } from '@/lib/email/layout'
+import { joinNames } from '@/lib/campPayment'
 import { BOOKING_RETENTION_YEARS } from '@/lib/expiry'
 
 /**
@@ -349,7 +350,7 @@ const NEW_ACCOUNT = {
     body: 'Przy zapisie zaznaczono „załóż mi konto”. Konto czeka — wystarczy ustawić hasło, a zobaczysz w nim swoje zapisy.',
     action: 'Ustaw hasło',
     note: (h: number) =>
-      `Link działa przez ${h} godz. Jeśli nie zakładasz konta, zignoruj tę wiadomość — zapis na kurs jest ważny i bez niego.`,
+      `Link działa przez ${h} godz. Jeśli nie zakładasz konta, zignoruj tę wiadomość — zapis jest ważny i bez niego.`,
   },
   en: {
     subject: 'Set your account password — ABC Wspinania',
@@ -418,6 +419,529 @@ export function newBookingNotification(data: NewBookingData): Email {
   }
 }
 
+// --- Camp bookings -------------------------------------------------------------
+
+export interface CampBookingEmailData {
+  /** The parent's. */
+  firstName?: string | null
+  /** The children with a place, in the form's order. */
+  placed: string[]
+  /** Those on the waiting list; empty when none. */
+  waiting: string[]
+  campTitle: string
+  /** Already formatted for the language (`formatSessionDates`). */
+  dates: string
+  location?: string | null
+  /** The sign-up's registration form — set when any child has a place. */
+  registrationUrl: string | null
+  accountUrl?: string | null
+}
+
+const CAMP_RECEIVED = {
+  pl: {
+    subject: (names: string, camp: string, allWaiting: boolean) =>
+      `${allWaiting ? 'Lista rezerwowa' : 'Zapis na obóz'}: ${names} — ${camp}`,
+    placed: (names: string) =>
+      `Dziękujemy — ${names}: miejsce zarezerwowane. Następny krok to formularz rejestracyjny (jeden dla wszystkich zapisanych tu dzieci): dane potrzebne do umowy i do opieki na obozie (m.in. PESEL, uczulenia, dieta). Po jego wypełnieniu prześlemy dane do przelewu zaliczki i umowę.`,
+    waiting: (names: string) =>
+      `${names}: na tym turnusie zabrakło miejsca, więc jest na liście rezerwowej. Gdy zwolni się miejsce, odezwiemy się od razu — wtedy przyjdzie też formularz.`,
+    form: 'Wypełnij formularz rejestracyjny',
+    account: 'Zapisy widzisz w Moim koncie',
+    camp: 'Obóz',
+    dates: 'Termin',
+    place: 'Miejsce',
+    note: 'Masz pytanie? Po prostu odpowiedz na tę wiadomość.',
+  },
+  en: {
+    subject: (names: string, camp: string, allWaiting: boolean) =>
+      `${allWaiting ? 'Waiting list' : 'Camp booking'}: ${names} — ${camp}`,
+    placed: (names: string) =>
+      `Thank you — ${names}: place reserved. The next step is the registration form (one for all the children signed up here): the details we need for the contract and for looking after them at the camp (PESEL number, allergies, diet and more). Once it is filled in, we will send the bank details for the deposit and the contract.`,
+    waiting: (names: string) =>
+      `${names}: this session is full, so on the waiting list. We will get in touch as soon as a place frees up — the form comes then.`,
+    form: 'Fill in the registration form',
+    account: 'Your bookings are in your account',
+    camp: 'Camp',
+    dates: 'Dates',
+    place: 'Place',
+    note: 'Any questions? Just reply to this email.',
+  },
+} satisfies Record<EmailLanguage, unknown>
+
+/**
+ * To the parent, right after the sign-up — ONE email for the children signed
+ * up together, with one link to their one registration form (decided
+ * 21.10.2026). A child on the waiting list is named apart and gets its form
+ * once it has a place.
+ */
+export function campBookingReceivedEmail(lang: EmailLanguage, data: CampBookingEmailData): Email {
+  const copy = CAMP_RECEIVED[lang]
+  const details: [string, string][] = [
+    [copy.camp, data.campTitle],
+    [copy.dates, data.dates],
+  ]
+  if (data.location) details.push([copy.place, data.location])
+  const placed = joinNames(lang, data.placed)
+  const waiting = joinNames(lang, data.waiting)
+  const paragraphs = [
+    ...(placed ? [copy.placed(placed)] : []),
+    ...(waiting ? [copy.waiting(waiting)] : []),
+  ]
+  const action = data.registrationUrl
+    ? { label: copy.form, href: data.registrationUrl }
+    : data.accountUrl
+      ? { label: copy.account, href: data.accountUrl }
+      : undefined
+  // One list in the subject: "Zosia, Staś i Ala", not "Zosia i Staś, Ala".
+  const names = joinNames(lang, [...data.placed, ...data.waiting])
+  return {
+    subject: oneLine(copy.subject(names, data.campTitle, !placed)),
+    ...renderEmail({
+      lang,
+      heading: greeting(lang, data.firstName),
+      paragraphs,
+      details,
+      action,
+      note: copy.note,
+    }),
+  }
+}
+
+export interface NewCampBookingData {
+  /** The parent. */
+  name: string
+  email: string
+  phone: string
+  campTitle: string
+  dates: string
+  /** Only the children this sign-up added — one already booked is not news. */
+  children: { name: string; waitlist: boolean }[]
+  notes?: string | null
+  hasAccount: boolean
+  /** The session's camp bookings in the panel — the children are among them. */
+  adminUrl: string
+}
+
+/** To the school: children signed up for a camp — one email per sign-up. */
+export function newCampBookingNotification(data: NewCampBookingData): Email {
+  const waitlist = data.children.filter((c) => c.waitlist).length
+  const details: [string, string][] = [
+    ...data.children.map((c, i): [string, string] => [
+      data.children.length > 1 ? `Dziecko ${i + 1}` : 'Dziecko',
+      `${c.name}${c.waitlist ? ' (LISTA REZERWOWA)' : ''}`,
+    ]),
+    ['Rodzic', data.name],
+    ['E-mail', data.email],
+    ['Telefon', data.phone],
+    ['Obóz', data.campTitle],
+    ['Turnus', data.dates],
+    ['Konto', data.hasAccount ? 'tak' : 'nie (zapis bez konta)'],
+  ]
+  if (data.notes) details.push(['Uwagi', data.notes])
+  const names = data.children.map((c) => c.name).join(', ')
+  const intro =
+    waitlist === data.children.length
+      ? 'Nowe zgłoszenie na LISTĘ REZERWOWĄ — turnus jest pełny.'
+      : waitlist > 0
+        ? 'Nowy zapis na obóz — część dzieci trafiła na LISTĘ REZERWOWĄ, bo zabrakło miejsc. Rodzic dostał link do formularza rejestracyjnego dla dzieci z miejscem.'
+        : 'Nowy zapis na obóz. Rodzic dostał link do formularza rejestracyjnego — po jego wypełnieniu dostanie umowę.'
+  return {
+    subject: oneLine(
+      `${waitlist === data.children.length ? 'Lista rezerwowa' : 'Nowy zapis na obóz'}: ${names} — ${data.campTitle}`,
+    ),
+    ...renderEmail({
+      lang: 'pl',
+      heading:
+        waitlist === data.children.length ? 'Zgłoszenie na listę rezerwową' : 'Nowy zapis na obóz',
+      paragraphs: [intro],
+      details,
+      action: { label: 'Otwórz turnus w panelu', href: data.adminUrl },
+    }),
+  }
+}
+
+// --- Camp registration form ----------------------------------------------------
+
+export interface RegistrationEmailData {
+  /** The parent's. */
+  firstName?: string | null
+  childName: string
+  campTitle: string
+  dates: string
+  /** The child's registration form. */
+  url: string
+}
+
+/**
+ * Why the parent gets the link again: the school sent it from the panel,
+ * the child moved up from the waiting list, or the form is still empty.
+ */
+export type RegistrationLinkReason = 'again' | 'place' | 'reminder'
+
+const REGISTRATION_LINK = {
+  pl: {
+    subject: (child: string, reason: RegistrationLinkReason) =>
+      reason === 'place'
+        ? `Zwolniło się miejsce: ${child} — formularz rejestracyjny`
+        : reason === 'reminder'
+          ? `Przypomnienie: formularz rejestracyjny — ${child}`
+          : `Formularz rejestracyjny — ${child}`,
+    body: (child: string, reason: RegistrationLinkReason) =>
+      reason === 'place'
+        ? `Dobra wiadomość — zwolniło się miejsce i ${child} jest już na liście uczestników. Następny krok to formularz rejestracyjny: dane potrzebne do umowy i do opieki na obozie.`
+        : reason === 'reminder'
+          ? `Czekamy jeszcze na formularz rejestracyjny dla: ${child}. Bez niego nie przygotujemy umowy. Wypełnienie zajmuje kilka minut.`
+          : `Przesyłamy link do formularza rejestracyjnego dla: ${child}. Wypełnisz w nim dane potrzebne do umowy i do opieki na obozie.`,
+    action: 'Wypełnij formularz rejestracyjny',
+    child: 'Uczestnik',
+    camp: 'Obóz',
+    dates: 'Termin',
+    note: 'Link prowadzi do formularza tego dziecka — nie przekazuj go dalej. Pytania? Odpowiedz na tę wiadomość.',
+  },
+  en: {
+    subject: (child: string, reason: RegistrationLinkReason) =>
+      reason === 'place'
+        ? `A place is free: ${child} — registration form`
+        : reason === 'reminder'
+          ? `Reminder: registration form — ${child}`
+          : `Registration form — ${child}`,
+    body: (child: string, reason: RegistrationLinkReason) =>
+      reason === 'place'
+        ? `Good news — a place has freed up and ${child} is now on the list of participants. The next step is the registration form: the details we need for the contract and for looking after the child at the camp.`
+        : reason === 'reminder'
+          ? `We are still waiting for the registration form for ${child}. Without it we cannot prepare the contract. It takes a few minutes.`
+          : `Here is the link to the registration form for ${child}: the details we need for the contract and for looking after the child at the camp.`,
+    action: 'Fill in the registration form',
+    child: 'Participant',
+    camp: 'Camp',
+    dates: 'Dates',
+    note: 'The link opens this child’s form — do not pass it on. Questions? Reply to this email.',
+  },
+} satisfies Record<EmailLanguage, unknown>
+
+/** To the parent: the registration form's link, outside the first sign-up email. */
+export function registrationLinkEmail(
+  lang: EmailLanguage,
+  reason: RegistrationLinkReason,
+  data: RegistrationEmailData,
+): Email {
+  const copy = REGISTRATION_LINK[lang]
+  return {
+    subject: oneLine(copy.subject(data.childName, reason)),
+    ...renderEmail({
+      lang,
+      heading: greeting(lang, data.firstName),
+      paragraphs: [copy.body(data.childName, reason)],
+      details: [
+        [copy.child, data.childName],
+        [copy.camp, data.campTitle],
+        [copy.dates, data.dates],
+      ],
+      action: { label: copy.action, href: data.url },
+      note: copy.note,
+    }),
+  }
+}
+
+/** The payment details a camp email carries — already formatted by the caller. */
+export interface CampPaymentDetails {
+  /** "500 zł". */
+  deposit: string
+  /** The deadline, as a day ("8 marca 2027"). */
+  dueDate: string
+  recipient: string
+  account: string
+  title: string
+  /** "2000 zł", or null when the turnus has no price in the panel. */
+  remaining: string | null
+  /** Days before the camp up to which the money comes back in full. */
+  refundDays: number
+}
+
+const PAYMENT = {
+  pl: {
+    deposit: 'Zaliczka',
+    due: 'Termin wpłaty zaliczki',
+    rest: 'Pozostała kwota',
+    restWhen: 'najpóźniej w dniu rozpoczęcia obozu',
+    recipient: 'Odbiorca',
+    account: 'Numer konta',
+    title: 'Tytuł przelewu',
+    refund: (days: number) =>
+      `Rezygnacja do ${days} dni przed obozem — zwracamy całość. Później zaliczka przepada.`,
+  },
+  en: {
+    deposit: 'Deposit',
+    due: 'Deposit due by',
+    rest: 'Balance',
+    restWhen: 'by the first day of the camp at the latest',
+    recipient: 'Recipient',
+    account: 'Account number',
+    title: 'Transfer title',
+    refund: (days: number) =>
+      `Cancel up to ${days} days before the camp and you get everything back. After that the deposit is kept.`,
+  },
+} satisfies Record<EmailLanguage, unknown>
+
+function paymentRows(lang: EmailLanguage, p: CampPaymentDetails, withDeposit = true) {
+  const copy = PAYMENT[lang]
+  const rows: [string, string][] = []
+  if (withDeposit) rows.push([copy.deposit, p.deposit], [copy.due, p.dueDate])
+  if (p.remaining) rows.push([copy.rest, `${p.remaining} — ${copy.restWhen}`])
+  rows.push([copy.recipient, p.recipient], [copy.account, p.account], [copy.title, p.title])
+  return rows
+}
+
+const REGISTRATION_RECEIVED = {
+  pl: {
+    subject: (child: string) => `Formularz przyjęty, dane do przelewu — ${child}`,
+    body: (child: string, p: CampPaymentDetails) =>
+      `Dziękujemy — mamy formularz rejestracyjny dla: ${child}. Teraz zaliczka: ${p.deposit} do ${p.dueDate}, przelewem na konto poniżej.`,
+    contract: (email: string) =>
+      `W załączniku jest umowa, już podpisana przez nas. Wydrukuj ją, podpisz i odeślij skan albo zdjęcie na ${email}.`,
+    noContract: 'Umowę prześlemy w osobnym mailu.',
+    // Asked for 24.10.2026: "bring the card" alone left the parent asking
+    // where it comes from. It comes attached to the email before the camp
+    // (`preCampReminderDays`, about two weeks).
+    card: 'Pustą kartę kwalifikacyjną wyślemy mailem około dwóch tygodni przed obozem, razem z informacjami o wyjeździe — wypełnioną przywozisz na obóz.',
+    change: 'Gdyby coś się zmieniło przed obozem (np. leki), popraw formularz tym samym linkiem.',
+    action: 'Popraw formularz',
+    note: 'Pytania? Odpowiedz na tę wiadomość.',
+  },
+  en: {
+    subject: (child: string) => `Form received, payment details — ${child}`,
+    body: (child: string, p: CampPaymentDetails) =>
+      `Thank you — we have the registration form for ${child}. Next is the deposit: ${p.deposit} by ${p.dueDate}, by transfer to the account below.`,
+    contract: (email: string) =>
+      `The contract is attached, already signed by us. Print it, sign it and send a scan or a photo back to ${email}.`,
+    noContract: 'The contract will follow in a separate email.',
+    card: 'We will email the blank qualification card about two weeks before the camp, with the camp details — bring it filled in to the camp.',
+    change:
+      'If anything changes before the camp (medication, say), correct the form with the same link.',
+    action: 'Correct the form',
+    note: 'Questions? Reply to this email.',
+  },
+} satisfies Record<EmailLanguage, unknown>
+
+/**
+ * To the parent, after the FIRST save of the form: the deposit, its
+ * deadline (`DEPOSIT_DAYS` from this email) and the bank details. No health
+ * data in it: an email passes through Brevo and sits in a mailbox for years.
+ */
+export function registrationReceivedEmail(
+  lang: EmailLanguage,
+  data: RegistrationEmailData & {
+    payment: CampPaymentDetails
+    /** The contract PDF is attached to this email. */
+    contractAttached?: boolean
+    /** Where the signed contract goes back. */
+    contractEmail?: string
+  },
+): Email {
+  const copy = REGISTRATION_RECEIVED[lang]
+  return {
+    subject: oneLine(copy.subject(data.childName)),
+    ...renderEmail({
+      lang,
+      heading: greeting(lang, data.firstName),
+      paragraphs: [
+        copy.body(data.childName, data.payment),
+        data.contractAttached && data.contractEmail
+          ? copy.contract(data.contractEmail)
+          : copy.noContract,
+        copy.card,
+        PAYMENT[lang].refund(data.payment.refundDays),
+        copy.change,
+      ],
+      details: [
+        [REGISTRATION_LINK[lang].camp, data.campTitle],
+        [REGISTRATION_LINK[lang].dates, data.dates],
+        ...paymentRows(lang, data.payment),
+      ],
+      action: { label: copy.action, href: data.url },
+      note: copy.note,
+    }),
+  }
+}
+
+const DEPOSIT_REMINDER = {
+  pl: {
+    subject: (child: string) => `Przypomnienie o zaliczce — ${child}`,
+    body: (child: string, p: CampPaymentDetails) =>
+      `Nie widzimy jeszcze zaliczki za obóz dla: ${child} (termin minął ${p.dueDate}). Jeśli przelew już poszedł, zignoruj tę wiadomość — księgowanie bywa wolniejsze. Jeśli coś się zmieniło, odpowiedz na tego maila.`,
+    note: 'Pytania? Odpowiedz na tę wiadomość.',
+  },
+  en: {
+    subject: (child: string) => `Deposit reminder — ${child}`,
+    body: (child: string, p: CampPaymentDetails) =>
+      `We have not seen the camp deposit for ${child} yet (it was due on ${p.dueDate}). If you have already paid, ignore this email — transfers can take a while. If something has changed, reply to this email.`,
+    note: 'Questions? Reply to this email.',
+  },
+} satisfies Record<EmailLanguage, unknown>
+
+/** To the parent, once, when the deposit's deadline passed without it. */
+export function depositReminderEmail(
+  lang: EmailLanguage,
+  data: Omit<RegistrationEmailData, 'url'> & { payment: CampPaymentDetails },
+): Email {
+  const copy = DEPOSIT_REMINDER[lang]
+  return {
+    subject: oneLine(copy.subject(data.childName)),
+    ...renderEmail({
+      lang,
+      heading: greeting(lang, data.firstName),
+      paragraphs: [copy.body(data.childName, data.payment)],
+      details: [
+        [REGISTRATION_LINK[lang].camp, data.campTitle],
+        [REGISTRATION_LINK[lang].dates, data.dates],
+        ...paymentRows(lang, data.payment),
+      ],
+      note: copy.note,
+    }),
+  }
+}
+
+export interface CampStatusEmailData {
+  /** The parent's. */
+  firstName?: string | null
+  childName: string
+  campTitle: string
+  dates: string
+  location?: string | null
+  /** For "deposit": what is left and where it goes; null without a price. */
+  payment: CampPaymentDetails | null
+  accountUrl?: string | null
+}
+
+const CAMP_STATUS = {
+  pl: {
+    confirmed: {
+      subject: (c: string) => `Miejsce potwierdzone: ${c}`,
+      body: (c: string) => `Miejsce na obozie dla: ${c} jest potwierdzone.`,
+    },
+    deposit: {
+      subject: (c: string) => `Zaliczka wpłynęła: ${c}`,
+      body: (c: string, p: CampPaymentDetails | null) =>
+        `Dziękujemy — zaliczka za obóz dla: ${c} jest zaksięgowana. ${
+          p?.remaining
+            ? `Do zapłaty zostało ${p.remaining} — najpóźniej w dniu rozpoczęcia obozu.`
+            : 'Resztę kwoty zapłać najpóźniej w dniu rozpoczęcia obozu.'
+        }`,
+    },
+    paid: {
+      subject: (c: string) => `Obóz opłacony: ${c}`,
+      body: (c: string) =>
+        `Dziękujemy — obóz dla: ${c} jest opłacony w całości. Do zobaczenia w skałach!`,
+    },
+    cancelled: {
+      subject: (c: string) => `Zapis anulowany: ${c}`,
+      body: (c: string) =>
+        `Zapis na obóz dla: ${c} został anulowany. Jeśli to pomyłka, odpowiedz na tę wiadomość.`,
+    },
+    child: 'Uczestnik',
+    camp: 'Obóz',
+    dates: 'Termin',
+    place: 'Miejsce',
+    account: 'Moje konto',
+  },
+  en: {
+    confirmed: {
+      subject: (c: string) => `Place confirmed: ${c}`,
+      body: (c: string) => `The camp place for ${c} is confirmed.`,
+    },
+    deposit: {
+      subject: (c: string) => `Deposit received: ${c}`,
+      body: (c: string, p: CampPaymentDetails | null) =>
+        `Thank you — the camp deposit for ${c} has arrived. ${
+          p?.remaining
+            ? `${p.remaining} is left to pay, by the first day of the camp at the latest.`
+            : 'Please pay the rest by the first day of the camp at the latest.'
+        }`,
+    },
+    paid: {
+      subject: (c: string) => `Camp paid: ${c}`,
+      body: (c: string) => `Thank you — the camp for ${c} is paid in full. See you on the rocks!`,
+    },
+    cancelled: {
+      subject: (c: string) => `Booking cancelled: ${c}`,
+      body: (c: string) =>
+        `The camp booking for ${c} has been cancelled. If this is a mistake, reply to this email.`,
+    },
+    child: 'Participant',
+    camp: 'Camp',
+    dates: 'Dates',
+    place: 'Place',
+    account: 'My account',
+  },
+} satisfies Record<EmailLanguage, unknown>
+
+/**
+ * To the parent when the school changes a CAMP booking's status — the
+ * course wording ("kurs", "kursant") read wrong to a parent. "deposit" says
+ * what is left to pay and repeats the account for it.
+ */
+export function campStatusEmail(
+  lang: EmailLanguage,
+  status: 'confirmed' | 'deposit' | 'paid' | 'cancelled',
+  data: CampStatusEmailData,
+): Email {
+  const copy = CAMP_STATUS[lang]
+  const details: [string, string][] = [
+    [copy.child, data.childName],
+    [copy.camp, data.campTitle],
+    [copy.dates, data.dates],
+  ]
+  if (data.location) details.push([copy.place, data.location])
+  if (status === 'deposit' && data.payment) details.push(...paymentRows(lang, data.payment, false))
+  return {
+    subject: oneLine(copy[status].subject(data.childName)),
+    ...renderEmail({
+      lang,
+      heading: greeting(lang, data.firstName),
+      paragraphs: [copy[status].body(data.childName, data.payment)],
+      details,
+      action: data.accountUrl ? { label: copy.account, href: data.accountUrl } : undefined,
+    }),
+  }
+}
+
+export interface RegistrationNotificationData {
+  childName: string
+  parent: string
+  campTitle: string
+  dates: string
+  /** The parent corrected a form sent before. */
+  updated: boolean
+  adminUrl: string
+}
+
+/**
+ * To the school: a registration form came in or changed. Deliberately
+ * without the answers — health data stays in the panel, not in mailboxes.
+ */
+export function registrationNotification(data: RegistrationNotificationData): Email {
+  const intro = data.updated
+    ? 'Rodzic poprawił formularz rejestracyjny (np. leki albo uczulenia). Aktualne dane są w panelu.'
+    : 'Rodzic wypełnił formularz rejestracyjny. Dane (PESEL, wzrost, zdrowie) są w panelu — w mailu ich nie ma.'
+  return {
+    subject: oneLine(
+      `${data.updated ? 'Formularz poprawiony' : 'Formularz rejestracyjny'}: ${data.childName} — ${data.campTitle}`,
+    ),
+    ...renderEmail({
+      lang: 'pl',
+      heading: data.updated ? 'Formularz rejestracyjny poprawiony' : 'Nowy formularz rejestracyjny',
+      paragraphs: [intro],
+      details: [
+        ['Dziecko', data.childName],
+        ['Rodzic', data.parent],
+        ['Obóz', data.campTitle],
+        ['Turnus', data.dates],
+      ],
+      action: { label: 'Otwórz w panelu', href: data.adminUrl },
+    }),
+  }
+}
+
 export interface PlaceFreedData {
   courseTitle: string
   dates: string
@@ -448,6 +972,35 @@ export function placeFreedNotification(data: PlaceFreedData): Email {
       ],
       details,
       action: { label: 'Otwórz termin w panelu', href: data.adminUrl },
+    }),
+  }
+}
+
+export interface PreCampDraftData {
+  campTitle: string
+  dates: string
+  /** Parents the draft goes to — with a place, one per address. */
+  recipients: number
+  adminUrl: string
+}
+
+/** To the school, before a camp: the parents' email waits as a draft. */
+export function preCampDraftNotification(data: PreCampDraftData): Email {
+  return {
+    subject: oneLine(`Mail przed obozem czeka na uzupełnienie: ${data.campTitle}, ${data.dates}`),
+    ...renderEmail({
+      lang: 'pl',
+      heading: 'Mail przed obozem — szkic gotowy',
+      paragraphs: [
+        'W „Wysyłkach” czeka szkic maila do rodziców tego turnusu: co spakować i co przywieźć. Uzupełnij to, co w nawiasach kwadratowych — miejsce zbiórki, daty i godziny — i kliknij „Wyślij”.',
+        'Nic nie wyjdzie, dopóki go nie wyślesz.',
+      ],
+      details: [
+        ['Obóz', data.campTitle],
+        ['Termin', data.dates],
+        ['Rodzice z miejscem (dziś)', String(data.recipients)],
+      ],
+      action: { label: 'Otwórz szkic w panelu', href: data.adminUrl },
     }),
   }
 }
@@ -516,6 +1069,16 @@ export interface BroadcastEmailData {
   /** Rendered by `renderRichText` — escaped there. */
   body: { html: string; text: string }
   reason: BroadcastReason
+  /** The blank qualification card goes attached (`attachQualificationCard`). */
+  qualificationCard?: boolean
+}
+
+// Asked for 24.10.2026: an attachment under a long text is easy to miss, and
+// the card is the one thing the parent must bring. Added by the system, not
+// left to the school's text — ticking the box is enough.
+const CARD_ATTACHED: Record<EmailLanguage, string> = {
+  pl: 'W ZAŁĄCZNIKU: PUSTA KARTA KWALIFIKACYJNA (PDF). Wydrukuj ją, wypełnij i przywieź na obóz.',
+  en: 'ATTACHED: THE BLANK QUALIFICATION CARD (PDF). Print it, fill it in and bring it to the camp.',
 }
 
 /** A message the school writes in the panel ("Wysyłki") to a group of people. */
@@ -529,12 +1092,14 @@ export function broadcastEmail(lang: EmailLanguage, data: BroadcastEmailData): E
         ? copy.upcoming
         : copy.newsletter
   const subject = oneLine(data.subject)
+  const callout = data.qualificationCard ? CARD_ATTACHED[lang] : undefined
   return {
     subject,
     ...renderEmail({
       lang,
-      preheader: data.body.text.slice(0, 120),
+      preheader: callout ?? data.body.text.slice(0, 120),
       heading: subject,
+      callout,
       paragraphs: [],
       body: data.body,
       secondaryAction:

@@ -19,6 +19,8 @@ test('"Zapisz się" never leads away from a form the visitor is filling in', () 
   // visitor to the schedule, mid-form.
   for (const path of [
     '/kursy/kurs-pza/zapis',
+    '/obozy/oboz-letni/zapis',
+    '/obozy/rejestracja',
     '/kontakt',
     '/logowanie',
     '/rejestracja',
@@ -33,7 +35,7 @@ test('"Zapisz się" never leads away from a form the visitor is filling in', () 
 
 test('"Zapisz się" on a course or camp page leads to that one, on a list to its dates, elsewhere to the schedule', () => {
   assert.equal(signUpHref('/kursy/kurs-pza'), '/kursy/kurs-pza/zapis')
-  assert.equal(signUpHref('/obozy/oboz-letni'), '/kontakt?camp=oboz-letni')
+  assert.equal(signUpHref('/obozy/oboz-letni'), '/obozy/oboz-letni/zapis')
   assert.equal(signUpHref('/'), '/terminarz')
   assert.equal(signUpHref('/kursy'), '/terminarz?show=courses')
   assert.equal(signUpHref('/obozy'), '/terminarz?show=camps')

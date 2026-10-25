@@ -8,9 +8,10 @@ import {
   type StatusEmail,
 } from '@/lib/bookings'
 import { emailFailureReason } from '@/lib/broadcasts'
+import { campMailbox, campPrice, campSender, joinNames, paymentDetails } from '@/lib/campPayment'
 import { publicUrl } from '@/lib/email/links'
 import type { EmailLanguage } from '@/lib/email/language'
-import { bookingStatusEmail, placeFreedNotification } from '@/lib/email/templates'
+import { bookingStatusEmail, campStatusEmail, placeFreedNotification } from '@/lib/email/templates'
 import type { Booking, Session } from '@/payload-types'
 
 /**
@@ -120,7 +121,13 @@ export async function sessionSummary(
   sessionId: number,
   lang: EmailLanguage,
   req?: Req,
-): Promise<{ courseTitle: string; dates: string; location: string | null } | null> {
+): Promise<{
+  courseTitle: string
+  dates: string
+  location: string | null
+  /** The session's own price, else its course's or camp's; null when none. */
+  price: number | null
+} | null> {
   const session = (await payload.findByID({
     collection: 'sessions',
     id: sessionId,
@@ -136,11 +143,104 @@ export async function sessionSummary(
   return {
     courseTitle: course?.title ?? camp?.title ?? '',
     dates: formatSessionDates(lang, session.startDate, session.endDate),
-    location: session.location || course?.location || null,
+    location: session.location || course?.location || camp?.location || null,
+    price: campPrice(session.price, course?.price ?? camp?.price),
   }
 }
 
-/** Tells the participant their booking was confirmed, paid or cancelled. */
+/**
+ * Tells the participant their booking was confirmed, paid or cancelled — and,
+ * on a camp, that the deposit arrived (`statusEmailForKind`).
+ */
+/**
+ * The children of `booking`'s sign-up that have a place — those sharing its
+ * registration link (the token is hidden, so read again with it), the
+ * booking itself included and in sign-up order. Alone without a link.
+ */
+async function depositSiblings(payload: Payload, booking: Booking, req?: Req): Promise<Booking[]> {
+  const own = (await payload.findByID({
+    collection: 'bookings',
+    id: booking.id,
+    depth: 0,
+    overrideAccess: true,
+    showHiddenFields: true,
+    req,
+  })) as Booking
+  if (!own.registrationToken) return [own]
+  const { docs } = await payload.find({
+    collection: 'bookings',
+    where: {
+      and: [
+        { registrationToken: { equals: own.registrationToken } },
+        { status: { not_in: ['cancelled', 'waitlist'] } },
+      ],
+    },
+    sort: 'createdAt',
+    limit: 50,
+    depth: 0,
+    overrideAccess: true,
+    req,
+  })
+  return docs.length ? docs : [own]
+}
+
+/**
+ * Deposit emails left waiting: siblings get one, once the last child with a
+ * place is marked (`sendStatusEmail`) — but when the child it waited for
+ * drops out instead (cancelled, waiting list, deleted), no click would ever
+ * send it. The daily sweep does, for the children left. Not at once on the
+ * dropout: a family withdrawing whole is clicked one child at a time, and
+ * would get "zaliczka wpłynęła" between two cancellations.
+ */
+export async function sendWaitingDepositEmails(
+  payload: Payload,
+  // Tests narrow the sweep to their own turnusy — the dev database has others.
+  onlySessions?: number[],
+): Promise<void> {
+  const { docs } = await payload.find({
+    collection: 'bookings',
+    where: {
+      and: [
+        ...(onlySessions ? [{ session: { in: onlySessions } }] : []),
+        { kind: { equals: 'camp' } },
+        { status: { equals: 'deposit' } },
+        { email: { exists: true } },
+        { depositEmailAt: { exists: false } },
+        { 'session.startDate': { greater_than: new Date().toISOString() } },
+      ],
+    },
+    sort: 'createdAt',
+    pagination: false,
+    depth: 0,
+    overrideAccess: true,
+    showHiddenFields: true,
+  })
+  const seen = new Set<string>()
+  for (const booking of docs) {
+    const key = booking.registrationToken || `booking-${booking.id}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    let siblings: Booking[] = [booking]
+    try {
+      siblings = await depositSiblings(payload, booking)
+      if (siblings.some((b) => b.status === 'new' || b.status === 'confirmed')) continue
+      await sendStatusEmail(payload, booking, 'deposit')
+    } catch (error) {
+      // Noted once, and every child marked so that tomorrow does not try again.
+      await recordEmailIssue(payload, booking.id, 'Mail „zaliczka wpłynęła”', error)
+      for (const b of siblings.filter((s) => s.status === 'deposit')) {
+        await payload.db
+          .updateOne({
+            collection: 'bookings',
+            id: b.id,
+            data: { depositEmailAt: new Date().toISOString() },
+          })
+          .catch(() => undefined)
+      }
+    }
+  }
+}
+
 export async function sendStatusEmail(
   payload: Payload,
   booking: Booking,
@@ -155,19 +255,59 @@ export async function sendStatusEmail(
   const lang = booking.language === 'en' ? 'en' : 'pl'
   const summary = await sessionSummary(payload, sessionId, lang, req)
   if (!summary) return
-  const email = bookingStatusEmail(lang, status, {
-    firstName: booking.firstName,
-    ...summary,
-    accountUrl: idOf(booking.customer) ? `${publicUrl()}/konto` : null,
-  })
+  const accountUrl = idOf(booking.customer) ? `${publicUrl()}/konto` : null
+  const camp = booking.kind === 'camp'
+  // A camp email speaks to the parent about the child; the course one says
+  // "kurs" and has no deposit email.
+  const childName = [booking.childFirstName, booking.childLastName].filter(Boolean).join(' ')
+  // Siblings signed up together pay their deposits in one transfer, and the
+  // school marks each child: one email, once the LAST of them is marked
+  // (Mateusz, 22.10.2026), naming those with a deposit and their balance.
+  let children = [childName]
+  let depositIds = [booking.id]
+  if (camp && status === 'deposit') {
+    const siblings = await depositSiblings(payload, booking, req)
+    if (siblings.some((b) => b.status === 'new' || b.status === 'confirmed')) return
+    // A child already paid in full is neither in it nor in its balance.
+    const paid = siblings.filter((b) => b.status === 'deposit')
+    children = paid.map((b) => [b.childFirstName, b.childLastName].filter(Boolean).join(' '))
+    depositIds = paid.map((b) => b.id)
+  }
+  const email = camp
+    ? campStatusEmail(lang, status, {
+        firstName: booking.firstName,
+        childName: joinNames(lang, children),
+        campTitle: summary.courseTitle,
+        dates: summary.dates,
+        location: summary.location,
+        payment: status === 'deposit' ? paymentDetails(lang, children, summary.price, null) : null,
+        accountUrl,
+      })
+    : bookingStatusEmail(lang, status as 'confirmed' | 'paid' | 'cancelled', {
+        firstName: booking.firstName,
+        ...summary,
+        accountUrl,
+      })
   await payload.sendEmail({
     to: booking.email,
     // A reply goes to the school, not to an address with no mailbox.
-    replyTo: process.env.ADMIN_NOTIFY_EMAIL || undefined,
+    ...(camp ? { from: campSender() } : {}),
+    replyTo: (camp ? campMailbox() : process.env.ADMIN_NOTIFY_EMAIL) || undefined,
     subject: email.subject,
     html: email.html,
     text: email.text,
   })
+  // The siblings' deposit email went: the daily sweep leaves them alone.
+  if (camp && status === 'deposit') {
+    for (const id of depositIds) {
+      await payload.db.updateOne({
+        collection: 'bookings',
+        id,
+        data: { depositEmailAt: new Date().toISOString() },
+        req,
+      })
+    }
+  }
 }
 
 /**
@@ -199,7 +339,8 @@ export async function recordEmailIssue(
       req,
       overrideAccess: true,
     })
-    const line = `${what} — ${emailFailureReason(error)}`
+    // A string is the reason itself — a problem of ours, not of the sending.
+    const line = `${what} — ${typeof error === 'string' ? error : emailFailureReason(error)}`
     const open = current.emailIssue && !current.emailIssueHandled ? current.emailIssue : null
     await payload.update({
       collection: 'bookings',

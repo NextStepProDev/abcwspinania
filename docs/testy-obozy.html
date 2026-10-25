@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Scenariusz testów — obozy — ABC Wspinania</title>
+<!--
+  Manual test scenario for camp bookings (ZAKRES item 2), in the shape and
+  voice of docs/testy-reczne.html: Mateusz writes for Krzysiek; the technical
+  part (P, Z) is Mateusz's own appendix at the end. Walked through with
+  Mateusz locally first (22.10.2026); production comes after his decision.
+  Test data: `npm run seed:test:camps` (web/scripts/test-data/camps.ts); on
+  production the "Test data" workflow with "camps" chosen.
+  Change a camp feature — change its steps here in the same commit.
+  PDF later, as for courses: from a COPY in which {{HASLO_TESTOWE}} and
+  {{SKRZYNKA}} are replaced — never in this file (the repository is public).
+-->
+<style>
+  @page { size: A4; margin: 16mm 14mm 16mm 14mm; }
+  :root { --ink: #23201b; --muted: #6b645a; --accent: #0b4a99; --soft: #eef3fa; --warn: #fff6e5; --warn-line: #e3a73a; --stop: #fdecea; --stop-line: #c0392b; --line: #ddd6cb; --head: #f4f1ec; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; color: var(--ink); font-size: 10.5pt; line-height: 1.5; margin: 0; }
+  h1 { font-size: 26pt; line-height: 1.15; margin: 0 0 8pt; }
+  h2 { font-size: 15pt; margin: 0 0 8pt; color: var(--accent); break-after: avoid; }
+  h3 { font-size: 11.5pt; margin: 12pt 0 5pt; break-after: avoid; }
+  p { margin: 0 0 7pt; }
+  ul, ol { margin: 0 0 8pt; padding-left: 17pt; }
+  li { margin-bottom: 2pt; }
+  section { break-before: page; }
+  .cover { height: 255mm; display: flex; flex-direction: column; justify-content: center; }
+  .cover .brand { color: var(--accent); font-weight: 700; font-size: 13pt; margin-bottom: 18pt; letter-spacing: .02em; }
+  .cover .lead { font-size: 12.5pt; color: var(--muted); max-width: 150mm; }
+  .cover table { margin-top: 26pt; max-width: 120mm; }
+  .box { border-radius: 5pt; padding: 7pt 10pt; margin: 7pt 0 10pt; break-inside: avoid; }
+  .do { background: var(--soft); border-left: 4px solid var(--accent); }
+  .warn { background: var(--warn); border-left: 4px solid var(--warn-line); }
+  .stop { background: var(--stop); border-left: 4px solid var(--stop-line); }
+  .box > strong:first-child { display: block; margin-bottom: 2pt; }
+  table { border-collapse: collapse; width: 100%; margin: 5pt 0 10pt; font-size: 9.5pt; }
+  th, td { text-align: left; vertical-align: top; padding: 4pt 6pt; border: 1px solid var(--line); }
+  th { background: var(--head); font-weight: 600; }
+  tr { break-inside: avoid; }
+  thead { display: table-header-group; }
+  table.steps td:nth-child(1) { width: 9mm; font-weight: 700; color: var(--accent); }
+  table.steps td:nth-child(2) { width: 82mm; }
+  code { font-family: "SF Mono", Menlo, monospace; font-size: 8.8pt; background: #f4f1ec; padding: 0 2pt; border-radius: 2pt; overflow-wrap: anywhere; }
+  .cmd { display: block; font-family: "SF Mono", Menlo, monospace; font-size: 8.6pt; background: #23201b; color: #f4f1ec; padding: 4pt 6pt; border-radius: 3pt; margin: 3pt 0 5pt; overflow-wrap: anywhere; }
+  .ui { font-weight: 600; }
+  .muted { color: var(--muted); }
+  .who { display: inline-block; font-size: 8.5pt; font-weight: 700; color: #fff; background: var(--accent); border-radius: 3pt; padding: 0 4pt; margin-right: 4pt; }
+  .toc ol { list-style: none; padding-left: 0; columns: 2; column-gap: 12mm; }
+  .toc li { margin-bottom: 4pt; }
+  .toc .box ol { list-style: decimal; padding-left: 17pt; columns: auto; }
+  table.accounts td code { white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="brand">ABC Wspinania</div>
+  <h1>Scenariusz testów — obozy</h1>
+  <p class="lead">Zapisy na obozy krok po kroku: zapis dzieci na stronie, formularz rejestracyjny, umowa i dane do przelewu, zaliczka, lista rezerwowa, panel szkoły i mail przed obozem — z tym, co ma się stać na ekranie i w skrzynce. Przed testem wgrywam gotowe konta i turnusy testowe, po teście je usuwam.</p>
+  <table>
+    <tr><th>Wersja aplikacji</th><td>&nbsp;</td></tr>
+    <tr><th>Data przejścia</th><td>&nbsp;</td></tr>
+  </table>
+</div>
+
+<section class="toc">
+  <h2>Spis treści</h2>
+  <ol>
+    <li>Jak to działa — przeczytaj najpierw</li>
+    <li>Konta i turnusy testowe</li>
+    <li>0. Start testu</li>
+    <li>A. Zapis dzieci na stronie</li>
+    <li>B. Formularz rejestracyjny i umowa</li>
+    <li>C. Faktura i umowa w panelu</li>
+    <li>D. Zaliczka</li>
+    <li>E. Lista rezerwowa</li>
+    <li>F. Panel — pulpit, Excel, rodzeństwo przez telefon</li>
+    <li>G. Mail przed obozem</li>
+    <li>H. Moje konto rodzica</li>
+    <li>I. Dane osoby (RODO)</li>
+    <li>Na koniec</li>
+    <li>Dodatek: część techniczna (dla mnie)</li>
+  </ol>
+
+  <h3>Jak to działa — przeczytaj najpierw</h3>
+  <ul>
+    <li><b>Ty niczego nie przygotowujesz.</b> Przed testem wgrywam gotowe konta rodziców, dzieci i turnusy testowe. Ty klikasz po stronie i w panelu, a scenariusz mówi, co ma się wtedy stać.</li>
+    <li><b>Maile są prawdziwe.</b> Każdy rodzic testowy ma adres będący odmianą <b>jednej</b> skrzynki — mojej: <code>{{SKRZYNKA}}<b>+abctestoboz-anna</b>@gmail.com</code>. Dla strony to osobne osoby. Maile obozowe przychodzą od <b>„ABC Wspinania · Obozy”</b>. W polu „Do” maila widzisz, do którego „rodzica” przyszedł.</li>
+    <li>Każdy krok ma numer (np. <b>B3</b>), <b>co zrobić</b> i <b>co ma się stać</b>. Niczego nie zaznaczasz. <b>Coś wygląda inaczej, niż pisze scenariusz — od razu napisz mi na WhatsAppie:</b> numer kroku, co widzisz zamiast tego i zrzut ekranu (<b>⌘⇧4</b>).</li>
+    <li><b>Błąd, który blokuje dalsze kroki</b> (nie przyszedł mail, formularz się nie zapisał, nie ma umowy) — <b>zatrzymaj się i poczekaj</b>, aż napiszę, że naprawione. <b>Drobiazg</b> (literówka, wygląd, dziwny tekst) — napisz i idź dalej.</li>
+    <li>Kroki idą po kolei — późniejsze korzystają z wcześniejszych. Całość: około 2 godzin. Można przerwać i wrócić następnego dnia — dane czekają.</li>
+    <li><b>Ceny w teście:</b> każdy turnus testowy kosztuje <b>2500 zł</b> za dziecko, zaliczka <b>500 zł</b> za dziecko. Kwoty w mailach i w umowie liczą się z tego.</li>
+  </ul>
+
+  <div class="box stop"><strong>Dwie zasady — dzięki nim po teście usunę wszystko jednym poleceniem</strong>
+  <ol style="margin:0">
+    <li><b>Każdy adres, który wpisujesz, ma mieć <code>+abctestoboz-</code></b> — przy zapisie na stronie, w formularzu i przy zapisie dodanym w panelu.</li>
+    <li><b>Zapisuj dzieci wyłącznie na turnusy z dopiskiem „TURNUS TESTOWY — nie zapisuj się”.</b></li>
+  </ol></div>
+</section>
+
+<section>
+  <h2>Słowniczek — co znaczy, gdy scenariusz mówi…</h2>
+  <table>
+    <thead><tr><th style="width:42mm">Słowo</th><th>Co to znaczy</th></tr></thead>
+    <tr><td><b>Strona</b></td><td><code>https://szkolawspinaczkowa.pl</code> — to, co widzi rodzic.</td></tr>
+    <tr><td><b>Panel</b></td><td><code>https://szkolawspinaczkowa.pl/admin</code> — zaplecze szkoły. W menu po lewej: <span class="ui">Pulpit</span>, <span class="ui">Zapisy na kursy</span>, <span class="ui">Zapisy na obozy</span>, a niżej grupy <span class="ui">Treść</span> (Obozy i wyjazdy, Terminy…), <span class="ui">Zapisy</span> (Formularze rejestracyjne, Wysyłki, Uczestnicy), <span class="ui">Ustawienia</span> (Pliki prywatne, Ustawienia obozów).</td></tr>
+    <tr><td><b>Przeglądarka rodzica / szkoły</b></td><td>Dwie <b>różne</b> przeglądarki (np. Chrome i Safari). Strona i panel używają jednego logowania: zalogowanie się jako rodzic w tej samej przeglądarce <b>wylogowuje z panelu</b> i odwrotnie.</td></tr>
+    <tr><td><b>Zgłoszenie</b></td><td>Jeden zapis na stronie — jedno albo kilkoro dzieci naraz. Rodzeństwo z jednego zgłoszenia ma <b>jeden</b> formularz rejestracyjny, <b>jedną</b> umowę i <b>jeden</b> przelew zaliczki.</td></tr>
+    <tr><td><b>Formularz rejestracyjny</b></td><td>Drugi krok po zapisie: PESEL, wzrost, zdrowie dziecka, adres rodzica, faktura, zgody. Link przychodzi mailem; rodzic z kontem ma go też w <span class="ui">Moim koncie</span>. Działa do dnia rozpoczęcia obozu — można wracać i poprawiać.</td></tr>
+    <tr><td><b>Lista rozwijana statusu</b></td><td>Na liście <span class="ui">Zapisy na obozy</span> w kolumnie „Status” każdy wiersz ma swoją listę. Zmiana zapisuje się od razu. Status, po którym rodzic dostaje maila, najpierw pyta „Zmienić…?” (okienko przeglądarki — kliknij <span class="ui">OK</span>).</td></tr>
+    <tr><td><b>Poranne sprzątanie</b></td><td>Codziennie o 8:00 strona sama wysyła przypomnienia (o formularzu, o zaliczce) i przygotowuje szkic maila przed obozem. Kroki, które na to czekają, mówią „następnego dnia”.</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Konta i turnusy testowe</h2>
+  <p>Wgrywam je przed testem. <b>Hasło każdego gotowego konta: <code>{{HASLO_TESTOWE}}</code></b> (to samo co w testach kursów). <b>Kontom, które założysz w trakcie testu, ustaw to samo hasło</b> — wtedy do każdego konta wejdziesz bez zgadywania, także ja przy sprawdzaniu. Adresy kopiuj i wklejaj <b>dokładnie</b>, razem z częścią po plusie.</p>
+  <table class="accounts">
+    <thead><tr><th>Rodzic</th><th>Adres</th><th>Na start</th></tr></thead>
+    <tr><td>Anna</td><td><code>{{SKRZYNKA}}+abctestoboz-anna@gmail.com</code></td><td><b>ma konto</b>. Zosia i Staś na turnusie <b>otwartym</b>, formularz <b>niewypełniony</b>; w archiwum Julka (starsza siostra) z wcześniejszego obozu</td></tr>
+    <tr><td>Jan</td><td><code>{{SKRZYNKA}}+abctestoboz-jan@gmail.com</code></td><td>bez konta. Ola na turnusie <b>otwartym</b>, formularz wypełniony, umowa i dane do przelewu „wysłane”</td></tr>
+    <tr><td>Piotr</td><td><code>{{SKRZYNKA}}+abctestoboz-piotr@gmail.com</code></td><td>bez konta. Bartek na turnusie <b>prawie pełnym</b>, faktura na firmę, zaliczka <b>po terminie</b></td></tr>
+    <tr><td>Ewelina</td><td><code>{{SKRZYNKA}}+abctestoboz-ewelina@gmail.com</code></td><td>bez konta. Hania z miejscem na turnusie <b>prawie pełnym</b>, Tymek na <b>liście rezerwowej</b></td></tr>
+    <tr><td>Kasia</td><td><code>{{SKRZYNKA}}+abctestoboz-kasia@gmail.com</code></td><td>bez konta. Kuba na turnusie <b>za 10 dni</b>, zaliczka wpłacona</td></tr>
+    <tr><td>Nowy</td><td><code>{{SKRZYNKA}}+abctestoboz-nowy@gmail.com</code><br><code>{{SKRZYNKA}}+abctestoboz-konto@gmail.com</code></td><td><b>nie istnieją</b> — zapisujesz nimi dzieci od zera w rozdziale A</td></tr>
+  </table>
+
+  <h3>Turnusy testowe</h3>
+  <p>Na pierwszym obozie w ofercie, z dopiskiem <b>„TURNUS TESTOWY — nie zapisuj się”</b> (widać go w Terminarzu i w formularzu zapisu). Turnusy <b>bez</b> tego dopisku to prawdziwa oferta — w teście ich nie ruszaj.</p>
+  <table>
+    <thead><tr><th>Turnus</th><th>Kiedy</th><th>Na start</th></tr></thead>
+    <tr><td><b>Otwarty</b></td><td>za ok. 5 tygodni, tydzień</td><td>8 miejsc: Zosia, Staś, Ola — <b>5 wolnych</b></td></tr>
+    <tr><td><b>Prawie pełny</b></td><td>za ok. 7 tygodni</td><td>3 miejsca: Bartek, Hania — <b>1 wolne</b>; Tymek na liście rezerwowej</td></tr>
+    <tr><td><b>Za 10 dni</b></td><td>za 10 dni</td><td>8 miejsc: Kuba — do niego idzie mail przed obozem</td></tr>
+    <tr><td><b>Zakończony</b></td><td>ok. 40 dni temu</td><td>Julka Kowalska (opłacony) — do archiwum Anny</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>0. Start testu</h2>
+  <table class="steps">
+    <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th></tr></thead>
+    <tr><td>0.1</td><td>Otwórz <b>dwie przeglądarki</b>. W pierwszej (<b>rodzic</b>) wejdź na <code>szkolawspinaczkowa.pl</code>. W drugiej (<b>szkoła</b>) — na <code>szkolawspinaczkowa.pl/admin</code> i zaloguj się swoim kontem panelu.</td><td>Szkoła: pulpit „Do zrobienia”, w części <b>Obozy</b> kafelki: Nowe zgłoszenia (<b>4</b> — Zosia, Staś, Ola, Bartek: zapisy, których jeszcze nie potwierdziłeś), Bez formularza (<b>3</b> — Zosia, Staś, Hania), Zaliczka po terminie (<b>1</b> — Bartek), Lista rezerwowa (<b>1</b> — Tymek).</td></tr>
+    <tr><td>0.2</td><td>W przeglądarce rodzica: <span class="ui">Terminarz</span>.</td><td>Trzy turnusy z dopiskiem „TURNUS TESTOWY — nie zapisuj się”: otwarty — <b>5 wolnych</b>, prawie pełny — <b>1 wolne</b>, za 10 dni — <b>7 wolnych</b>.</td></tr>
+  </table>
+  <div class="box do"><strong>Dwa maile mogą przyjść same, zanim do nich dojdziesz</strong>
+  Najbliższego ranka po wgraniu danych (poranne sprzątanie, 8:00) strona sama wysyła przypomnienie o zaliczce do Piotra (krok D5) i mail do szkoły, że czeka szkic maila przed obozem (krok G1). To nie błąd — odłóż je do tych kroków.</div>
+  <div class="box warn"><strong>Gdy mail nie dochodzi</strong>
+  Zajrzyj do <b>Spamu</b> (w Gmailu także do zakładki <b>Oferty</b>). Jest w Spamie — oznacz „To nie spam”. Dalej nic — napisz mi (to błąd blokujący).</div>
+  <div class="box do"><strong>Linki w mailach</strong>
+  Otwieraj je w <b>przeglądarce rodzica</b>: link z maila w przeglądarce szkoły mógłby zalogować tam rodzica i wylogować Cię z panelu.</div>
+</section>
+
+<section>
+  <h2>A. Zapis dzieci na stronie</h2>
+  <p>Przeglądarka rodzica, <b>wylogowany</b>. Imiona i nazwiska dzieci — dowolne, zmyślone.</p>
+  <table class="steps">
+    <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th></tr></thead>
+    <tr><td>A1</td><td><span class="ui">Terminarz</span> → przy turnusie testowym <b>prawie pełnym</b> (1 wolne) → <span class="ui">Zapisz się</span>. Ten turnus jest już wybrany. Wpisz jedno dziecko, kliknij <span class="ui">+ Dodaj kolejne dziecko</span> i wpisz drugie.</td><td>Pod dziećmi pojawia się ramka: „Wolne miejsca na tym turnusie: 1. Zapisujesz 2 dzieci.” i dwie możliwości — pierwsze dziecko na miejsce, a drugie na listę rezerwową, albo oboje na listę rezerwową („pojadą razem albo wcale”).</td></tr>
+    <tr><td>A2</td><td>Zostaw pierwszą możliwość. Twoje dane: dowolne imię i nazwisko, adres <code>{{SKRZYNKA}}+abctestoboz-nowy@gmail.com</code>, telefon z <code>+48</code>, <b>bez</b> „Załóż mi konto”, zgoda, <span class="ui">Zapisz dziecko</span>.</td><td>„Zapis przyjęty”: pierwsze dziecko — miejsce zarezerwowane, drugie — lista rezerwowa. Mail do rodzica „Zapis na obóz: …” z przyciskiem formularza rejestracyjnego (dla dziecka z miejscem). Mail do szkoły „Nowy zapis na obóz: …” z oboma dziećmi i dopiskiem przy rezerwowym.</td></tr>
+    <tr><td>A3</td><td><span class="ui">Terminarz</span>.</td><td>Prawie pełny turnus: <b>brak miejsc</b>, a przycisk przy nim to <span class="ui">Lista rezerwowa</span>.</td></tr>
+    <tr><td>A4</td><td>Kliknij <span class="ui">Lista rezerwowa</span> przy tym turnusie i wyślij formularz <b>jeszcze raz z tymi samymi danymi</b> co w A2 (te same dzieci, ten sam adres) — jak rodzic, który nie jest pewien, czy zapis poszedł.</td><td>Przy turnusie „brak miejsc — lista rezerwowa” i <b>bez ramki z wyborem</b> (bez wolnych miejsc nie ma czego dzielić). Odpowiedź taka sama jak w A2, ale w panelu (<span class="ui">Zapisy na obozy</span>) te dzieci są tylko raz i nie przychodzi żaden nowy mail.</td></tr>
+    <tr><td>A5</td><td>Zapisz jedno dziecko na turnus <b>otwarty</b> adresem <code>{{SKRZYNKA}}+abctestoboz-konto@gmail.com</code>, tym razem z zaznaczonym <span class="ui">Załóż mi konto z tych danych</span>.</td><td>Trzy maile: do rodzica „Zapis na obóz: …” z przyciskiem formularza, do rodzica osobny „Ustaw hasło do konta”, do szkoły „Nowy zapis na obóz: …”.</td></tr>
+    <tr><td>A6</td><td>W mailu „Ustaw hasło do konta” kliknij <span class="ui">Ustaw hasło</span>, wpisz hasło <code>{{HASLO_TESTOWE}}</code> (to samo co przy gotowych kontach) i kliknij <span class="ui">Ustaw hasło i zaloguj</span>. <b>Przycisku formularza w pierwszym mailu jeszcze nie klikaj.</b></td><td>Jesteś w <span class="ui">Moim koncie</span>, na górze „Nowe hasło ustawione”. Niżej zapis obozowy z imieniem dziecka i linkiem <span class="ui">Wypełnij formularz rejestracyjny</span>.</td></tr>
+    <tr><td>A7</td><td><span class="ui">Wyloguj się</span> (na górze <span class="ui">Mojego konta</span>, po prawej od Twojego imienia).</td><td>Strona wraca do stanu „niezalogowany” — w nagłówku znów <span class="ui">Zaloguj się</span>.</td></tr>
+    <tr><td>A8</td><td>Na stronie obozu (<span class="ui">Obozy i wyjazdy</span> → <b>Obóz wspinaczkowo-przygodowy</b>, ten z turnusami testowymi) kliknij <span class="ui">Zapisz się</span> w nagłówku (na telefonie: dolny pasek).</td><td>Otwiera się <b>formularz zapisu na obóz</b> (nie formularz kontaktowy).</td></tr>
+    <tr><td>A9</td><td>Wróć do <span class="ui">Obozy i wyjazdy</span>, otwórz <b>Wycieczki i zielone szkoły</b> (albo <b>Wyjścia jaskiniowe</b>) i kliknij <span class="ui">Zapisz się</span> w nagłówku.</td><td>Otwiera się <span class="ui">Kontakt</span> z wybranym tematem „Obóz lub wyjazd” — na wyjazdy nie ma zapisu przez stronę, umawia się je mailem albo telefonicznie.</td></tr>
+  </table>
+  <div class="box do"><strong>Kiedy zapis jest „ten sam” (krok A4)</strong>
+  Strona uznaje dziecko za już zapisane, gdy zgadzają się trzy rzeczy: <b>ten sam turnus</b>, <b>ten sam adres e-mail rodzica</b> i <b>to samo imię i nazwisko dziecka</b> (wielkie i małe litery ani dodatkowe spacje nie mają znaczenia). Wtedy nie powstaje nowy zapis i nie idzie żaden mail. Imię i nazwisko rodzica, telefon i uwagi nie są porównywane — wpisane inaczej niczego nie zmieniają; zapis z rezygnacją się nie liczy. Skutki: literówka w imieniu dziecka („Zosia” i „Zośka”) albo inny adres rodzica dają <b>drugi zapis</b> — zobaczysz dwa wpisy i jeden usuniesz. Rodzic, któremu zginął mail z linkiem do formularza, dostanie go od Ciebie (<span class="ui">Wyślij rodzicowi link do formularza</span>, krok C4) albo sam w przypomnieniu po 4 dniach.</div>
+</section>
+
+<section>
+  <h2>B. Formularz rejestracyjny i umowa</h2>
+  <p>Przeglądarka rodzica. W nagłówku <span class="ui">Zaloguj się</span> i wejdź jako <b>Anna</b>: adres <code>{{SKRZYNKA}}+abctestoboz-anna@gmail.com</code>, hasło <code>{{HASLO_TESTOWE}}</code>.</p>
+  <table class="steps">
+    <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th></tr></thead>
+    <tr><td>B1</td><td><span class="ui">Moje konto</span> → <span class="ui">Nadchodzące</span>.</td><td>Dwa wiersze: „Zosia Kowalska · …” i „Staś Kowalski · …”, przy każdym <span class="ui">Wypełnij formularz rejestracyjny</span>. W <span class="ui">Archiwum</span>: Julka z zakończonego turnusu.</td></tr>
+    <tr><td>B2</td><td>Kliknij <span class="ui">Wypełnij formularz rejestracyjny</span> przy Zosi.</td><td>Formularz z <b>dwiema</b> częściami — Zosia i Staś (jedno zgłoszenie = jeden formularz). Niżej, raz dla obojga: adres, faktura, dwie zgody.</td></tr>
+    <tr><td>B3</td><td>W PESEL-u Zosi wpisz <code>15230712321</code> i przejdź dalej klawiszem <b>Tab</b>. Potem popraw na <code>15230712328</code>. Stasiowi: <code>18243098724</code>. Wzrost obojga: <code>140</code>. Zdrowie: dowolnie, np. uczulenie u Zosi. <b>Zdjęcia i nagrania z obozu</b>: przy Zosi zaznacz „Wyrażam zgodę…”, przy Stasiu <b>na razie nic</b>.</td><td>Zły PESEL: „Ten PESEL ma błąd — sprawdź cyfry jeszcze raz.” Po poprawce zielony znaczek. Przy zdjęciach dwie odpowiedzi, żadna nie jest zaznaczona z góry.</td></tr>
+    <tr><td>B4</td><td>Adres: dowolny. <b>Bez</b> „Potrzebuję faktury”. Zaznacz <b>tylko jedną</b> z dwóch zgód na dole i kliknij <span class="ui">Wyślij formularz</span>.</td><td>Formularz się nie wysyła, wpisane dane zostają. Przy zdjęciach Stasia: „Zaznacz jedną z dwóch odpowiedzi.” (kursor skacze tam), pod brakującą zgodą — jej komunikat. Przy Stasiu zaznacz „<b>Nie wyrażam zgody</b>”, zaznacz drugą zgodę i wyślij: „Formularz przyjęty — Dziękujemy! Dane do przelewu zaliczki i umowę wysłaliśmy mailem.”</td></tr>
+    <tr><td>B5</td><td>Skrzynka.</td><td>Mail „Formularz przyjęty, dane do przelewu — Zosia Kowalska i Staś Kowalski”: zaliczka <b>1000 zł</b> (500 × 2), termin wpłaty za 7 dni, pozostała kwota <b>4000 zł</b>, numer konta i tytuł przelewu z imionami obojga. W <b>załączniku umowa PDF</b>. W treści też, kiedy przyjdzie pusta karta kwalifikacyjna: mailem około dwóch tygodni przed obozem (część G) — wypełnioną dziecko przywozi na obóz. Szkoła dostaje „Formularz rejestracyjny: …” — <b>bez</b> danych o zdrowiu.</td></tr>
+    <tr><td>B6</td><td>Otwórz umowę z załącznika.</td><td>„UMOWA IMPREZY TURYSTYCZNEJ — JURA LATO” z rokiem turnusu, data zawarcia = dziś, Anna Kowalska z adresem z formularza, w § 4 <b>oboje</b> dzieci z turnusem, cena „2500 zł (dwa tysiące pięćset złotych)”, zaliczka 500 zł „w terminie do 7 dni od dnia zawarcia”, na dole Twoja pieczątka z podpisem.</td></tr>
+    <tr><td>B7</td><td>Wróć do <span class="ui">Mojego konta</span>.</td><td>Przy obojgu: <span class="ui">Popraw formularz</span>, <span class="ui">Pobierz umowę</span> i „Zaliczka 500 zł do …”. <span class="ui">Pobierz umowę</span> pobiera ten sam PDF.</td></tr>
+    <tr><td>B8</td><td><span class="ui">Popraw formularz</span> — zmień dietę Stasia i zapisz.</td><td>„Zmiany zapisane”. Rodzic <b>nie</b> dostaje drugiego maila z przelewem. Szkoła dostaje „Formularz poprawiony: …”.</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>C. Faktura i umowa w panelu</h2>
+  <p>Przeglądarka szkoły: <span class="ui">Zapisy na obozy</span>.</p>
+  <table class="steps">
+    <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th></tr></thead>
+    <tr><td>C1</td><td>Otwórz zapis <b>Bartka Wiśniewskiego</b>.</td><td>Po prawej: „Formularz rejestracyjny — Wypełniony …” z linkiem do danych, <span class="ui">Pobierz umowę (PDF)</span>, termin zaliczki (miniony), „Umowa wysłana”, „Cena w umowie: 2500”. Ramka <b>Dane do faktury</b>: firma „Wiśniewski Consulting”, NIP, adres firmy, rodzic, Bartek, data urodzenia 2.11.2014, wpis CEOTIPT, „Numer obozu w kuratorium — wpisz w terminie obozu”.</td></tr>
+    <tr><td>C2</td><td>W ramce <b>Dane do faktury</b> kliknij link <span class="ui">wpisz w terminie obozu</span> — otworzy się turnus Bartka. Wpisz <span class="ui">Numer zgłoszenia wypoczynku (Kuratorium)</span>, np. <code>KO-TEST/1</code>, i kliknij <span class="ui">Zapisz</span>. Wróć do zapisu Bartka (<span class="ui">Zapisy na obozy</span>).</td><td>W „Danych do faktury” numer z Kuratorium jest już widoczny.</td></tr>
+    <tr><td>C3</td><td>W zapisie Bartka kliknij <span class="ui">zobacz dane (PESEL, zdrowie)</span>.</td><td>Formularz rejestracyjny Bartka: PESEL, wzrost, uczulenia, dieta, treść zgód z datą (np. 23.10.2026, 14:05). <b>Brakuje Ci tu czegoś do organizacji obozu albo coś jest zbędne? Zapisz i napisz mi.</b></td></tr>
+    <tr><td>C4</td><td>Otwórz zapis <b>Oli Mazur</b> (rodzic Jan, bez konta) → <span class="ui">Wyślij rodzicowi link do formularza</span> → <span class="ui">OK</span>.</td><td>„Wysłano na …+abctestoboz-jan@…”. Mail „Formularz rejestracyjny — Ola Mazur”.</td></tr>
+    <tr><td>C5</td><td>Przeglądarka rodzica: otwórz link z maila C4 (przycisk w mailu „Formularz rejestracyjny — Ola Mazur”).</td><td>Pod tytułem strony <b>Ola Mazur</b> — sprawdź, zanim cokolwiek zmienisz (formularz Anny z części B wygląda tak samo). Formularz z <b>zapisanymi</b> odpowiedziami (PESEL, adres…), przycisk <span class="ui">Zapisz zmiany</span> — <b>nieaktywny</b>, dopóki czegoś nie zmienisz (zmiana cofnięta z powrotem znów go wyłącza).</td></tr>
+    <tr><td>C6</td><td>Zaznacz <span class="ui">Potrzebuję faktury</span>, potem <span class="ui">Na firmę</span>. Nazwa firmy dowolna, NIP <code>1234567890</code>, adres firmy dowolny. Kliknij <span class="ui">Zapisz zmiany</span>.</td><td>Pola firmy pojawiają się dopiero po zaznaczeniu. Zły NIP: „Ten NIP ma błąd — sprawdź cyfry.” — formularz się nie zapisuje. <code>1234567890</code> jest zmyślony celowo: ostatnia cyfra NIP-u to cyfra kontrolna, liczona z pozostałych, i tu się nie zgadza. Tak samo formularz wyłapie niemal każdą literówkę rodzica, zanim trafi na fakturę.</td></tr>
+    <tr><td>C7</td><td>Popraw NIP na <code>631-172-65-35</code> i zapisz. Kreski nie są potrzebne — <code>6311726535</code>, ze spacjami albo z <code>PL</code> na początku też przejdzie.</td><td>„Zmiany zapisane”. W panelu, w zapisie Oli: „Dane do faktury” z firmą i NIP-em (bez kresek).</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>D. Zaliczka</h2>
+  <p>Przeglądarka szkoły: <span class="ui">Zapisy na obozy</span>, kolumna „Status”.</p>
+  <table class="steps">
+    <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th></tr></thead>
+    <tr><td>D1</td><td>Przy <b>Zosi Kowalskiej</b> z turnusu <b>otwartego</b>. W nazwie wpisu, po imieniu dziecka, są daty turnusu — gdy dziecko jest zapisane na kilka obozów, patrz na nie. Wybierz <span class="ui">zaliczka wpłacona</span>.</td><td>Pytanie: „Rodzic dostanie maila — przy rodzeństwie jednego, po zaznaczeniu ostatniego dziecka.” → <span class="ui">OK</span>. <b>Mail jeszcze nie przychodzi</b> — czeka na Stasia. Ale w <span class="ui">Moim koncie</span> Anny już widać różnicę: przy Zosi „Zaliczka wpłynęła…”, przy Stasiu wciąż „Zaliczka 500 zł do …” — każde dziecko pokazuje swój stan.</td></tr>
+    <tr><td>D2</td><td>To samo przy <b>Stasiu Kowalskim</b>.</td><td><b>Jeden</b> mail do Anny: „Zaliczka wpłynęła: Zosia Kowalska i Staś Kowalski”, „Do zapłaty zostało 4000 zł — najpóźniej w dniu rozpoczęcia obozu.”</td></tr>
+    <tr><td>D3</td><td>Przy <b>Oli Mazur</b> — <span class="ui">zaliczka wpłacona</span>.</td><td>Mail do Jana od razu (jedno dziecko): „Zaliczka wpłynęła: Ola Mazur”, zostało <b>2000 zł</b>.</td></tr>
+    <tr><td>D4</td><td>Przeglądarka rodzica, Anna: <span class="ui">Moje konto</span>.</td><td>Przy Zosi i Stasiu: „Zaliczka wpłynęła. Do zapłaty zostało 2000 zł — najpóźniej w dniu rozpoczęcia obozu.”</td></tr>
+    <tr><td>D5</td><td><b>Nic nie klikasz</b> — tylko skrzynka. Strona sama, rano o 8:00 (poranne sprzątanie), przypomina o zaliczce, której termin minął. Ten mail przychodzi pierwszego ranka po wgraniu danych — możliwe, że masz go już od początku testu (ramka „Dwa maile mogą przyjść same” w części 0).</td><td>Mail do Piotra „Przypomnienie o zaliczce — Bartek Wiśniewski” z danymi do przelewu. <b>Tylko jeden</b> — kolejnego ranka drugi nie przychodzi. W panelu Bartek dalej ma miejsce (status „zgłoszony”) — strona go nie zwalnia, decyzja należy do Ciebie. <b>Nie masz tego maila?</b> Sprawdziłem ten krok sam i działa — najpewniej mail wyszedł rano po wgraniu danych, zanim ustawiłem przekazywanie poczty do Ciebie. Napisz mi, wyślę go jeszcze raz.</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>E. Lista rezerwowa</h2>
+  <table class="steps">
+    <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th></tr></thead>
+    <tr><td>E1</td><td>Panel: <span class="ui">Terminy</span> → prawie pełny turnus testowy → <span class="ui">Liczba miejsc</span> z 3 na <b>4</b> → <span class="ui">Zapisz</span>.</td><td>Do szkoły mail „Zwolniło się miejsce: …” z kolejką listy rezerwowej (Tymek i dziecko z A2) — nikt nie jest przesuwany sam.</td></tr>
+    <tr><td>E2</td><td><span class="ui">Zapisy na obozy</span> → przy <b>Tymku Zającu</b> status <span class="ui">potwierdzony</span> → <span class="ui">OK</span>.</td><td>Do Eweliny dwa maile: „Miejsce potwierdzone: …” i „Zwolniło się miejsce: Tymek Zając — formularz rejestracyjny” z przyciskiem formularza.</td></tr>
+    <tr><td>E3</td><td>Przeglądarka rodzica: przycisk w mailu „Zwolniło się miejsce: Tymek Zając — formularz rejestracyjny”. Wypełnij: PESEL <code>16220512351</code>, wzrost <code>130</code>, zdrowie dowolnie, przy zdjęciach dowolna odpowiedź, adres dowolny, <b>bez</b> faktury, obie zgody → <span class="ui">Wyślij formularz</span>.</td><td>Formularz <b>tylko dla Tymka</b> (Hania ma swój osobny — była zapisana z miejscem). Po wysłaniu: mail z danymi do przelewu za <b>jedno</b> dziecko (500 zł) i <b>własną</b> umową Tymka.</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>F. Panel — pulpit, Excel, rodzeństwo przez telefon</h2>
+  <table class="steps">
+    <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th></tr></thead>
+    <tr><td>F1</td><td><span class="ui">Pulpit</span>. Kliknij liczbę w kafelku <span class="ui">Bez formularza</span>, potem wróć i kliknij <span class="ui">Zaliczka po terminie</span>.</td><td>Każda liczba otwiera listę zapisów, które się na nią składają: bez formularza — dzieci z miejscem, których rodzic jeszcze nie wysłał formularza; zaliczka po terminie — Bartek.</td></tr>
+    <tr><td>F2</td><td>Na pulpicie, w tabeli najbliższych terminów, przy turnusie <b>otwartym</b> kliknij <span class="ui">Excel</span>.</td><td>Pobiera się plik; w Excelu polskie znaki są poprawne. Kolumny: dziecko, data urodzenia, wzrost, uczulenia, leki, dieta, choroby, zgoda na zdjęcia (Zosia — tak, Staś — nie), status, formularz, termin zaliczki, rodzic, telefon, e-mail, adres, faktura.</td></tr>
+    <tr><td>F3</td><td>Dopisanie rodzeństwa przez telefon: otwórz zapis <b>Oli Mazur</b> → menu <span class="ui">⋮</span> (prawy górny róg) → <span class="ui">Zduplikuj</span>. W kopii zmień imię dziecka na <code>Ela</code> i kliknij <span class="ui">Zapisz</span>.</td><td>Nowy zapis „Ela Mazur …” z tym samym rodzicem i turnusem, ale <b>bez</b> formularza („Rodzic jeszcze go nie wypełnił”), bez umowy i bez zgody na zdjęcia.</td></tr>
+    <tr><td>F4</td><td>W zapisie Eli: <span class="ui">Wyślij rodzicowi link do formularza</span>.</td><td>Mail do Jana „Formularz rejestracyjny — Ela Mazur”. Link otwiera formularz <b>tylko Eli</b> — Oli w nim nie ma.</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>G. Mail przed obozem</h2>
+  <p>Dla turnusu <b>za 10 dni</b> strona sama przygotowuje szkic maila do rodziców (16 dni przed turnusem — tu już minęło, więc szkic jest od razu po porannym sprzątaniu).</p>
+  <table class="steps">
+    <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th></tr></thead>
+    <tr><td>G1</td><td>Skrzynka (mail „do szkoły”).</td><td>„Mail przed obozem czeka na uzupełnienie: …” z przyciskiem <span class="ui">Otwórz szkic w panelu</span>.</td></tr>
+    <tr><td>G2</td><td>Otwórz szkic (<span class="ui">Wysyłki</span> → „Przed obozem: …”).</td><td>Treść: Twój standardowy tekst z nazwą obozu, lista rzeczy do spakowania, fragmenty w nawiasach: [miejsce zbiórki], [link do mapy], [dzień i data], [godziny], [telefon]… Do kogo: ten termin. Zaznaczone <span class="ui">Dołącz kartę kwalifikacyjną (PDF)</span>. Po prawej: „Odbiorcy teraz: 1 osoba” (Kasia).</td></tr>
+    <tr><td>G3</td><td>Kliknij <span class="ui">Wyślij</span>.</td><td>Nic nie wychodzi: „Uzupełnij fragmenty w nawiasach: [miejsce zbiórki], … — potem „Zapisz” i wyślij.”</td></tr>
+    <tr><td>G4</td><td>Kliknij <span class="ui">Wyślij próbnie do mnie</span>.</td><td>Mail „[PRÓBA] Przed obozem: …” do Ciebie, z <b>pustą kartą kwalifikacyjną w załączniku</b> (<code>karta-kwalifikacyjna.pdf</code>), a na samej górze maila, pod tytułem, ramka „W ZAŁĄCZNIKU: PUSTA KARTA KWALIFIKACYJNA (PDF)…” — strona dokłada ją sama, <b>zawsze gdy w wysyłce zaznaczone jest „Dołącz kartę kwalifikacyjną (PDF)”</b>. Odznaczysz to pole — nie ma ani karty, ani ramki. Tekstu ramki nie trzeba (i nie da się) wpisywać w treść.</td></tr>
+    <tr><td>G5</td><td>Uzupełnij wszystkie nawiasy (możesz też zmienić dowolne zdanie albo całość), <span class="ui">Zapisz</span>, potem <span class="ui">Wyślij</span>.</td><td>Mail do Kasi od „ABC Wspinania · Obozy”, z kartą w załączniku. „Odpowiedz” na ten mail trafia do szkoły.</td></tr>
+  </table>
+  <div class="box do"><strong>Tekst standardowy zmieniasz raz</strong>
+  <span class="ui">Ustawienia obozów</span> → <span class="ui">Część standardowa maila przed obozem</span>. Tam też liczba dni przed turnusem (16) i plik karty — gdy Kuratorium zmieni wzór, wgrywasz nowy.</div>
+</section>
+
+<section>
+  <h2>H. Moje konto rodzica</h2>
+  <table class="steps">
+    <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th></tr></thead>
+    <tr><td>H1</td><td>Przeglądarka rodzica, Anna: <span class="ui">Moje konto</span> → <span class="ui">Archiwum</span>.</td><td>Julka z zakończonego turnusu — bez linku do formularza i bez kwot (obóz minął).</td></tr>
+    <tr><td>H2</td><td><span class="ui">Wyloguj się</span>. W skrzynce otwórz mail „Formularz przyjęty, dane do przelewu — Zosia Kowalska i Staś Kowalski” (z kroku B5) i kliknij w nim <span class="ui">Popraw formularz</span>.</td><td>Formularz działa także bez logowania — kluczem jest link. Zaloguj się z powrotem tylko, jeśli chcesz.</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>I. Dane osoby (RODO)</h2>
+  <table class="steps">
+    <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th></tr></thead>
+    <tr><td>I1</td><td>Panel: <span class="ui">Uczestnicy</span> → nad listą rozwiń <span class="ui">Dane osoby — kopia albo usunięcie (prośby z RODO)</span> → wpisz adres Jana (<code>{{SKRZYNKA}}+abctestoboz-jan@gmail.com</code>) → <span class="ui">Sprawdź, co mamy</span> → <span class="ui">Pobierz kopię danych do wysłania osobie</span>.</td><td>Dokument po polsku: zapisy Oli i Eli, adres, faktura na firmę, data wysłania umowy oraz formularz rejestracyjny Oli z PESEL-em i zdrowiem.</td></tr>
+    <tr><td>I2</td><td>W tej samej ramce wpisz adres Nowego (<code>{{SKRZYNKA}}+abctestoboz-nowy@gmail.com</code>) → <span class="ui">Sprawdź, co mamy</span> → w części <span class="ui">Usunięcie wszystkich danych</span> przepisz adres drugi raz → <span class="ui">Usuń wszystkie dane tej osoby na zawsze</span>.</td><td>Znikają oba zapisy z A2 (z formularzem rejestracyjnym, jeśli rodzic go wypełnił). Lista <span class="ui">Zapisy na obozy</span> ich już nie ma; prawie pełny turnus ma o jedno miejsce więcej (w <span class="ui">Terminarzu</span>: <b>1 wolne</b> — 4 miejsca, zajmują je Bartek, Hania i Tymek).</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Na koniec</h2>
+  <p>Gdy przejdziesz wszystko, napisz mi na WhatsAppie, że skończyłeś — i których kroków, jeśli jakichś, nie dało się sprawdzić. Potem usuwam wszystkie dane testowe obozów. Twoje konto w panelu i ustawienia obozów zostają.</p>
+  <p>Dzięki! — Mateusz</p>
+</section>
+
+<section>
+  <h2>Dodatek: część techniczna (dla mnie)</h2>
+  <p class="muted">Krzysiek, tę część robię ja — nie musisz jej czytać.</p>
+  <h3>P. Przygotowanie</h3>
+  <table class="steps">
+    <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th></tr></thead>
+    <tr><td>P1</td><td><b>Ustawienia obozów</b> (raz na serwer): panel → <span class="ui">Ustawienia obozów</span> → <span class="ui">Pieczątka z podpisem do umowy</span> (PNG) i <span class="ui">Pusta karta kwalifikacyjna (PDF)</span> — oba wgrane albo wybrane z istniejących → <span class="ui">Zapisz</span>.</td><td>Oba pola pokazują plik. Bez pieczątki umowy idą bez podpisu i każda zostawia notkę na pulpicie; bez karty „Wyślij” w G3–G5 odmawia.</td></tr>
+    <tr><td>P2</td><td><b>Maile obozowe w czasie testów</b>: <code>CAMP_EMAIL</code> w <code>deploy/.env</code> zostaje <b>pusty</b> — maile „do szkoły” idą na <code>ADMIN_NOTIFY_EMAIL</code>. Filtr Gmaila przekazuje Krzyśkowi tylko maile kursowe (<code>from:(zapisy@szkolawspinaczkowa.pl -Obozy)</code>). <b>Przed rundą Krzyśka</b> dopisać przekazywanie maili obozowych.</td><td>Maile obozowe przychodzą od „ABC Wspinania · Obozy”.</td></tr>
+    <tr><td>P3</td><td><b>Wgranie danych</b> (przed każdą rundą). Na produkcji: GitHub → <span class="ui">Actions</span> → <span class="ui">Test data</span> → <span class="ui">Run workflow</span>, <span class="ui">Which test data</span>: <b>camps</b>, akcja <b>seed</b>, potwierdzenie <code>test-data</code> — najlepiej wieczorem (maile poranne o 8:00). Lokalnie — w katalogu <code>web</code>:
+      <span class="cmd">TEST_INBOX={{SKRZYNKA}}@gmail.com npm run seed:test:camps</span></td><td>Podsumowanie: tabela rodziców, link do obozu, daty turnusów i — tylko lokalnie — linki do formularzy Anny, Jana i Piotra. Żaden mail nie przychodzi. Każde wgranie najpierw usuwa poprzednie dane obozowe; dane kursów zostają.</td></tr>
+    <tr><td>P4</td><td><b>Poranne sprzątanie na żądanie</b> (lokalnie): <code>npm run sweep</code> w <code>web/</code> — to samo, co strona robi o 8:00. Restart serwera już go nie uruchamia.</td><td>Przypomnienie Piotra (D5) i szkic przed obozem (G1) bez czekania do następnego dnia.</td></tr>
+  </table>
+
+  <h3>Z. Sprzątanie</h3>
+  <p>Na produkcji to samo workflow <span class="ui">Test data</span> z <b>camps</b> i akcją <b>clean</b> albo <b>clean-all</b>. Usuwa wszystko z <code>+abctestoboz-</code> w adresie, wszystko na turnusach testowych (zapisy z formularzami, szkice i wysyłki do nich) i same turnusy. Dane testów kursów (<code>+abctest-</code>) zostają. Rzeczy wpisane bez znacznika <b>wypisuje</b> — usuwa je dopiero <code>clean-all</code>.</p>
+  <table class="steps">
+    <thead><tr><th>Nr</th><th>Co zrobić</th><th>Co ma się stać</th></tr></thead>
+    <tr><td>Z1</td><td><span class="cmd">TEST_INBOX={{SKRZYNKA}}@gmail.com npm run seed:test:camps -- clean</span></td><td>„Removed camp test data…”. Potem „nothing has appeared without the tag” albo lista id do sprawdzenia w panelu.</td></tr>
+    <tr><td>Z2</td><td>Wszystko z listy to testy:
+      <span class="cmd">TEST_INBOX={{SKRZYNKA}}@gmail.com npm run seed:test:camps -- clean-all</span></td><td>„removed…” dla każdej pozycji i „Testing window closed”.</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

@@ -114,6 +114,11 @@ jobs:
       PAYLOAD_SECRET: not-a-secret-just-a-ci-placeholder
       DATABASE_URI: postgresql://ci:ci@127.0.0.1:5432/ci
       TEST_BASE_URL: http://127.0.0.1:3000
+      # One uploads directory for the tests and the server: standalone
+      # server.js changes into .next/standalone, so `process.cwd()/uploads`
+      # would be two directories and a file a test uploads would be missing
+      # for the server. In the image both are /app/uploads.
+      UPLOAD_DIR: ${{ github.workspace }}/web/uploads
     defaults:
       run:
         working-directory: web

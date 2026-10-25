@@ -197,6 +197,21 @@ test('an email without its own unsubscribe header gets ours, not Brevo’s', () 
   assert.deepEqual(body.headers, { 'List-Unsubscribe': `<${url}>` })
 })
 
+test('an attachment goes to Brevo as a named base64 file', () => {
+  const body = toBrevoBody(
+    {
+      to: 'a@x.pl',
+      subject: 's',
+      attachments: [
+        { filename: 'umowa.pdf', content: new Uint8Array([37, 80, 68, 70]) },
+        { filename: '', content: 'x' },
+      ],
+    },
+    sender,
+  )
+  assert.deepEqual(body.attachment, [{ name: 'umowa.pdf', content: 'JVBERg==' }])
+})
+
 test('the newsletter keeps its own unsubscribe header', () => {
   const own = '<https://x.pl/api/newsletter/unsubscribe?token=t>'
   const body = toBrevoBody(
@@ -406,6 +421,11 @@ test('the new-account email is about SETTING a password, not resetting one', () 
   assert.match(email.text, /ustaw/i)
   assert.doesNotMatch(email.text, /nowe hasło|poprosił/)
   assert.match(email.text, /2 godz\./)
+  // The same email follows a camp booking: it may not speak of a course.
+  for (const lang of ['pl', 'en'] as const) {
+    const text = newAccountFromBookingEmail(lang, { url: 'u', validHours: 2 }).text
+    assert.doesNotMatch(text, /kurs|course/i, lang)
+  }
 })
 
 test('the school hears about every booking, with the waiting list flagged', () => {
@@ -439,6 +459,72 @@ test('a line break in the name cannot reach the booking subject either', () => {
     waitlist: false,
   })
   assert.doesNotMatch(email.subject, /[\r\n]/)
+})
+
+// --- camp bookings -----------------------------------------------------------
+
+import { campBookingReceivedEmail, newCampBookingNotification } from '@/lib/email/templates'
+
+const campSignUp = {
+  firstName: 'Anna',
+  placed: ['Zosia Nowak', 'Staś Nowak'],
+  waiting: [] as string[],
+  campTitle: 'Obóz wspinaczkowo-przygodowy',
+  dates: '26 czerwca – 3 lipca 2027',
+  location: 'Rzędkowice',
+  registrationUrl: 'https://x.pl/obozy/rejestracja?token=abc',
+  accountUrl: null,
+}
+
+test('siblings get one confirmation with one link to their one registration form', () => {
+  for (const lang of ['pl', 'en'] as const) {
+    const email = campBookingReceivedEmail(lang, campSignUp)
+    const and = lang === 'pl' ? 'i' : 'and'
+    assert.match(email.subject, new RegExp(`Zosia Nowak ${and} Staś Nowak — Obóz wspinaczkowo`))
+    assert.match(email.text, /Anna/)
+    assert.match(email.text, /26 czerwca – 3 lipca 2027/)
+    assert.equal(email.text.match(/obozy\/rejestracja\?token=abc/g)?.length, 1)
+  }
+})
+
+test('a child left on the waiting list is named apart; with all waiting there is no form yet', () => {
+  const split = campBookingReceivedEmail('pl', {
+    ...campSignUp,
+    placed: ['Zosia Nowak'],
+    waiting: ['Staś Nowak'],
+  })
+  assert.match(split.text, /Zosia Nowak: miejsce zarezerwowane/)
+  assert.match(split.text, /Staś Nowak: na tym turnusie zabrakło miejsca/)
+  assert.match(split.text, /rejestracja\?token=abc/)
+  const all = campBookingReceivedEmail('pl', {
+    ...campSignUp,
+    placed: [],
+    waiting: ['Zosia Nowak', 'Staś Nowak'],
+    registrationUrl: null,
+  })
+  assert.match(all.subject, /^Lista rezerwowa/)
+  assert.doesNotMatch(all.text, /rejestracja/)
+})
+
+test('the school hears about a sign-up once, with every child and the waiting list flagged', () => {
+  const email = newCampBookingNotification({
+    name: 'Anna Nowak',
+    email: 'anna@example.com',
+    phone: '+48600100200',
+    campTitle: 'Obóz wspinaczkowo-przygodowy',
+    dates: '26 czerwca – 3 lipca 2027',
+    children: [
+      { name: 'Zosia Nowak', waitlist: false },
+      { name: 'Staś Nowak', waitlist: true },
+    ],
+    notes: null,
+    hasAccount: false,
+    adminUrl: 'https://x.pl/admin/collections/bookings?where[session][equals]=7',
+  })
+  assert.match(email.subject, /Nowy zapis na obóz: Zosia Nowak, Staś Nowak/)
+  assert.match(email.text, /Dziecko 1: Zosia Nowak\n/)
+  assert.match(email.text, /Dziecko 2: Staś Nowak \(LISTA REZERWOWA\)/)
+  assert.match(email.text, /Rodzic: Anna Nowak/)
 })
 
 import { placeFreedNotification } from '@/lib/email/templates'
@@ -547,4 +633,178 @@ test('after an address change it does not send the owner to "forgot password"', 
   assert.ok(!email.html.includes('href="https://x.pl/admin/forgot"'))
   assert.doesNotMatch(email.text, /ustaw od razu nowe hasło/)
   assert.match(email.text, /Mateusz/)
+})
+
+// --- camp registration form ----------------------------------------------------
+
+import {
+  registrationLinkEmail,
+  registrationNotification,
+  registrationReceivedEmail,
+} from '@/lib/email/templates'
+
+const registration = {
+  firstName: 'Anna',
+  childName: 'Zosia Nowak',
+  campTitle: 'Obóz wspinaczkowo-przygodowy',
+  dates: '26 czerwca – 3 lipca 2027',
+  url: 'https://x.pl/obozy/rejestracja?token=abc',
+}
+
+test('the registration link says why it comes: again, a freed place, a reminder', () => {
+  for (const lang of ['pl', 'en'] as const) {
+    const subjects = (['again', 'place', 'reminder'] as const).map(
+      (reason) => registrationLinkEmail(lang, reason, registration).subject,
+    )
+    assert.equal(new Set(subjects).size, 3, lang)
+    assert.match(registrationLinkEmail(lang, 'place', registration).text, /token=abc/)
+  }
+  assert.match(registrationLinkEmail('pl', 'reminder', registration).subject, /^Przypomnienie/)
+})
+
+const payment = {
+  deposit: '500 zł',
+  dueDate: '8 marca 2027',
+  recipient: 'IQ SERVICE Krzysztof Wróbel / ABC WSPINANIA',
+  account: 'PL89 1140 2004 0000 3002 7291 9707',
+  title: 'Obóz JURA Zosia Nowak',
+  remaining: '2000 zł',
+  refundDays: 30,
+}
+
+test('after the form the parent gets the deposit, its deadline and the bank details', () => {
+  const email = registrationReceivedEmail('pl', { ...registration, payment })
+  assert.match(email.subject, /dane do przelewu — Zosia Nowak/)
+  assert.match(email.text, /Zaliczka: 500 zł/)
+  assert.match(email.text, /Termin wpłaty zaliczki: 8 marca 2027/)
+  assert.match(email.text, /Pozostała kwota: 2000 zł — najpóźniej w dniu rozpoczęcia obozu/)
+  assert.match(email.text, /Numer konta: PL89 1140 2004 0000 3002 7291 9707/)
+  assert.match(email.text, /Tytuł przelewu: Obóz JURA Zosia Nowak/)
+  assert.match(email.text, /do 30 dni przed obozem/)
+  assert.match(email.text, /Popraw formularz: https:\/\/x\.pl\/obozy\/rejestracja\?token=abc/)
+  assert.match(
+    registrationReceivedEmail('en', { ...registration, payment }).text,
+    /Deposit: 500 zł/,
+  )
+})
+
+test('without a price in the panel the email gives no balance rather than a wrong one', () => {
+  const email = registrationReceivedEmail('pl', {
+    ...registration,
+    payment: { ...payment, remaining: null },
+  })
+  assert.doesNotMatch(email.text, /Pozostała kwota/)
+})
+
+import { campStatusEmail, depositReminderEmail } from '@/lib/email/templates'
+
+test('the deposit email says what is left and where it goes', () => {
+  const email = campStatusEmail('pl', 'deposit', { ...registration, payment })
+  assert.match(email.subject, /^Zaliczka wpłynęła: Zosia Nowak/)
+  assert.match(email.text, /Do zapłaty zostało 2000 zł/)
+  assert.match(email.text, /Numer konta: PL89/)
+  assert.doesNotMatch(email.text, /Termin wpłaty zaliczki/, 'the deposit is paid')
+})
+
+test('camp status emails speak about the camp and the child, not a course', () => {
+  for (const lang of ['pl', 'en'] as const) {
+    for (const status of ['confirmed', 'deposit', 'paid', 'cancelled'] as const) {
+      const email = campStatusEmail(lang, status, { ...registration, payment: null })
+      assert.match(email.subject, /Zosia Nowak/, `${lang} ${status}`)
+      assert.doesNotMatch(email.text, /\bkurs|course\b/i, `${lang} ${status}`)
+    }
+  }
+})
+
+test('the deposit reminder repeats the bank details', () => {
+  const email = depositReminderEmail('pl', { ...registration, payment })
+  assert.match(email.subject, /Przypomnienie o zaliczce — Zosia Nowak/)
+  assert.match(email.text, /termin minął 8 marca 2027/)
+  assert.match(email.text, /Numer konta: PL89/)
+})
+
+test('the school hears a form came in or changed — without the health answers', () => {
+  const data = {
+    childName: 'Zosia Nowak',
+    parent: 'Anna Nowak',
+    campTitle: 'Obóz',
+    dates: 'd',
+    adminUrl: 'https://x.pl/admin/collections/bookings/7',
+  }
+  const first = registrationNotification({ ...data, updated: false })
+  const updated = registrationNotification({ ...data, updated: true })
+  assert.notEqual(first.subject, updated.subject)
+  // The template takes no health data at all; the text says where it is.
+  assert.match(first.text, /w panelu/)
+  assert.doesNotMatch(first.text + updated.text, /PESEL: |Uczulenia: |Leki: /)
+})
+
+test('the payment email says the contract is attached and where it goes back — or that it follows', () => {
+  const withContract = registrationReceivedEmail('pl', {
+    ...registration,
+    payment,
+    contractAttached: true,
+    contractEmail: 'obozy@abcwspinania.info',
+  })
+  assert.match(
+    withContract.text,
+    /W załączniku jest umowa[\s\S]*odeślij[\s\S]*obozy@abcwspinania\.info/,
+  )
+  assert.match(
+    registrationReceivedEmail('pl', { ...registration, payment }).text,
+    /prześlemy w osobnym mailu/,
+  )
+  assert.match(
+    registrationReceivedEmail('en', {
+      ...registration,
+      payment,
+      contractAttached: true,
+      contractEmail: 'obozy@abcwspinania.info',
+    }).text,
+    /The contract is attached/,
+  )
+})
+
+test('siblings split between places and the waiting list read as one list in the subject', () => {
+  const email = campBookingReceivedEmail('pl', {
+    ...campSignUp,
+    placed: ['Zosia Nowak', 'Staś Nowak'],
+    waiting: ['Ala Nowak'],
+  })
+  assert.match(email.subject, /Zosia Nowak, Staś Nowak i Ala Nowak/)
+})
+
+test('the payment email says when the blank qualification card comes, with or without the contract', () => {
+  for (const contractAttached of [true, false]) {
+    const pl = registrationReceivedEmail('pl', {
+      ...registration,
+      payment,
+      contractAttached,
+      contractEmail: 'obozy@abcwspinania.info',
+    }).text
+    assert.match(pl, /Pustą kartę kwalifikacyjną wyślemy[\s\S]*przed obozem[\s\S]*przywozisz/)
+    const en = registrationReceivedEmail('en', { ...registration, payment, contractAttached }).text
+    assert.match(en, /blank qualification card[\s\S]*before the camp/)
+  }
+})
+
+import { broadcastEmail } from '@/lib/email/templates'
+
+test('a broadcast with the qualification card says so at the very top, in capitals', () => {
+  const base = {
+    subject: 'Przed obozem: Obóz',
+    body: { html: '<p>Treść</p>', text: 'Treść' },
+    reason: { kind: 'session' as const, label: '2–9 listopada' },
+  }
+  const withCard = broadcastEmail('pl', { ...base, qualificationCard: true })
+  assert.match(withCard.html, /W ZAŁĄCZNIKU: PUSTA KARTA KWALIFIKACYJNA/)
+  // Above the school's own text, so it is the first thing read — and in the preview line.
+  assert.ok(withCard.html.indexOf('W ZAŁĄCZNIKU') < withCard.html.indexOf('<p>Treść</p>'))
+  assert.match(withCard.text.split('\n').slice(0, 4).join('\n'), /W ZAŁĄCZNIKU/)
+  assert.match(withCard.html, /display:none[^>]*>W ZAŁĄCZNIKU/)
+  assert.match(
+    broadcastEmail('en', { ...base, qualificationCard: true }).text,
+    /ATTACHED: THE BLANK QUALIFICATION CARD/,
+  )
+  assert.doesNotMatch(broadcastEmail('pl', base).html, /ZAŁĄCZNIKU/)
 })

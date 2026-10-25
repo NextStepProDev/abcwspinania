@@ -104,7 +104,10 @@ test('school: the dashboard tile links open the filtered list', async () => {
     await http('/admin', { headers: { Cookie: `payload-token=${admin.token}` } })
   ).text()
   assert.match(page, /Maile, które nie doszły/)
-  // Filters with several conditions are encoded by index, not as "[object Object]".
+  // Filters with several conditions are encoded by index, not as "[object Object]",
+  // one field each (`adminListUrl.ts`) so the "Filtry" panel shows them all — and
+  // not as `where[or]…`, on which Payload opens that panel every time.
   assert.match(page, /where%5Band%5D%5B0%5D%5BemailIssueAt%5D%5Bexists%5D=true/)
+  assert.doesNotMatch(page, /where%5Bor%5D/)
   assert.doesNotMatch(page, /object%20Object|\[object Object\]/)
 })

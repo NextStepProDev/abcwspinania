@@ -44,10 +44,12 @@ subdomeny `api.*`.
 | `Instructors` | `instructors` | tak | kadra |
 | `Media` | `media` | tak | okładki, portrety, zdjęcia w treści; `alt` nieobowiązkowy |
 | `GalleryPhotos` | `gallery-photos` | tak | zdjęcia na `/galeria` — osobna zakładka, nie znacznik w Mediach |
+| `PrivateFiles` | `private-files` | **nie** | pliki tylko dla szkoły — pieczątka z podpisem do umów obozowych |
 | `Messages` | `messages` | **nie** | zgłoszenia z formularza — dane osobowe |
 | `Newsletter` | `newsletter` | **nie** | zapisy na newsletter — dane osobowe |
 | `Customers` | `customers` | **tylko własne konto** | konta uczestników (logowanie na stronie) |
-| `Bookings` | `bookings` | **tylko własne zapisy** | zapisy na kursy — dane osobowe |
+| `Bookings` | `bookings` | **tylko własne zapisy** | zapisy na kursy i obozy — dane osobowe |
+| `CampRegistrations` | `camp-registrations` | **nie** | formularz rejestracyjny obozu — PESEL i zdrowie dziecka |
 | `Broadcasts` | `broadcasts` | **nie** | „Wysyłki” — wiadomości do grup |
 | `BroadcastDeliveries` | `broadcast-deliveries` | **nie** | odbiorcy każdej wysyłki i stan kolejki; ukryte w menu |
 | `Users` | `users` | **nie** | konta do panelu |
@@ -59,6 +61,7 @@ subdomeny `api.*`.
 | `AboutPage` | `about-page` | teksty podstrony „O nas" |
 | `CampsPage` | `camps-page` | wstęp podstrony „Obozy i wyjazdy" |
 | `EnglishPage` | `english-page` | jedyna podstrona po angielsku |
+| `CampConfig` | `camp-config` | „Ustawienia obozów” — podpis do umów, mail przed obozem (tylko szkoła) |
 
 `Messages` przyjmuje zapis od **każdego poza szkołą** (formularz publiczny;
 konto panelu nie dodaje wiadomości — bez „Stwórz nowy”, `visitorsOnly`, od
@@ -92,7 +95,7 @@ wyjątków:
 | nazwy pól (= kolumny w bazie) i wartości `select` | klauzule RODO w `src/lib/consent.ts` |
 | nazwy pól formularzy HTTP, parametry zapytań | **adresy podstron** (`/kursy`, `/obozy`, `/terminarz`) |
 | komunikaty commitów, logi dla programisty | tekst w `scripts/seed.ts` (to treść, nie kod) |
-| **workflowy GitHub** — nazwy, pola, kroki, komunikaty, komentarze (do 14.10.2026 część była po polsku, np. „Dane testowe”) | dane testowe widoczne na stronie i w panelu (`scripts/seed-test.ts`) |
+| **workflowy GitHub** — nazwy, pola, kroki, komunikaty, komentarze (do 14.10.2026 część była po polsku, np. „Dane testowe”) | dane testowe widoczne na stronie i w panelu (`scripts/test-data/courses.ts`) |
 
 **Adresy zostają polskie celowo.** To element strony widziany przez
 użytkownika i indeksowany przez wyszukiwarkę, a nie szczegół implementacji —
@@ -851,9 +854,16 @@ zrobi z kursanta administratora. Koszt: zasada 28.
 - **Niepotwierdzone konto jest usuwane po 7 dniach** (ustalone 02.10.2026,
   `UNVERIFIED_ACCOUNT_DAYS` w `lib/expiry.ts`), liczonych od OSTATNIEGO
   wysłanego linku, nie od założenia — kto prosi o nowy link szóstego dnia,
-  nie straci konta, zanim link wygaśnie. Sprzątanie startuje z
-  `src/instrumentation.ts` (raz przy starcie serwera Next): minutę po
-  starcie, potem co 24 h. **Nie przez kolejkę zadań Payloada**: jej cron
+  nie straci konta, zanim link wygaśnie. Sprzątanie planuje
+  `src/instrumentation.ts` (raz przy starcie serwera Next): **codziennie
+  o 8:00 czasu polskiego** (`DAILY_SWEEP_HOUR`, `msUntilDailySweep` w
+  `lib/expiry.ts`, od 24.10.2026), bez biegu przy starcie. Do tego dnia
+  szło minutę po starcie i co 24 h — godzina zależała od ostatniego
+  wdrożenia, a od obozów sprzątanie wysyła przypomnienia rodzicom i mail
+  o szkicu przed obozem (wdrożenie o 23:40 = maile o 23:41 co noc).
+  Serwer wyłączony o 8:00 pomija dzień — kroki liczą od dat, następny
+  bieg nadrabia. Na żądanie (testy): `npm run sweep`. **Nie przez kolejkę
+  zadań Payloada**: jej cron
   rusza dopiero po pierwszym `getPayload({ cron: true })` (np. logowanie do
   panelu), więc po restarcie czekałby na ruch, a dokłada tabelę, migrację
   i endpointy. Przy kilku instancjach aplikacji każda sprzątałaby osobno —
@@ -975,8 +985,8 @@ zrobi z kursanta administratora. Koszt: zasada 28.
   z adresem przepisanym drugi raz — sprawdza to też serwer. W logu jest kto
   i ile, nigdy czyj adres. Konta panelu (`users`) nie są ruszane. Tekst
   o kopiach („znikną po 40 dniach”) powtarza retencję z `abc-backup.sh`.
-- **Dzieci (do zapisów na obozy) dojdą w etapie 4**, nie teraz — żeby nie
-  projektować pól pod wymagania, których Krzysiek jeszcze nie podał.
+- **Dzieci (zapisy na obozy)** — patrz „Zapisy na obozy”. Konto zapisuje
+  rodzica; dzieci są w jego zapisach, bez osobnych kont.
 
 ### Konta panelu (`users`)
 
@@ -1086,9 +1096,264 @@ i `lib/bookingEffects.ts` (skutki uboczne).
   terminy w kodzie strony ma `joins: false` (`lib/content.ts`, „Moje
   konto”, `bookingEffects`). Sprawdzone 03.10.2026: REST terminu nie pokazuje
   zapisów anonimowi ani innemu kursantowi, kod stron ich nie zawiera.
-- Limit nginx `account_forms` obejmuje też POST na `/kursy/*/zapis`.
+- Limit nginx `account_forms` obejmuje też POST na `/kursy/*/zapis` i `/obozy/*/zapis`.
 
 ---
+
+## Zapisy na obozy
+
+Od 19.10.2026 (etap 4, ZAKRES pkt 2), gotowe 25.10.2026 (0.11.0).
+Procedura Krzyśka (20.10.2026): (1) krótki zapis rezerwuje miejsce, (2) mail
+z linkiem do formularza rejestracyjnego, (3) po formularzu umowa do podpisania
+i dane do przelewu — od tego maila 7 dni na zaliczkę 500 zł, reszta do dnia
+rozpoczęcia, (4) ok. 2 tygodnie przed obozem pakiet informacji i pusta karta
+kwalifikacyjna w PDF (karta zostaje papierowa — wzór Kuratorium). Pełny zwrot
+do 30 dni przed obozem. Cała ścieżka działa bez konta; konto dla chętnych.
+
+- **Jedna kolekcja `bookings` dla kursów i obozów** (decyzja 19.10.2026),
+  rozróżniana polem `kind` (`course` / `camp`). Liczenie miejsc, lista
+  rezerwowa, wysyłki, „Dane osoby”, anonimizacja i pulpit działają na tej
+  jednej — druga kolekcja znaczyłaby zbudowanie i przetestowanie każdej
+  z tych rzeczy drugi raz. W menu panelu dwie pozycje, „Zapisy na kursy”
+  i „Zapisy na obozy” (`BookingsNavLinks`, ta sama lista z `?where[kind]`),
+  bo szkoła sprawdza jedno albo drugie. Własny link Payloada „Zapisy” jest
+  ukryty w `custom.css` (`#nav-bookings`), nie przez `admin.hidden` — to
+  wyłączyłoby też trasy listy. Przy podbiciu Payloada sprawdzić, czy link
+  wciąż ma ten `id`.
+- **Przy obozie imię, nazwisko i kontakt to RODZIC**, uczestnik to dziecko
+  (`childFirstName`, `childLastName` — wymagane tylko przy `kind = camp`;
+  `childBirthDate` przychodzi z formularza rejestracyjnego). Etykieta zapisu
+  bierze imię dziecka. Jedno dziecko = jeden zapis (jak „jedna osoba = jeden
+  zapis”).
+- **Zapis na stronie: `/obozy/[slug]/zapis`** (krok 1), tylko dla obozu
+  (`camps.kind = camp`) — wyjazd i zajęcia przekierowują na `/kontakt`, bo
+  przycisk „Zapisz się” w nagłówku nie odróżni ich po adresie. Rodzic wpisuje
+  turnus, siebie i jedno albo kilkoro dzieci (`MAX_CHILDREN`); każde dziecko
+  to osobny zapis w TEJ SAMEJ transakcji z blokadą co kurs
+  (`createCampBookings`) — dzieci liczone po kolei, więc przy braku miejsc
+  pierwsze dostaje miejsce, następne listę rezerwową. **Gdy dzieci jest
+  więcej niż wolnych miejsc**, formularz ostrzega i daje wybór (decyzja
+  21.10.2026): pierwsze na miejsca, reszta rezerwowa, albo wszystkie na listę
+  rezerwową (`togetherOrWaitlist` — rodzeństwo razem albo wcale; serwer
+  liczy jeszcze raz pod blokadą). Krzysiek zawsze może dołożyć miejsca
+  i przestawić status ręcznie.
+- **Rodzeństwo dzieli adres**, więc duplikat przy obozie to adres + imię
+  i nazwisko dziecka (`childKey`, bez wielkości liter i nadmiarowych spacji),
+  nie sam adres jak przy kursie. Powtórzony zapis tych samych dzieci
+  odpowiada tak samo jak pierwszy, bez nowych wpisów i maili.
+- **Jeden link, jeden formularz, jedna umowa na zgłoszenie** (decyzja
+  21.10.2026, jak we wzorze umowy Krzyśka): dzieci z miejscem z jednego
+  zgłoszenia dzielą jeden `registrationToken` (pole `hidden` — nie ma go
+  w panelu ani w żadnej odpowiedzi API; Local API czyta je tylko
+  z `showHiddenFields`). Token = zgłoszenie: formularz ma część na każde
+  dziecko, a adres rodzica, faktura i zgody są raz. Dziecko z listy
+  rezerwowej tokenu nie dostaje — po zwolnieniu miejsca dostaje WŁASNY
+  (własny formularz i własną umowę). Do rodzica jeden mail po zapisie,
+  jeden z danymi do przelewu (zaliczka × dzieci, jeden przelew, jeden
+  termin), jedno przypomnienie na zgłoszenie; do szkoły jeden na zgłoszenie.
+- **Maile obozowe przez `CAMP_EMAIL`** (`obozy@abcwspinania.info`, decyzja
+  20.10.2026): powiadomienie o zapisie idzie tam, a mail do rodzica ma tam
+  `replyTo` — tam wracają odpowiedzi i podpisane umowy. Puste = jak
+  `ADMIN_NOTIFY_EMAIL`. Nadawca zostaje `EMAIL_FROM`, dopóki domena szkoły
+  nie jest uwierzytelniona w Brevo. **Na czas testów `CAMP_EMAIL` zostaje
+  PUSTY** (lokalnie i na produkcji) — maile obozowe idą wtedy, jak przy
+  kursach, na `ADMIN_NOTIFY_EMAIL` (Gmail Mateusza, filtr przekazuje
+  Krzyśkowi). `obozy@` wpisuje się w `deploy/.env` w dniu startu zapisów.
+- **Termin musi pasować do rodzaju**: `filterOptions` pokazuje w panelu tylko
+  terminy danego rodzaju, a `validate` (`sessionMatchesKind`) pilnuje tego przy
+  zapisie — zastępuje sprawdzenie Payloada, którego komunikat brzmiał
+  „nieprawidłowe wybory: 1”. Termin, którego kurs albo obóz usunięto (pole
+  wyczyszczone przez Postgres), pasuje do każdego rodzaju — inaczej żadnego
+  jego zapisu nie dałoby się już zapisać, nawet zmiany statusu. Migracja
+  `bookings_camp_kind` przestawia na
+  `camp` zapisy dodane wcześniej ręcznie na terminach obozów (ręczny `UPDATE`
+  — nie kasować przy sklejaniu migracji).
+- **Zgoda na zdjęcia dziecka — nieobowiązkowa, ale ODPOWIEDŹ obowiązkowa**
+  (`photoConsent` + treść w `photoConsentText`). Od 24.10.2026 formularz
+  rejestracyjny pyta „zgadzam się / nie zgadzam się”, bez niczego zaznaczonego
+  z góry, i bez wyboru się nie wysyła (`PhotoChoice`, `PHOTO_CHOICE_MISSING`).
+  Wcześniej było pole do zaznaczenia: obawa Mateusza, że rodzice je pomijają,
+  a Krzysiek odsiewa potem zdjęcia. Zgoda zaznaczona z góry albo „odznacz,
+  jeśli nie” nie jest zgodą w RODO (TSUE Planet49, motyw 32) — dlatego wybór,
+  nie domyślne „tak”. Przy „nie” zapisuje się `false` bez treści; formularz
+  wysłany wcześniej przy poprawce ma zaznaczone to, co zapisano. Odznaczenie
+  w panelu = wycofanie zgody.
+- **Formularz rejestracyjny (krok 2): `/obozy/rejestracja?token=…`**, bez
+  konta — kluczem jest `registrationToken` z maila. Na dziecko: PESEL (data
+  urodzenia liczona z niego, `lib/pesel.ts`, idzie do zapisu), wzrost,
+  uczulenia, leki, dieta, choroby, zgoda na zdjęcia (opcjonalna). Raz: adres
+  zamieszkania rodzica (do umowy i faktury, kopiowany na każdy zapis — jest
+  w anonimizacji i kopii danych), „chcę fakturę”, zgoda na zajęcia
+  (wymagana), zgoda RODO na dane i zdrowie dziecka. Działa
+  do dnia rozpoczęcia obozu — rodzic wraca tym samym linkiem i poprawia
+  (leki w lutym vs w lipcu); zamknięty dla listy rezerwowej i rezygnacji.
+  „Zapisz zmiany” przy poprawce nieaktywny, dopóki odpowiedzi nie różnią
+  się od zapisanych (od 24.10.2026, `answersOf` — jak „Zapisz” w Moim
+  koncie); bez JS zostaje aktywny, żeby formularz dało się wysłać.
+  Logika: `lib/campRegistration.ts`.
+- **PESEL i zdrowie w osobnej kolekcji `camp-registrations`** (czyta tylko
+  szkoła): usuwane same miesiąc po obozie (`CAMP_HEALTH_RETENTION_MONTHS`,
+  dzienne sprzątanie, `expiredRegistrationsWhere`), a zapis zostaje 5 lat.
+  Zdanie o miesiącu stoi też w klauzuli zgody i musi stanąć w polityce
+  prywatności. **Usunięcie zapisu kasuje jego formularz** (hook
+  `beforeDelete` w `Bookings`) — inaczej Postgres odmówi (wymagane `booking`),
+  a zdrowie przeżyłoby zapis; obejmuje to panel i „Dane osoby”. Kopia danych
+  osoby zawiera formularz przy jego zapisie.
+- **Maile formularza bez danych o zdrowiu** — ani do rodzica, ani do szkoły
+  (Brevo i lata w skrzynce). Szkoła dostaje „wypełniony / poprawiony” z
+  linkiem do panelu.
+- **Link do formularza poza pierwszym mailem**: dziecko przeniesione z listy
+  rezerwowej na miejsce dostaje go samo (hook `afterChange`), a „Wyślij
+  rodzicowi link” w panelu zapisu (`RegistrationPanel`, endpoint
+  `/api/bookings/:id/registration-link`) — przy zapisie dodanym ręcznie albo
+  zgubionym mailu. Token zostaje ten sam. Przypomnienie raz, po
+  `REGISTRATION_REMINDER_DAYS` (4) bez formularza.
+- **Zaliczka (krok 3)**: kwota, konto, tytuł przelewu
+  i zasada zwrotu w jednym miejscu — `lib/campPayment.ts` (zmiana kwoty albo
+  konta = jedna edycja). Pierwsze wypełnienie formularza ustawia
+  `depositDueAt` na `DEPOSIT_DAYS` (7) i wysyła rodzicowi dane do przelewu;
+  poprawka formularza terminu nie przesuwa (szkoła może go przesunąć ręcznie
+  w panelu). Po terminie bez zaliczki — jedno przypomnienie
+  (`depositReminderWhere`), miejsce NIE jest zwalniane (decyzja Krzyśka).
+  Wpłatę zaznacza Krzysiek statusem „zaliczka wpłacona” — przy obozie to
+  wysyła maila „zostało X zł” (`statusEmailForKind`; przy kursie zaliczka
+  dalej bez maila; **rodzeństwo z jednego zgłoszenia dostaje JEDEN mail**,
+  gdy zaliczkę ma zaznaczoną ostatnie dziecko z miejscem — z imionami
+  dzieci z zaliczką i łączną kwotą, decyzja Mateusza 22.10.2026; dziecko
+  zaznaczone od razu jako „opłacony” nie wstrzymuje maila i nie wchodzi do
+  niego ani do kwoty). **Gdy dziecko, na które mail czekał, odpada**
+  (rezygnacja, lista rezerwowa, usunięty zapis), zaległy mail wysyła
+  DZIENNE SPRZĄTANIE (`sendWaitingDepositEmails`, znacznik
+  `depositEmailAt`), nie zmiana statusu: rodzina rezygnująca w całości jest
+  klikana po jednym dziecku i dostałaby „zaliczka wpłynęła” między dwoma
+  anulowaniami. Kwota pozostała = cena turnusu albo obozu minus 500 zł;
+  bez ceny w panelu mail nie podaje kwoty, zamiast podać złą.
+- **„Dane do faktury” w panelu zapisu** (`InvoicePanel`, gdy rodzic zaznaczy
+  fakturę): rodzic z adresem albo firma (nazwa, NIP, adres), dziecko, data
+  urodzenia, termin, wpis do rejestru organizatorów
+  (`CAMP_ORGANISER_REGISTRY`) i numer obozu w kuratorium (pole
+  `kuratoriumNumber` terminu, wpisuje szkoła; bez numeru — link do
+  terminu, od 24.10.2026). Fakturę Krzysiek wystawia sam
+  w swoim programie (na firmę — przez KSeF, 22.10.2026).
+- **Faktura na firmę w formularzu rejestracyjnym** (od 22.10.2026): pod
+  „Potrzebuję faktury” pole „Na firmę”, a pod nim nazwa, NIP i adres —
+  pokazywane samym CSS-em (`group-has-[…:checked]`), więc działają bez JS.
+  NIP sprawdzany z cyfrą kontrolną (`checkNip`), zapisywany bez kresek
+  (`normalizeNip`). **Ukryte pole nie blokuje wysyłki**: `stopInvalidSubmit`
+  pomija pola niewidoczne (`checkVisibility()`) — bez tego puste pola firmy
+  zatrzymywały każdy formularz bez faktury. Serwer sprawdza je tylko przy
+  fakturze na firmę.
+- **Umowa (krok 4, od 22.10.2026)**: tekst ze wzoru Krzyśka z jego
+  poprawkami (`lib/campContract.ts`, czysty, testowany), PDF przez `pdf-lib`
+  + `@pdf-lib/fontkit` z fontem Inter z `public/fonts/` (polskie znaki;
+  czytany od `process.cwd()`, zasada 15). **Font osadzany w całości** —
+  podzbiór z fontkita gubił glify (tekst się kopiował, na stronie były
+  dziury). Jedna umowa na zgłoszenie, idzie ZAŁĄCZNIKIEM z mailem z danymi
+  do przelewu — dzień wysłania = dzień zawarcia, od niego liczy się 7 dni
+  zaliczki. Przy wysyłce zapis dostaje `contractSentAt` i `contractPrice`:
+  pobrana później umowa jest TA SAMA, nawet po zmianie ceny w panelu.
+  Bez ceny turnusu umowa nie idzie — mail z przelewem tak, a szkoła widzi
+  to w „Mailach, które nie doszły” (powód tekstem: `recordEmailIssue`
+  z ciągiem znaków zapisuje go bez zmian). Pobieranie: szkoła
+  `/api/bookings/:id/contract` (przycisk w `RegistrationPanel`; przed
+  wysyłką podgląd z dzisiejszą datą), rodzic `/obozy/rejestracja/umowa?token=`
+  (link w „Moim koncie”, tylko po wysyłce) — `Cache-Control: private,
+  no-store`. Podpisaną kopię rodzic odsyła na `obozy@`
+  (`CONTRACT_RETURN_EMAIL`).
+- **Pieczątka z podpisem NIE jest w repo** (repo jest publiczne): wgrywa się
+  ją raz na każdym serwerze w „Ustawieniach obozów” (global `camp-config`),
+  do kolekcji `private-files` — czyta tylko szkoła, także sam plik
+  (`/api/private-files/file/…` → 403 bez konta szkoły). Pliki leżą
+  w `uploads/private` (ten sam wolumen, więc kopia nocna je obejmuje).
+  **Celowo bez wpisu w `localPatterns` i bez bloku nginx** (wyjątek od
+  zasady 23): nic z tej kolekcji nie jest pokazywane na stronie, a długi
+  cache byłby odwrotnością celu. Za to odpowiedź z plikiem ma jawne
+  `Cache-Control: private, no-store` (`modifyResponseHeaders`, od
+  22.10.2026): Payload nie wysyła żadnego, a Cloudflare trzyma `.png` bez
+  tego nagłówka na swoim brzegu — pobranie przez konto szkoły oddałoby
+  podpis każdemu pytającemu o ten adres. Bez wybranego podpisu umowa
+  wychodzi z pustym miejscem na podpis organizatora, a zapis dostaje notkę
+  („Mail, który nie doszedł” na pulpicie). **Usunięcie pliku w „Plikach
+  prywatnych” samo czyści pole w „Ustawieniach obozów”** (klucz obcy) —
+  znalezione przy audycie 22.10.2026: nowy plik wgrany, stary usunięty,
+  umowy szły bez podpisu i nikt by o tym nie wiedział.
+- **„Stwórz nowy” zaczyna od rodzaju listy, z której przyszedłeś** (od
+  25.10.2026, `BookingKindField`): Payload otwiera goły formularz, który
+  zaczynał zawsze od „kurs”. Lista zapamiętuje swoją połowę w
+  `sessionStorage` (`BookingsListDescription`, `LAST_LIST_KIND_KEY`), pole
+  ustawia ją TYLKO w nowym zapisie (`kindForNewBooking`); zablokowana pamięć
+  przeglądarki = domyślny „kurs”, jak dawniej.
+- **„Zduplikuj” zapisu obozowego = nowe dziecko** (od 22.10.2026): tak
+  szkoła dopisze rodzeństwo przez telefon. Kopia zostawia rodzica, kontakt
+  i turnus, a zeruje wszystko, co należało do PIERWSZEGO dziecka
+  (`beforeDuplicate` na polach): status (wraca na „zgłoszony” — kopia
+  opłaconego zapisu była „opłacona”), token formularza (inaczej kopia weszłaby
+  do cudzego formularza i umowy), „formularz wypełniony”, datę urodzenia,
+  zgodę na zdjęcia, termin zaliczki, umowę i notkę o mailu. To samo przy
+  terminie: kopia turnusu nie dziedziczy numeru z Kuratorium ani znacznika
+  „szkic przed obozem zrobiony”. Payload kopiuje przy duplikacie także pola
+  `hidden` — nowe pole zapisu albo terminu: zdecyduj, czy kopia ma je mieć.
+- **Mail przed obozem** (od 22.10.2026, `lib/campPreCamp.ts` czysty,
+  `lib/campPreCampDrafts.ts` w dziennym sprzątaniu): `preCampReminderDays`
+  (domyślnie 16, „Ustawienia obozów”) przed turnusem system zakłada SZKIC
+  wysyłki do jego rodziców z tekstem standardowym Krzyśka (edytowalny tam
+  samo; pusta linia = akapit, „- ” = punkt listy) i mailem mówi o tym
+  `CAMP_EMAIL`. **Sam nie wysyła nic** — miejsce zbiórki, daty i godziny są
+  w nawiasach do uzupełnienia. System wpisuje sam nazwę obozu i linię
+  o śpiworze (tylko gdy obóz ma „własne śpiwory”). Raz na turnus
+  (`preCampDraftAt`, oznaczany po założeniu szkicu, przed mailem); turnus
+  bez nikogo z miejscem czeka do następnego dnia.
+  - **„Wyślij” odmawia, dopóki w treści został `[nawias]`** (od 22.10.2026,
+    `unfilledPlaceholders` w `lib/broadcasts.ts`, w KAŻDEJ wysyłce): temat
+    i treść, wersja angielska tylko gdy pójdzie. Krzysiek może szkic zmienić
+    w całości albo usunąć — blokuje wyłącznie to, co zostało w nawiasach.
+    „Wyślij próbnie” działa, żeby mógł zobaczyć szkic u siebie.
+  - **Pusta karta kwalifikacyjna w załączniku** (od 22.10.2026): PDF
+    w „Ustawieniach obozów” (`qualificationCard`, plik w `private-files`,
+    które od tego dnia przyjmują też PDF), w szkicu pole „Dołącz kartę
+    kwalifikacyjną” zaznaczone przez system. Bez karty w PDF „Wyślij”
+    i „Wyślij próbnie” odmawiają z instrukcją. Mail z kartą ma na górze ramkę
+    „W ZAŁĄCZNIKU: PUSTA KARTA KWALIFIKACYJNA” (`CARD_ATTACHED`, pole
+    `callout` w `layout.ts`, od 24.10.2026) — dokłada ją system, nie tekst
+    szkoły. Typ pliku sprawdza wysyłka, nie
+    `filterOptions` pola: Payload sprawdza je uprawnieniami żądania, więc
+    zapis bez zalogowanego konta szkoły (dane testowe) był odrzucany.
+  - **Wysyłka do turnusu obozu = mail obozowy**: nadawca „ABC Wspinania ·
+    Obozy” i `replyTo` na `CAMP_EMAIL` (`campTurnus` w `broadcastSender.ts`).
+    Do 22.10.2026 każda wysyłka miała zwykłego nadawcę i odpowiedzi na
+    `ADMIN_NOTIFY_EMAIL` — odpowiedzi rodziców nie trafiałyby na `obozy@`,
+    a filtr Gmaila przekazywałby mail przed obozem Krzyśkowi jak kursowy.
+- **Pulpit dzieli kafelki na kursy i obozy** (`SchoolDashboard`); przy obozach
+  dodatkowo „Bez formularza” (miejsce jest, formularza nie ma) i „Zaliczka po
+  terminie” — to, za czym Krzysiek dzwoni.
+- **Excel turnusu obozu ma własne kolumny** (`campTable` w
+  `lib/sessionExport.ts`): dziecko, data urodzenia, wzrost, uczulenia, leki,
+  dieta, choroby, zgoda na zdjęcia, status, formularz, termin zaliczki,
+  rodzic z telefonem i adresem, faktura. Dane o zdrowiu wychodzą w tym pliku
+  CELOWO (lista na obóz); kopia pobrana na komputer szkoły nie znika sama.
+- **„Moje konto” rodzica**: przy zapisie obozowym imię dziecka, link do
+  formularza („Wypełnij” / „Popraw”), „Pobierz umowę” (po jej wysłaniu;
+  zwykły `<a>`, nie `next/link`, który prefetchowałby plik) i stan płatności
+  (`paymentLine`) — link z tokenem tylko dla zapisów własnego konta.
+- **Polityka prywatności PL i EN** (wersja 2026-10-22) opisuje zapis dziecka,
+  formularz rejestracyjny (PESEL i zdrowie na zgodę z art. 9 ust. 2 lit. a,
+  kasowane miesiąc po obozie), zgodę na zdjęcia, adres rodzica i dane firmy
+  do faktury.
+- **Mail „Ustaw hasło do konta” po zapisie na obóz to mail obozowy**
+  (od 25.10.2026, `lib/campAccountEmails.ts`): nadawca „ABC Wspinania ·
+  Obozy”, odpowiedzi na `CAMP_EMAIL` — jak reszta maili z zapisu na obóz,
+  a filtr przekazywania w testach puszcza tylko kursowe. Ten sam mail po
+  kursie idzie od zwykłego nadawcy; link potwierdzający i inne maile o
+  koncie zostają zwykłe. Poza `actions.ts`, bo każdy eksport pliku
+  `"use server"` to akcja, którą może wywołać każdy.
+- **Maile o statusie zapisu obozowego mówią o obozie i dziecku**
+  (`campStatusEmail`), nie o kursie, i mają `replyTo` na `CAMP_EMAIL`.
+- **Testy integracyjne nie wołają przez HTTP niczego, co wysyła mail** —
+  serwer deweloperski ma prawdziwy klucz Brevo. „Wyślij link” sprawdza się
+  w procesie testów (`registrationLinkHandler`), przez HTTP tylko odmowę.
+- Nowe pola osoby trafiają w trzy miejsca naraz: anonimizacja
+  (`anonymizeExpiredBookings`), kopia danych (`personErasure.ts`, lista
+  dozwolonych pól) i jej dokument (`personDataDocument.ts`).
 
 ## Panel szkoły — pulpit, szybki status, eksport
 
@@ -1110,6 +1375,40 @@ zasada 25), inaczej panel nie znajdzie komponentu.
   (`nav__link`), więc przy jego podbiciu sprawdzić, czy menu ich nie zmieniło.
   Logo w rogu zostaje Payloada: własne `graphics.Icon` rysuje też obrazek
   podglądu `/api/og`, gdzie obrazek z adresu względnego się nie wczyta.
+- **Lista zapisów po terminach** (od 24.10.2026): linki „Zapisy na kursy /
+  na obozy” w menu (`BookingsNavLinks`, warunki `bookingsMenuConditions`, adres
+  z `lib/adminListUrl.ts`) i kafelki pulpitu (`lib/dashboardConditions.ts` —
+  te same warunki liczą i filtrują) otwierają ją
+  posortowaną po `sessionStart`, od miesiąca wstecz (`LIST_DAYS_BACK`), po
+  100 wierszy — wcześniej najnowsze zapisy na górze mieszały wszystkie
+  terminy. **Parametry w adresie, nie tylko w `defaultSort`**: Payload
+  zapamiętuje każdemu ostatnie sortowanie i liczbę wierszy i to one wygrywają
+  z ustawieniami kolekcji (zmierzone: `limit: 10` z preferencji).
+  `sessionStart` to KOPIA daty terminu (hook etykiety zapisu i `afterChange`
+  w `Sessions`, przez `db.updateMany`): sortowanie po `session.startDate`
+  działa w Local API, ale warunku po polu relacji filtr panelu nie pokazuje —
+  działałby niewidocznie. Z tego samego powodu warunki w linku to jedno
+  `where[and][N]…`, jedno pole na warunek (`whereParams` odmawia innego):
+  płaskie `where[a]…&where[b]…` albo zagnieżdżone `and` filtr pokazuje jako
+  mniej warunków, niż działa — lista trojga dzieci wyglądała jak cała lista.
+  NIE `where[or][0][and][N]` (format samego filtra): przy nim Payload
+  rozwija „Filtry” przy każdym otwarciu listy (`validateWhereQuery`
+  w `ListControls`). Test przechodzi przez każdy kafelek.
+  Grupowanie Payloada (`admin.groupBy`, beta)
+  odrzucone: 10 wierszy na grupę i grupy w kolejności id terminu. Migracja
+  `bookings_session_start` wypełnia kopię w istniejących zapisach (ręczny
+  `UPDATE` — nie kasować przy sklejaniu migracji). Opis pod
+  nagłówkiem mówi, gdzie jesteś (`describeBookingsList` w
+  `lib/bookingsList.ts`): połowa (kursy/obozy) i widok — który kafelek, menu,
+  jeden termin albo filtry ręczne — rozpoznany z SAMYCH warunków w adresie,
+  nie ze znacznika: zmiana filtra zmienia opis; pod spodem, kiedy status
+  wysyła maila.
+  Kolumny: „Uczestnik” (`participant` — dziecko przy obozie, osoba przy
+  kursie; składany z etykietą, w formularzu ukryty) i „Termin” osobno —
+  jedna etykieta z oboma czytała się źle. `participant` to dane osoby:
+  czyści go anonimizacja; w kopii danych go nie ma (to samo co imiona).
+  Linki z menu niosą też `columns` — kolumny wybrane ręcznie wracają do
+  tych przy następnym kliknięciu w menu.
 - **Status jako lista rozwijana na liście zapisów** (`BookingStatusCell`).
   Zapisuje przez REST, więc działa wszystko, co idzie za zmianą statusu
   (mail, przeliczenie miejsc). Status wysyłający kursantowi maila pyta
@@ -1123,6 +1422,13 @@ zasada 25), inaczej panel nie znajdzie komponentu.
   komórki zaczynające się od `= + - @` z apostrofem (formuła wpisana
   w formularz nie wykona się u Krzyśka), telefon jako `="+48 600 …"` (bez
   tego Excel robi z niego liczbę bez plusa).
+- **Każde widoczne pole daty ma `displayFormat`** (`d.MM.yyyy` albo
+  `d.MM.yyyy, HH:mm`). Bez niego Payload pokazuje datę po amerykańsku
+  („10/23/2026”) — mimo polskiego panelu. Znalezione 24.10.2026 przy
+  „Dacie zgody” w formularzu rejestracyjnym; poprawione we wszystkich
+  kolekcjach. Pole `hidden` go nie potrzebuje. Daty na listach i „Utworzono”
+  biorą `admin.dateFormat` z `payload.config.ts` — domyślny Payloada dawał
+  „października 23 2026, 2:05 PM”.
 - **`@payloadcms/ui` tylko jako JAWNA zależność** (od 12.10.2026 w
   `package.json`, przypięta co do numeru jak reszta Payloada, grupa `payload`
   w Dependabocie). Do tego dnia była wyłącznie zależnością Payloada i import
@@ -1369,7 +1675,8 @@ bezpiecznik przy szczytach sharpa. Skrypt jest idempotentny.
    `grep -rl "https://<domena>" /app/.next | wc -l` w kontenerze — zero
    znaczy, że adres nie wszedł.
 8. Maile: w `deploy/.env` `BREVO_API_KEY`, `EMAIL_FROM` (adres na domenie
-   uwierzytelnionej w Brevo), `ADMIN_NOTIFY_EMAIL` i `PUBLIC_URL` (adres,
+   uwierzytelnionej w Brevo), `ADMIN_NOTIFY_EMAIL`, `CAMP_EMAIL` (skrzynka
+   obozów) i `PUBLIC_URL` (adres,
    pod którym strona działa TERAZ — linki w mailach do kursantów). W Brevo:
    „Anonymous email tracking: Yes”. Bez klucza strona działa, ale maile
    lądują w logu kontenera.
@@ -1604,7 +1911,19 @@ repo). **Zmieniasz funkcję — zmień jej kroki w tym samym commicie.**
 - **Maile w rundzie Krzyśka idą do obu**: `TEST_INBOX` i `ADMIN_NOTIFY_EMAIL`
   zostają Gmailem Mateusza, a filtr Gmaila przekazuje wszystko od
   `zapisy@szkolawspinaczkowa.pl` na `biuro@abcwspinania.info` (krok Z4).
-- Dane: `TEST_INBOX=ty@gmail.com npm run seed:test` (`web/scripts/seed-test.ts`).
+- **Dwa skrypty, jeden moduł** (od 22.10.2026, `web/scripts/test-data/`):
+  `seed:test:courses` (= dawne `seed:test`, alias zostaje — używa go workflow
+  „Test data” i scenariusz kursów) i `seed:test:camps` (scenariusz
+  `docs/testy-obozy.html`). Wspólne w `common.ts`: skrzynka, hasło (te same
+  konta i to samo hasło w obu), sprzątanie, okno czasu. **Osobne tagi**
+  `+abctest-` i `+abctestoboz-` — żaden nie zawiera drugiego, więc `clean`
+  jednego nie rusza danych drugiego; „bez znacznika” liczy oba. Osobne okna
+  (`seed-test:since`, `seed-test-camps:since`) i osobne notatki terminów
+  („TERMIN TESTOWY…”, „TURNUS TESTOWY…”). Dane obozów wpisują stany tymi
+  samymi funkcjami co strona (`saveRegistration`, `sendRegistrationEmails`
+  z podmienionym `sendEmail`), turnusy mają własną cenę 2500 zł; linki do
+  formularzy rejestracyjnych są w podsumowaniu tylko lokalnie.
+- Dane: `TEST_INBOX=ty@gmail.com npm run seed:test` (`web/scripts/test-data/courses.ts`).
   Każdy adres to alias jednej skrzynki (`ty+abctest-ola@gmail.com`), więc
   konta są osobne, a maile — prawdziwe, przez Brevo — trafiają do testera.
   Znacznik `+abctest-` w adresie i dopisek „TERMIN TESTOWY — nie zapisuj się”
@@ -1612,7 +1931,9 @@ repo). **Zmieniasz funkcję — zmień jej kroki w tym samym commicie.**
   uruchomienie najpierw je kasuje, `-- clean` tylko kasuje. Wysyłki usuwa,
   gdy WSZYSCY ich odbiorcy mają znacznik.
 - **Na produkcji (od 13.10.2026) — tylko workflow „Test data”**
-  (`test-data.yml`, potwierdzenie słowem `test-data`; akcje `seed`, `clean`,
+  (`test-data.yml`, potwierdzenie słowem `test-data`; wybór danych `courses`
+  albo `camps` — od 25.10.2026, domyślnie kursy, więc stary sposób z
+  `testy-reczne.html` działa bez zmian; akcje `seed`, `clean`,
   `clean-all`), tym samym tunelem co Migrate. Repozytorium jest
   PUBLICZNE, więc logi też: skrzynka i hasło kont to sekrety `TEST_INBOX`
   i `TEST_PASSWORD`, a skrypt nie wypisuje adresu, tokenu ani danych osoby —
@@ -1678,6 +1999,13 @@ maile, usunięcie konta.
   hurtowe `payload.delete` NIE rzuca, tylko zwraca odmowy w `errors` —
   wysyłki „w trakcie” zostawały w bazie po cichu i blokowały kolejkę
   następnego przebiegu.
+- **Sprzątanie dzienne w testach — tylko na własnych turnusach**
+  (`onlySessions` w `sendRegistrationReminders`, `sendDepositReminders`,
+  `deleteExpiredRegistrations`, `sendWaitingDepositEmails`,
+  `preparePreCampDrafts`; od 22.10.2026). Testy chodzą po bazie
+  deweloperskiej, na której leżą dane z `seed:test:camps`: przypomnienie
+  o zaliczce wysłane przez test „do outboxa” oznaczało zapis testera jako
+  przypomniany i krok scenariusza przestawał działać.
 - **Zmiana kolekcji = restart `npm run dev` przed testami HTTP.** Serwer
   deweloperski nie przeładowuje konfiguracji Payloada w locie (zmierzone
   04–05.10.2026: nowe pola nieznane, zmieniona reguła dostępu nadal stara),

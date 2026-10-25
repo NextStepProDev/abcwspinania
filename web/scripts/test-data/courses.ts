@@ -1,129 +1,57 @@
 /**
- * Test data for the manual test scenario (`docs/testy-reczne.html`).
+ * Test data for the manual course scenario (`docs/testy-reczne.html`).
  *
- *   TEST_INBOX=you@gmail.com npm run seed:test                # fresh test data
- *   TEST_INBOX=you@gmail.com npm run seed:test -- clean       # remove it only
- *   TEST_INBOX=you@gmail.com npm run seed:test -- clean-all   # … and what testers added by hand
+ *   TEST_INBOX=you@gmail.com npm run seed:test:courses                # fresh test data
+ *   TEST_INBOX=you@gmail.com npm run seed:test:courses -- clean       # remove it only
+ *   TEST_INBOX=you@gmail.com npm run seed:test:courses -- clean-all   # … and what testers added by hand
  *
- * `clean` is a plain word, not `--clean`: `payload run` parses the command
- * line with minimist and passes on only the positional words — a flag never
- * reaches the script, which then re-seeded instead of cleaning.
- *
- * Every test address is an alias of ONE real inbox — `you+abctest-ola@…` —
- * so each account is separate for the site, while every email the scenario
- * triggers lands in the tester's own mailbox (Gmail and most providers
- * deliver `+anything` to the base address). The tag `+abctest-` is also how
- * the script finds its own records again: every run deletes the previous
- * test data first, so the scenario always starts from the same state.
- *
- * The script itself sends NOTHING (`payload.sendEmail` is replaced): emails
- * come only from what the tester clicks, against a server with a real Brevo
- * key. The address the tester registers from scratch (`+abctest-nowy`) is
- * deliberately not created here.
+ * `npm run seed:test` is the same — the name the "Test data" workflow and the
+ * course scenario used before the camps got their own script (22.10.2026).
+ * Addresses carry `+abctest-`; what is shared with the camp script, and why:
+ * `common.ts`. The address the tester registers from scratch (`+abctest-nowy`)
+ * is deliberately not created here.
  *
  * PRODUCTION (decided 13.10.2026 — testing on the live server before launch):
- * only through the "Test data" workflow, which sets
- * `TEST_DATA_ON_PRODUCTION=yes`. There the script
- *   - creates NO panel account — a known password to the school's panel in a
- *     public repo would be an open door; testers use their own panel accounts;
- *   - takes the password from `TEST_PASSWORD` (a repository secret), never
- *     the constant below (they may be equal: decided 14.10.2026, the test
- *     accounts are made up and the school's own accounts are not created);
- *   - prints no address and no token: the repository is public, and so are
- *     the workflow's logs. Ewa's expired link is therefore local only.
- *
- * What testers add by hand without the tag (an account on their real
- * address, a phone booking on a real session) cannot be told from real data
- * by its content — only by WHEN it was made. The first seed stores that
- * moment (`payload.kv`, kept across re-seeds); `clean` lists what appeared
- * since, by id only, and `clean-all` removes it and closes the window.
+ * no panel account (a known password to the school's panel in a public repo
+ * would be an open door; testers use their own), the password from
+ * `TEST_PASSWORD`, no address or token in the output. Ewa's expired link is
+ * therefore local only.
  */
 import crypto from 'node:crypto'
-import { appendFileSync } from 'node:fs'
-
-import { getPayload, type CollectionSlug, type Payload } from 'payload'
-import config from '@payload-config'
 
 import { formatDateRange } from '@/lib/format'
 import { newToken } from '@/lib/newsletter'
 
-const onProduction = process.env.NODE_ENV === 'production'
-if (onProduction && process.env.TEST_DATA_ON_PRODUCTION !== 'yes') {
-  throw new Error(
-    'seed:test on production runs only from the "Test data" workflow (TEST_DATA_ON_PRODUCTION=yes).',
-  )
-}
-
-const inbox = (process.env.TEST_INBOX ?? '').trim().toLowerCase()
-const at = inbox.indexOf('@')
-if (at < 1 || inbox.includes('+')) {
-  throw new Error('Set TEST_INBOX to your own address without a "+", e.g. TEST_INBOX=you@gmail.com')
-}
+import {
+  PASSWORD,
+  QUIET,
+  addressWith,
+  command,
+  findAll,
+  finish,
+  isTestAddress,
+  iso,
+  onProduction,
+  openWindow,
+  payload,
+  removeWhere,
+  reportLeftovers,
+  say,
+  shownWith,
+  untaggedSince,
+  type Leftovers,
+} from './common'
 
 const TAG = '+abctest-'
-/** The local test password — public, it is in this file. Production takes `TEST_PASSWORD`. */
-const LOCAL_PASSWORD = 'Testy-ABC-2026'
-const PASSWORD = onProduction ? (process.env.TEST_PASSWORD ?? '') : LOCAL_PASSWORD
-if (PASSWORD.length < 10) {
-  throw new Error('Set TEST_PASSWORD (at least 10 characters) — the password of the test accounts.')
-}
 /** Shown on the public schedule next to the date — on production real visitors see it too. */
 const SESSION_NOTE = 'TERMIN TESTOWY — nie zapisuj się'
 /** The note before 13.10.2026, so a clean still finds sessions seeded earlier. */
 const OLD_SESSION_NOTE = 'termin testowy (seed:test)'
-/** When the current round of testing began — see the header. */
+/** When the current round of testing began — see `reportLeftovers`. */
 const SINCE_KEY = 'seed-test:since'
 
-const address = (name: string) => `${inbox.slice(0, at)}${TAG}${name}${inbox.slice(at)}`
-/** How an address appears in output: the full one locally, only its tag in public logs. */
-const shown = (name: string) => (onProduction ? `${TAG}${name}` : address(name))
-const isTagged = (email: unknown) => typeof email === 'string' && email.includes(TAG)
-
-const command = process.argv.includes('clean-all')
-  ? 'clean-all'
-  : process.argv.includes('clean')
-    ? 'clean'
-    : 'seed'
-
-const payload: Payload = await getPayload({ config })
-payload.sendEmail = (async () => undefined) as Payload['sendEmail']
-
-const QUIET = { skipStatusEmail: true }
-const day = 86_400_000
-const now = Date.now()
-const iso = (days: number) => new Date(now + days * day).toISOString()
-
-/** The job summary on GitHub (Polish — the tester reads it), the console locally. */
-const summary: string[] = []
-const say = (line = '') => summary.push(line)
-
-/** Payload's bulk delete returns refusals instead of throwing — fail loudly. */
-async function removeWhere(collection: CollectionSlug, where: Record<string, unknown>) {
-  const { docs, errors } = await payload.delete({
-    collection,
-    where: where as never,
-    overrideAccess: true,
-    context: QUIET,
-  })
-  if (errors.length) {
-    throw new Error(`could not delete from ${collection}: ${JSON.stringify(errors)}`)
-  }
-  return docs.length
-}
-
-async function findAll(collection: CollectionSlug, where: Record<string, unknown>) {
-  const { docs } = await payload.find({
-    collection,
-    where: where as never,
-    limit: 1000,
-    depth: 0,
-    // A union of slugs widens `joins` to `undefined`; every collection takes `false`.
-    joins: false as never,
-    pagination: false,
-    overrideAccess: true,
-  })
-  return docs as unknown as Record<string, unknown>[]
-}
+const address = addressWith(TAG)
+const shown = shownWith(TAG)
 
 /**
  * Broadcasts every recipient of which is a test address — the tester's own
@@ -134,52 +62,32 @@ async function testBroadcastIds(): Promise<number[]> {
   const byBroadcast = new Map<number, boolean>()
   for (const row of deliveries) {
     const id = Number(row.broadcast)
-    byBroadcast.set(id, (byBroadcast.get(id) ?? true) && isTagged(row.email))
+    // This script's own tag: a camp-round broadcast is the camp script's to remove.
+    const ours = typeof row.email === 'string' && row.email.includes(TAG)
+    byBroadcast.set(id, (byBroadcast.get(id) ?? true) && ours)
   }
   return [...byBroadcast].filter(([, onlyTest]) => onlyTest).map(([id]) => id)
 }
 
-type Leftovers = Partial<Record<CollectionSlug, number[]>>
-
 /**
- * Records made since the round began that the tag does not cover. Bookings
- * on test sessions are left out — those go with their session anyway.
+ * Records made since the round began that no tag covers. Bookings on test
+ * sessions are left out — those go with their session anyway.
  */
 async function leftovers(since: string, testSessions: number[], testBroadcasts: number[]) {
-  const made = { createdAt: { greater_than_equal: since } }
   const found: Leftovers = {}
-  const untagged = async (
-    collection: CollectionSlug,
-    keep: (row: Record<string, unknown>) => boolean = () => true,
-  ) =>
-    (await findAll(collection, made))
-      .filter((row) => !isTagged(row.email) && keep(row))
-      .map((row) => Number(row.id))
-  found.customers = await untagged('customers')
-  found.bookings = await untagged('bookings', (row) => !testSessions.includes(Number(row.session)))
-  found.messages = await untagged('messages')
-  found.newsletter = await untagged('newsletter')
-  found.broadcasts = (await findAll('broadcasts', made))
+  found.customers = await untaggedSince('customers', since)
+  found.bookings = await untaggedSince(
+    'bookings',
+    since,
+    (row) => !testSessions.includes(Number(row.session)),
+  )
+  found.messages = await untaggedSince('messages', since)
+  found.newsletter = await untaggedSince('newsletter', since)
+  found.broadcasts = (await findAll('broadcasts', { createdAt: { greater_than_equal: since } }))
     .map((row) => Number(row.id))
     .filter((id) => !testBroadcasts.includes(id))
   return found
 }
-
-/** Collection, with its name in the (Polish) panel — where to look the ids up. */
-const LABELS: Partial<Record<CollectionSlug, string>> = {
-  customers: 'participant accounts (panel: Uczestnicy)',
-  bookings: 'bookings (panel: Zapisy)',
-  messages: 'messages (panel: Wiadomości)',
-  newsletter: 'newsletter (panel: Newsletter)',
-  broadcasts: 'broadcasts (panel: Wysyłki)',
-}
-
-const polishTime = (value: string) =>
-  new Intl.DateTimeFormat('en-GB', {
-    dateStyle: 'long',
-    timeStyle: 'short',
-    timeZone: 'Europe/Warsaw',
-  }).format(new Date(value))
 
 async function clean(all: boolean) {
   const testSessions = (
@@ -214,51 +122,13 @@ async function clean(all: boolean) {
   say(
     `Removed test data: everything with \`${TAG}\` in the address, and the test sessions (${testSessions.length}).`,
   )
-
-  const began = since ? polishTime(since) : ''
-  const rows = Object.entries(extra).filter(([, ids]) => ids.length > 0) as [
-    CollectionSlug,
-    number[],
-  ][]
-  if (!since) {
-    say('No stored start of testing — nothing to check beyond the tag.')
-  } else if (rows.length === 0) {
-    say(`Since testing began (${began}) nothing has appeared without the tag.`)
-  } else if (!all) {
-    say(`Since testing began (${began}) this appeared WITHOUT the tag:`)
-    for (const [collection, ids] of rows) {
-      say(`- ${LABELS[collection]}: ${ids.length} (id: ${ids.join(', ')})`)
-    }
-    say('Check them in the panel. If they are all tests, run again with `clean-all`.')
-  } else {
-    for (const [collection, ids] of rows) {
-      for (const id of ids) {
-        if (collection === 'bookings') {
-          await payload.delete({ collection, id, overrideAccess: true, context: QUIET })
-        } else {
-          await payload.delete({ collection, id, overrideAccess: true })
-        }
-      }
-      say(`- removed ${LABELS[collection]}: ${ids.length} (id: ${ids.join(', ')})`)
-    }
-  }
-  if (all) {
-    await payload.kv.delete(SINCE_KEY)
-    say('Testing window closed — the next seed starts a new one.')
-  }
-}
-
-function finish(code = 0): never {
-  const text = summary.join('\n')
-  console.log(`\n${text}\n`)
-  if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${text}\n`)
-  process.exit(code)
+  await reportLeftovers(SINCE_KEY, extra, all)
 }
 
 await clean(command === 'clean-all')
 if (command !== 'seed') finish()
 
-if (!(await payload.kv.get(SINCE_KEY))) await payload.kv.set(SINCE_KEY, new Date().toISOString())
+await openWindow(SINCE_KEY)
 
 const { docs: courses } = await payload.find({
   collection: 'courses',
@@ -412,7 +282,7 @@ for (const [name, status] of [
 
 // Real confirmed subscribers get every newsletter test send too (H5).
 const realSubscribers = (await findAll('newsletter', { status: { equals: 'subscribed' } })).filter(
-  (row) => !isTagged(row.email),
+  (row) => !isTestAddress(row.email),
 ).length
 
 const base = (process.env.PUBLIC_URL || 'http://localhost:3000').replace(/\/$/, '')
@@ -441,6 +311,7 @@ say(`Course with the test sessions: ${base}/kursy/${course.slug}`)
 say(
   `Open session: ${formatDateRange(open.startDate, open.endDate)} · full session: ${formatDateRange(full.startDate, full.endDate)}`,
 )
+say('Camp test data: `npm run seed:test:camps` (its own script and tag).')
 say(`Real confirmed newsletter subscribers: ${realSubscribers}`)
 if (!onProduction) say(`Ewa's expired link: ${base}/konto/potwierdz?token=${ewaToken}`)
 finish()

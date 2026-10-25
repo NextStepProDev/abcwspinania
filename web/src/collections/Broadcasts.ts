@@ -230,6 +230,20 @@ export const Broadcasts: CollectionConfig = {
       },
     },
     {
+      // The blank qualification card from "Ustawienia obozów" as an attachment —
+      // ticked on the draft before a camp (`preparePreCampDrafts`).
+      name: 'attachQualificationCard',
+      access: draftOnly,
+      type: 'checkbox',
+      defaultValue: false,
+      label: 'Dołącz kartę kwalifikacyjną (PDF)',
+      admin: {
+        condition: (data) => data?.audience === 'session',
+        description:
+          'Pusta karta z „Ustawień obozów” w załączniku do każdego maila, a na samej górze maila ramka „W ZAŁĄCZNIKU: PUSTA KARTA KWALIFIKACYJNA” — dokładana sama.',
+      },
+    },
+    {
       // Buttons and live numbers — `components/admin/BroadcastPanel.tsx`.
       name: 'sendPanel',
       type: 'ui',

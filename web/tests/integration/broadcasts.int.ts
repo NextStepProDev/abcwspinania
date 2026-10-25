@@ -1,8 +1,15 @@
 import assert from 'node:assert/strict'
 
 import type { PayloadRequest } from 'payload'
+import { PDFDocument } from 'pdf-lib'
 
-import { processBroadcasts, recipientsOf, sendHandler, summaryHandler } from '@/lib/broadcastSender'
+import {
+  processBroadcasts,
+  recipientsOf,
+  sendHandler,
+  summaryHandler,
+  testHandler,
+} from '@/lib/broadcastSender'
 import { stalePendingNewsletterWhere } from '@/lib/expiry'
 import { confirmSubscription, subscribe } from '@/lib/newsletter'
 
@@ -13,6 +20,7 @@ import {
   http,
   makeAdmin,
   makeBooking,
+  makeCamp,
   makeCourse,
   makeSession,
   outbox,
@@ -422,4 +430,119 @@ test('broadcasts: a database hiccup at the start of a tick does not stop the que
   const done = await drainQueue(broadcast.id)
   assert.equal(done.status, 'sent')
   assert.ok(outbox.some((m) => m.to === email('hiccup-a')))
+})
+
+test('broadcasts: "Wyślij" refuses while a [blank] is left; a test send still goes', async () => {
+  const admin = await makeAdmin()
+  const course = await makeCourse()
+  const session = await makeSession(course.id)
+  await makeBooking(session.id, 'blank-a')
+  const broadcast = await makeBroadcast({
+    audience: 'session',
+    session: session.id,
+    content: richText('Spotykamy się w [miejsce zbiórki].'),
+  })
+  const refused = await sendHandler(schoolRequest(broadcast.id, admin.email))
+  assert.equal(refused.status, 409)
+  assert.match(((await refused.json()) as { error: string }).error, /\[miejsce zbiórki\]/)
+  const { totalDocs } = await payload.count({
+    collection: 'broadcast-deliveries',
+    where: { broadcast: { equals: broadcast.id } },
+    overrideAccess: true,
+  })
+  assert.equal(totalDocs, 0, 'nothing queued')
+  const test = await testHandler(schoolRequest(broadcast.id, admin.email))
+  assert.equal(test.status, 200, 'the school may still look at the draft in its inbox')
+
+  await payload.update({
+    collection: 'broadcasts',
+    id: broadcast.id,
+    data: { content: richText('Spotykamy się w Rzędkowicach.') as never },
+    overrideAccess: true,
+  })
+  const sent = await sendHandler(schoolRequest(broadcast.id, admin.email))
+  assert.equal(sent.status, 200)
+  await drainQueue(broadcast.id)
+})
+
+test('broadcasts: to a camp turnus it goes from the camp sender, to a course as before', async () => {
+  const admin = await makeAdmin()
+  const camp = await makeCamp()
+  const turnus = await makeSession(camp.id, { camp: true })
+  await makeBooking(turnus.id, 'campmail-a', {
+    kind: 'camp',
+    childFirstName: 'Ala',
+    childLastName: 'Test',
+  })
+  const course = await makeCourse()
+  const session = await makeSession(course.id)
+  await makeBooking(session.id, 'coursemail-a')
+  outbox.length = 0
+  for (const id of [turnus.id, session.id]) {
+    const b = await makeBroadcast({ audience: 'session', session: id })
+    await sendHandler(schoolRequest(b.id, admin.email))
+    await drainQueue(b.id)
+  }
+  const toCamp = outbox.find((m) => m.to === email('campmail-a'))
+  const toCourse = outbox.find((m) => m.to === email('coursemail-a'))
+  assert.equal(toCamp?.fromName, 'ABC Wspinania · Obozy')
+  assert.equal(toCourse?.fromName, undefined)
+})
+
+test('broadcasts: the qualification card goes attached when ticked — and only with a card set', async () => {
+  const admin = await makeAdmin()
+  const camp = await makeCamp()
+  const turnus = await makeSession(camp.id, { camp: true })
+  await makeBooking(turnus.id, 'card-a', {
+    kind: 'camp',
+    childFirstName: 'Ala',
+    childLastName: 'T',
+  })
+  const config = await payload.findGlobal({ slug: 'camp-config', depth: 0, overrideAccess: true })
+  const before = (config.qualificationCard as number | null | undefined) ?? null
+  cleanup(() =>
+    payload.updateGlobal({
+      slug: 'camp-config',
+      data: { qualificationCard: before },
+      overrideAccess: true,
+    }),
+  )
+  await payload.updateGlobal({
+    slug: 'camp-config',
+    data: { qualificationCard: null },
+    overrideAccess: true,
+  })
+  const broadcast = await makeBroadcast({
+    audience: 'session',
+    session: turnus.id,
+    attachQualificationCard: true,
+  })
+  const refused = await sendHandler(schoolRequest(broadcast.id, admin.email))
+  assert.equal(refused.status, 400, 'ticked, but no card in "Ustawienia obozów"')
+  assert.match(((await refused.json()) as { error: string }).error, /Ustawieniach obozów/)
+
+  // A real PDF: Payload checks the file's integrity on upload.
+  const blank = await PDFDocument.create()
+  blank.addPage()
+  const pdf = Buffer.from(await blank.save())
+  const file = await payload.create({
+    collection: 'private-files',
+    data: { title: 'karta' },
+    file: { data: pdf, mimetype: 'application/pdf', name: `${tag}-karta.pdf`, size: pdf.length },
+    overrideAccess: true,
+  })
+  cleanup(() => payload.delete({ collection: 'private-files', id: file.id, overrideAccess: true }))
+  await payload.updateGlobal({
+    slug: 'camp-config',
+    data: { qualificationCard: file.id },
+    overrideAccess: true,
+  })
+  outbox.length = 0
+  const sent = await sendHandler(schoolRequest(broadcast.id, admin.email))
+  assert.equal(sent.status, 200)
+  await drainQueue(broadcast.id)
+  const withCard = outbox.find((m) => m.to === email('card-a'))
+  assert.deepEqual(withCard?.attachments, ['karta-kwalifikacyjna.pdf'])
+  // Said at the top, in capitals — an attachment under a long text is easy to miss.
+  assert.match(withCard?.text ?? '', /W ZAŁĄCZNIKU: PUSTA KARTA KWALIFIKACYJNA/)
 })

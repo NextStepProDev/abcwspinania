@@ -10,6 +10,7 @@ import {
   email,
   failEmails,
   makeBooking,
+  makeCamp,
   makeCustomer,
   makeCourse,
   makeSession,
@@ -346,4 +347,59 @@ test('bookings are anonymized five years after their course’s year; newer ones
     listed.docs.map((b) => b.id),
     [onAccount.id],
   )
+})
+
+test('a booking carries its session’s start for the list order, also after the dates change', async () => {
+  const course = await makeCourse()
+  const later = await makeSession(course.id, { daysAhead: 40 })
+  const sooner = await makeSession(course.id, { daysAhead: 10 })
+  const a = await makeBooking(later.id, 'order-later')
+  const b = await makeBooking(sooner.id, 'order-sooner')
+  assert.equal(a.sessionStart, later.startDate)
+  assert.equal(b.sessionStart, sooner.startDate)
+
+  // The list sorts by it (`defaultSort`): the sooner session first.
+  const { docs } = await payload.find({
+    collection: 'bookings',
+    where: { id: { in: [a.id, b.id] } },
+    sort: 'sessionStart',
+    depth: 0,
+    overrideAccess: true,
+  })
+  assert.deepEqual(
+    docs.map((d) => d.id),
+    [b.id, a.id],
+  )
+
+  // The school moves the later session ahead of the other one.
+  const moved = new Date(Date.now() + 5 * 86_400_000).toISOString()
+  await payload.update({
+    collection: 'sessions',
+    id: later.id,
+    data: { startDate: moved },
+    overrideAccess: true,
+  })
+  const after = await payload.findByID({
+    collection: 'bookings',
+    id: a.id,
+    depth: 0,
+    overrideAccess: true,
+  })
+  assert.equal(after.sessionStart, moved)
+})
+
+test('the list’s "Uczestnik" column: the person on a course, the child on a camp', async () => {
+  const course = await makeCourse()
+  const session = await makeSession(course.id)
+  const adult = await makeBooking(session.id, 'name-adult')
+  assert.equal(adult.participant, 'name-adult Test')
+
+  const camp = await makeCamp()
+  const turnus = await makeSession(camp.id, { camp: true })
+  const child = await makeBooking(turnus.id, 'name-parent', {
+    kind: 'camp',
+    childFirstName: 'Zosia',
+    childLastName: 'Testowa',
+  })
+  assert.equal(child.participant, 'Zosia Testowa', 'the child, not the parent')
 })

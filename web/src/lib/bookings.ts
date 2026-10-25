@@ -1,3 +1,5 @@
+import type { Where } from 'payload'
+
 import type { EmailLanguage } from '@/lib/email/language'
 import { formatDateRange } from '@/lib/format'
 
@@ -43,6 +45,42 @@ export const STATUS_FOR_PARTICIPANT: Record<BookingStatus, string> = {
  * cancellation gave one back — neither counts against the capacity.
  */
 export const ACTIVE_STATUSES: readonly BookingStatus[] = ['new', 'confirmed', 'deposit', 'paid']
+
+export const BOOKING_KINDS = ['course', 'camp'] as const
+
+export type BookingKind = (typeof BOOKING_KINDS)[number]
+
+export const BOOKING_KIND_OPTIONS = [
+  { label: 'kurs', value: 'course' },
+  { label: 'obóz', value: 'camp' },
+] satisfies { label: string; value: BookingKind }[]
+
+/**
+ * Which sessions a booking of this kind may point at — a session belongs to
+ * EITHER a course OR a camp (`Sessions.ts`). A booking without a kind yet is
+ * a course booking: the field's default, and every booking before camps.
+ */
+export function sessionFilterFor(kind: unknown): Where {
+  return kind === 'camp' ? { camp: { exists: true } } : { course: { exists: true } }
+}
+
+/**
+ * The panel's message when the session and the kind disagree — `null` when
+ * they match. Payload's own refusal of a value outside `filterOptions` reads
+ * "nieprawidłowe wybory: 1", which tells the school nothing.
+ *
+ * A session with neither (its course or camp was deleted — Postgres clears
+ * the field) agrees with any kind: refusing it would block every later save
+ * of its bookings, a status change included.
+ */
+export function kindMismatch(kind: unknown, sessionKind: BookingKind | null): string | null {
+  if (!sessionKind) return null
+  const bookingKind: BookingKind = kind === 'camp' ? 'camp' : 'course'
+  if (bookingKind === sessionKind) return null
+  return sessionKind === 'camp'
+    ? 'To termin obozu — ustaw „Rodzaj zapisu” na „obóz”.'
+    : 'To termin kursu — ustaw „Rodzaj zapisu” na „kurs”.'
+}
 
 export interface Availability {
   /** `null` when the session has no capacity set — the site then says "ask". */
@@ -95,7 +133,7 @@ export function isUpcoming(
   return now.getTime() < lastDay + DAY_MS
 }
 
-export type StatusEmail = 'confirmed' | 'paid' | 'cancelled'
+export type StatusEmail = 'confirmed' | 'deposit' | 'paid' | 'cancelled'
 
 /**
  * Which change of status the participant hears about. The school moves a
@@ -122,6 +160,25 @@ export function statusEmailFor(
   if (next === 'paid' && sessionStart && courseStarted(sessionStart, now)) return null
   if (next === 'confirmed' || next === 'paid' || next === 'cancelled') return next
   return null
+}
+
+/**
+ * `statusEmailFor` for a booking of either kind. A camp adds one email: the
+ * deposit (decided 20.10.2026) — "zaliczka wpłynęła, zostało X zł". On a
+ * course the deposit stays silent, as it always was. Moving back to the
+ * deposit from "paid" is a correction, not news.
+ */
+export function statusEmailForKind(
+  kind: unknown,
+  previous: BookingStatus | null | undefined,
+  next: BookingStatus,
+  sessionStart?: string | null,
+  now: Date = new Date(),
+): StatusEmail | null {
+  if (kind === 'camp' && next === 'deposit') {
+    return previous === 'deposit' || previous === 'paid' ? null : 'deposit'
+  }
+  return statusEmailFor(previous, next, sessionStart, now)
 }
 
 const polishDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw' })
@@ -190,20 +247,41 @@ export function placeFreedForWaitlist(
 /**
  * Where a date's "Zapisz się" leads (the schedule, `/terminarz`).
  *
- * A course date opens its booking form with that date already chosen — the
- * form reads `?session=`. Camps take no bookings yet (stage 4), so a camp
- * date asks through the contact form with the camp filled in. Until
- * 10.10.2026 every date led to `/kontakt?termin=…`, a leftover from before
- * bookings whose parameter the contact form never read.
+ * A course or camp date opens its booking form with that date already
+ * chosen — both forms read `?session=`. Trips and recurring classes (a
+ * `camps` entry of another kind) take no bookings, so their dates ask
+ * through the contact form with the entry filled in. Until 10.10.2026 every
+ * date led to `/kontakt?termin=…`, a leftover from before bookings whose
+ * parameter the contact form never read.
  */
 export function signUpPath(session: {
   id: number
   courseSlug: string | null
   campSlug: string | null
+  /** The entry is a camp (`kind = camp`), not a trip or classes. */
+  campBookable?: boolean
 }): string {
   if (session.courseSlug) return `/kursy/${session.courseSlug}/zapis?session=${session.id}`
+  if (session.campSlug && session.campBookable)
+    return `/obozy/${session.campSlug}/zapis?session=${session.id}`
   if (session.campSlug) return `/kontakt?camp=${session.campSlug}`
   return '/kontakt'
+}
+
+/** Children one camp sign-up takes at once — siblings, rarely more than two. */
+export const MAX_CHILDREN = 6
+
+/**
+ * A child as the duplicate check compares them. Siblings share the parent's
+ * address, so on a camp the address alone is not one person: the same
+ * address with the same child's name is the same booking (a double click, a
+ * second try), another name is a sibling.
+ */
+export function childKey(
+  firstName: string | null | undefined,
+  lastName: string | null | undefined,
+) {
+  return `${firstName ?? ''} ${lastName ?? ''}`.trim().replace(/\s+/g, ' ').toLocaleLowerCase('pl')
 }
 
 /**

@@ -1,5 +1,5 @@
 import type { EmailLanguage } from '@/lib/email/language'
-import { hasText, type RichTextValue } from '@/lib/email/richText'
+import { hasText, renderRichText, type RichTextValue } from '@/lib/email/richText'
 
 /**
  * Broadcasts ("Wysyłki") — the pure part: who counts as a recipient, which
@@ -82,6 +82,22 @@ export function versionFor(
     return { lang: 'en', subject: broadcast.subjectEn!.trim(), content: broadcast.contentEn }
   }
   return { lang: 'pl', subject: (broadcast.subject ?? '').trim(), content: broadcast.content }
+}
+
+/**
+ * Fragments in square brackets still in a broadcast — "[miejsce zbiórki]",
+ * "[godziny]": the blanks of the email before a camp (`campPreCamp.ts`), which
+ * Krzysiek fills in by hand. "Wyślij" refuses while any is left (decided
+ * 22.10.2026); a test send goes, so he can see the draft. The English version
+ * counts only when it would be sent (`hasEnglishVersion`).
+ */
+export function unfilledPlaceholders(broadcast: BroadcastContent): string[] {
+  const parts = [broadcast.subject ?? '', renderRichText(broadcast.content).text]
+  if (hasEnglishVersion(broadcast)) {
+    parts.push(broadcast.subjectEn ?? '', renderRichText(broadcast.contentEn).text)
+  }
+  const found = parts.join('\n').match(/\[[^[\]\n]{1,80}\]/g) ?? []
+  return [...new Set(found)]
 }
 
 /**

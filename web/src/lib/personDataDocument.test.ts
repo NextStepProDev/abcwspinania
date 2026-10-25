@@ -64,3 +64,48 @@ test('without an account there is no word about an account password', () => {
   assert.match(html, /<h2>Konto na stronie<\/h2><p class="none">Brak\.<\/p>/)
   assert.doesNotMatch(html, /Hasła do konta/)
 })
+
+test('a camp booking names the child, with the birth date as a day, not a time', () => {
+  const html = personDataDocument({
+    ...copy,
+    bookings: [
+      {
+        firstName: 'Ola',
+        lastName: 'Nowak',
+        childFirstName: 'Staś',
+        childLastName: 'Nowak',
+        // Payload stores a day-only date at noon UTC.
+        childBirthDate: '2015-03-07T12:00:00.000Z',
+        photoConsent: false,
+        status: 'new',
+        session: '5 lip–12 lip 2027 · Obóz JURA',
+      },
+    ],
+  })
+  assert.match(html, /<th>Imię dziecka<\/th><td>Staś<\/td>/)
+  assert.match(html, /<th>Data urodzenia dziecka<\/th><td>7 marca 2015<\/td>/)
+  assert.match(html, /<th>Zgoda na publikację zdjęć dziecka<\/th><td>nie<\/td>/)
+})
+
+test('a camp booking’s registration form is in the copy: the PESEL and the health answers', () => {
+  const html = personDataDocument({
+    ...copy,
+    bookings: [
+      {
+        firstName: 'Ola',
+        childFirstName: 'Staś',
+        status: 'new',
+        registration: {
+          pesel: '15230701232',
+          heightCm: 142,
+          allergies: 'Orzechy',
+          diet: null,
+        },
+      },
+    ],
+  })
+  assert.match(html, /<th>PESEL dziecka<\/th><td>15230701232<\/td>/)
+  assert.match(html, /<th>Wzrost dziecka \(cm\)<\/th><td>142<\/td>/)
+  assert.match(html, /<th>Uczulenia<\/th><td>Orzechy<\/td>/)
+  assert.doesNotMatch(html, /<th>Dieta<\/th>/, 'an empty answer is left out')
+})
