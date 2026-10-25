@@ -579,9 +579,20 @@ test('before a camp the school gets a draft to its parents — once, never sent 
     })
     assert.ok(result.kind === 'done')
   }
+  // The notice goes to the school's mailbox, which CI does not set; here it
+  // only reaches the outbox in this process. Restored at once, not by
+  // cleanup() — that runs after the whole suite, and the tests below would
+  // see this address.
+  const mailbox = process.env.CAMP_EMAIL
+  process.env.CAMP_EMAIL = email('precampschool')
   outbox.length = 0
-  await preparePreCampDrafts(payload, [soon.id, later.id])
-  await preparePreCampDrafts(payload, [soon.id, later.id])
+  try {
+    await preparePreCampDrafts(payload, [soon.id, later.id])
+    await preparePreCampDrafts(payload, [soon.id, later.id])
+  } finally {
+    if (mailbox === undefined) delete process.env.CAMP_EMAIL
+    else process.env.CAMP_EMAIL = mailbox
+  }
   const { docs } = await payload.find({
     collection: 'broadcasts',
     where: { session: { in: [soon.id, later.id] } },
@@ -596,6 +607,7 @@ test('before a camp the school gets a draft to its parents — once, never sent 
   assert.ok(!outbox.some((m) => m.to === email('precamp')), 'nothing to the parents')
   const notices = outbox.filter((m) => /Mail przed obozem czeka/.test(m.subject))
   assert.equal(notices.length, 1, 'the school is told once')
+  assert.equal(notices[0].to, email('precampschool'))
 })
 
 test('a trip or regular classes get no pre-camp draft, even with someone booked', async () => {
