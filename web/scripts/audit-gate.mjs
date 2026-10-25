@@ -11,13 +11,15 @@
 import { execFileSync } from 'node:child_process'
 
 const ACCEPTED = {
-  // braces: stack exhaustion on deeply nested glob patterns. Chain:
-  // @payloadcms/next → sass 1.77.4 (pinned exactly) → chokidar 3 → braces.
-  // Build-time only: none of the three is in `.next/standalone` (checked
-  // 03.10.2026), and the app never expands a glob from a visitor. No braces
-  // release fixes it. Remove when `npm view @payloadcms/next dependencies.sass`
-  // is ≥ 1.79 (chokidar 4+, no braces) or braces ships a fix.
-  'GHSA-vfj7-8cjw-p6xm': 'braces — build tooling only, not in the image',
+  // happy-dom: code execution through an import alias in a page's script.
+  // Chain: @payloadcms/richtext-lexical → @lexical/headless 0.50 → happy-dom
+  // 20 (fixed only in 21.0.4, a major `^20` does not take). happy-dom is
+  // loaded by `@lexical/headless/dom` (`withDOM`) alone, which Payload never
+  // imports — its converters take the DOM from the caller, and we call none
+  // of them — so it is not in `.next/standalone` (checked 25.10.2026) and
+  // nothing here parses anyone's HTML. Remove when `npm ls happy-dom` shows
+  // ≥ 21.0.4 (a Payload with a newer @lexical/headless).
+  'GHSA-834v-8h66-3h79': 'happy-dom — never imported by the app, not in the image',
 }
 
 const BLOCKING = new Set(['high', 'critical'])

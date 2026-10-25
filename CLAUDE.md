@@ -348,7 +348,7 @@ a Payload zapytałby wtedy o zgodę na utratę danych. Drugą linią obrony jest
     numeru**. Dziura dotyczy klienta WebSocket (`permessage-deflate`),
     a Payload używa `undici` wyłącznie w `uploads/safeFetch` — `Agent` i `fetch`
     przy wgrywaniu pliku z adresu. WebSocketu nigdzie. **Od 30.09.2026
-    wymuszony na 7.29.1** — patrz niżej.
+    wymuszony** (dziś na 7.30.1) — patrz niżej.
   - **`esbuild` 0.18** (poprawka w 0.25) — przychodzi przez `drizzle-kit` →
     `@esbuild-kit`, czyli narzędzie do generowania migracji na maszynie
     programisty. Nie ma go w obrazie, a dziura dotyczy serwera deweloperskiego
@@ -358,8 +358,11 @@ a Payload zapytałby wtedy o zgodę na utratę danych. Drugą linią obrony jest
   blokuje CI: to ingerencja w to, co Payload przypiął, do odkręcenia przy
   jego podbiciu — za dziurę, której tu nie da się wywołać.
 
-  **Wyjątek: `undici` jest wymuszony na 7.29.1** (`overrides.payload.undici`
-  w `web/package.json`, od 30.09.2026). 29.09 wieczorem opublikowano dwa
+  **Wyjątek: `undici` jest wymuszony na 7.30.1** (`overrides.payload.undici`
+  w `web/package.json`, od 30.09.2026 na 7.29.1, od 25.10.2026 na 7.30.1 —
+  23.10 wieczorem alert **high** `GHSA-xjj6-f33q-929c`, DoS przy nadmiarze
+  `content-encoding`; tym razem środkowa cyfra, ale Payload 3.92 sam przypina
+  już 7.30.1). 29.09 wieczorem opublikowano dwa
   alerty **high** w 7.29.0 — WebSocket (`GHSA-rfgv-xxqx-mfg5`) i `BalancedPool`
   (`GHSA-w293-vg96-wgc3`). Żaden nas nie dotyczy (Payload woła tylko `Agent`
   i `fetch`), ale bramka `npm audit --audit-level=high` w CI **nie odróżnia
@@ -368,7 +371,7 @@ a Payload zapytałby wtedy o zgodę na utratę danych. Drugą linią obrony jest
   brak wdrożeń na czas nieokreślony. Poprawka to sama łatka (ostatnia cyfra).
 
   **Przy podbiciu Payloada:** `npm view payload@<nowa> dependencies.undici`.
-  Jeśli ≥ 7.29.1 — **usunąć blok `overrides`** z `web/package.json` (inaczej
+  Jeśli ≥ 7.30.1 — **usunąć wpis `undici` z `overrides`** z `web/package.json` (inaczej
   zostanie po cichu i kiedyś cofnie Payload do starszego `undici`) i ten
   akapit. Potem `npm ls undici esbuild` w `web/`; jeśli `esbuild` wciąż
   sprzed poprawki — sprawdzić, czy nie wszedł do obrazu.
@@ -389,21 +392,25 @@ a Payload zapytałby wtedy o zgodę na utratę danych. Drugą linią obrony jest
   nie polecenie; rozwiązanie to podbicie wersji.
 - **Bramka audytu ma listę wyjątków — `web/scripts/audit-gate.mjs`**
   (`npm run audit`, od 03.10.2026). Sam `npm audit` umie tylko „wszystko
-  albo nic”, a od 02.10 (przegląd GitHuba; opublikowany 18.09) zgłasza
-  alert **high** bez żadnej poprawki:
-  **`braces`** (`GHSA-vfj7-8cjw-p6xm`, przepełnienie stosu przy głęboko
-  zagnieżdżonym wzorcu). Łańcuch: `@payloadcms/next` → `sass` 1.77.4
-  (przypięty co do numeru) → `chokidar` 3 → `braces`. To narzędzia budowania:
-  żadnego z nich nie ma w `.next/standalone`, a aplikacja nie rozwija wzorców
-  od odwiedzających. Najnowszy Payload 3.x (3.90.2) wciąż przypina ten
-  `sass`, a `braces` nie ma wydania z poprawką — bez wyjątku stały WSZYSTKIE
-  PR-y i wdrożenia, na czas nieokreślony.
+  albo nic”. Dziś jeden wyjątek:
+  **`happy-dom`** (`GHSA-834v-8h66-3h79`, od 25.10.2026; opublikowany 23.10
+  wieczorem — wykonanie kodu przez alias importu w skrypcie strony).
+  Łańcuch: `@payloadcms/richtext-lexical` → `@lexical/headless` 0.50 →
+  `happy-dom` 20; poprawka jest dopiero w 21.0.4, czyli w majorze, którego
+  `^20` nie przyjmie — także w Payloadzie 3.92. `happy-dom` ładuje wyłącznie
+  `@lexical/headless/dom` (`withDOM`), którego Payload nie importuje (jego
+  konwertery biorą DOM od wywołującego, a my żadnego nie wołamy). Zero
+  odwołań w `.next` po buildzie (sprawdzone 25.10.2026), a aplikacja nie
+  parsuje cudzego HTML-a.
+  Wcześniej (03–25.10.2026) stał tu **`braces`** (`GHSA-vfj7-8cjw-p6xm`,
+  narzędzia budowania przez `sass` 1.77.4) — GitHub wycofał to zgłoszenie
+  23.10.2026, bramka zgłosiła wpis jako `STALE` i został usunięty.
   - Wyjątek obejmuje **jeden identyfikator**, nie pakiet ani poziom — każda
-    inna dziura high/critical, także nowa w `braces`, zatrzymuje CI jak dotąd.
+    inna dziura high/critical, także nowa w `happy-dom`, zatrzymuje CI jak dotąd.
   - Wpis, którego audyt już nie zgłasza, **też wywala bramkę** (`STALE`),
     więc wyjątek nie zostanie po cichu po naprawie.
-  - **Przy podbiciu Payloada:** `npm view @payloadcms/next@<nowa>
-    dependencies.sass` — od `sass` 1.79 jest `chokidar` 4 bez `braces`.
+  - **Przy podbiciu Payloada:** `npm ls happy-dom` — od 21.0.4 wpis usunąć
+    (bramka i tak zgłosi go jako `STALE`).
   - Nowy wyjątek tylko z opisem w skrypcie: dlaczego nieosiągalny i kiedy go
     zdjąć. Obniżanie poziomu bramki albo `continue-on-error` — nie.
   - Obok: zadanie Dependabota „dompurify” kończy się na czerwono
