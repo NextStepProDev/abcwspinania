@@ -1301,7 +1301,11 @@ do 30 dni przed obozem. Cała ścieżka działa bez konta; konto dla chętnych.
   + `@pdf-lib/fontkit` z fontem Inter z `public/fonts/` (polskie znaki;
   czytany od `process.cwd()`, zasada 15). **Font osadzany w całości** —
   podzbiór z fontkita gubił glify (tekst się kopiował, na stronie były
-  dziury). Jedna umowa na zgłoszenie, idzie ZAŁĄCZNIKIEM z mailem z danymi
+  dziury). Pilnuje tego `contractPdf.test.ts` (od 25.10.2026):
+  oba fonty w PDF mają rozmiar plików z `public/fonts/`, każdy znak umowy
+  (także z imion z polskimi literami) ma glif w Inter, podpis z panelu jest
+  w PDF, a bez niego umowa i tak powstaje. Każdy z trzech testów
+  sprawdzony na czerwono na celowo zepsutym kodzie. Jedna umowa na zgłoszenie, idzie ZAŁĄCZNIKIEM z mailem z danymi
   do przelewu — dzień wysłania = dzień zawarcia, od niego liczy się 7 dni
   zaliczki. Przy wysyłce zapis dostaje `contractSentAt` i `contractPrice`:
   pobrana później umowa jest TA SAMA, nawet po zmianie ceny w panelu.
@@ -1903,6 +1907,24 @@ poczty, więc przejęcie jej niczego nie odcina.
 
 ## Proces
 
+- **⚠️ Akcje GitHub przypięte do SHA, nie do tagu** (od 25.10.2026, audyt):
+  `uses: owner/action@<40 znaków> # vX.Y.Z`. Tag autor może przestawić na
+  inny kod, a `appleboy/ssh-action` dostaje klucz SSH do serwera — przejęte
+  konto autora = przejęty serwer (tak wyciekły sekrety tysięcy projektów
+  przy `tj-actions/changed-files`, 03.2025). Dependabot (`github-actions`)
+  podbija SHA razem z komentarzem. **Nowa akcja: od razu z SHA**
+  (`gh api repos/<owner>/<repo>/commits/<tag> --jq .sha`), nigdy z samym tagiem.
+- **Token GitHuba tylko do odczytu** (`permissions: contents: read` we
+  wszystkich workflowach; `packages: write` wyłącznie w jobie `docker`
+  w `ci.yml`). Obraz z GHCR serwer ściąga bez tokena. Wartości z formularza
+  `workflow_dispatch` idą do skryptu przez `env:`, nie przez `${{ }}` w
+  `run:` — wyrażenie jest wklejane w kod powłoki przed jego uruchomieniem;
+  wersja w Deploy jest dodatkowo sprawdzana wzorcem tagu.
+- **Kontenery z `no-new-privileges`** (`x-security` w
+  `docker-compose.prod.yml`, od 25.10.2026): proces w kontenerze nie zyska
+  uprawnień przez pliki setuid. Sprawdzone przed dodaniem: Postgres (start,
+  zapytanie, `pg_dump` ze znacznikiem końca), nginx (`nginx -t`, workery jako
+  `nginx`), obraz aplikacji (200, użytkownik `node`, zapis do `uploads`).
 - **Zmiany w Dockerfile lub w pliku blokady buduj lokalnie przed wypchnięciem.**
   `npm ci` w czystym kontenerze wyłapuje rozjazd blokady, a `--platform
   linux/arm64` dodatkowo braki binariów natywnych dla aarch64.
