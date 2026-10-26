@@ -436,7 +436,7 @@ a Payload zapytałby wtedy o zgodę na utratę danych. Drugą linią obrony jest
 
 ## Rejestr portów bazy w developmencie
 
-Stan katalogu `Projects` na 19.09.2026:
+Stan katalogu `Projects` na 26.10.2026 (sprawdzony z plikami compose):
 
 | Port | Projekt |
 |---|---|
@@ -444,8 +444,9 @@ Stan katalogu `Projects` na 19.09.2026:
 | 5433 | fire-academy-hub, template_project, first-aid-kit-api (dev) |
 | 5434 | anovastudio |
 | **5435** | **abcwspinania** |
+| 5436 | kd-training (od 26.10.2026) |
 
-Kolejny projekt bierze 5436. Bez tego rejestru dwa projekty naraz nie wstaną.
+Kolejny projekt bierze 5437. Bez tego rejestru dwa projekty naraz nie wstaną.
 Baza deweloperska jest przypięta do `127.0.0.1` — bez tego Docker otwiera port
 na wszystkich interfejsach, **z pominięciem zapory hosta**.
 

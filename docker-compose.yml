@@ -9,12 +9,13 @@
 # Rozjazd tutaj oznacza testowanie na innym silniku bazy niż ten, który obsługuje
 # klienta. Major jest zablokowany w .github/dependabot.yml — w OBU wpisach compose.
 #
-# PORT HOSTA 5435. Rejestr portów w katalogu Projects (stan 19.09.2026):
+# PORT HOSTA 5435. Rejestr portów w katalogu Projects (stan 26.10.2026):
 #   5432 → next-step-pro-climbing-hub, first-aid-kit-api
 #   5433 → fire-academy-hub, template_project, first-aid-kit-api (dev)
 #   5434 → anovastudio
 #   5435 → abcwspinania  ← ten projekt
-# Kolejny projekt bierze 5436. Bez tego rejestru dwa projekty naraz nie wstaną.
+#   5436 → kd-training (od 26.10.2026)
+# Kolejny projekt bierze 5437. Bez tego rejestru dwa projekty naraz nie wstaną.
 
 services:
   postgres:
