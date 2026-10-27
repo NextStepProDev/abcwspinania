@@ -1946,7 +1946,9 @@ it has no history in Google and no mail, so taking it over cuts off nothing.
   one.** On the day of the switch the fragment marked in `nginx.conf` is removed
   (or replaced with a 301 to the target domain), the `SMOKE_URL` variable is
   deleted and `PUBLIC_URL` in `deploy/.env` is changed to the target domain —
-  without touching the rest.
+  without touching the rest. In the Cloudflare zone of the target domain
+  **turn off Email Address Obfuscation** (on by default in every new zone —
+  see the point on it below).
 - **The Cloudflare Origin certificate must be in `certs/` BEFORE the config
   pointing to it is deployed.** No file: `nginx -t` fails in the deploy, and at
   the next container restart nginx does not start — together with the target
