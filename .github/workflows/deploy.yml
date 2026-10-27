@@ -80,6 +80,9 @@ jobs:
             echo "backup=$(base64 -w 0 deploy/abc-backup.sh)"
             echo "backuplog=$(base64 -w 0 deploy/abc-backup.logrotate)"
             echo "backupsetup=$(base64 -w 0 deploy/setup-backups.sh)"
+            echo "fw=$(base64 -w 0 deploy/origin-firewall.sh)"
+            echo "fwunit=$(base64 -w 0 deploy/origin-firewall.service)"
+            echo "fwsetup=$(base64 -w 0 deploy/setup-origin-firewall.sh)"
           } >> "$GITHUB_OUTPUT"
 
       - name: Upload config and pull image
@@ -91,6 +94,9 @@ jobs:
           BACKUP_B64: ${{ steps.cfg.outputs.backup }}
           BACKUPLOG_B64: ${{ steps.cfg.outputs.backuplog }}
           BACKUPSETUP_B64: ${{ steps.cfg.outputs.backupsetup }}
+          FW_B64: ${{ steps.cfg.outputs.fw }}
+          FWUNIT_B64: ${{ steps.cfg.outputs.fwunit }}
+          FWSETUP_B64: ${{ steps.cfg.outputs.fwsetup }}
           VERSION: ${{ steps.version.outputs.version }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
           GHCR_OWNER: ${{ secrets.GHCR_OWNER }}
@@ -98,7 +104,7 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          envs: COMPOSE_B64,NGINX_B64,SWAP_B64,BACKUP_B64,BACKUPLOG_B64,BACKUPSETUP_B64,VERSION,DEPLOY_PATH,GHCR_OWNER
+          envs: COMPOSE_B64,NGINX_B64,SWAP_B64,BACKUP_B64,BACKUPLOG_B64,BACKUPSETUP_B64,FW_B64,FWUNIT_B64,FWSETUP_B64,VERSION,DEPLOY_PATH,GHCR_OWNER
           script: |
             # Stop (red deploy) at the FIRST error — e.g. when `docker compose
             # pull` hits a tag that does not exist. Without it the script went
@@ -119,6 +125,15 @@ jobs:
             echo "$BACKUPSETUP_B64" | base64 -d > "$DEPLOY_PATH/backup/setup-backups.sh"
             sudo -n bash "$DEPLOY_PATH/backup/setup-backups.sh" "$DEPLOY_PATH/backup" \
               || echo "WARNING: installing backups failed — see the log above"
+            # Ports 80/443 answer Cloudflare only (deploy/origin-firewall.sh).
+            # The ranges come from the nginx.conf written above. On failure
+            # the previous rules (or none) stay — the site keeps working.
+            mkdir -p "$DEPLOY_PATH/firewall"
+            echo "$FW_B64"      | base64 -d > "$DEPLOY_PATH/firewall/origin-firewall.sh"
+            echo "$FWUNIT_B64"  | base64 -d > "$DEPLOY_PATH/firewall/origin-firewall.service"
+            echo "$FWSETUP_B64" | base64 -d > "$DEPLOY_PATH/firewall/setup-origin-firewall.sh"
+            sudo -n bash "$DEPLOY_PATH/firewall/setup-origin-firewall.sh" "$DEPLOY_PATH/firewall" "$DEPLOY_PATH/nginx.conf" \
+              || echo "WARNING: origin firewall not applied — see the log above"
             cd "$DEPLOY_PATH"
 
             # ⚠️ CLEANUP MUST GO BEFORE THE PULL. New images do not fit on the

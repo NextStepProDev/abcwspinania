@@ -1,0 +1,14 @@
+[Unit]
+Description=ABC Wspinania: ports 80/443 only from Cloudflare (DOCKER-USER)
+# iptables rules do not survive a reboot — this puts them back once Docker is
+# up. PartOf: a restart of Docker runs it again.
+After=docker.service
+PartOf=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/abc-origin-firewall.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target docker.service

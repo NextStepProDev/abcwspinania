@@ -1866,7 +1866,35 @@ poczty, więc przejęcie jej niczego nie odcina.
   niej limit logowania liczy wszystkich odwiedzających jako jeden adres
   Cloudflare i pięć cudzych pomyłek blokuje panel każdemu. Cloudflare rzadko
   zmienia pulę, ale adres spoza listy psuje to po cichu — przy przełączaniu
-  domeny docelowej porównać z <https://www.cloudflare.com/ips>.
+  domeny docelowej porównać z <https://www.cloudflare.com/ips>. **Od
+  27.10.2026 ta sama lista steruje zaporą** (niżej): zakres, którego w niej
+  brak, to odwiedzający obsługiwani przez tę lokalizację Cloudflare z błędem
+  522 — już nie po cichu.
+- **⚠️ Porty 80 i 443 przyjmują ruch WYŁĄCZNIE z Cloudflare** (od
+  27.10.2026, `deploy/origin-firewall.sh`, wzór z Next Step Pro). Bez tego
+  ktoś znający adres serwera omijał Cloudflare i jego reguły (blokada
+  skanerów `.env`/`.php`, reguły zarządzane). Instaluje ją Deploy
+  (`setup-origin-firewall.sh`: zakresy IPv4 wycięte z `set_real_ip_from`
+  w `nginx.conf`, usługa systemd odtwarza reguły po restarcie). Reguły siedzą
+  w łańcuchu `ABC-ORIGIN` za `DOCKER-USER` — Docker publikuje porty przez
+  NAT, łańcucha `INPUT` (ufw) ten ruch nie dotyka. Dopasowanie po
+  `--ctstate DNAT`, nie po samym porcie: w Next Step Pro blokada po porcie
+  łapała wyjście aplikacji do API na 443 (504 przy każdym wywołaniu) —
+  sprawdzone w teście z Dockerem w Dockerze, z celowo zepsutą regułą. Porty
+  publikowane tylko na IPv4 (`0.0.0.0:` w `docker-compose.prod.yml`) — bez
+  adresu Docker otwiera je też na IPv6, poza tą zaporą. Skutki:
+  - **Strona nie odpowiada pod samym IP serwera** (ani `curl --resolve`) —
+    sprawdzać przez domenę. Ruch z samego serwera (`curl localhost`, health
+    check w Deployu) i SSH działają.
+  - **Wpis `@`/`www` musi mieć pomarańczową chmurkę.** Szara (DNS only) =
+    strona martwa dla wszystkich. Dotyczy też przełączenia domeny docelowej
+    i odbudowy serwera (`RESTORE.md` 8.5).
+  - **Let's Encrypt tylko przez Cloudflare** — HTTP-01 z serwerów LE wprost
+    na port 80 nie przejdzie (dziś certyfikaty Origin, więc nie dotyczy).
+  - Zakresów za mało (< 10) albo śmieć w liście — skrypt odmawia i zostawia
+    poprzednie reguły. Awaryjne zdjęcie zapory na serwerze:
+    `sudo /usr/local/sbin/abc-origin-firewall.sh --remove` (do następnego
+    Deploya albo restartu).
 
 ---
 
