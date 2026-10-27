@@ -392,7 +392,9 @@ Sekcja **2** (baza — krok 2.1 pomiń, bieżąca baza jest pusta) z `DATE` i se
 
 ### 8.5 Ruch na nową maszynę
 
-1. Cloudflare → DNS → rekordy **A** dla `@` i `www` → nowe IP (proxy włączone).
+1. Cloudflare → DNS → rekordy **A** dla `@` i `www` → nowe IP (proxy włączone —
+   koniecznie: porty 80/443 serwera przyjmują ruch tylko z Cloudflare, więc pod
+   samym IP ani przy szarej chmurce strona nie odpowie).
 2. Po kilku minutach: strona główna, kurs, galeria, logowanie do panelu.
 3. Workflow **Deploy** jeszcze raz — tym razem smoke test musi przejść.
 4. Alarm kopii: `HEALTHCHECK_URL` z healthchecks.io (check „abcwspinania backup” →

@@ -122,9 +122,13 @@ services:
     logging: *logging
     security_opt: *security
     restart: unless-stopped
+    # IPv4 only. Without an address Docker publishes on IPv6 as well, and that
+    # path bypasses the Cloudflare-only firewall (deploy/origin-firewall.sh),
+    # which filters IPv4. Cloudflare reaches us over IPv4 — the DNS record of
+    # the origin is an A record.
     ports:
-      - "80:80"
-      - "443:443"
+      - "0.0.0.0:80:80"
+      - "0.0.0.0:443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./certs:/etc/nginx/certs:ro
