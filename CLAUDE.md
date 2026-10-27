@@ -1,155 +1,160 @@
-# abcwspinania — zasady projektu
+# abcwspinania — project rules
 
-Strona i system dla szkoły wspinaczkowej **ABC Wspinania** (Jura
+Website and system for the **ABC Wspinania** climbing school (Jura
 Krakowsko-Częstochowska).
 
-Ten plik niesie **decyzje i ich powody**, w tym wnioski z błędów popełnionych
-wcześniej w `anovastudio`. Każda reguła poniżej kosztowała kogoś czas — zanim
-którąkolwiek zmienisz, sprawdź, czy przyczyna przestała działać.
+This file carries **decisions and their reasons**, including lessons from
+mistakes made earlier in `anovastudio`. Every rule below cost someone time —
+before you change any of them, check whether its cause has stopped applying.
 
-Plik **jest wersjonowany** (w anovastudio odpowiednik siedzi w `.gitignore`).
-Nie ma w nim sekretów, a jest wszystko, czego potrzebuje ktoś wchodzący do
-projektu. Prywatne notatki idą do `pytania.md` — ignorowanego i nigdy niescalanego
-z plikiem publicznym.
+The file **is versioned** (in anovastudio its counterpart sits in
+`.gitignore`). It holds no secrets, and it holds everything someone joining
+the project needs. Private notes go to `pytania.md` — ignored and never merged
+into the public file.
 
-**Zobowiązania wobec klienta nie są w repo** — to prywatne notatki Mateusza,
-poza gitem (jak `pytania.md`). Tutaj są decyzje techniczne i ich powody.
+**Commitments to the client are not in the repo** — they are Mateusz's private
+notes, outside git (like `pytania.md`). Here are the technical decisions and
+their reasons.
 
 ---
 
 ## Stack
 
-| Warstwa | Technologia |
+| Layer | Technology |
 |---|---|
-| Aplikacja | Next.js 16.4.3 — App Router, TypeScript, Tailwind 4, Turbopack |
-| CMS | **Payload 3.92.0**, działający WEWNĄTRZ aplikacji Next |
-| Baza | PostgreSQL 18 |
-| Wdrożenie | Docker Compose + nginx, obraz z GHCR, Oracle Cloud **Ampere A1** |
+| Application | Next.js 16.4.3 — App Router, TypeScript, Tailwind 4, Turbopack |
+| CMS | **Payload 3.92.0**, running INSIDE the Next application |
+| Database | PostgreSQL 18 |
+| Deployment | Docker Compose + nginx, image from GHCR, Oracle Cloud **Ampere A1** |
 
-**Jedna aplikacja, jeden proces, jeden kontener.** Strona, panel (`/admin`)
-i API (`/api`) to ten sam serwer Next. Nie ma osobnego kontenera CMS-a ani
-subdomeny `api.*`.
+**One application, one process, one container.** The site, the panel
+(`/admin`) and the API (`/api`) are the same Next server. There is no separate
+CMS container and no `api.*` subdomain.
 
-### Kolekcje i globale
+### Collections and globals
 
-| Kolekcja | Slug | Publiczny odczyt | Po co |
+| Collection | Slug | Public read | What for |
 |---|---|---|---|
-| `Courses` | `courses` | opublikowane | oferta kursów, z podstroną każdego |
-| `Camps` | `camps` | opublikowane | obozy, wyjazdy i zajęcia cykliczne |
-| `Sessions` | `sessions` | tak | terminy kursów i obozów |
-| `Posts` | `posts` | opublikowane | aktualności |
-| `Testimonials` | `testimonials` | opublikowane | opinie kursantów |
-| `Instructors` | `instructors` | tak | kadra |
-| `Media` | `media` | tak | okładki, portrety, zdjęcia w treści; `alt` nieobowiązkowy |
-| `GalleryPhotos` | `gallery-photos` | tak | zdjęcia na `/galeria` — osobna zakładka, nie znacznik w Mediach |
-| `PrivateFiles` | `private-files` | **nie** | pliki tylko dla szkoły — pieczątka z podpisem do umów obozowych |
-| `Messages` | `messages` | **nie** | zgłoszenia z formularza — dane osobowe |
-| `Newsletter` | `newsletter` | **nie** | zapisy na newsletter — dane osobowe |
-| `Customers` | `customers` | **tylko własne konto** | konta uczestników (logowanie na stronie) |
-| `Bookings` | `bookings` | **tylko własne zapisy** | zapisy na kursy i obozy — dane osobowe |
-| `CampRegistrations` | `camp-registrations` | **nie** | formularz rejestracyjny obozu — PESEL i zdrowie dziecka |
-| `Broadcasts` | `broadcasts` | **nie** | „Wysyłki” — wiadomości do grup |
-| `BroadcastDeliveries` | `broadcast-deliveries` | **nie** | odbiorcy każdej wysyłki i stan kolejki; ukryte w menu |
-| `Users` | `users` | **nie** | konta do panelu |
+| `Courses` | `courses` | published | the course offer, with a subpage for each |
+| `Camps` | `camps` | published | camps, trips and recurring classes |
+| `Sessions` | `sessions` | yes | course and camp dates |
+| `Posts` | `posts` | published | news |
+| `Testimonials` | `testimonials` | published | participants' reviews |
+| `Instructors` | `instructors` | yes | staff |
+| `Media` | `media` | yes | covers, portraits, photos in content; `alt` optional |
+| `GalleryPhotos` | `gallery-photos` | yes | photos on `/galeria` — a separate tab, not a flag in Media |
+| `PrivateFiles` | `private-files` | **no** | files for the school only — the stamp with signature for camp contracts |
+| `Messages` | `messages` | **no** | contact form submissions — personal data |
+| `Newsletter` | `newsletter` | **no** | newsletter sign-ups — personal data |
+| `Customers` | `customers` | **own account only** | participant accounts (login on the site) |
+| `Bookings` | `bookings` | **own bookings only** | course and camp bookings — personal data |
+| `CampRegistrations` | `camp-registrations` | **no** | the camp registration form — the child's PESEL and health |
+| `Broadcasts` | `broadcasts` | **no** | "Wysyłki" — messages to groups |
+| `BroadcastDeliveries` | `broadcast-deliveries` | **no** | recipients of each broadcast and the queue state; hidden in the menu |
+| `Users` | `users` | **no** | panel accounts |
 
-| Global | Slug | Po co |
+| Global | Slug | What for |
 |---|---|---|
-| `SiteConfig` | `site-config` | kontakt, adres, licencja, profile |
-| `HomePage` | `home-page` | teksty strony startowej |
-| `AboutPage` | `about-page` | teksty podstrony „O nas" |
-| `CampsPage` | `camps-page` | wstęp podstrony „Obozy i wyjazdy" |
-| `EnglishPage` | `english-page` | jedyna podstrona po angielsku |
-| `CampConfig` | `camp-config` | „Ustawienia obozów” — podpis do umów, mail przed obozem (tylko szkoła) |
+| `SiteConfig` | `site-config` | contact, address, licence, profiles |
+| `HomePage` | `home-page` | home page texts |
+| `AboutPage` | `about-page` | texts of the "O nas" subpage |
+| `CampsPage` | `camps-page` | intro of the "Obozy i wyjazdy" subpage |
+| `EnglishPage` | `english-page` | the only subpage in English |
+| `CampConfig` | `camp-config` | "Ustawienia obozów" — contract signature, the email before a camp (school only) |
 
-`Messages` przyjmuje zapis od **każdego poza szkołą** (formularz publiczny;
-konto panelu nie dodaje wiadomości — bez „Stwórz nowy”, `visitorsOnly`, od
-10.10.2026), ale odczyt, zmiana i kasowanie wymagają **konta szkoły** — nie „dowolnego
-zalogowania” (zasada 28). `Newsletter` ma REST zamknięty w całości — zapis idzie
-wyłącznie akcją serwerową (patrz „Wysyłki i newsletter”). Publiczny odczyt byłby wyciekiem danych
-osobowych, nie udogodnieniem. Wszystko, czego nie ma w kolumnie „publiczny
-odczyt”, w tym tworzenie i zmiana treści, jest wyłącznie dla konta szkoły.
+`Messages` accepts writes from **anyone outside the school** (public form; a
+panel account does not add messages — no "Stwórz nowy", `visitorsOnly`, since
+10.10.2026), but reading, changing and deleting require **a school account** —
+not "any login" (rule 28). `Newsletter` has its REST closed entirely — sign-up
+goes only through a server action (see "Broadcasts and newsletter"). Public read
+would be a personal data leak, not a convenience. Everything not in the
+"public read" column, including creating and changing content, is for the
+school account only.
 
-⚠️ **Slug globala nie może kończyć się na „s".** Payload wyprowadza nazwę
-generowanego typu ze sluga i obcina końcowe „s": `site-settings` dałoby typ
-`SiteSetting`, a `strona-o-nas` dawało `StronaONa` i wymagało aliasu
-w `content.ts`. Stąd `site-config`, a nie `site-settings`. Przy kolekcjach ta
-sama zasada działa NA NASZĄ KORZYŚĆ: `courses` → `Course`, `sessions` →
-`Session`, więc typy wychodzą w liczbie pojedynczej i aliasy są zbędne.
+⚠️ **A global's slug must not end in "s".** Payload derives the generated type
+name from the slug and cuts the trailing "s": `site-settings` would give the
+type `SiteSetting`, and `strona-o-nas` gave `StronaONa` and needed an alias in
+`content.ts`. Hence `site-config`, not `site-settings`. With collections the
+same rule works IN OUR FAVOUR: `courses` → `Course`, `sessions` → `Session`, so
+the types come out singular and aliases are unnecessary.
 
-Katalog nazywa się `web/`, a nie `frontend/` — po przejściu na Payload zawiera
-także backend, więc stara nazwa wprowadzałaby w błąd.
+The directory is called `web/`, not `frontend/` — after the move to Payload it
+also contains the backend, so the old name would mislead.
 
-### ⚠️ Język: kod po angielsku, treść po polsku
+### ⚠️ Language: code in English, content in Polish
 
-Ustalone 23.09.2026, po tym jak szkielet urósł do stanu, w którym `getCourses()`
-stało obok `getUstawienia()` w jednym pliku. Granica jest jedna i nie ma od niej
-wyjątków:
+Settled 23.09.2026, after the skeleton grew to a state where `getCourses()`
+stood next to `getUstawienia()` in one file. There is one boundary and no
+exceptions to it:
 
-| Po **angielsku** | Po **polsku** |
+| In **English** | In **Polish** |
 |---|---|
-| nazwy plików, komponentów, funkcji, zmiennych, typów | tekst widoczny na stronie |
-| **komentarze i nazwy testów** | `label`, `labels`, `admin.description` w kolekcjach (czyta je klient w panelu) |
-| slugi kolekcji i globali (= nazwy tabel w Postgresie) | komunikaty walidacji pokazywane odwiedzającemu |
-| nazwy pól (= kolumny w bazie) i wartości `select` | klauzule RODO w `src/lib/consent.ts` |
-| nazwy pól formularzy HTTP, parametry zapytań | **adresy podstron** (`/kursy`, `/obozy`, `/terminarz`) |
-| komunikaty commitów, logi dla programisty | tekst w `scripts/seed.ts` (to treść, nie kod) |
-| **workflowy GitHub** — nazwy, pola, kroki, komunikaty, komentarze (do 14.10.2026 część była po polsku, np. „Dane testowe”) | dane testowe widoczne na stronie i w panelu (`scripts/test-data/courses.ts`) |
+| names of files, components, functions, variables, types | text visible on the site |
+| **comments and test names** | `label`, `labels`, `admin.description` in collections (the client reads them in the panel) |
+| collection and global slugs (= table names in Postgres) | validation messages shown to the visitor |
+| field names (= database columns) and `select` values | GDPR clauses in `src/lib/consent.ts` |
+| HTTP form field names, query parameters | **subpage addresses** (`/kursy`, `/obozy`, `/terminarz`) |
+| commit messages, logs for the developer | text in `scripts/seed.ts` (it is content, not code) |
+| **GitHub workflows** — names, inputs, steps, messages, comments (until 14.10.2026 some were in Polish, e.g. "Dane testowe") | test data visible on the site and in the panel (`scripts/test-data/courses.ts`) |
+| **this file, `CLAUDE.md`** (since 27.10.2026; until then in Polish — section headings that code refers to keep their Polish name in brackets) | test scenarios and the school's guide in `docs/` (written for Krzysiek) |
 
-**Adresy zostają polskie celowo.** To element strony widziany przez
-użytkownika i indeksowany przez wyszukiwarkę, a nie szczegół implementacji —
-polski serwis ma polskie adresy. Zmiana ich na angielskie zerwałaby też sens
-osobnej podstrony `/en`.
+**Addresses stay Polish on purpose.** They are part of the site seen by the
+user and indexed by the search engine, not an implementation detail — a Polish
+site has Polish addresses. Changing them to English would also break the point
+of a separate `/en` subpage.
 
-**Parametry zapytań są angielskie** (`?level=beginner`, `?show=available`),
-bo to warstwa techniczna, a ich wartości pochodzą wprost z enumów w bazie.
-Mieszanie ich z polskim dawało `?kategoria=school-life`.
+**Query parameters are English** (`?level=beginner`, `?show=available`),
+because they are a technical layer and their values come straight from
+database enums. Mixing them with Polish gave `?kategoria=school-life`.
 
-Komentarz po polsku w nowym pliku to nie drobiazg do poprawienia później —
-to początek powrotu do stanu sprzed tej zmiany.
+A Polish comment in a new file is not a trifle to fix later — it is the
+beginning of a return to the state before this change.
 
-### Dlaczego Payload, a nie Strapi
+### Why Payload, not Strapi
 
-Projekt startował na Strapim i został przepięty 19.09.2026, zanim cokolwiek
-trafiło na produkcję. Powody, zmierzone:
+The project started on Strapi and was switched on 19.09.2026, before anything
+reached production. The reasons, measured:
 
-- Ten system to w ~80% **aplikacja** (rezerwacje, konta, wykresy), a nie
-  strona z treścią. Strapi jest optymalizowany pod tę drugą rolę.
-- Strapi trzymał nas na **React 18** i jednym zgłoszeniu `high` (`nodemailer`),
-  niedomykalnym bez jego majora. Payload chodzi na naszym React 19.
-- Audyt produkcyjny: Strapi **18 zgłoszeń, 1 high** → Payload **7 zgłoszeń,
+- This system is ~80% an **application** (bookings, accounts, charts), not a
+  content site. Strapi is optimised for the latter.
+- Strapi kept us on **React 18** and on one `high` advisory (`nodemailer`)
+  that could not be closed without its major. Payload runs on our React 19.
+- Production audit: Strapi **18 advisories, 1 high** → Payload **7 advisories,
   0 high**.
-- Zależności bezpośrednie: 60 → 32.
-- Typy kolekcji są **generowane**, a nie przepisywane ręcznie po obu stronach.
-- Krzysiek dostaje **jeden panel** zamiast dwóch.
+- Direct dependencies: 60 → 32.
+- Collection types are **generated**, not rewritten by hand on both sides.
+- Krzysiek gets **one panel** instead of two.
 
-Koszt, który świadomie przyjęliśmy: `@payloadcms/next` deklaruje wąski zakres
-wersji Next (`>=16.3.3 <17.0.0`), więc **majora Next nie podbijemy, dopóki
-Payload nie nadgoni**. To lustrzane odbicie problemu, który mieliśmy ze Strapim
-i Reactem — tylko z drugiej strony.
+The cost we accepted knowingly: `@payloadcms/next` declares a narrow range of
+Next versions (`>=16.3.3 <17.0.0`), so **we will not bump the Next major until
+Payload catches up**. It is the mirror image of the problem we had with Strapi
+and React — only from the other side.
 
 ---
 
-## ⚠️ Architektura ARM — rzecz, o którą najłatwiej się potknąć
+## ⚠️ ARM architecture — the thing easiest to trip over
 
-Produkcja stoi na **Oracle Ampere A1, czyli aarch64**. Obraz musi być budowany
-pod `linux/arm64`.
+Production runs on **Oracle Ampere A1, i.e. aarch64**. The image must be built
+for `linux/arm64`.
 
-Job `docker` w `.github/workflows/ci.yml` leci na `runs-on: ubuntu-24.04-arm`
-i buduje `platforms: linux/arm64`. Job lintujący zostaje na `ubuntu-latest` —
-tam architektura nie ma znaczenia.
+The `docker` job in `.github/workflows/ci.yml` runs on
+`runs-on: ubuntu-24.04-arm` and builds `platforms: linux/arm64`. The lint job
+stays on `ubuntu-latest` — architecture does not matter there.
 
-Obraz zbudowany domyślnie (amd64) wstaje na Ampere z `exec format error`
-i **widać to dopiero na serwerze, po deployu**. Gdyby runnery ARM okazały się
-niedostępne: wróć na `ubuntu-latest`, dodaj `docker/setup-qemu-action@v3`
-i zostaw `platforms: linux/arm64` — zadziała, tylko dużo wolniej.
+An image built by default (amd64) starts on Ampere with `exec format error`
+and **this only shows on the server, after the deploy**. Should ARM runners
+turn out to be unavailable: go back to `ubuntu-latest`, add
+`docker/setup-qemu-action@v3` and keep `platforms: linux/arm64` — it will
+work, only much more slowly.
 
-**Konsekwencja, o którą łatwo się potknąć drugi raz:** narzędzia, które pobierają
-obraz z rejestru, domyślnie proszą o `linux/amd64`. Skan Trivy w CI padał na
-`no child with platform linux/amd64 in index`, mimo `exit-code: 0` — bo to awaria
-narzędzia, a nie znalezisko. Stąd `TRIVY_PLATFORM: linux/arm64` w `ci.yml`.
-Dokładając cokolwiek, co ciągnie ten obraz, sprawdź, czy nie zakłada amd64.
+**A consequence that is easy to trip over a second time:** tools that pull the
+image from the registry ask for `linux/amd64` by default. The Trivy scan in CI
+failed with `no child with platform linux/amd64 in index`, despite
+`exit-code: 0` — because that is a tool failure, not a finding. Hence
+`TRIVY_PLATFORM: linux/arm64` in `ci.yml`. When adding anything that pulls
+this image, check that it does not assume amd64.
 
-Weryfikacja lokalna (na Macu z Apple Silicon natywna i szybka):
+Local verification (native and fast on an Apple Silicon Mac):
 
 ```bash
 docker buildx build --platform linux/arm64 -t abcwspinania:local --load web
@@ -157,129 +162,134 @@ docker buildx build --platform linux/arm64 -t abcwspinania:local --load web
 
 ---
 
-## ⚠️ PostgreSQL 18 — punkt montowania się zmienił
+## ⚠️ PostgreSQL 18 — the mount point has changed
 
-Wolumen montujemy pod **`/var/lib/postgresql`**, a NIE pod
+We mount the volume at **`/var/lib/postgresql`**, NOT at
 `/var/lib/postgresql/data`.
 
-Obrazy `postgres:18+` trzymają dane w podkatalogu z numerem wersji głównej
-(`/var/lib/postgresql/18/docker`), żeby dało się użyć `pg_upgrade --link` bez
-przechodzenia przez granicę montowania. Przy starym punkcie kontener **nie
-wstaje** — zgłasza `there appears to be PostgreSQL data in:
-/var/lib/postgresql/data (unused mount/volume)` i kończy jako `unhealthy`.
+`postgres:18+` images keep data in a subdirectory named after the major
+version (`/var/lib/postgresql/18/docker`), so that `pg_upgrade --link` can be
+used without crossing a mount boundary. With the old mount point the container
+**does not start** — it reports `there appears to be PostgreSQL data in:
+/var/lib/postgresql/data (unused mount/volume)` and ends up `unhealthy`.
 
-Sprawdzone 19.09.2026 na `postgres:18-alpine` (18.6). Tło:
+Checked 19.09.2026 on `postgres:18-alpine` (18.6). Background:
 <https://github.com/docker-library/postgres/pull/1259>.
 
-Uboczna zmiana w 18: **sumy kontrolne danych są domyślnie włączone**
-(`data_checksums=on`); w 17 były wyłączone.
+A side change in 18: **data checksums are on by default**
+(`data_checksums=on`); in 17 they were off.
 
-### Podbicie wersji głównej to migracja danych, nie podmiana obrazu
+### A major version bump is a data migration, not an image swap
 
-Postgres odmawia startu na katalogu założonym przez inną wersję główną
-(`database files are incompatible with server`). Procedura:
+Postgres refuses to start on a directory created by a different major version
+(`database files are incompatible with server`). The procedure:
 
-1. Zrzut **starą** wersją: `pg_dumpall` z działającego kontenera.
-2. Nowa deklaracja wolumenu pod nową nazwą (np. `..._pgdata_prod_v19`).
-3. Start nowej wersji na pustym wolumenie i wczytanie zrzutu.
-4. **Starą deklarację wolumenu zostaw w pliku compose.** Usunięta znika też
-   z widoku `docker compose down -v`, a wtedy jedyna kopia danych ginie z nią.
+1. Dump with the **old** version: `pg_dumpall` from the running container.
+2. A new volume declaration under a new name (e.g. `..._pgdata_prod_v19`).
+3. Start the new version on the empty volume and load the dump.
+4. **Leave the old volume declaration in the compose file.** Once removed, it
+   also disappears from the view of `docker compose down -v`, and then the only
+   copy of the data goes with it.
 
-Major Postgresa jest zablokowany w `.github/dependabot.yml` — w **obu** wpisach
-`docker-compose` (`/` i `/deploy`).
+The Postgres major is blocked in `.github/dependabot.yml` — in **both**
+`docker-compose` entries (`/` and `/deploy`).
 
 ---
 
-## Migracje schematu — uruchamia je Deploy
+## Schema migrations — Deploy runs them (Migracje schematu)
 
-Kolejność:
+Order:
 
-1. Zmieniasz kolekcję w `web/src/collections/`.
-2. `npm run generate:types` — typy są **commitowane**, CI pilnuje ich zgodności.
-3. `npm run migrate:create <nazwa>` — migracja trafia do repo.
-4. Merge do `main` → CI buduje obraz.
-5. Workflow **Deploy** (pole wersji puste): pobiera nowy obraz, puszcza
-   migracje, dopiero potem podmienia aplikację.
+1. You change a collection in `web/src/collections/`.
+2. `npm run generate:types` — the types are **committed**, CI checks they match.
+3. `npm run migrate:create <name>` — the migration goes into the repo.
+4. Merge to `main` → CI builds the image.
+5. The **Deploy** workflow (version field empty): pulls the new image, runs
+   the migrations, only then swaps the application.
 
-**Od 13.10.2026 migracje są częścią Deploya.** Wcześniej był to osobny
-przycisk przed nim („zmiana schematu ma być decyzją”). 13.10.2026 wdrożono
-0.7.0 bez niego: nowa wersja pytała o tabele, których nie było
-(`relation "broadcasts" does not exist`), i panel nie wpuszczał nikogo.
-Deploy i tak jest tylko ręczny, więc decyzją jest samo wdrożenie — drugi
-przycisk niczego nie chronił, dawał się tylko pominąć.
+**Since 13.10.2026 migrations are part of Deploy.** Before that they were a
+separate button before it ("a schema change should be a decision"). On
+13.10.2026 0.7.0 was deployed without it: the new version asked for tables
+that did not exist (`relation "broadcasts" does not exist`) and the panel let
+nobody in. Deploy is manual anyway, so the deployment itself is the decision —
+the second button protected nothing, it could only be skipped.
 
-- **Kolejność w `deploy.yml`: `prepare` (pull) → `migrate` → `release`
-  (`up -d`).** Pull przed migracją: Deploy kliknięty, zanim CI zbudował
-  obraz, pada na pullu, zanim ruszy bazę — o ile `VERSION` jest podbite
-  (inaczej pull znajdzie stary obraz pod tym samym tagiem). Po pullu
-  `prepare` stawia sam kontener bazy (`up -d --wait postgres`): na nowym
-  serwerze nie działa nic, a migracja idzie tunelem do bazy. Migracja
-  padnie — `release` się nie odpala i działa stara wersja na starym
-  schemacie. Nowa wersja trafia do `deploy/.env` dopiero w `release`, więc
-  ręczne `up -d` po nieudanej migracji też postawi starą.
-- **Migracje biorą kod z commita, z którego uruchomiono Deploy** — tego
-  samego, z którego Deploy czyta `VERSION`. Z jawnie podaną wersją (powrót
-  do starszej, tag `sha-…`) migracje są **pomijane**, bo kod z `main` nie
-  musi pasować do wskazanego obrazu.
-- **Migracje w dół nie idą same nigdy.** Po powrocie do starszej wersji baza
-  zostaje w nowszym schemacie. Dla zmian, które tylko dodają tabele
-  i kolumny, stara aplikacja działa; przy usuwaniu albo zmianie kolumny —
-  najpierw sprawdzić, czy stara wersja na nowym schemacie wstaje.
-- **Workflow Migrate zostaje** (`workflow_dispatch` z `migrate`) do puszczenia
-  migracji bez wdrażania. Deploy woła ten sam plik (`workflow_call`), więc
-  bramka na wpis `dev` i `timeout 300` działają w obu drogach.
+- **Order in `deploy.yml`: `prepare` (pull) → `migrate` → `release`
+  (`up -d`).** Pull before the migration: a Deploy clicked before CI built the
+  image fails on the pull, before it touches the database — provided `VERSION`
+  is bumped (otherwise the pull finds the old image under the same tag). After
+  the pull, `prepare` starts the database container alone
+  (`up -d --wait postgres`): on a new server nothing is running, and the
+  migration goes through a tunnel to the database. If the migration fails,
+  `release` does not run and the old version keeps running on the old schema.
+  The new version reaches `deploy/.env` only in `release`, so a manual
+  `up -d` after a failed migration also starts the old one.
+- **Migrations take the code from the commit Deploy was run from** — the same
+  one Deploy reads `VERSION` from. With an explicitly given version (going back
+  to an older one, an `sha-…` tag) migrations are **skipped**, because the code
+  from `main` does not have to match the given image.
+- **Down migrations never run by themselves.** After going back to an older
+  version, the database stays on the newer schema. For changes that only add
+  tables and columns, the old application works; when a column is removed or
+  changed — first check that the old version starts on the new schema.
+- **The Migrate workflow stays** (`workflow_dispatch` with `migrate`) to run
+  migrations without deploying. Deploy calls the same file (`workflow_call`),
+  so the gate on the `dev` row and `timeout 300` work both ways.
 
-**Dlaczego przez tunel SSH, a nie `docker compose run` na serwerze:** obraz
-produkcyjny to `output: standalone` i waży ~80 MB, bo Turbopack wbudowuje
-zależności w chunki serwera — nie ma w nim ani CLI Payloada, ani jego modułów.
-Drugi obraz z pełnym `node_modules` ważyłby ~1 GB **przy każdej wersji**,
-a zapchany dysk to dokładnie to, co kiedyś położyło deploy w anovastudio.
-Migracje odpala więc runner, który i tak ma komplet zależności, przez tunel do
-bazy wystawionej **wyłącznie na pętli zwrotnej serwera** (`127.0.0.1:5432`).
+**Why through an SSH tunnel and not `docker compose run` on the server:** the
+production image is `output: standalone` and weighs ~80 MB, because Turbopack
+builds dependencies into the server chunks — there is neither the Payload CLI
+nor its modules in it. A second image with full `node_modules` would weigh
+~1 GB **with every version**, and a full disk is exactly what once brought
+down a deploy in anovastudio. So migrations are run by the runner, which has
+all the dependencies anyway, through a tunnel to the database exposed **only on
+the server's loopback** (`127.0.0.1:5432`).
 
-`push: true` działa tylko lokalnie (`NODE_ENV !== 'production'`). Na produkcji
-schemat zmieniają wyłącznie migracje — żeby start kontenera nie mógł przepisać
-tabeli z danymi klienta.
+`push: true` only works locally (`NODE_ENV !== 'production'`). In production
+the schema is changed only by migrations — so that a container start cannot
+rewrite a table with client data.
 
-### ⚠️ Wygenerowanej migracji nie ufaj, dopóki nie przejdzie na bazie z `main`
+### ⚠️ Do not trust a generated migration until it passes on a database from `main`
 
-Zmierzone 05.10.2026 przy migracji zapisów i wysyłek: `migrate:create` wygenerował
-dwa błędy, których nie wyłapał żaden lint, typ ani test na bazie w trybie push.
+Measured 05.10.2026 on the bookings and broadcasts migration: `migrate:create`
+generated two errors that no lint, type or test on a push-mode database caught.
 
-- **Nowa wartość typu wyliczeniowego użyta w tej samej migracji** (`ADD VALUE
-  'pending'`, potem `SET DEFAULT 'pending'`) → `unsafe use of new value`. Payload
-  wykonuje migrację w jednej transakcji, a Postgres nie pozwala użyć wartości
-  dodanej w niezatwierdzonej transakcji. **`ADD VALUE` idzie do osobnej, ręcznej
-  migracji przed właściwą** (wzór: `20261005_195005_newsletter_pending_status`).
-- **`down` padał**: kasuje tabele z `CASCADE`, a potem ich ograniczenia, których
-  już nie ma. Ręcznie: `DROP CONSTRAINT IF EXISTS`.
-- **Usunięcie wartości z `select`** (10.10.2026, tematy formularza kontaktowego):
-  wygenerowana migracja od razu rzutuje kolumnę na nowy typ, a każdy wiersz ze
-  starą wartością przerywa rzutowanie — na produkcji, z danymi. Ręcznie:
-  kolumna na `text`, `UPDATE` starych wartości, dopiero potem nowy typ
-  (wzór: `20261010_182558_messages_general_topics`). Sprawdzić na bazie, do
-  której przed migracją wstawiono wiersze ze starymi wartościami.
+- **A new enum value used in the same migration** (`ADD VALUE 'pending'`, then
+  `SET DEFAULT 'pending'`) → `unsafe use of new value`. Payload runs a
+  migration in one transaction, and Postgres does not allow using a value added
+  in an uncommitted transaction. **`ADD VALUE` goes into a separate, hand-written
+  migration before the real one** (template:
+  `20261005_195005_newsletter_pending_status`).
+- **`down` failed**: it drops the tables with `CASCADE`, and then their
+  constraints, which no longer exist. By hand: `DROP CONSTRAINT IF EXISTS`.
+- **Removing a value from a `select`** (10.10.2026, contact form topics): the
+  generated migration casts the column to the new type straight away, and every
+  row with an old value aborts the cast — in production, with data. By hand:
+  the column to `text`, `UPDATE` the old values, only then the new type
+  (template: `20261010_182558_messages_general_topics`). Check on a database
+  into which rows with the old values were inserted before the migration.
 
-Sprawdzenie bez ruszania lokalnej bazy z treścią — obok, na tym samym serwerze:
+Checking without touching the local database with content — next to it, on the
+same server:
 
 ```bash
 docker exec abcwspinania-postgres-dev psql -U abcwspinania -d abcwspinania \
   -c "CREATE DATABASE abc_migration_check;"
-# DATABASE_URI z .env z nazwą bazy podmienioną na abc_migration_check, potem:
-npm run migrate < /dev/null            # w górę: wszystko z repo
+# DATABASE_URI from .env with the database name changed to abc_migration_check, then:
+npm run migrate < /dev/null            # up: everything in the repo
 npm run payload -- migrate:down < /dev/null && npm run migrate < /dev/null
-# … i DROP DATABASE abc_migration_check
+# … and DROP DATABASE abc_migration_check
 ```
 
-Job `integration` w CI stawia bazę wyłącznie z migracji, więc błąd w górę
-zatrzyma PR — ale `down` sprawdza tylko ręczna próba.
+The `integration` job in CI builds the database only from migrations, so an
+error going up will stop the PR — but `down` is checked only by a manual try.
 
 ---
 
-### ⚠️ Tryb `push` blokuje migracje — i wiesza je bez terminala
+### ⚠️ `push` mode blocks migrations — and hangs them without a terminal (Tryb push blokuje migracje)
 
-Uruchomienie `npm run dev` wpisuje do tabeli `payload_migrations` wiersz `dev`.
-Od tej chwili `payload migrate` **zadaje pytanie interaktywne**:
+Running `npm run dev` writes a `dev` row to the `payload_migrations` table.
+From then on `payload migrate` **asks an interactive question**:
 
 ```
 ? It looks like you've run Payload in dev mode, meaning you've dynamically
@@ -287,1863 +297,1964 @@ Od tej chwili `payload migrate` **zadaje pytanie interaktywne**:
   data loss will occur. Would you like to proceed? › (y/N)
 ```
 
-Zmierzone 19.09.2026: bez terminala to pytanie **wisi w nieskończoność**,
-i to nawet przy zamkniętym wejściu (`< /dev/null`). W workflow oznaczałoby job
-stojący do limitu czasu i padający z komunikatem, z którego nic nie wynika.
+Measured 19.09.2026: without a terminal this question **hangs forever**, even
+with closed input (`< /dev/null`). In a workflow it would mean a job standing
+until the time limit and failing with a message that tells you nothing.
 
-**Lokalnie:** trybu `push` i jawnych migracji nie da się mieszać. Chcesz
-zastosować migracje na bazie, która była pchana w dev — zresetuj ją:
+**Locally:** `push` mode and explicit migrations cannot be mixed. If you want to
+apply migrations to a database that was pushed in dev — reset it:
 `docker compose down -v && docker compose up -d && npm run migrate`.
-W developmencie nie ma danych, których szkoda.
+There is no data in development worth keeping.
 
-**Na produkcji** `push` jest wyłączony (`NODE_ENV === 'production'`), więc wpis
-`dev` nie powinien tam powstać nigdy. Workflow „Migrate" i tak sprawdza to przed
-uruchomieniem i **zatrzymuje się**, jeśli ten wpis znajdzie — bo jego obecność
-znaczy, że ktoś puścił aplikację w trybie deweloperskim przeciw bazie klienta,
-a Payload zapytałby wtedy o zgodę na utratę danych. Drugą linią obrony jest
-`timeout 300` na samym poleceniu.
+**In production** `push` is off (`NODE_ENV === 'production'`), so the `dev`
+row should never appear there. The "Migrate" workflow checks for it before
+running anyway and **stops** if it finds it — because its presence means
+someone ran the application in development mode against the client's
+database, and Payload would then ask for consent to data loss. The second line
+of defence is `timeout 300` on the command itself.
 
-## Wersje bibliotek — czego NIE wolno podbić i dlaczego
+## Library versions — what must NOT be bumped and why
 
-- **TypeScript stoi na 6.x — to najnowsza wersja, która tu działa, nie zaległość.**
-  Zmierzone 19.09.2026: **TS 6.0.3** przechodzi `tsc`, `lint`, `test` i `build`
-  kompletem. **TS 7.0.2** przechodzi `tsc --noEmit` czysto, ale `lint` pada twardo:
-  `typescript-eslint does not support TS 7.0.` Blokuje nas narzędzie pośredniczące,
-  nie sam TypeScript ani Next (wsparcie śledzone dla TS ≥ 7.1,
-  typescript-eslint#10940). Blokada w Dependabocie dotyczy **wyłącznie majora 7**;
-  wydania 6.x wchodzą normalnie.
-- **ESLint zostaje na 9.x.** `eslint-config-next` deklaruje peer `eslint >=9`,
-  więc npm wpuszcza 10 bez ostrzeżenia, ale `eslint-plugin-react` woła
-  `context.getFilename()` — API usunięte w 10.
-- **Wszystkie pakiety Payloada muszą iść w jednej wersji.** `@payloadcms/next`
-  deklaruje peer `payload` **co do numeru**, więc rozjazd wywala `npm ci`.
-  Dlatego są przypięte dokładnie (`3.92.0`, bez `^`) i podbijane jednym PR-em
-  przez grupę `payload` w Dependabocie. Nigdy osobno.
-  **Ręcznie** (25.10.2026, 3.90.2 → 3.92.0): same nowe numery w
-  `package.json` i `npm install` dawały ERESOLVE (`Conflicting peer
-  dependency: payload@3.92.0`) — trzymała stara para z pliku blokady. Pomogło
-  usunięcie z `package-lock.json` wpisów `node_modules/payload`
-  i `node_modules/@payloadcms/*`, potem `npm install`; reszta drzewa została
-  nietknięta (zmienił się tylko Payload, Next, React i `tsx` z Payloada).
-  Instaluj na Node z `.nvmrc` — Payload 3.92 wymaga ≥ 24.22.1.
-- **Next zostaje na 16, `graphql` na 16.** Oba majory blokuje Payload:
-  `@payloadcms/next` ma peer `next <17.0.0`, a `payload` peer `graphql ^16.8.1`.
-  Major którejkolwiek wywala `npm ci`, więc w Dependabocie są zablokowane
-  i odblokowuje się je razem z podbiciem Payloada.
-- **Node 26** (`node:26-alpine`). **Ta sama liczba musi stać w `node-version:`
-  w `ci.yml` — w OBU jobach** (`lint-typecheck-build` i `integration`). Dependabot podbijałby ją wyłącznie w Dockerfile (ekosystem
-  `docker` czyta tylko Dockerfile'e) — w anovastudio po bumpie 24 → 26 CI został
-  na 24 i przez jakiś czas testował kod na innym silniku niż produkcja. Dlatego
-  major Node jest w Dependabocie **zablokowany**: łatki przychodzą same (tag
-  pływający), a nieparzyste majory nigdy nie dostają LTS. **Przejście na 28 to
-  ręczna zmiana wszystkich trzech miejsc naraz.**
-- **Łatki bezpieczeństwa idą poza harmonogramem** — to nie zasługa
-  `dependabot.yml` (ten działa raz w miesiącu), tylko ustawień repozytorium:
-  *Dependabot alerts* i *Dependabot security updates*. Włączone 28.09.2026;
-  do tego dnia były wyłączone i podatność czekała do następnego miesiąca.
-  Dwie granice: obejmują pakiety npm i akcje GitHub, **nie obrazy Dockera**
-  (te łata tag pływający i przebudowa obrazu), a **reguły `ignore` działają
-  także na nie** — łatka dostępna tylko w zablokowanym majorze nie przyjdzie
-  jako PR, zostanie sam alert w zakładce Security.
-- **Dwa alerty zamknięte jako „nie dotyczy" (29.09.2026) — sprawdzić przy
-  każdym podbiciu Payloada.** Oba średniej wagi, oba w zależnościach, które
-  Payload przypina sam, więc Dependabot nie mógł ich załatać i każda jego
-  próba kończyła się czerwonym zadaniem.
-  - **`undici` 7.29.0** (poprawka w 7.29.1) — `payload` przypina go **co do
-    numeru**. Dziura dotyczy klienta WebSocket (`permessage-deflate`),
-    a Payload używa `undici` wyłącznie w `uploads/safeFetch` — `Agent` i `fetch`
-    przy wgrywaniu pliku z adresu. WebSocketu nigdzie. Od 30.09 do
-    25.10.2026 wymuszony przez `overrides` — patrz niżej.
-  - **`esbuild` 0.18** (poprawka w 0.25) — przychodzi przez `drizzle-kit` →
-    `@esbuild-kit`, czyli narzędzie do generowania migracji na maszynie
-    programisty. Nie ma go w obrazie, a dziura dotyczy serwera deweloperskiego
-    esbuilda, którego nie uruchamiamy.
+- **TypeScript stays on 6.x — it is the newest version that works here, not a
+  backlog item.** Measured 19.09.2026: **TS 6.0.3** passes `tsc`, `lint`, `test`
+  and `build` in full. **TS 7.0.2** passes `tsc --noEmit` cleanly, but `lint`
+  fails hard: `typescript-eslint does not support TS 7.0.` We are blocked by an
+  intermediate tool, not by TypeScript itself or Next (support tracked for
+  TS ≥ 7.1, typescript-eslint#10940). The Dependabot block applies **only to
+  major 7**; 6.x releases come in normally.
+- **ESLint stays on 9.x.** `eslint-config-next` declares the peer `eslint >=9`,
+  so npm lets 10 in without a warning, but `eslint-plugin-react` calls
+  `context.getFilename()` — an API removed in 10.
+- **All Payload packages must go in one version.** `@payloadcms/next` declares
+  the `payload` peer **to the exact number**, so a mismatch breaks `npm ci`.
+  That is why they are pinned exactly (`3.92.0`, no `^`) and bumped in one PR
+  by the `payload` group in Dependabot. Never separately.
+  **By hand** (25.10.2026, 3.90.2 → 3.92.0): just the new numbers in
+  `package.json` and `npm install` gave ERESOLVE (`Conflicting peer
+  dependency: payload@3.92.0`) — the old pair from the lock file held on. What
+  helped was removing the `node_modules/payload` and `node_modules/@payloadcms/*`
+  entries from `package-lock.json`, then `npm install`; the rest of the tree
+  stayed untouched (only Payload, Next, React and `tsx` from Payload changed).
+  Install on the Node from `.nvmrc` — Payload 3.92 requires ≥ 24.22.1.
+- **Next stays on 16, `graphql` on 16.** Both majors are blocked by Payload:
+  `@payloadcms/next` has the peer `next <17.0.0`, and `payload` the peer
+  `graphql ^16.8.1`. A major of either breaks `npm ci`, so in Dependabot they
+  are blocked and get unblocked together with a Payload bump.
+- **Node 26** (`node:26-alpine`). **The same number must stand in
+  `node-version:` in `ci.yml` — in BOTH jobs** (`lint-typecheck-build` and
+  `integration`). Dependabot would bump it only in the Dockerfile (the `docker`
+  ecosystem reads only Dockerfiles) — in anovastudio, after the 24 → 26 bump,
+  CI stayed on 24 and for a while tested the code on a different engine than
+  production. That is why the Node major is **blocked** in Dependabot: patches
+  come by themselves (floating tag), and odd majors never get LTS. **Moving to
+  28 is a manual change of all three places at once.**
+- **Security patches arrive outside the schedule** — not thanks to
+  `dependabot.yml` (that runs once a month), but to the repository settings:
+  *Dependabot alerts* and *Dependabot security updates*. Turned on 28.09.2026;
+  until that day they were off and a vulnerability waited until the next month.
+  Two limits: they cover npm packages and GitHub actions, **not Docker images**
+  (those are patched by the floating tag and an image rebuild), and **`ignore`
+  rules apply to them too** — a patch available only in a blocked major will
+  not arrive as a PR, only the alert in the Security tab will remain.
+- **Two alerts closed as "not applicable" (29.09.2026) — check them on every
+  Payload bump.** Both medium, both in dependencies that Payload pins itself,
+  so Dependabot could not patch them and each of its attempts ended in a red
+  job.
+  - **`undici` 7.29.0** (fix in 7.29.1) — `payload` pins it **to the exact
+    number**. The hole concerns the WebSocket client (`permessage-deflate`),
+    and Payload uses `undici` only in `uploads/safeFetch` — `Agent` and `fetch`
+    when uploading a file from a URL. No WebSocket anywhere. From 30.09 to
+    25.10.2026 forced through `overrides` — see below.
+  - **`esbuild` 0.18** (fix in 0.25) — comes through `drizzle-kit` →
+    `@esbuild-kit`, i.e. a tool for generating migrations on the developer's
+    machine. It is not in the image, and the hole concerns esbuild's
+    development server, which we do not run.
 
-  Nowszych wersji **nie** wymuszamy przez `overrides`, dopóki alert nie
-  blokuje CI: to ingerencja w to, co Payload przypiął, do odkręcenia przy
-  jego podbiciu — za dziurę, której tu nie da się wywołać.
+  We do **not** force newer versions through `overrides` as long as the alert
+  does not block CI: it is interference with what Payload pinned, to be undone
+  at its bump — for a hole that cannot be triggered here.
 
-  **Wyjątek (30.09–25.10.2026): `undici` był wymuszony** (`overrides.payload.undici`
-  w `web/package.json`, najpierw na 7.29.1, od 25.10.2026 na 7.30.1 —
-  23.10 wieczorem alert **high** `GHSA-xjj6-f33q-929c`, DoS przy nadmiarze
-  `content-encoding`). **Zdjęty 25.10.2026 przy Payloadzie 3.92.0**, który sam
-  przypina 7.30.1. 29.09 wieczorem opublikowano dwa
-  alerty **high** w 7.29.0 — WebSocket (`GHSA-rfgv-xxqx-mfg5`) i `BalancedPool`
-  (`GHSA-w293-vg96-wgc3`). Żaden nas nie dotyczy (Payload woła tylko `Agent`
-  i `fetch`), ale bramka `npm audit --audit-level=high` w CI **nie odróżnia
-  dziury osiągalnej od nieosiągalnej** i zatrzymała każdy PR, łącznie z #30.
-  Czekanie na Payload (3.90.2, najnowszy, wciąż przypina 7.29.0) znaczyło
-  brak wdrożeń na czas nieokreślony. Poprawka to sama łatka (ostatnia cyfra).
+  **Exception (30.09–25.10.2026): `undici` was forced**
+  (`overrides.payload.undici` in `web/package.json`, first to 7.29.1, from
+  25.10.2026 to 7.30.1 — on the evening of 23.10 a **high** alert
+  `GHSA-xjj6-f33q-929c`, DoS on excess `content-encoding`). **Removed on
+  25.10.2026 with Payload 3.92.0**, which pins 7.30.1 itself. On the evening of
+  29.09 two **high** alerts were published in 7.29.0 — WebSocket
+  (`GHSA-rfgv-xxqx-mfg5`) and `BalancedPool` (`GHSA-w293-vg96-wgc3`). Neither
+  concerns us (Payload calls only `Agent` and `fetch`), but the
+  `npm audit --audit-level=high` gate in CI **does not tell a reachable hole
+  from an unreachable one** and stopped every PR, including #30. Waiting for
+  Payload (3.90.2, the newest, still pinning 7.29.0) meant no deployments for
+  an indefinite time. The fix is a patch alone (last digit).
 
-  Gdy znów trzeba będzie coś wymusić: wpis w `overrides` pod pakietem, który
-  przypina zależność, i **usunięcie go przy podbiciu Payloada, gdy ten
-  przypnie wersję z poprawką** — zostawiony po cichu kiedyś cofnąłby Payload
-  do starszej. **Przy podbiciu Payloada:** `npm ls undici esbuild` w `web/`;
-  jeśli `esbuild` wciąż sprzed poprawki (w 3.92.0: 0.18 przez `drizzle-kit`)
-  — sprawdzić, czy nie wszedł do obrazu.
-- **`dompurify` wymuszony na 3.4.17** (`overrides["monaco-editor"].dompurify`
-  w `web/package.json`, od 22.10.2026) — ten sam powód i ta sama forma co
-  `undici`: tego dnia opublikowano alerty **critical** i **high** w 3.4.15,
-  który `monaco-editor` z `@payloadcms/ui` przypina co do numeru. Edytor kodu
-  u nas się nie uruchamia (zasada 19), ale bramka audytu zatrzymywała każdy
-  PR, w tym łatkę Next-a. Poprawka to sama łatka. **Przy podbiciu Payloada:**
-  `npm ls dompurify`; gdy `monaco-editor` przyjdzie z ≥ 3.4.17 — usunąć ten
-  wpis `overrides` i ten akapit (w Payloadzie 3.92.0 wciąż 3.4.15).
-- **Next 16.4.3** (od 25.10.2026; 16.4.2 od 22.10.2026): 22.10 w 16.4.0 opublikowano dwie dziury
-  krytyczne (`GHSA-2464-fhr4-w9xw` — optymalizator obrazków z SVG,
-  `GHSA-673q-mjm6-r5xr`). Dependabot nie zrobił PR-a w pierwszych godzinach —
-  GitHub nie założył jeszcze alertu, a PR z łatką powstaje dopiero po nim.
-  Wyłapał to `npm audit` (czyta bazę od razu), a Next sam przerywał `next dev`
-  i `next build` ostrzeżeniem z instrukcjami dla agenta — to treść narzędzia,
-  nie polecenie; rozwiązanie to podbicie wersji.
-- **Bramka audytu ma listę wyjątków — `web/scripts/audit-gate.mjs`**
-  (`npm run audit`, od 03.10.2026). Sam `npm audit` umie tylko „wszystko
-  albo nic”. Dziś jeden wyjątek:
-  **`happy-dom`** (`GHSA-834v-8h66-3h79`, od 25.10.2026; opublikowany 23.10
-  wieczorem — wykonanie kodu przez alias importu w skrypcie strony).
-  Łańcuch: `@payloadcms/richtext-lexical` → `@lexical/headless` 0.50 →
-  `happy-dom` 20; poprawka jest dopiero w 21.0.4, czyli w majorze, którego
-  `^20` nie przyjmie — także w Payloadzie 3.92. `happy-dom` ładuje wyłącznie
-  `@lexical/headless/dom` (`withDOM`), którego Payload nie importuje (jego
-  konwertery biorą DOM od wywołującego, a my żadnego nie wołamy). Zero
-  odwołań w `.next` po buildzie (sprawdzone 25.10.2026), a aplikacja nie
-  parsuje cudzego HTML-a.
-  Wcześniej (03–25.10.2026) stał tu **`braces`** (`GHSA-vfj7-8cjw-p6xm`,
-  narzędzia budowania przez `sass` 1.77.4) — GitHub wycofał to zgłoszenie
-  23.10.2026, bramka zgłosiła wpis jako `STALE` i został usunięty.
-  - Wyjątek obejmuje **jeden identyfikator**, nie pakiet ani poziom — każda
-    inna dziura high/critical, także nowa w `happy-dom`, zatrzymuje CI jak dotąd.
-  - Wpis, którego audyt już nie zgłasza, **też wywala bramkę** (`STALE`),
-    więc wyjątek nie zostanie po cichu po naprawie.
-  - **Przy podbiciu Payloada:** `npm ls happy-dom` — od 21.0.4 wpis usunąć
-    (bramka i tak zgłosi go jako `STALE`).
-  - Nowy wyjątek tylko z opisem w skrypcie: dlaczego nieosiągalny i kiedy go
-    zdjąć. Obniżanie poziomu bramki albo `continue-on-error` — nie.
-  - Obok: zadanie Dependabota „dompurify” kończy się na czerwono
-    (`security_update_not_possible`) — `dompurify` przypina `monaco-editor`
-    z Payloada (zasada 19), alert jest `low`, nie blokuje CI. Na produkcję
-    nie wpływa; zniknie przy podbiciu Payloada.
-  - Tak samo zadanie „happy-dom” (od 25.10.2026, przy każdym przebiegu):
-    łatka jest tylko w happy-dom 21, a Dependabot musiałby cofnąć
-    `@payloadcms/richtext-lexical` do 3.78, więc rezygnuje. Oczekiwany szum —
-    zniknie razem z wyjątkiem w bramce audytu.
-- **PostgreSQL 18** (`postgres:18-alpine`). 19 istnieje tylko jako beta.
-  Ta sama wersja stoi w `services:` joba `integration` w `ci.yml` —
-  Dependabot jej tam nie widzi, więc przy podbiciu majora zmienić ręcznie,
-  żeby testy biegły na tym samym Postgresie co produkcja.
+  When something has to be forced again: an `overrides` entry under the package
+  that pins the dependency, and **removing it at the Payload bump, once Payload
+  pins the fixed version** — left in silently, it would one day pull Payload
+  back to an older one. **On a Payload bump:** `npm ls undici esbuild` in
+  `web/`; if `esbuild` is still pre-fix (in 3.92.0: 0.18 through `drizzle-kit`)
+  — check it has not got into the image.
+- **`dompurify` forced to 3.4.17** (`overrides["monaco-editor"].dompurify`
+  in `web/package.json`, since 22.10.2026) — the same reason and the same form
+  as `undici`: that day **critical** and **high** alerts were published in
+  3.4.15, which `monaco-editor` from `@payloadcms/ui` pins to the exact number.
+  The code editor never starts here (rule 19), but the audit gate stopped every
+  PR, including the Next patch. The fix is a patch alone. **On a Payload bump:**
+  `npm ls dompurify`; when `monaco-editor` comes with ≥ 3.4.17 — remove this
+  `overrides` entry and this paragraph (in Payload 3.92.0 still 3.4.15).
+- **Next 16.4.3** (since 25.10.2026; 16.4.2 since 22.10.2026): on 22.10 two
+  critical holes were published in 16.4.0 (`GHSA-2464-fhr4-w9xw` — the image
+  optimiser with SVG, `GHSA-673q-mjm6-r5xr`). Dependabot did not make a PR in
+  the first hours — GitHub had not yet created an alert, and the patch PR is
+  only created after it. It was caught by `npm audit` (reads the database at
+  once), and Next itself aborted `next dev` and `next build` with a warning
+  with instructions for the agent — that is tool content, not an instruction;
+  the solution is a version bump.
+- **The audit gate has an exception list — `web/scripts/audit-gate.mjs`**
+  (`npm run audit`, since 03.10.2026). `npm audit` alone only knows "all or
+  nothing". Today one exception:
+  **`happy-dom`** (`GHSA-834v-8h66-3h79`, since 25.10.2026; published on the
+  evening of 23.10 — code execution through an import alias in a page script).
+  Chain: `@payloadcms/richtext-lexical` → `@lexical/headless` 0.50 →
+  `happy-dom` 20; the fix is only in 21.0.4, i.e. in a major that `^20` will
+  not accept — in Payload 3.92 as well. `happy-dom` is loaded only by
+  `@lexical/headless/dom` (`withDOM`), which Payload does not import (its
+  converters take the DOM from the caller, and we call none). Zero references
+  in `.next` after the build (checked 25.10.2026), and the application does
+  not parse other people's HTML.
+  Earlier (03–25.10.2026) the entry here was **`braces`**
+  (`GHSA-vfj7-8cjw-p6xm`, build tools through `sass` 1.77.4) — GitHub withdrew
+  that advisory on 23.10.2026, the gate reported the entry as `STALE` and it
+  was removed.
+  - An exception covers **one identifier**, not a package or a level — any
+    other high/critical hole, including a new one in `happy-dom`, stops CI as
+    before.
+  - An entry the audit no longer reports **also fails the gate** (`STALE`), so
+    an exception will not stay silently after a fix.
+  - **On a Payload bump:** `npm ls happy-dom` — from 21.0.4 remove the entry
+    (the gate will report it as `STALE` anyway).
+  - A new exception only with a description in the script: why it is
+    unreachable and when to remove it. Lowering the gate level or
+    `continue-on-error` — no.
+  - Alongside: the Dependabot job "dompurify" ends in red
+    (`security_update_not_possible`) — `dompurify` is pinned by `monaco-editor`
+    from Payload (rule 19), the alert is `low`, it does not block CI. No effect
+    on production; it will disappear with a Payload bump.
+  - The same with the "happy-dom" job (since 25.10.2026, on every run): the
+    patch is only in happy-dom 21, and Dependabot would have to downgrade
+    `@payloadcms/richtext-lexical` to 3.78, so it gives up. Expected noise —
+    it will disappear together with the exception in the audit gate.
+- **PostgreSQL 18** (`postgres:18-alpine`). 19 exists only as a beta.
+  The same version stands in `services:` of the `integration` job in `ci.yml` —
+  Dependabot does not see it there, so on a major bump change it by hand, so
+  that tests run on the same Postgres as production.
 
 ---
 
-## Rejestr portów bazy w developmencie
+## Development database port registry
 
-Stan katalogu `Projects` na 26.10.2026 (sprawdzony z plikami compose):
+State of the `Projects` directory on 26.10.2026 (checked against the compose
+files):
 
-| Port | Projekt |
+| Port | Project |
 |---|---|
 | 5432 | next-step-pro-climbing-hub, first-aid-kit-api |
 | 5433 | fire-academy-hub, template_project, first-aid-kit-api (dev) |
 | 5434 | anovastudio |
 | **5435** | **abcwspinania** |
-| 5436 | kd-training (od 26.10.2026) |
+| 5436 | kd-training (since 26.10.2026) |
 
-Kolejny projekt bierze 5437. Bez tego rejestru dwa projekty naraz nie wstaną.
-Baza deweloperska jest przypięta do `127.0.0.1` — bez tego Docker otwiera port
-na wszystkich interfejsach, **z pominięciem zapory hosta**.
+The next project takes 5437. Without this registry two projects will not start
+at once. The development database is bound to `127.0.0.1` — without that
+Docker opens the port on all interfaces, **bypassing the host firewall**.
 
 ---
 
-## Struktura aplikacji — grupy tras
+## Application structure — route groups
 
 ```
 web/src/app/
-├── robots.ts            ← ⚠️ MUSI być tutaj, nie w grupie
-├── manifest.ts          ← ⚠️ tak samo
-├── global-not-found.tsx ← 404 dla adresów, których nie zna żadna trasa
-├── favicon.ico/         ← ikona dla każdego adresu, też panelu
-├── (frontend)/          ← strona, layout, sitemap, icon, og, error, not-found
-└── (payload)/           ← panel i API, boilerplate Payloada
+├── robots.ts            ← ⚠️ MUST be here, not in a group
+├── manifest.ts          ← ⚠️ the same
+├── global-not-found.tsx ← 404 for addresses no route knows
+├── favicon.ico/         ← the icon for every address, the panel too
+├── (frontend)/          ← site, layout, sitemap, icon, og, error, not-found
+└── (payload)/           ← panel and API, Payload boilerplate
 ```
 
-### 404: dwa wejścia, jedna treść
+### 404: two entrances, one content
 
-Od 01.10.2026. Przy dwóch layoutach głównych Next nie ma gdzie wyrenderować
-wspólnej 404, więc adres, którego nie zna żadna trasa (`/cokolwiek`), dawał
-jego gołą, czarną stronę po angielsku, bez nagłówka i stopki.
-`(frontend)/not-found.tsx` łapie wyłącznie `notFound()` wołane przez stronę
-(np. nieistniejący kurs).
+Since 01.10.2026. With two root layouts Next has nowhere to render a shared
+404, so an address no route knows (`/cokolwiek`) gave its bare, black page in
+English, without header and footer. `(frontend)/not-found.tsx` catches only
+`notFound()` called by a page (e.g. a non-existent course).
 
-Rozwiązanie to `app/global-not-found.tsx` — plik Next-a dokładnie na ten
-przypadek. **Jest eksperymentalny**: działa dzięki
-`experimental.globalNotFound` w `next.config.ts`. Przy każdym podbiciu Next-a
-sprawdzić, czy flaga i plik nie zmieniły nazwy, i wejść na zmyślony adres.
+The solution is `app/global-not-found.tsx` — a Next file for exactly this case.
+**It is experimental**: it works thanks to `experimental.globalNotFound` in
+`next.config.ts`. On every Next bump check that the flag and the file have not
+been renamed, and visit a made-up address.
 
-Plik renderuje się POZA layoutem, więc niesie własny dokument: `SiteShell`
-(`<html>`, nagłówek, stopka, pasek — ten sam komponent, którego używa layout
-`(frontend)`), fonty z `lib/fonts.ts` i własny import `globals.css`. Powtarza
-też `revalidate = 300`, bo layoutu nie dziedziczy. Obie 404 pokazują
-`NotFoundContent` — zmiana wyglądu to jeden plik.
+The file renders OUTSIDE the layout, so it carries its own document:
+`SiteShell` (`<html>`, header, footer, bar — the same component the
+`(frontend)` layout uses), fonts from `lib/fonts.ts` and its own import of
+`globals.css`. It also repeats `revalidate = 300`, because it does not inherit
+the layout. Both 404s show `NotFoundContent` — a change of look is one file.
 
-**Nie ma `app/layout.tsx`.** Obie grupy mają własny layout z `<html>` i `<body>`,
-bo panel nie może dziedziczyć stylów strony. Next pozwala na wiele layoutów
-głównych dokładnie wtedy, gdy nie ma layoutu w korzeniu.
+**There is no `app/layout.tsx`.** Both groups have their own layout with
+`<html>` and `<body>`, because the panel must not inherit the site's styles.
+Next allows several root layouts exactly when there is no layout in the root.
 
-### ⚠️ `robots.ts` i `manifest.ts` nie działają w grupie tras
+### ⚠️ `robots.ts` and `manifest.ts` do not work in a route group
 
-Zmierzone 19.09.2026 na dwóch osobnych przypadkach: `robots.ts` i `manifest.ts`
-umieszczone w `(frontend)/` **nie produkują żadnej trasy** — `/robots.txt`
-i `/manifest.webmanifest` znikają z manifestu Next-a, bez błędu i bez ostrzeżenia.
+Measured 19.09.2026 on two separate cases: `robots.ts` and `manifest.ts` placed
+in `(frontend)/` **produce no route at all** — `/robots.txt` and
+`/manifest.webmanifest` vanish from the Next manifest, without an error and
+without a warning.
 
-**To nie jest reguła ogólna dla plików konwencji.** `sitemap.ts`, `icon.tsx`,
-`error.tsx` i `not-found.tsx` w tym samym katalogu działają normalnie. Dotyczy
-dokładnie tych dwóch, więc oba leżą w korzeniu `app/`.
+**This is not a general rule for convention files.** `sitemap.ts`, `icon.tsx`,
+`error.tsx` and `not-found.tsx` in the same directory work normally. It
+concerns exactly these two, so both sit in the root of `app/`.
 
-Skutek uboczny: skoro `manifest.ts` jest poza grupą, Next nie dokleja go sam do
-`<head>` podstron — layout wskazuje go jawnie przez `metadata.manifest`.
+Side effect: since `manifest.ts` is outside the group, Next does not attach it
+to the `<head>` of subpages by itself — the layout points to it explicitly
+through `metadata.manifest`.
 
-W korzeniu `app/` leży też **`favicon.ico/route.tsx`** — tym razem z wyboru,
-nie z przymusu (grupa tras nie zmienia adresu, więc w `(frontend)` działałby
-tak samo). Leży tu, bo służy całej aplikacji: panelowi (`admin.meta.icons`
-w `payload.config.ts`) i wbudowanej 404 Next-a, która nie ma naszego `<head>`,
-nie tylko stronie. Do 30.09.2026 zwracał 404, a panel miał w karcie logo
-Payloada.
+The root of `app/` also holds **`favicon.ico/route.tsx`** — this time by
+choice, not by necessity (a route group does not change the address, so it
+would work the same in `(frontend)`). It sits here because it serves the whole
+application: the panel (`admin.meta.icons` in `payload.config.ts`) and Next's
+built-in 404, which does not have our `<head>`, not just the site. Until
+30.09.2026 it returned 404, and the panel had the Payload logo in its tab.
 
-Jeśli kiedyś zniknie `/robots.txt` albo `/manifest.webmanifest`, to jest
-pierwsze miejsce do sprawdzenia: `cat .next/app-path-routes-manifest.json`
-pokazuje, co Next faktycznie wystawił.
+If `/robots.txt` or `/manifest.webmanifest` ever disappears, this is the first
+place to check: `cat .next/app-path-routes-manifest.json` shows what Next
+actually exposed.
 
-### Boilerplate w `(payload)/`
+### Boilerplate in `(payload)/`
 
-Pliki z nagłówkiem „GENERATED AUTOMATICALLY BY PAYLOAD" pochodzą wprost
-z szablonu `templates/blank` w wersji **v3.92.0** (te same co w v3.90.1,
-sprawdzone 25.10.2026). Jedna świadoma zmiana:
-`layout.tsx` importuje `./custom.css` zamiast `./custom.scss`, bo nie dokładamy
-pipeline'u SCSS dla jednego pustego arkusza.
+Files with the header "GENERATED AUTOMATICALLY BY PAYLOAD" come straight from
+the `templates/blank` template in version **v3.92.0** (the same as in v3.90.1,
+checked 25.10.2026). One deliberate change: `layout.tsx` imports `./custom.css`
+instead of `./custom.scss`, because we are not adding a SCSS pipeline for one
+empty stylesheet.
 
-### ⚠️ Nagłówki `withPayload` — `Critical-CH` tylko w panelu
+### ⚠️ `withPayload` headers — `Critical-CH` only in the panel
 
-Od 25.10.2026 (audyt). `withPayload` dokleja `Accept-CH`, `Critical-CH`
-i `Vary: Sec-CH-Prefers-Color-Scheme` do **każdego** adresu (`/:path*`) —
-panel potrzebuje tego do motywu jasny/ciemny. Na stronie `Critical-CH`
-kosztował: Chrome przy pierwszej wizycie odrzucał odpowiedź i pytał o stronę
-drugi raz (dwa renderowania, podwójny TTFB; Lighthouse liczył to jako
-„przekierowanie” 600 ms na każdej stronie, produkcja wysyłała te nagłówki).
-`next.config.ts` zawęża tę regułę do `/admin/:path*`. **Przy podbiciu
-Payloada:** `curl -sI localhost:3000/ | grep -i critical-ch` musi być pusty,
-a `/admin` musi go mieć — gdy Payload zmieni kształt reguły, zawężenie
-przestanie ją rozpoznawać po cichu.
-
----
-
-## Zasady kodu
-
-1. **Cała treść przez `src/lib/content.ts`.** Payload siedzi w tym samym
-   procesie, więc sięgamy do bazy bezpośrednio (Local API) — bez przeskoku
-   sieciowego i bez CORS-u.
-2. **Fallback na puste dane jest CELOWY.** `withPayloadSafe()` łapie błąd
-   połączenia z bazą i renderuje pusto, żeby `next build` w CI przechodził bez
-   Postgresa, a awaria na produkcji dawała pustą sekcję zamiast pięćsetki.
-   Loguje `warn`, nie `error` — brak bazy przy buildzie to scenariusz
-   przewidziany, a nie awaria.
-3. **Każde zapytanie o kolekcję podaje `limit` jawnie.** Payload domyślnie
-   zwraca **10** pozycji; bez tego lista ucina się bez błędu i bez śladu w logach.
-4. **Funkcje formatujące trzymamy w `src/lib/format.ts`, osobno od `content.ts`.**
-   `content.ts` ciągnie cały silnik Payloada, więc testy odpalane gołym
-   `node --test` nie mogłyby go zaimportować.
-5. **Uprawnienia deklarujemy w kodzie** (`src/lib/access.ts`, komplet operacji
-   w każdej kolekcji — zasada 28).
-   W poprzednim CMS-ie siedziały w bazie i trzeba je było wyklikać osobno
-   w każdym środowisku — to była stała pozycja na liście pierwszego uruchomienia
-   i stałe źródło „u mnie działa".
-6. **Typy Payloada są commitowane** i pilnowane w CI. Zmieniłeś kolekcję —
-   uruchom `npm run generate:types` i dołącz plik do commita.
-7. **Metadane eksportujemy jako `generateMetadata()`**, nie `export const metadata`
-   — ta druga forma wymaga literału i nie przyjmie wywołania `pageMetadata()`.
-8. **Obraz OG przez zwykłą trasę `app/(frontend)/og/route.tsx`**, nie przez
-   konwencję `opengraph-image.tsx` — tamta gubiła `og:image` na części podstron.
-9. **Treść zwinięta musi BYĆ w HTML-u** (atrybut `hidden`, nie `{open && …}`).
-   Googlebot nie klika w rozwijane sekcje.
-10. **Fonty z podzbiorem `latin-ext`** — inaczej polskie znaki diakrytyczne lecą
-    na krój zapasowy i tekst rozjeżdża się w środku wyrazu.
-11. **Dokładnie jeden `<h1>` na stronę** — wymóg, nie preferencja.
-12. **Unikalne identyfikatory filtrów SVG** — duplikaty `id` między komponentami
-    sprawiają, że jeden filtr nadpisuje drugi.
-13. **Nic wgrywanego przez panel nie dostaje `immutable`.** `public/images`
-    i `public/logo` mają tydzień cache, pliki z Mediów i z galerii miesiąc —
-    wszystkie ze `stale-while-revalidate`, żadne z `immutable`. Powód jest
-    jeden dla wszystkich: **Payload nie dokłada hasha do nazwy pliku**
-    (zmierzone 23.09.2026 — `skaly.jpg` leży pod `/api/media/file/skaly.jpg`).
-    Adres nie zmienia się przy podmianie pliku, a `immutable` znaczy „nie
-    pytaj ponownie", więc stara wersja zostawałaby u odwiedzających miesiąc,
-    nie do ruszenia nawet odświeżeniem. Przy plikach z `public/` nadal
-    obowiązuje: podmieniasz zdjęcie → zmień nazwę pliku.
-14. **`upload.limits.fileSize` musi się zgadzać z `client_max_body_size`
-    w nginx** (25 MB). Rozjazd daje 413 z nginx, zanim żądanie dojdzie do
-    aplikacji — i błąd, którego nie widać w jej logach.
-15. **Katalog uploadów liczymy od `process.cwd()`, nie od położenia
-    `payload.config.ts`.** W obrazie standalone skompilowany kod leży gdzie
-    indziej niż źródła, więc ścieżka wyliczona ze źródeł wskazywałaby w pustkę.
-16. **Walidacja formularzy istnieje po stronie serwera, nie tylko w HTML-u.**
-    Atrybuty `required` to wygoda dla odwiedzającego — omija je każdy, kto wyśle
-    żądanie bez formularza. Reguły siedzą w `src/lib/validation.ts` (czyste
-    funkcje, bez importów z Payloada, żeby dało się je testować) i są wołane
-    w akcji serwerowej.
-17. **Akcje serwerowe wołają Payload z `overrideAccess: false`.** Formularz jest
-    publiczny, więc żądanie nie ma zalogowanego użytkownika; ta flaga wymusza
-    przejście przez regułę `create` kolekcji zamiast obchodzenia jej. Gdyby ktoś
-    kiedyś tę regułę zaostrzył, formularz przestanie działać GŁOŚNO, a nie po
-    cichu ją ominie.
-18. **Zgodę RODO zapisujemy TREŚCIĄ, nie znacznikiem „tak".** `src/lib/consent.ts`
-    trzyma klauzulę i jej wersję; ten sam ciąg trafia pod pole wyboru i do bazy.
-    Inaczej po zmianie brzmienia nie da się wykazać, na co dana osoba wyraziła zgodę.
-19. **Content-Security-Policy ustawia APLIKACJA (`next.config.ts`), nie nginx.**
-    Panel Payloada wymaga luźniejszej polityki niż strona, a rozdzielenie tego
-    w nginx wymagałoby osobnego bloku `location /admin`, w którym własny
-    `add_header` kasuje dziedziczenie z bloku `server`. Nagłówek wysłany z obu
-    miejsc dotarłby do przeglądarki podwójnie. **Nie dodawaj CSP do nginx.**
-
-    Skutek uboczny do zapamiętania: Payload ładuje edytor kodu (`monaco`)
-    z `cdn.jsdelivr.net`, a nasze `script-src 'self'` tego zabrania. Dziś to
-    nieszkodliwe, bo żadna kolekcja nie ma pola typu `code` ani `json`, więc
-    edytor nigdy się nie uruchamia. Gdy ktoś takie pole doda, **edytor po
-    prostu się nie pojawi** — bez komunikatu w panelu, z błędem wyłącznie
-    w konsoli przeglądarki. Wtedy decyzja: albo wpuścić ten adres do CSP
-    (czyli cudzy kod do zalogowanego panelu), albo serwować edytor z własnej
-    domeny. To samo `monaco` odpowiada za zgłoszenie `moderate` w `npm audit`
-    (`dompurify`) — nie trafia do zbudowanej aplikacji, jest zależnością
-    Payloada i zniknie przy jego podbiciu. Nie ruszamy tego osobno.
-
-20. **`alt` w Mediach jest NIEOBOWIĄZKOWY — to decyzja, nie niedopatrzenie.**
-    Był wymagany do 23.09.2026. Wymóg kupował gorszą dostępność, nie lepszą:
-    przy wgrywaniu zbiorczym stawia blokujący formularz przed każdym plikiem,
-    więc przy dwudziestym zdjęciu w pole wpada „zdjęcie" albo „IMG_4471".
-    Czytnik ekranu czyta taki śmieć na głos, podczas gdy pusty `alt` każe mu
-    zdjęcie ozdobne pominąć — i o to właśnie chodzi w specyfikacji.
-    **Każde miejsce renderujące obrazek musi pisać `alt={media.alt ?? ''}`**,
-    żeby brak opisu dawał `alt=""`, a nie brakujący atrybut. Robi tak każde
-    obecne miejsce — sprawdzisz grepem po `alt ?? ''`. (Stała liczba, która
-    tu wcześniej stała, zdezaktualizowała się przy pierwszym nowym obrazku.)
-
-21. **Galeria trzyma stan w ADRESIE, nie w przeglądarce.** Powiększone zdjęcie
-    to `/galeria?zdjecie=<id>`, renderowane na serwerze — ta sama zasada, którą
-    ma spisaną `Filters.tsx`. Dzięki temu działa bez JS, pojedyncze zdjęcie da
-    się wysłać, a przycisk Wstecz zamyka powiększenie bez sztuczek na historii.
-    Komponent kliencki (`GalleryLightboxBehavior.tsx`) robi **wyłącznie** to,
-    czego HTML nie umie: klawisze, pułapkę na ognisko, blokadę przewijania tła.
-    `canonical` zawsze wskazuje `/galeria` bez parametru — inaczej pięćdziesiąt
-    adresów z tą samą treścią konkurowałoby w indeksie.
-
-22. **Zdjęcia galerii to OSOBNA kolekcja, nie pole w Mediach.** Najpierw był
-    ptaszek „Pokaż w galerii" przy zdjęciu; padł przy pierwszym użyciu przez
-    klienta, bo wymagał wejścia w każde zdjęcie osobno — przy pięćdziesięciu
-    to pięćdziesiąt przejść przez formularz. Wgranie do własnej kolekcji jest
-    całą robotą. To ta sama decyzja co przy obozach wobec kursów: wspólna
-    kolekcja z przełącznikiem daje formularz, w którym połowa pól jest zawsze
-    nieistotna. Przyjęty koszt: zdjęcie potrzebne i jako okładka kursu, i w
-    galerii wgrywa się dwa razy.
-
-23. **⚠️ Kolekcja z uploadem wymaga DWÓCH wpisów poza samą kolekcją:**
-    w `images.localPatterns` (`next.config.ts`) **i** jako blok `location`
-    w `deploy/nginx.conf`. Pierwszy odpowiada za renderowanie, drugi za
-    cache przeglądarki. Bez wpisu w `localPatterns` Payload serwuje pliki pod `/api/<slug>/file/**`,
-    a `next/image` z adresem spoza tej listy **rzuca wyjątkiem** — podstrona
-    zwraca 500, a nie puste miejsce po obrazku. Zmierzone 23.09.2026 przy
-    `gallery-photos`: lint, typy, testy i `build` przeszły komplet, bo strona
-    jest dynamiczna i przy budowaniu baza była pusta. Wyszło dopiero po
-    wejściu na `/galeria` z prawdziwym plikiem. Brak bloku w nginx nie psuje
-    niczego widocznie — pliki po prostu wypadają z długiego cache'u i lecą
-    przez `location /`, co przy pięćdziesięciu zdjęciach na stronie widać
-    w czasie ładowania, a nie w logach. **Dodajesz kolekcję z plikami —
-    dopisz ją w obu miejscach od razu.**
-
-    Nowy blok kopiuj z bloku Mediów, nie z `location /` — musi mieć
-    `proxy_hide_header Cache-Control` i powtórzone nagłówki bezpieczeństwa,
-    bo własny `add_header` w bloku `location` kasuje dziedziczenie z bloku
-    `server`. Polityka cache'u: patrz zasada 13.
-
-24. **Powiększenie bierze ORYGINAŁ przez optymalizator Next-a, a nie drugi
-    wariant z Payloada.** Kuszące jest dołożenie `large` do `imageSizes`, ale
-    koszt sharpa wróciłby na moment wgrywania — czyli tam, gdzie już raz położył
-    wysyłkę (patrz komentarz w `Media.ts` o jednym wariancie zamiast trzech).
-    Optymalizator jest już włączony dla `/api/media/file/**` (`next.config.ts`)
-    i trzyma wynik 30 dni, więc ten sam rachunek płacimy raz, przy pierwszym
-    wyświetleniu. **Nie podawaj `quality`** — Next 16 dopuszcza domyślnie tylko
-    75. `priority` jest przestarzałe; pierwszy rząd kafelków dostaje
-    `loading="eager"`.
-
-    **Oryginał + `sizes` tylko przy zdjęciach pokazanych DUŻO** (okładka
-    artykułu, wyróżniony wpis, zdjęcie na „O nas”, hero, obozy na stronie
-    głównej). Karty kursów, obozów, wpisów, portrety i kafelki galerii zostają
-    na `medium` (750 px) — celowo. Zmierzone 26.09.2026: przejście ich na
-    oryginał dawało na iPhonie (3×) **dwa razy cięższe strony** (galeria
-    4,4 → 9,1 MB, `/kursy` 1,4 → 2,9 MB). Dwa powody: srcset wybiera plik po
-    SZEROKOŚCI, więc pionowe zdjęcie w karcie o stałej wysokości przychodzi
-    w całości, choć widać z niego pasek; a ekran 3× prosi o trzykrotność
-    szerokości kafelka, której przy tej wielkości nikt nie odróżni od 2×.
-    `medium` działa tu jak sufit i to jest jego zadanie.
-
-    Duże zdjęcia **przycinane** do ramki biorą plik przez `croppedSource()`,
-    a nieprzycinane przez `originalSource()` (`src/lib/format.ts`).
-    ⚠️ **Payload zapisuje wymiary oryginału BEZ obrotu z EXIF.** Zdjęcie
-    z telefonu trzymanego pionowo ma w bazie 4000 × 1800, a na ekranie jest
-    pionowe; `medium` (robiony przez sharpa po obrocie) ma już 750 × 1667.
-    Kształt zdjęcia oceniaj więc po `medium`, nigdy po `width`/`height`
-    oryginału — obie funkcje to robią.
-
-25. **`(payload)/admin/importMap.js` jest GENEROWANY — nie formatuj go.**
-    Przepisuje go i `payload run`, i sam serwer deweloperski przy przeliczaniu
-    konfiguracji, zawsze bez formatowania. Zanim trafił do `.prettierignore`,
-    `format:check` w CI wywalał się po zmianach, które z tym plikiem nie miały
-    nic wspólnego, a cała różnica siedziała w cudzysłowach. Jest tam z tego
-    samego powodu co migracje i `payload-types.ts`.
-
-26. **Każde przycinane zdjęcie z panelu dostaje
-    `style={{ objectPosition: focalPosition(media) }}`.** Ustalone 24.09.2026.
-    Klient kadruje zdjęcia punktem centralnym w panelu, a strona przycina je
-    wokół niego (`object-cover` + `object-position`). Obrazek bez tej linii
-    przycina się od środka **po cichu** — punkt ustawiony w panelu nic na nim
-    nie zmienia i nie ma po tym śladu nigdzie poza samym wyglądem. Sprawdzisz
-    grepem: każde `object-cover` przy zdjęciu z Payloada ma obok
-    `focalPosition(`. Nie dotyczy zdjęć z `public/` (nie mają punktu) ani
-    miejsc bez przycinania — okładka w samym artykule
-    (`aktualnosci/[slug]`) ma `object-cover`, ale bez stałej wysokości niczego
-    nie ucina.
-
-    Narzędzie „przytnij" jest w Mediach **wyłączone** (`crop: false` w
-    `Media.ts`): zapisane przycięcie podmienia plik, więc wycięty fragment
-    znika też tam, gdzie to samo zdjęcie ma inny kształt. Punkt centralny
-    działa dla wszystkich kształtów naraz. Nie włączaj go z powrotem bez tej
-    rozmowy z klientem. W `GalleryPhotos` zostaje włączone celowo — galeria
-    pokazuje zdjęcie w całości, w jednym kształcie, więc przycięcie jest tam
-    zwykłą obróbką zdjęcia, a nie utratą kadru gdzie indziej.
-
-    **W `GalleryPhotos` odwrotnie: punkt centralny jest WYŁĄCZONY**
-    (`focalPoint: false`, od 30.09.2026). Galeria niczego nie przycina
-    (kolumny zachowują kształt zdjęcia, powiększenie ma `object-contain`),
-    więc ustawiony punkt nie zmieniał na stronie nic i tylko mylił klienta.
-    Przycięcie w galerii **kasuje oryginał z dysku** (Payload usuwa stary plik
-    razem z wariantem `medium`) — stąd ostrzeżenie w opisie kolekcji w panelu.
-    Wyłączenie nie wymagało migracji: Payload zostawia kolumny
-    `focal_x`/`focal_y`, dopóki kolekcja ma `imageSizes`.
-
-27. **Hero strony głównej: logo tylko na telefonie, na komputerze żadnego.**
-    Ustalone 13.10.2026. Od 30.09 na komputerze (od `xl`) stało pełne logo
-    „za skałą” (maska nieba z pikseli jednego zdjęcia) z odznaką PZA obok,
-    a na telefonie logo z odznaką przy dolnej krawędzi. Mateusz: na komputerze
-    dwa loga to za dużo — nagłówek i tak niesie znak szkoły. Zostało samo
-    logo ABC Wspinania poniżej `xl` (`components/HeroSign.tsx`). Scena,
-    maska i skrypt `make_mask.py` są w historii gita (przed tą zmianą), gdyby
-    efekt miał wrócić — wtedy z nową maską do zdjęcia, które jest w panelu.
-
-    Hero bierze zdjęcie z panelu; **wersja po retuszu**
-    (`20240828_134954-retusz.jpg`, bez ciemnej plamy w prawym dolnym rogu)
-    nie jedzie z deployem — na każdym serwerze trzeba ją raz wgrać i wybrać
-    w „Stronie głównej”. Instrukcja i powód, dla którego nowy plik, a nie
-    nadpisanie starego: `design/hero/README.md`.
-
-28. **⚠️ Uprawnienia: każda kolekcja deklaruje WSZYSTKIE operacje, nigdy
-    `Boolean(req.user)`.** Ustalone 01.10.2026, przed kontami uczestników.
-    Payload dla operacji, której kolekcja nie zadeklaruje, przyjmuje „każdy
-    zalogowany” (`payload/dist/auth/defaultAccess.js`; to samo dla
-    niezadeklarowanego `readVersions`). Dopóki konta były tylko szkoły, nic to
-    nie znaczyło. Z drugą kolekcją `auth: true` zalogowany kursant mógłby przez
-    REST API zmieniać i kasować kursy, wpisy i zdjęcia oraz czytać wiadomości
-    z formularza. Reguły siedzą w `src/lib/access.ts` (`isAdmin` = konto
-    z kolekcji `users`, nie „ktokolwiek zalogowany”), a `src/lib/access.test.ts`
-    przechodzi przez **wszystkie** kolekcje i globale z `collections/index.ts`
-    i `globals/index.ts` — nowa kolekcja bez kompletu reguł nie przejdzie CI.
-    **Nową kolekcję dopisz do `collections/index.ts`**, nie wprost do
-    `payload.config.ts` — inaczej test jej nie zobaczy.
-
-    Reguły dotyczą **tylko API**. Strona czyta przez Local API, które reguły
-    pomija, więc o tym, co widać na stronie, decyduje `lib/content.ts`.
-
-29. **Strona pokazuje tylko OPUBLIKOWANE kursy, obozy i wpisy** — filtr
-    `PUBLISHED` w `lib/content.ts`, przy każdym zapytaniu o te kolekcje.
-    Ustalone 02.10.2026: wszystkie wpisy z seeda były szkicami (domyślny
-    status Payloada), a strona nie sprawdzała statusu, więc „Zapisz szkic”
-    w panelu publikował od razu. Local API pomija reguły dostępu, więc
-    zasada 28 tego nie załatwia — **każde nowe zapytanie o kolekcję ze
-    szkicami musi mieć ten filtr samo**. Terminy pomijają te, których kurs
-    lub obóz nie jest opublikowany. Zapis szkicu opublikowanego wpisu nie
-    rusza wersji na stronie (Payload zapisuje go tylko do historii wersji).
-    Istniejącą treść opublikowała migracja danych
-    `20261002_090000_publish_existing_content` (pisana ręcznie — **nie kasować
-    jej przy sklejaniu migracji schematu**), a seed publikuje od razu.
-
-30. **Media i Galeria przyjmują tylko typy, które pokaże każda
-    przeglądarka** (`WEB_IMAGE_TYPES` w `Media.ts`), nie `image/*`.
-    Zmierzone 25.10.2026 (audyt): HEIC z iPhone'a wchodził bez błędu, bez
-    wariantu `medium` (sharp go tu nie czyta) i szedł jako `image/heic` —
-    Chrome, Firefox i Edge pokazywały dziurę. Teraz panel go odrzuca, a opis
-    kolekcji mówi, jak zapisać zdjęcie jako JPG. SVG zostaje: Payload sam
-    odrzuca plik ze skryptem („SVG file contains potentially harmful content”),
-    a `next/image` podaje SVG bez optymalizacji.
+Since 25.10.2026 (audit). `withPayload` attaches `Accept-CH`, `Critical-CH` and
+`Vary: Sec-CH-Prefers-Color-Scheme` to **every** address (`/:path*`) — the
+panel needs this for the light/dark theme. On the site `Critical-CH` cost us:
+on the first visit Chrome rejected the response and asked for the page a second
+time (two renders, double TTFB; Lighthouse counted it as a 600 ms "redirect" on
+every page, production sent these headers). `next.config.ts` narrows this rule
+to `/admin/:path*`. **On a Payload bump:**
+`curl -sI localhost:3000/ | grep -i critical-ch` must be empty, and `/admin`
+must have it — when Payload changes the shape of the rule, the narrowing will
+silently stop recognising it.
 
 ---
 
-## Polityka prywatności i administrator danych
+## Code rules
 
-**Dwie wersje:** `/polityka-prywatnosci` i tłumaczenie `/en/privacy-policy`
-(od 10.10.2026; wiążąca jest polska, strona angielska to mówi). Zmiana jednej
-= zmiana drugiej w tym samym commicie. Przełącznik PL/EN na stronach z listy
-`TRANSLATED_PAGES` (`components/navigation.ts`) prowadzi do tej samej strony
-w drugim języku, na pozostałych — na stronę główną drugiego języka (serwis
-nie jest tłumaczony). Wspólny wygląd: `components/PolicyParts.tsx`.
-Serwer w polityce jest kategorią („dostawca serwera w UE”), bez nazwy firmy —
-decyzja 10.10.2026, żeby nie podawać, gdzie stoi.
+1. **All content goes through `src/lib/content.ts`.** Payload sits in the same
+   process, so we reach the database directly (Local API) — without a network
+   hop and without CORS.
+2. **The fallback to empty data is DELIBERATE.** `withPayloadSafe()` catches a
+   database connection error and renders empty, so that `next build` in CI
+   passes without Postgres, and a failure in production gives an empty section
+   instead of a 500. It logs `warn`, not `error` — no database during the build
+   is an expected scenario, not a failure.
+3. **Every collection query gives `limit` explicitly.** Payload returns **10**
+   items by default; without it the list gets cut without an error and without
+   a trace in the logs.
+4. **Formatting functions live in `src/lib/format.ts`, apart from
+   `content.ts`.** `content.ts` pulls in the whole Payload engine, so tests run
+   with bare `node --test` could not import it.
+5. **Permissions are declared in code** (`src/lib/access.ts`, the full set of
+   operations in every collection — rule 28). In the previous CMS they lived in
+   the database and had to be clicked through separately in each environment —
+   a permanent item on the first-run list and a permanent source of "works on
+   my machine".
+6. **Payload types are committed** and checked in CI. You changed a collection
+   — run `npm run generate:types` and include the file in the commit.
+7. **Metadata is exported as `generateMetadata()`**, not
+   `export const metadata` — the latter requires a literal and will not accept
+   a `pageMetadata()` call.
+8. **The OG image through an ordinary route `app/(frontend)/og/route.tsx`**,
+   not through the `opengraph-image.tsx` convention — that one lost `og:image`
+   on some subpages.
+9. **Collapsed content must BE in the HTML** (the `hidden` attribute, not
+   `{open && …}`). Googlebot does not click on expandable sections.
+10. **Fonts with the `latin-ext` subset** — otherwise Polish diacritics fall
+    back to a fallback typeface and text breaks apart mid-word.
+11. **Exactly one `<h1>` per page** — a requirement, not a preference.
+12. **Unique SVG filter identifiers** — duplicate `id`s across components make
+    one filter override another.
+13. **Nothing uploaded through the panel gets `immutable`.** `public/images`
+    and `public/logo` have a week of cache, files from Media and from the
+    gallery a month — all with `stale-while-revalidate`, none with
+    `immutable`. The reason is the same for all: **Payload does not add a hash
+    to the file name** (measured 23.09.2026 — `skaly.jpg` sits under
+    `/api/media/file/skaly.jpg`). The address does not change when the file is
+    replaced, and `immutable` means "do not ask again", so the old version would
+    stay with visitors for a month, untouchable even by a refresh. For files in
+    `public/` it still holds: you replace a photo → change the file name.
+14. **`upload.limits.fileSize` must match `client_max_body_size` in nginx**
+    (25 MB). A mismatch gives a 413 from nginx before the request reaches the
+    application — and an error not visible in its logs.
+15. **The uploads directory is computed from `process.cwd()`, not from the
+    location of `payload.config.ts`.** In the standalone image the compiled
+    code lives elsewhere than the sources, so a path computed from the sources
+    would point into nothing.
+16. **Form validation exists on the server side, not only in HTML.** `required`
+    attributes are a convenience for the visitor — anyone who sends a request
+    without the form bypasses them. The rules live in `src/lib/validation.ts`
+    (pure functions, no imports from Payload, so they can be tested) and are
+    called in the server action.
+17. **Server actions call Payload with `overrideAccess: false`.** The form is
+    public, so the request has no logged-in user; this flag forces it through
+    the collection's `create` rule instead of bypassing it. Should someone ever
+    tighten that rule, the form will stop working LOUDLY rather than silently
+    bypass it.
+18. **GDPR consent is saved as TEXT, not as a "yes" flag.** `src/lib/consent.ts`
+    holds the clause and its version; the same string goes under the checkbox
+    and into the database. Otherwise, after the wording changes, it is
+    impossible to show what a given person consented to.
+19. **The Content-Security-Policy is set by the APPLICATION (`next.config.ts`),
+    not nginx.** Payload's panel needs a looser policy than the site, and
+    separating this in nginx would require a separate `location /admin` block,
+    in which its own `add_header` kills inheritance from the `server` block. A
+    header sent from both places would reach the browser twice. **Do not add
+    CSP to nginx.**
 
-Od 06.10.2026 (wersja robocza, do potwierdzenia przez Krzyśka).
+    A side effect to remember: Payload loads the code editor (`monaco`) from
+    `cdn.jsdelivr.net`, and our `script-src 'self'` forbids that. Today this is
+    harmless, because no collection has a `code` or `json` field, so the editor
+    never starts. When someone adds such a field, **the editor will simply not
+    appear** — without a message in the panel, with an error only in the
+    browser console. Then the decision: either let this address into the CSP
+    (i.e. someone else's code into the logged-in panel), or serve the editor
+    from our own domain. The same `monaco` is responsible for the `moderate`
+    advisory in `npm audit` (`dompurify`) — it does not end up in the built
+    application, it is a Payload dependency and will disappear with its bump.
+    We do not touch it separately.
 
-- **Administrator to osoba, nie marka.** „ABC Wspinania” to nazwa szkoły, nie
-  podmiot prawny — klauzula „Administratorem danych jest ABC Wspinania” nie
-  mówiła, kto nim jest. Dane (Krzysztof Wróbel, IQ SERVICE, adres, NIP, REGON,
-  `biuro@abcwspinania.info`) siedzą w **jednym miejscu**: `src/lib/legal.ts`.
-  Czerpią z niego wszystkie cztery klauzule w `consent.ts` i strona
-  `/polityka-prywatnosci`. Zmiana danych firmy = zmiana tego pliku **i wersji
-  klauzul** (zasada 18), bo zmienia się tekst zapisywany w bazie.
-  `consent.test.ts` pilnuje, że żadna klauzula nie wraca do samej marki.
-- **Słowa „polityce prywatności” w klauzuli są linkiem** (`ConsentText.tsx`,
-  nowa karta) — tekst zapisywany w bazie zostaje zwykłym tekstem.
-- **Polityka opisuje to, co robi kod.** Dokładasz podmiot przetwarzający
-  (nowa usługa widząca dane), nowe dane albo zmieniasz okres przechowywania
-  (`lib/expiry.ts`, kopie w `deploy/abc-backup.sh`) — popraw stronę i podbij
-  `PRIVACY_POLICY_VERSION`. Rozjazd jest niewidoczny dla testów, a wobec
-  UODO liczy się to, co napisane.
-- **Okresy przechowywania automatyczne:** wiadomości z formularza 12 miesięcy
-  (`MESSAGE_RETENTION_MONTHS`, to samo dzienne sprzątanie co konta),
-  niepotwierdzone konta i zapisy do newslettera 7 dni, logi kontenerów
-  3 × 10 MB na usługę (`x-logging` w `docker-compose.prod.yml` — bez tego
-  Docker trzyma je bez końca, razem z adresami IP), kopie 40 dni (od
-  09.10.2026; zmiana retencji w `abc-backup.sh` = zmiana tego zdania na
-  stronie), zapisy na kursy 5 lat od końca roku kursu (`BOOKING_RETENTION_YEARS`,
-  od 10.10.2026): 1 stycznia **anonimizowane, nie kasowane**
-  (`anonymizeExpiredBookings`) — czyścimy imię, nazwisko, e-mail, telefon,
-  uwagi, notatki i zgodę, a zostają termin, status, język i data zapisu, do
-  statystyk. Pole `anonymizedAt` chowa je z listy w panelu (`baseFilter`),
-  z liczników pulpitu i z eksportu do Excela. Zapis przez
-  `payload.db.updateOne` — reguły kolekcji odrzuciłyby puste wymagane pola,
-  a hooki odbudowałyby etykietę z nazwiska i przeliczyły miejsca. Rok liczony
-  w czasie polskim (kurs kończący się 1 stycznia to w bazie 23:00 UTC
-  poprzedniego dnia). Polityka, strona „Usuń konto” i mail po usunięciu
-  biorą liczbę lat z tej samej stałej. **Zapisy przypięte do konta zostają,
-  dopóki konto istnieje** (decyzja 10.10.2026 — historia w „Moim koncie”);
-  usunięcie konta je odpina i wtedy obowiązuje 5 lat. **Ręcznie, na razie:** wypisani
-  z newslettera.
+20. **`alt` in Media is OPTIONAL — a decision, not an oversight.** It was
+    required until 23.09.2026. The requirement bought worse accessibility, not
+    better: on bulk upload it puts a blocking form in front of every file, so
+    by the twentieth photo "zdjęcie" or "IMG_4471" goes into the field. A
+    screen reader reads such junk aloud, while an empty `alt` tells it to skip
+    a decorative image — and that is exactly the point in the specification.
+    **Every place rendering an image must write `alt={media.alt ?? ''}`**, so
+    that a missing description gives `alt=""`, not a missing attribute. Every
+    current place does so — check with a grep for `alt ?? ''`. (The fixed
+    number that stood here before went stale with the first new image.)
 
----
+21. **The gallery keeps its state in the ADDRESS, not in the browser.** An
+    enlarged photo is `/galeria?zdjecie=<id>`, rendered on the server — the
+    same rule `Filters.tsx` has written down. Thanks to this it works without
+    JS, a single photo can be sent, and the Back button closes the enlargement
+    without tricks on the history. The client component
+    (`GalleryLightboxBehavior.tsx`) does **only** what HTML cannot: keys, the
+    focus trap, blocking background scroll. `canonical` always points to
+    `/galeria` without the parameter — otherwise fifty addresses with the same
+    content would compete in the index.
 
-## Konta uczestników
+22. **Gallery photos are a SEPARATE collection, not a field in Media.** First
+    there was a "Pokaż w galerii" checkbox on the photo; it failed at the
+    client's first use, because it required going into each photo separately —
+    with fifty that is fifty passes through the form. Uploading to its own
+    collection is the whole job. It is the same decision as with camps vs
+    courses: a shared collection with a switch gives a form in which half the
+    fields are always irrelevant. The accepted cost: a photo needed both as a
+    course cover and in the gallery is uploaded twice.
 
-Od 02.10.2026 (etap 1b). Druga kolekcja z logowaniem, `customers`, obok
-`users` (panel). Osobna tabela, nie rola: pomyłka w sprawdzaniu roli nie
-zrobi z kursanta administratora. Koszt: zasada 28.
+23. **⚠️ A collection with an upload requires TWO entries outside the
+    collection itself:** in `images.localPatterns` (`next.config.ts`) **and**
+    as a `location` block in `deploy/nginx.conf`. The first is responsible for
+    rendering, the second for the browser cache. Without the `localPatterns`
+    entry Payload serves the files under `/api/<slug>/file/**`, and
+    `next/image` with an address outside that list **throws an exception** —
+    the subpage returns 500, not an empty spot instead of the image. Measured
+    23.09.2026 with `gallery-photos`: lint, types, tests and `build` all passed,
+    because the page is dynamic and the database was empty at build time. It
+    only came out after visiting `/galeria` with a real file. A missing nginx
+    block breaks nothing visibly — the files simply drop out of the long cache
+    and go through `location /`, which with fifty photos on a page shows in the
+    loading time, not in the logs. **You add a collection with files — add it
+    in both places right away.**
 
-- **Zapis tylko przez akcje serwerowe** (`app/(frontend)/konto/actions.ts`).
-  REST `create`/`update`/`delete` zamknięte dla wszystkich poza szkołą; akcje
-  używają `overrideAccess: true` PO własnej walidacji, zapisie zgody i — przy
-  zmianie danych — sprawdzeniu, że to konto zalogowanej osoby (id z sesji,
-  nigdy z formularza). Odczyt: tylko własne konto (`adminOrSelf`), bo
-  `/api/customers/me` czyta przez regułę dostępu.
-- **Formularze nie zdradzają, czy adres ma konto.** Rejestracja na zajęty
-  adres pokazuje to samo „sprawdź skrzynkę”, a właściciel dowiaduje się
-  MAILEM: konto potwierdzone dostaje „Masz już konto” (przycisk logowania +
-  link do nowego hasła), niepotwierdzone — nowy link potwierdzający. Do
-  02.10.2026 szedł zwykły mail resetu hasła i wyglądał jak błąd. „Nie
-  pamiętam hasła” odpowiada tak samo dla każdego adresu.
-  Logowanie ma **jeden komunikat** dla złego hasła i zablokowanego konta:
-  Payload sprawdza blokadę PRZED hasłem, więc osobne „konto zablokowane”
-  potwierdzałoby istnienie konta po pięciu celowo złych próbach. REST
-  (`/api/customers/login`) zwraca oba błędy osobno — tam chroni tylko limit
-  nginx. Przyjęte ryzyko: pięć złych prób blokuje cudze konto na 15 minut.
-- **Logowanie wymaga potwierdzonego adresu** (`auth.verify`). Token
-  potwierdzający Payloada NIE wygasa sam, więc wygasanie jest NASZE: link
-  działa 48 h (`VERIFY_LINK_HOURS`), sprawdzane na `/konto/potwierdz` wobec
-  pola `verificationSentAt` (ustawianego przy każdej wysyłce). Endpoint
-  `/api/customers/verify/:token` pominąłby tę kontrolę — **zamknięty w nginx**
-  (lokalnie działa). Link do nowego hasła działa 2 h (`RESET_LINK_HOURS`).
-  **Token zostaje po potwierdzeniu** (od 10.10.2026): drugie otwarcie linku
-  (odświeżenie, skaner poczty, podwójny klik) pokazuje „Adres potwierdzony”,
-  a nie „Link nie działa”, choć konto było już potwierdzone (zgłoszone przy
-  testach). `_verified` zapisujemy przez `payload.db.updateOne`, bo hook pola
-  w Payloadzie kasuje token przy każdym `update` ustawiającym `_verified`.
-- **„Wyślij link ponownie”** — w trzech miejscach: po poprawnym haśle na
-  niepotwierdzonym koncie (Payload mówi o tym dopiero PO sprawdzeniu hasła),
-  na stronie wygasłego linku i na `/konto/wyslij-link` (link „Nie dotarł
-  mail z potwierdzeniem?” pod logowaniem i w potwierdzeniu rejestracji —
-  sam przycisk po haśle okazał się niewidoczny). Odpowiedź jest zawsze taka
-  sama, z kontem czy bez. Każda wysyłka nadaje NOWY token, więc działa tylko najnowszy link.
-  Adres JUŻ potwierdzony dostaje zamiast linku mail „Masz już konto” (wariant
-  `reason: 'resend'`) — do 10.10.2026 nie dostawał nic, a strona mówiła
-  „wysłaliśmy” (zgłoszone przy testach).
-  Token zapisujemy przez `payload.db.updateOne`, bo pole
-  `_verificationToken` w Payloadzie odrzuca każdą aktualizację.
-  Przyjęte świadomie: wysyłka działa na sam adres, bez hasła. Link
-  idzie wyłącznie do skrzynki właściciela adresu, więc jedyny skutek to
-  unieważnienie jego starszego linku; zasypywanie mailami tnie limit nginx.
-- **Maile o koncie wysyłamy SAMI** (`lib/accountEmails.ts`), Payload daje
-  tylko token (`disableVerificationEmail`, `disableEmail`). Jego wysyłka idzie
-  bez wersji tekstowej, a pierwszy prawdziwy mail potwierdzający trafił do
-  spamu (02.10.2026). Hooki maili w kolekcji zostają dla REST-owych ścieżek
-  Payloada, których strona nie używa.
-- **Niepotwierdzone konto jest usuwane po 7 dniach** (ustalone 02.10.2026,
-  `UNVERIFIED_ACCOUNT_DAYS` w `lib/expiry.ts`), liczonych od OSTATNIEGO
-  wysłanego linku, nie od założenia — kto prosi o nowy link szóstego dnia,
-  nie straci konta, zanim link wygaśnie. Sprzątanie planuje
-  `src/instrumentation.ts` (raz przy starcie serwera Next): **codziennie
-  o 8:00 czasu polskiego** (`DAILY_SWEEP_HOUR`, `msUntilDailySweep` w
-  `lib/expiry.ts`, od 24.10.2026), bez biegu przy starcie. Do tego dnia
-  szło minutę po starcie i co 24 h — godzina zależała od ostatniego
-  wdrożenia, a od obozów sprzątanie wysyła przypomnienia rodzicom i mail
-  o szkicu przed obozem (wdrożenie o 23:40 = maile o 23:41 co noc).
-  Serwer wyłączony o 8:00 pomija dzień — kroki liczą od dat, następny
-  bieg nadrabia. Na żądanie (testy): `npm run sweep`. **Nie przez kolejkę
-  zadań Payloada**: jej cron
-  rusza dopiero po pierwszym `getPayload({ cron: true })` (np. logowanie do
-  panelu), więc po restarcie czekałby na ruch, a dokłada tabelę, migrację
-  i endpointy. Przy kilku instancjach aplikacji każda sprzątałaby osobno —
-  nieszkodliwie, ale do zmiany, gdyby kiedyś było ich więcej. Ustawienie hasła z maila
-  **oznacza adres jako potwierdzony** — Payload sam tego nie robi
-  (`auth/operations/resetPassword.js`), a bez tego konto założone przy
-  zapisie (etap 2) nigdy by się nie zalogowało.
-- **Linki w mailach z `PUBLIC_URL`**, nie z nagłówka Host (podrobiony Host
-  = obca domena w linku z kodem do zmiany hasła) ani z `SITE_URL` (domena
-  docelowa, do przełączenia prowadzi na starą stronę). Zmienna jest czytana
-  przy uruchomieniu — przełączenie domeny to zmiana w `deploy/.env`.
-  „Otwórz w panelu” w mailu o wiadomości z formularza brał `SITE_URL`
-  i prowadził na 404 starej strony (14.10.2026) — `email/links.test.ts`
-  pilnuje, że żaden link do `/admin` nie powstaje z `SITE_URL`.
-- **`/api/customers/first-register` zablokowany w nginx** (404). Payload
-  wystawia go dla każdej kolekcji z logowaniem i dopóki tabela jest pusta,
-  zakłada przez niego konto z pominięciem reguł, od razu potwierdzone.
-  Lokalnie (bez nginx) endpoint działa — nie testuj na nim niczego.
-- **Limity w nginx:** endpointy kursantów przyjmujące sekret — strefa
-  `login`; WYSŁANIA formularzy na `/logowanie`, `/rejestracja`, `/konto/…` —
-  strefa `account_forms` (10/min; GET nie jest liczony). Bez tego rejestracja
-  i reset hasła byłyby darmową wysyłką maili na dowolny adres z naszej domeny.
-- **⚠️ Limit akcji także w aplikacji** (`lib/actionLimit.ts`, od 25.10.2026,
-  audyt). Next uruchamia akcję serwerową wysłaną na DOWOLNĄ stronę, nie tylko
-  na tę z formularzem, a `/admin` jest zwolniony ze strefy `site_actions`
-  (akcje Payloada przy edycji). Reset hasła, rejestracja, newsletter, kontakt
-  i zapisy posłane z nagłówkiem `Next-Action` na `/admin` szły więc bez
-  żadnego limitu — darmowa wysyłka maili i dzienny limit Brevo zjedzony
-  w minutę. Sprawdzone na buildzie za nginx z repo: nginx odcina po 11 na
-  właściwej ścieżce, przez `/admin` — dopiero aplikacja. Jeden budżet na
-  adres (`X-Real-IP` z nginx; port aplikacji nie jest wystawiony), 20 naraz
-  i 10/min — większy niż nginx, więc zwykły użytkownik spotyka nginx
-  pierwszy. Bez nagłówka (`npm run dev`, testy) limitu nie ma. **Nowa akcja,
-  która wysyła maila albo sprawdza hasło — `actionAllowed()` po walidacji.**
-  Wyjątku w nginx nie da się oprzeć na ID akcji: zmienia się przy buildzie.
-- **`?next=` po zalogowaniu bez znaków sterujących** (`safeNextPath`, od
-  25.10.2026, audyt): `/%09/evil.com` przechodziło (przeglądarka usuwa
-  tabulator i czyta `//evil.com` — otwarte przekierowanie), `%0a` dawało 500.
-- **Panel i strona dzielą ciasteczko** `payload-token` (jeden
-  `cookiePrefix`). Zalogowanie się jako kursant w tej samej przeglądarce
-  wylogowuje z panelu i odwrotnie. Dla strony konto panelu to „nie kursant”
-  (`getCurrentCustomer()` w `lib/auth.ts`). Do testów — dwie przeglądarki
-  albo okno prywatne.
-- **Nagłówek pyta `/api/customers/me` z przeglądarki** (`useAccount.ts`),
-  przy każdej zmianie strony. Odczyt ciasteczka w layoucie zrobiłby każdą
-  stronę dynamiczną i zabił cache (`revalidate = 300`). Bez JS: zawsze
-  „Zaloguj się” — a `/logowanie` przekierowuje zalogowanych dalej.
-- **⚠️ Błędy Payloada rozpoznajemy po `status`, nigdy przez `instanceof`**
-  (`lib/authErrors.ts`, od 18.10.2026). W zbudowanej aplikacji formularz
-  wysłany ZANIM załaduje się JavaScript strony trafia do innego fragmentu
-  serwera, z własną kopią klas błędów — `instanceof AuthenticationError`
-  dawało `false` dla złego hasła: logowanie mówiło „Nie udało się
-  zalogować”, a „Usuń konto” ogólny błąd zamiast „Nieprawidłowe hasło”.
-  W `next dev` i po załadowaniu JS jest jedna kopia, więc zwykłe klikanie
-  tego nie pokazuje. Sprawdzanie: `next build`, serwer z `.next/standalone`
-  i formularz wysłany bez JS (albo przed jego załadowaniem).
-  **Druga strona tego samego: nazwa klasy błędu bywa PUSTA** (od 18.10.2026,
-  `lib/errorResponse.ts`, globalny hook `afterError`). Payload zostawia
-  komunikat błędu tylko, gdy błąd ma `name`, a `APIError` bierze ją z nazwy
-  klasy — obraz z CI zminifikował ją do pustej. Usunięcie terminu z zapisami
-  pokazywało „An unknown error occurred.” zamiast naszej odmowy; lokalny
-  build nazwał klasę „k” i działał. Hook przywraca komunikat błędu
-  jawnego (`isPublic` albo status ≠ 500), tylko gdy Payload odpowiedział tym
-  ogólnym tekstem. Nie odtworzysz tego lokalnie buildem — sprawdzenie:
-  błąd z `name = ''` rzucony z hooka kolekcji.
-- **Wylogowanie przez `/api/customers/logout`**, nie przez skasowanie
-  ciasteczka: endpoint unieważnia też sesję (`auth.useSessions`).
-- **Strony kont mają `noindex`** i nie ma ich w mapie strony.
-- **Telefon obowiązkowy, w formacie Next Step Pro**: `+` kierunkowy i 9 cyfr
-  (`^\+[0-9]{1,4}[0-9]{9}$`, ten sam wzór co tam). Spacje, myślniki
-  i nawiasy usuwamy PRZED sprawdzeniem (`normalizePhone`) i tak zapisujemy.
-  Wzór pilnuje kształtu (10–13 cyfr), nie istnienia numeru.
-- **Formularze odsyłają wpisane wartości przy błędzie** (`values` w stanie
-  akcji, `defaultValue` w polach). React 19 czyści formularz po KAŻDEJ akcji,
-  także nieudanej — bez tego jeden błąd kasował całą rejestrację, a „popraw
-  zaznaczone pola” wskazywało puste pola (zgłoszone 02.10.2026). Dotyczy też
-  formularza kontaktowego i newslettera. Hasła nigdy nie wracają — dlatego
-  rejestracja, zapis na kurs i nowe hasło mają `onSubmit={stopInvalidSubmit}`
-  (`AccountFields.tsx`, od 10.10.2026): błąd, który przeglądarka zna (brak
-  zgody, złe pole wg tych samych reguł — `TextField` przepisuje je do
-  `setCustomValidity`), zatrzymuje wysyłkę, zanim dotrze do serwera. Wcześniej
-  zapomniana zgoda kasowała wpisane hasło. Serwer i tak sprawdza wszystko.
-- **Walidacja na żywo w formularzach kont** (`components/AccountFields.tsx`),
-  ustalone 02.10.2026: pole czerwienieje dopiero po WYJŚCIU z niego z błędem,
-  potem zmienia się przy każdej literze, aż przejdzie (zielony znaczek);
-  **puste pole po wyjściu NIE czerwienieje** (od 16.10.2026) — dopiero przy
-  wysłaniu albo gdy coś w nim było. Komunikat pod polem przesuwał linki
-  niżej o linię: Safari ustawia kursor w polu e-mail logowania, a klik
-  w „Nie pamiętam hasła” trafiał w puste miejsce (zgłoszone przy testach);
-  hasło ma licznik od pierwszej litery. Reguły to te same funkcje, które
-  sprawdza serwer (`checkName`, `checkEmail`, `checkPhone`,
-  `checkNewPassword` w `lib/validation.ts`) — przeglądarka tylko mówi
-  wcześniej, decyduje serwer. Kolor błędu to token `error` (#b42318,
-  6,5:1 na białym), nie `rope` — niebieska ramka czyta się jak „aktywne
-  pole”. Imię i nazwisko: co najmniej 2 litery, bo istnieją nazwiska Li, Wu.
-- **Hasło: minimum 10 znaków, bez reguł składu** (NIST 800-63B). Podpowiedź
-  pod polem zachęca do hasła, którego nie ma się nigdzie indziej — nie do
-  „kilku zwykłych słów” (to czytało się jak zachęta do słabego hasła). Logowanie
-  sprawdza tylko obecność pól — reguły długości przy logowaniu zdradzałyby,
-  jakich haseł nie ma.
-- **„Twoje dane” w Moim koncie** (od 18.10.2026, `DetailsForm`,
-  `updateAccountDetails`, `lib/accountDetails.ts`): imię, nazwisko, telefon —
-  te same reguły co przy rejestracji. „Zapisz” nieaktywny, dopóki pola nie
-  różnią się od zapisanych (`sameAccountDetails` — jak serwer: bez spacji
-  w telefonie). Zmiana idzie też do NADCHODZĄCYCH,
-  nieodwołanych zapisów osoby (decyzja Mateusza: szkoła ma dzwonić pod
-  działający numer); minione i odwołane zostają kopią z dnia zapisu. Bez
-  przeliczania miejsc i bez maili (`skipRecount`, `skipStatusEmail`).
-  **Adresu e-mail tu nie ma** — zmiana wymaga potwierdzenia NOWEGO adresu
-  mailem, inaczej literówka odcina od konta; na razie przez szkołę.
-- **„Usuń konto” w Moim koncie** (`/konto/usun`, od 04.10.2026). Wymaga
-  hasła ponownie — otwarta sesja na cudzym komputerze nie wystarcza. Kasuje
-  konto i jego sesje; **zapisy zostają w szkole**, odpięte od konta (pole
-  `customer` jest opcjonalne, więc klucz obcy ustawia je na null —
-  sprawdzone 04.10.2026). To osobny cel przetwarzania (organizacja kursu,
-  rozliczenia) z własną zgodą; strona mówi o tym przed usunięciem, a
-  nadchodzący zapis wymienia z nazwy — usunięcie konta go NIE odwołuje.
-  Pełne usunięcie zapisów to prośba do szkoły, zależna od okresów
-  przechowywania (do ustalenia z Krzyśkiem). Po usunięciu idzie mail
-  z potwierdzeniem. Założenie konta na ten sam adres później znów
-  podepnie stare zapisy (`claimBookings`) — to ta sama, udowodniona osoba.
-- **„Dane osoby — kopia albo usunięcie”** (nad listą „Uczestnicy”,
-  `ErasePersonPanel`, `lib/personErasure.ts`, od 10.10.2026) — prośby z RODO
-  załatwiane przez szkołę bez programisty. **Kopia** (`/api/customers/person-data`):
-  domyślnie czytelny dokument HTML po polsku (`lib/personDataDocument.ts`, od
-  12.10.2026 — JSON z nazwami pól nie nadawał się do wysłania osobie; otwiera
-  się w przeglądarce, drukuje do PDF), `?format=json` — ten sam zestaw do
-  przeniesienia danych. Oba ze wszystkiego, co mamy pod adresem, z LISTY DOZWOLONYCH pól —
-  konto ma też hash hasła, sól, sesje i tokeny, wpis w newsletterze token
-  wypisania; to klucze, nie dane osoby, i nie mogą wyjść w pliku wysłanym
-  mailem (test to pilnuje). **Usunięcie:** Po adresie e-mail (bez względu na wielkość
-  liter, porównanie dokładne) usuwa konto, zapisy (także bez konta), wiadomości,
-  wpis w newsletterze i wiersze odbiorców wysłanych wiadomości — tej tabeli
-  panel nie pokazuje. Dwa kroki: podgląd (GET), potem usunięcie (POST) dopiero
-  z adresem przepisanym drugi raz — sprawdza to też serwer. W logu jest kto
-  i ile, nigdy czyj adres. Konta panelu (`users`) nie są ruszane. Tekst
-  o kopiach („znikną po 40 dniach”) powtarza retencję z `abc-backup.sh`.
-- **Dzieci (zapisy na obozy)** — patrz „Zapisy na obozy”. Konto zapisuje
-  rodzica; dzieci są w jego zapisach, bez osobnych kont.
+    Copy the new block from the Media block, not from `location /` — it must
+    have `proxy_hide_header Cache-Control` and the repeated security headers,
+    because its own `add_header` in a `location` block kills inheritance from
+    the `server` block. Cache policy: see rule 13.
 
-### Konta panelu (`users`)
+24. **The enlargement takes the ORIGINAL through the Next optimiser, not a
+    second variant from Payload.** It is tempting to add `large` to
+    `imageSizes`, but the cost of sharp would come back at upload time — i.e.
+    where it once already broke uploading (see the comment in `Media.ts` about
+    one variant instead of three). The optimiser is already on for
+    `/api/media/file/**` (`next.config.ts`) and keeps the result for 30 days, so
+    we pay the same bill once, at the first display. **Do not give `quality`**
+    — Next 16 by default allows only 75. `priority` is deprecated; the first
+    row of tiles gets `loading="eager"`.
 
-Wszystkie równorzędne — bez ról (każde może zmienić i usunąć każde inne).
-Role dopiero, gdy dojdzie osoba z mniejszym dostępem.
+    **Original + `sizes` only for photos shown LARGE** (an article cover, a
+    featured post, the photo on "O nas", the hero, camps on the home page).
+    Course, camp and post cards, portraits and gallery tiles stay on `medium`
+    (750 px) — deliberately. Measured 26.09.2026: switching them to the
+    original gave **pages twice as heavy** on an iPhone (3×) (gallery 4.4 →
+    9.1 MB, `/kursy` 1.4 → 2.9 MB). Two reasons: srcset chooses the file by
+    WIDTH, so a portrait photo in a card of fixed height arrives in full,
+    although only a strip of it is visible; and a 3× screen asks for three
+    times the tile width, which at this size nobody can tell from 2×. `medium`
+    acts as a ceiling here and that is its job.
 
-- **Ciasteczko panelu ma `Secure` na produkcji** (od 25.10.2026, audyt) —
-  domyślne Payloada go nie ma (`collections/config/defaults.js`), ciasteczko
-  kursanta miało od początku.
+    Large **cropped** photos take the file through `croppedSource()`, and
+    uncropped ones through `originalSource()` (`src/lib/format.ts`).
+    ⚠️ **Payload saves the original's dimensions WITHOUT the EXIF rotation.** A
+    photo from a phone held upright has 4000 × 1800 in the database, and is
+    portrait on screen; `medium` (made by sharp after rotation) already has
+    750 × 1667. So judge a photo's shape by `medium`, never by the original's
+    `width`/`height` — both functions do so.
 
-- **Mail po zmianie hasła albo adresu konta panelu** (od 13.10.2026, hooki
-  w `Users.ts`, szablon `panelAccountChangedEmail`). „Zmień hasło” w Payloadzie
-  NIE pyta o obecne hasło, więc panel otwarty na cudzym komputerze wystarcza
-  do przejęcia konta — mail mówi właścicielowi kiedy i z którego konta,
-  a odsyła do „Nie pamiętasz hasła?” (link idzie do JEGO skrzynki). Przy
-  zmianie adresu mail idzie na stary i nowy i NIE odsyła do resetu (link
-  poszedłby na nowy adres, po przejęciu — cudzy), tylko do Mateusza.
-  Hasło widać tylko w `beforeChange` (potem Payload je hashuje i usuwa
-  z danych), stąd znacznik w `req.context` po id. Reset z linku nie woła
-  hooków `update` — bez maila. Pytanie o obecne hasło odłożone: wymaga
-  własnego widoku w panelu.
+25. **`(payload)/admin/importMap.js` is GENERATED — do not format it.** It is
+    rewritten both by `payload run` and by the development server itself when
+    it recomputes the configuration, always without formatting. Before it went
+    into `.prettierignore`, `format:check` in CI failed after changes that had
+    nothing to do with this file, and the whole difference was in the quotes.
+    It is there for the same reason as the migrations and `payload-types.ts`.
+
+26. **Every cropped photo from the panel gets
+    `style={{ objectPosition: focalPosition(media) }}`.** Settled 24.09.2026.
+    The client frames photos with the focal point in the panel, and the site
+    crops them around it (`object-cover` + `object-position`). An image without
+    this line is cropped from the centre **silently** — the point set in the
+    panel changes nothing in it and there is no trace of it anywhere but the
+    look itself. Check with a grep: every `object-cover` on a Payload photo has
+    `focalPosition(` next to it. Does not apply to photos from `public/` (they
+    have no point) or places without cropping — the cover in the article itself
+    (`aktualnosci/[slug]`) has `object-cover`, but without a fixed height it
+    crops nothing.
+
+    The "crop" tool is **off** in Media (`crop: false` in `Media.ts`): a saved
+    crop replaces the file, so the cut-out fragment also disappears where the
+    same photo has a different shape. The focal point works for all shapes at
+    once. Do not turn it back on without this conversation with the client. In
+    `GalleryPhotos` it stays on deliberately — the gallery shows the photo in
+    full, in one shape, so a crop there is ordinary photo editing, not the loss
+    of framing elsewhere.
+
+    **In `GalleryPhotos` the other way round: the focal point is OFF**
+    (`focalPoint: false`, since 30.09.2026). The gallery crops nothing (columns
+    keep the photo's shape, the enlargement has `object-contain`), so a set
+    point changed nothing on the site and only confused the client. A crop in
+    the gallery **deletes the original from disk** (Payload removes the old file
+    together with the `medium` variant) — hence the warning in the collection
+    description in the panel. Turning it off needed no migration: Payload keeps
+    the `focal_x`/`focal_y` columns as long as the collection has `imageSizes`.
+
+27. **Home page hero: a logo only on the phone, none on the computer.**
+    Settled 13.10.2026. From 30.09 on the computer (from `xl`) there was the
+    full logo "behind the rock" (a sky mask from the pixels of one photo) with
+    the PZA badge next to it, and on the phone the logo with the badge at the
+    bottom edge. Mateusz: two logos on the computer is too much — the header
+    carries the school's mark anyway. What remained is the ABC Wspinania logo
+    alone below `xl` (`components/HeroSign.tsx`). The scene, the mask and the
+    `make_mask.py` script are in git history (before this change), should the
+    effect come back — then with a new mask for the photo that is in the panel.
+
+    The hero takes its photo from the panel; **the retouched version**
+    (`20240828_134954-retusz.jpg`, without the dark spot in the bottom right
+    corner) does not travel with the deploy — on every server it has to be
+    uploaded once and chosen in "Strona główna". Instructions and the reason
+    for a new file rather than overwriting the old one: `design/hero/README.md`.
+
+28. **⚠️ Permissions: every collection declares ALL operations, never
+    `Boolean(req.user)`.** Settled 01.10.2026, before participant accounts.
+    For an operation a collection does not declare, Payload assumes "anyone
+    logged in" (`payload/dist/auth/defaultAccess.js`; the same for an
+    undeclared `readVersions`). As long as the only accounts were the school's,
+    this meant nothing. With a second `auth: true` collection a logged-in
+    participant could change and delete courses, posts and photos through the
+    REST API and read the contact form messages. The rules live in
+    `src/lib/access.ts` (`isAdmin` = an account from the `users` collection,
+    not "anyone logged in"), and `src/lib/access.test.ts` goes through **all**
+    collections and globals from `collections/index.ts` and `globals/index.ts`
+    — a new collection without the full set of rules will not pass CI.
+    **Add a new collection to `collections/index.ts`**, not straight to
+    `payload.config.ts` — otherwise the test will not see it.
+
+    The rules apply **only to the API**. The site reads through the Local API,
+    which skips the rules, so what is visible on the site is decided by
+    `lib/content.ts`.
+
+29. **The site shows only PUBLISHED courses, camps and posts** — the
+    `PUBLISHED` filter in `lib/content.ts`, on every query for these
+    collections. Settled 02.10.2026: all posts from the seed were drafts
+    (Payload's default status), and the site did not check the status, so
+    "Zapisz szkic" in the panel published immediately. The Local API skips
+    access rules, so rule 28 does not cover this — **every new query for a
+    collection with drafts must have this filter itself**. Dates skip those
+    whose course or camp is not published. Saving a draft of a published post
+    does not touch the version on the site (Payload saves it only to the
+    version history). Existing content was published by the data migration
+    `20261002_090000_publish_existing_content` (hand-written — **do not delete
+    it when squashing schema migrations**), and the seed publishes right away.
+
+30. **Media and Gallery accept only types every browser will show**
+    (`WEB_IMAGE_TYPES` in `Media.ts`), not `image/*`. Measured 25.10.2026
+    (audit): HEIC from an iPhone went in without an error, without a `medium`
+    variant (sharp does not read it here) and was served as `image/heic` —
+    Chrome, Firefox and Edge showed a hole. Now the panel rejects it, and the
+    collection description says how to save the photo as JPG. SVG stays:
+    Payload itself rejects a file with a script ("SVG file contains potentially
+    harmful content"), and `next/image` serves SVG without optimisation.
 
 ---
 
-## Zapisy na kursy
+## Privacy policy and the data controller
 
-Od 03.10.2026 (etap 2). Formularz `/kursy/[slug]/zapis`,
-kolekcja `Bookings`, logika w `lib/bookings.ts` (czyste funkcje)
-i `lib/bookingEffects.ts` (skutki uboczne).
+**Two versions:** `/polityka-prywatnosci` and the translation
+`/en/privacy-policy` (since 10.10.2026; the Polish one is binding, the English
+page says so). A change to one = a change to the other in the same commit. The
+PL/EN switch on pages from the `TRANSLATED_PAGES` list
+(`components/navigation.ts`) leads to the same page in the other language, on
+the rest — to the home page of the other language (the site is not
+translated). Shared look: `components/PolicyParts.tsx`. The server in the
+policy is a category ("a server provider in the EU"), without a company name —
+decision of 10.10.2026, so as not to say where it stands.
 
-- **Jedna osoba = jeden zapis.** Para zapisuje się dwa razy — Krzysiek ma
-  nazwisko każdego uczestnika (lista, ubezpieczenie).
-- **Wolne miejsca LICZONE, gdy termin ma liczbę miejsc**: pojemność minus
-  zapisy aktywne (`ACTIVE_STATUSES` — bez „lista rezerwowa” i „rezygnacja”).
-  Każda zmiana zapisu i zmiana pojemności przelicza termin, a status
-  `open` ↔ `waitlist` przełącza się sam. **Bez liczby miejsc** nic się nie
-  liczy, decyduje status ustawiony ręcznie. Zapis telefoniczny liczy się,
-  gdy Krzysiek doda go ręcznie w „Zapisach” (bez maili — umówiony osobiście).
-- **E-mail w zapisie opcjonalny — tylko w panelu** (od 12.10.2026): zapis
-  telefoniczny bez adresu. Formularz na stronie wymaga go dalej
-  (`validateBooking`). Puste pole zapisuje się jako `null`. Bez adresu nie
-  idzie nic: mail o statusie (i nie jest to „mail, który nie doszedł”),
-  wysyłki (`dedupeRecipients` pomija pusty adres); w mailu o zwolnionym
-  miejscu osoba stoi z imieniem i telefonem. „Dane osoby” szukają po adresie,
-  więc takiego zapisu nie znajdą — usuwa się go z listy „Zapisy”.
-- **Dane kontaktowe w zapisie to KOPIA** z chwili zapisu, także przy koncie.
-  Adres e-mail zapisuje się małymi literami (hook w `Bookings.ts`), bo
-  przypisanie do konta i kontrola duplikatów porównują dokładnie.
-- **Zapis bez konta trafia na konto dopiero po DOWODZIE adresu**
-  (`claimBookings`: logowanie, potwierdzenie adresu, hasło z maila) — nigdy
-  z formularza. „Załóż mi konto” przy zapisie tworzy konto od razu
-  (zapis do niego przypięty) i wysyła link do ustawienia hasła; konto bez
-  ustawionego hasła znika po 7 dniach jak każde niepotwierdzone.
-- **⚠️ Zapis idzie w TRANSAKCJI z blokadą na termin** (`lib/bookingService.ts`,
-  `pg_advisory_xact_lock`). Zmierzone 03.10.2026 bez blokady: pięć osób
-  naraz na jedno miejsce — wszystkie dostały miejsce; podwójne kliknięcie —
-  dwa zapisy. Z blokadą: jedna osoba dostaje miejsce, cztery listę
-  rezerwową; pięć kliknięć — jeden zapis. Druga blokada (na adres) chroni
-  zakładanie konta, gdy ta sama osoba zapisuje się na dwa terminy naraz.
-  **Nie przenoś liczenia miejsc ani zapisu poza tę transakcję.**
-- **Drugi zapis tej samej osoby na ten sam termin** odpowiada „przyjęte”
-  bez nowego wpisu — inna odpowiedź mówiłaby, kto się zapisał. Z tego
-  samego powodu przy „załóż mi konto” komunikat jest jeden, czy konto było
-  nowe, czy czekało na potwierdzenie (wtedy idzie nowy link potwierdzający).
-  **Powtórzony zapis z „Załóż mi konto”** (od 17.10.2026; wcześniej zaznaczenie
-  ginęło, a strona obiecywała mail): zapis zostaje jeden, ale konto powstaje —
-  z danych PIERWSZEGO zapisu, nie z nowego formularza (decyzja Mateusza) —
-  i idzie link do hasła; zapis przypina ustawienie hasła (`claimBookings`).
-  Pierwszy zapis już z kontem (podwójne kliknięcie z zaznaczeniem) — nic,
-  żeby nie poszedł drugi mail.
-- **Miniony termin sam przechodzi na „zakończony”** (od 12.10.2026,
-  `finishPastSessions` w dziennym sprzątaniu, `finishedSessionsWhere`):
-  tylko „zapisy otwarte” i „lista rezerwowa”, „odwołany” zostaje. Granica to
-  początek WCZORAJ w UTC — ostatni dzień bywa zapisany jako północ UTC albo
-  polska (22:00–23:00 UTC dzień wcześniej), więc termin nigdy nie kończy się
-  w swoim ostatnim dniu, najpóźniej dwa dni po. Strona, pulpit i „Moje
-  konto” i tak patrzą na daty — to porządek listy terminów w panelu.
-- **Terminu z zapisami nie da się usunąć** (hook `beforeDelete` w
-  `Sessions.ts`): Postgres i tak odmawia (pole `session` jest wymagane),
-  ale komunikatem „Failed query”; teraz panel mówi, żeby ustawić status
-  „odwołany” / „zakończony”.
-- **Zwolnione miejsce przy liście rezerwowej → mail do Krzyśka** z kolejką
-  (rezygnacja, usunięty zapis, większa pojemność). Nikt nie jest
-  przesuwany automatycznie — Krzysiek może chcieć najpierw zadzwonić.
-- **Sesja wygasła w trakcie wypełniania** (formularz bez pól kontaktowych):
-  akcja odpowiada „zaloguj się ponownie” zamiast żądać niewidocznych pól.
-- **Czego zapis NIE robi (świadomie, na później):** odwołanie albo zmiana
-  dat terminu nie powiadamia zapisanych (to wysyłki, etap 5); podpis
-  zapisu w panelu nie odświeża się po zmianie dat terminu.
-- **Maile**: po zapisie do kursanta (przyjęte / lista rezerwowa, bez kwot —
-  zasady zaliczek są do ustalenia) i do Krzyśka; przy zmianie statusu
-  w panelu na potwierdzony / opłacony / rezygnacja — do kursanta
-  (`statusEmailFor`). Każdy mail osobno po zapisie, błąd nie cofa zapisu.
-- **„Opłacony” wysyła maila tylko PRZED pierwszym dniem kursu** (od
-  14.10.2026, `courseStarted` — dzień w czasie polskim). Większość płaci
-  gotówką pierwszego dnia, a Krzysiek zaznacza to w trakcie albo po kursie —
-  „Płatność zaksięgowana” po kursie dziwiła. Status kursant widzi w „Moim
-  koncie”. Hook zapisu doczytuje termin (`joins: false`); nieudany odczyt =
-  mail jak dawniej. Lista w panelu ładuje wiersze bez terminu (`depth: 0`),
-  więc jej pytanie przy „opłacony” mówi „jeśli kurs jeszcze się nie zaczął”.
-- **Mail do kursanta, który nie wyszedł, zostaje odnotowany w zapisie**
-  (`recordEmailIssue`, od 03.10.2026): pola „Mail, który nie doszedł” (co
-  i dlaczego, po ludzku — `emailFailureReason`), data i „Załatwione”; kafelek
-  na pulpicie liczy nieodhaczone. Te maile NIE mają kolejki ani ponowień —
-  Krzysiek odzywa się sam. Kolejny błąd przy nieodhaczonym dopisuje się, po
-  odhaczeniu zaczyna od nowa. Zapis z hooka idzie przez `req` zapisu w toku:
-  wiersz jest zablokowany jego transakcją, zapis innym połączeniem czekałby
-  w nieskończoność. Kontekst `skipRecount` + `skipStatusEmail`.
-- **⚠️ Pole `bookings` (join) w `Sessions` niesie dane osobowe.** Strona czyta
-  terminy przez Local API z pominięciem reguł, więc KAŻDE zapytanie o
-  terminy w kodzie strony ma `joins: false` (`lib/content.ts`, „Moje
-  konto”, `bookingEffects`). Sprawdzone 03.10.2026: REST terminu nie pokazuje
-  zapisów anonimowi ani innemu kursantowi, kod stron ich nie zawiera.
-- Limit nginx `account_forms` obejmuje też POST na `/kursy/*/zapis` i `/obozy/*/zapis`.
+Since 06.10.2026 (working version, to be confirmed by Krzysiek).
+
+- **The controller is a person, not a brand.** "ABC Wspinania" is the school's
+  name, not a legal entity — the clause "Administratorem danych jest ABC
+  Wspinania" did not say who the controller is. The details (Krzysztof Wróbel,
+  IQ SERVICE, address, NIP, REGON, `biuro@abcwspinania.info`) live in **one
+  place**: `src/lib/legal.ts`. All four clauses in `consent.ts` and the
+  `/polityka-prywatnosci` page draw from it. A change of company details = a
+  change to this file **and to the clause version** (rule 18), because the
+  text saved in the database changes. `consent.test.ts` makes sure no clause
+  goes back to the brand alone.
+- **The words "polityce prywatności" in the clause are a link**
+  (`ConsentText.tsx`, new tab) — the text saved in the database stays plain
+  text.
+- **The policy describes what the code does.** You add a processor (a new
+  service that sees data), new data, or change a retention period
+  (`lib/expiry.ts`, backups in `deploy/abc-backup.sh`) — fix the page and bump
+  `PRIVACY_POLICY_VERSION`. A mismatch is invisible to tests, and before the
+  UODO (the Polish data protection authority) what counts is what is written.
+- **Automatic retention periods:** contact form messages 12 months
+  (`MESSAGE_RETENTION_MONTHS`, the same daily sweep as accounts), unconfirmed
+  accounts and newsletter sign-ups 7 days, container logs 3 × 10 MB per
+  service (`x-logging` in `docker-compose.prod.yml` — without it Docker keeps
+  them forever, IP addresses included), backups 40 days (since 09.10.2026; a
+  change of retention in `abc-backup.sh` = a change of this sentence on the
+  page), course bookings 5 years from the end of the course year
+  (`BOOKING_RETENTION_YEARS`, since 10.10.2026): on 1 January **anonymised, not
+  deleted** (`anonymizeExpiredBookings`) — we clear first name, last name,
+  email, phone, remarks, notes and consent, and keep the date, status,
+  language and booking date, for statistics. The `anonymizedAt` field hides
+  them from the list in the panel (`baseFilter`), from the dashboard counters
+  and from the Excel export. Writing through `payload.db.updateOne` — the
+  collection's rules would reject the empty required fields, and the hooks
+  would rebuild the label from the name and recount places. The year is counted
+  in Polish time (a course ending on 1 January is 23:00 UTC of the previous day
+  in the database). The policy, the "Usuń konto" page and the email after
+  deletion take the number of years from the same constant. **Bookings attached
+  to an account stay as long as the account exists** (decision 10.10.2026 —
+  history in "Moje konto"); deleting the account detaches them and then the
+  5 years apply. **By hand, for now:** people unsubscribed from the newsletter.
 
 ---
 
-## Zapisy na obozy
+## Participant accounts (Konta uczestników)
 
-Od 19.10.2026 (etap 4), wdrożone 25.10.2026 (0.11.0).
-Procedura Krzyśka (20.10.2026): (1) krótki zapis rezerwuje miejsce, (2) mail
-z linkiem do formularza rejestracyjnego, (3) po formularzu umowa do podpisania
-i dane do przelewu — od tego maila 7 dni na zaliczkę 500 zł, reszta do dnia
-rozpoczęcia, (4) ok. 2 tygodnie przed obozem pakiet informacji i pusta karta
-kwalifikacyjna w PDF (karta zostaje papierowa — wzór Kuratorium). Pełny zwrot
-do 30 dni przed obozem. Cała ścieżka działa bez konta; konto dla chętnych.
+Since 02.10.2026 (stage 1b). A second collection with login, `customers`, next
+to `users` (panel). A separate table, not a role: a mistake in checking the
+role will not turn a participant into an administrator. Cost: rule 28.
 
-- **Jedna kolekcja `bookings` dla kursów i obozów** (decyzja 19.10.2026),
-  rozróżniana polem `kind` (`course` / `camp`). Liczenie miejsc, lista
-  rezerwowa, wysyłki, „Dane osoby”, anonimizacja i pulpit działają na tej
-  jednej — druga kolekcja znaczyłaby zbudowanie i przetestowanie każdej
-  z tych rzeczy drugi raz. W menu panelu dwie pozycje, „Zapisy na kursy”
-  i „Zapisy na obozy” (`BookingsNavLinks`, ta sama lista z `?where[kind]`),
-  bo szkoła sprawdza jedno albo drugie. Własny link Payloada „Zapisy” jest
-  ukryty w `custom.css` (`#nav-bookings`), nie przez `admin.hidden` — to
-  wyłączyłoby też trasy listy. Przy podbiciu Payloada sprawdzić, czy link
-  wciąż ma ten `id`.
-- **Przy obozie imię, nazwisko i kontakt to RODZIC**, uczestnik to dziecko
-  (`childFirstName`, `childLastName` — wymagane tylko przy `kind = camp`;
-  `childBirthDate` przychodzi z formularza rejestracyjnego). Etykieta zapisu
-  bierze imię dziecka. Jedno dziecko = jeden zapis (jak „jedna osoba = jeden
-  zapis”).
-- **Zapis na stronie: `/obozy/[slug]/zapis`** (krok 1), tylko dla obozu
-  (`camps.kind = camp`) — wyjazd i zajęcia przekierowują na `/kontakt`, bo
-  przycisk „Zapisz się” w nagłówku nie odróżni ich po adresie. Rodzic wpisuje
-  turnus, siebie i jedno albo kilkoro dzieci (`MAX_CHILDREN`); każde dziecko
-  to osobny zapis w TEJ SAMEJ transakcji z blokadą co kurs
-  (`createCampBookings`) — dzieci liczone po kolei, więc przy braku miejsc
-  pierwsze dostaje miejsce, następne listę rezerwową. **Gdy dzieci jest
-  więcej niż wolnych miejsc**, formularz ostrzega i daje wybór (decyzja
-  21.10.2026): pierwsze na miejsca, reszta rezerwowa, albo wszystkie na listę
-  rezerwową (`togetherOrWaitlist` — rodzeństwo razem albo wcale; serwer
-  liczy jeszcze raz pod blokadą). Krzysiek zawsze może dołożyć miejsca
-  i przestawić status ręcznie.
-- **Rodzeństwo dzieli adres**, więc duplikat przy obozie to adres + imię
-  i nazwisko dziecka (`childKey`, bez wielkości liter i nadmiarowych spacji),
-  nie sam adres jak przy kursie. Powtórzony zapis tych samych dzieci
-  odpowiada tak samo jak pierwszy, bez nowych wpisów i maili.
-- **Jeden link, jeden formularz, jedna umowa na zgłoszenie** (decyzja
-  21.10.2026, jak we wzorze umowy Krzyśka): dzieci z miejscem z jednego
-  zgłoszenia dzielą jeden `registrationToken` (pole `hidden` — nie ma go
-  w panelu ani w żadnej odpowiedzi API; Local API czyta je tylko
-  z `showHiddenFields`). Token = zgłoszenie: formularz ma część na każde
-  dziecko, a adres rodzica, faktura i zgody są raz. Dziecko z listy
-  rezerwowej tokenu nie dostaje — po zwolnieniu miejsca dostaje WŁASNY
-  (własny formularz i własną umowę). Do rodzica jeden mail po zapisie,
-  jeden z danymi do przelewu (zaliczka × dzieci, jeden przelew, jeden
-  termin), jedno przypomnienie na zgłoszenie; do szkoły jeden na zgłoszenie.
-- **Maile obozowe przez `CAMP_EMAIL`** (`obozy@abcwspinania.info`, decyzja
-  20.10.2026): powiadomienie o zapisie idzie tam, a mail do rodzica ma tam
-  `replyTo` — tam wracają odpowiedzi i podpisane umowy. Puste = jak
-  `ADMIN_NOTIFY_EMAIL`. Nadawca zostaje `EMAIL_FROM`, dopóki domena szkoły
-  nie jest uwierzytelniona w Brevo. **Na czas testów `CAMP_EMAIL` zostaje
-  PUSTY** (lokalnie i na produkcji) — maile obozowe idą wtedy, jak przy
-  kursach, na `ADMIN_NOTIFY_EMAIL` (Gmail Mateusza, filtr przekazuje
-  Krzyśkowi). `obozy@` wpisuje się w `deploy/.env` w dniu startu zapisów.
-- **Termin musi pasować do rodzaju**: `filterOptions` pokazuje w panelu tylko
-  terminy danego rodzaju, a `validate` (`sessionMatchesKind`) pilnuje tego przy
-  zapisie — zastępuje sprawdzenie Payloada, którego komunikat brzmiał
-  „nieprawidłowe wybory: 1”. Termin, którego kurs albo obóz usunięto (pole
-  wyczyszczone przez Postgres), pasuje do każdego rodzaju — inaczej żadnego
-  jego zapisu nie dałoby się już zapisać, nawet zmiany statusu. Migracja
-  `bookings_camp_kind` przestawia na
-  `camp` zapisy dodane wcześniej ręcznie na terminach obozów (ręczny `UPDATE`
-  — nie kasować przy sklejaniu migracji).
-- **Zgoda na zdjęcia dziecka — nieobowiązkowa, ale ODPOWIEDŹ obowiązkowa**
-  (`photoConsent` + treść w `photoConsentText`). Od 24.10.2026 formularz
-  rejestracyjny pyta „zgadzam się / nie zgadzam się”, bez niczego zaznaczonego
-  z góry, i bez wyboru się nie wysyła (`PhotoChoice`, `PHOTO_CHOICE_MISSING`).
-  Wcześniej było pole do zaznaczenia: obawa Mateusza, że rodzice je pomijają,
-  a Krzysiek odsiewa potem zdjęcia. Zgoda zaznaczona z góry albo „odznacz,
-  jeśli nie” nie jest zgodą w RODO (TSUE Planet49, motyw 32) — dlatego wybór,
-  nie domyślne „tak”. Przy „nie” zapisuje się `false` bez treści; formularz
-  wysłany wcześniej przy poprawce ma zaznaczone to, co zapisano. Odznaczenie
-  w panelu = wycofanie zgody.
-- **Formularz rejestracyjny (krok 2): `/obozy/rejestracja?token=…`**, bez
-  konta — kluczem jest `registrationToken` z maila. Na dziecko: PESEL (data
-  urodzenia liczona z niego, `lib/pesel.ts`, idzie do zapisu), wzrost,
-  uczulenia, leki, dieta, choroby, zgoda na zdjęcia (opcjonalna). Raz: adres
-  zamieszkania rodzica (do umowy i faktury, kopiowany na każdy zapis — jest
-  w anonimizacji i kopii danych), „chcę fakturę”, zgoda na zajęcia
-  (wymagana), zgoda RODO na dane i zdrowie dziecka. Działa
-  do dnia rozpoczęcia obozu — rodzic wraca tym samym linkiem i poprawia
-  (leki w lutym vs w lipcu); zamknięty dla listy rezerwowej i rezygnacji.
-  „Zapisz zmiany” przy poprawce nieaktywny, dopóki odpowiedzi nie różnią
-  się od zapisanych (od 24.10.2026, `answersOf` — jak „Zapisz” w Moim
-  koncie); bez JS zostaje aktywny, żeby formularz dało się wysłać.
-  Logika: `lib/campRegistration.ts`.
-- **PESEL i zdrowie w osobnej kolekcji `camp-registrations`** (czyta tylko
-  szkoła): usuwane same miesiąc po obozie (`CAMP_HEALTH_RETENTION_MONTHS`,
-  dzienne sprzątanie, `expiredRegistrationsWhere`), a zapis zostaje 5 lat.
-  Zdanie o miesiącu stoi też w klauzuli zgody i musi stanąć w polityce
-  prywatności. **Usunięcie zapisu kasuje jego formularz** (hook
-  `beforeDelete` w `Bookings`) — inaczej Postgres odmówi (wymagane `booking`),
-  a zdrowie przeżyłoby zapis; obejmuje to panel i „Dane osoby”. Kopia danych
-  osoby zawiera formularz przy jego zapisie.
-- **Maile formularza bez danych o zdrowiu** — ani do rodzica, ani do szkoły
-  (Brevo i lata w skrzynce). Szkoła dostaje „wypełniony / poprawiony” z
-  linkiem do panelu.
-- **Link do formularza poza pierwszym mailem**: dziecko przeniesione z listy
-  rezerwowej na miejsce dostaje go samo (hook `afterChange`), a „Wyślij
-  rodzicowi link” w panelu zapisu (`RegistrationPanel`, endpoint
-  `/api/bookings/:id/registration-link`) — przy zapisie dodanym ręcznie albo
-  zgubionym mailu. Token zostaje ten sam. Przypomnienie raz, po
-  `REGISTRATION_REMINDER_DAYS` (4) bez formularza.
-- **Zaliczka (krok 3)**: kwota, konto, tytuł przelewu
-  i zasada zwrotu w jednym miejscu — `lib/campPayment.ts` (zmiana kwoty albo
-  konta = jedna edycja). Pierwsze wypełnienie formularza ustawia
-  `depositDueAt` na `DEPOSIT_DAYS` (7) i wysyła rodzicowi dane do przelewu;
-  poprawka formularza terminu nie przesuwa (szkoła może go przesunąć ręcznie
-  w panelu). Po terminie bez zaliczki — jedno przypomnienie
-  (`depositReminderWhere`), miejsce NIE jest zwalniane (decyzja Krzyśka).
-  Wpłatę zaznacza Krzysiek statusem „zaliczka wpłacona” — przy obozie to
-  wysyła maila „zostało X zł” (`statusEmailForKind`; przy kursie zaliczka
-  dalej bez maila; **rodzeństwo z jednego zgłoszenia dostaje JEDEN mail**,
-  gdy zaliczkę ma zaznaczoną ostatnie dziecko z miejscem — z imionami
-  dzieci z zaliczką i łączną kwotą, decyzja Mateusza 22.10.2026; dziecko
-  zaznaczone od razu jako „opłacony” nie wstrzymuje maila i nie wchodzi do
-  niego ani do kwoty). **Gdy dziecko, na które mail czekał, odpada**
-  (rezygnacja, lista rezerwowa, usunięty zapis), zaległy mail wysyła
-  DZIENNE SPRZĄTANIE (`sendWaitingDepositEmails`, znacznik
-  `depositEmailAt`), nie zmiana statusu: rodzina rezygnująca w całości jest
-  klikana po jednym dziecku i dostałaby „zaliczka wpłynęła” między dwoma
-  anulowaniami. Kwota pozostała = cena turnusu albo obozu minus 500 zł;
-  bez ceny w panelu mail nie podaje kwoty, zamiast podać złą.
-- **„Dane do faktury” w panelu zapisu** (`InvoicePanel`, gdy rodzic zaznaczy
-  fakturę): rodzic z adresem albo firma (nazwa, NIP, adres), dziecko, data
-  urodzenia, termin, wpis do rejestru organizatorów
-  (`CAMP_ORGANISER_REGISTRY`) i numer obozu w kuratorium (pole
-  `kuratoriumNumber` terminu, wpisuje szkoła; bez numeru — link do
-  terminu, od 24.10.2026). Fakturę Krzysiek wystawia sam
-  w swoim programie (na firmę — przez KSeF, 22.10.2026).
-- **Faktura na firmę w formularzu rejestracyjnym** (od 22.10.2026): pod
-  „Potrzebuję faktury” pole „Na firmę”, a pod nim nazwa, NIP i adres —
-  pokazywane samym CSS-em (`group-has-[…:checked]`), więc działają bez JS.
-  NIP sprawdzany z cyfrą kontrolną (`checkNip`), zapisywany bez kresek
-  (`normalizeNip`). **Ukryte pole nie blokuje wysyłki**: `stopInvalidSubmit`
-  pomija pola niewidoczne (`checkVisibility()`) — bez tego puste pola firmy
-  zatrzymywały każdy formularz bez faktury. Serwer sprawdza je tylko przy
-  fakturze na firmę.
-- **Umowa (krok 4, od 22.10.2026)**: tekst ze wzoru Krzyśka z jego
-  poprawkami (`lib/campContract.ts`, czysty, testowany), PDF przez `pdf-lib`
-  + `@pdf-lib/fontkit` z fontem Inter z `public/fonts/` (polskie znaki;
-  czytany od `process.cwd()`, zasada 15). **Font osadzany w całości** —
-  podzbiór z fontkita gubił glify (tekst się kopiował, na stronie były
-  dziury). Pilnuje tego `contractPdf.test.ts` (od 25.10.2026):
-  oba fonty w PDF mają rozmiar plików z `public/fonts/`, każdy znak umowy
-  (także z imion z polskimi literami) ma glif w Inter, podpis z panelu jest
-  w PDF, a bez niego umowa i tak powstaje. Każdy z trzech testów
-  sprawdzony na czerwono na celowo zepsutym kodzie. Jedna umowa na zgłoszenie, idzie ZAŁĄCZNIKIEM z mailem z danymi
-  do przelewu — dzień wysłania = dzień zawarcia, od niego liczy się 7 dni
-  zaliczki. Przy wysyłce zapis dostaje `contractSentAt` i `contractPrice`:
-  pobrana później umowa jest TA SAMA, nawet po zmianie ceny w panelu.
-  Bez ceny turnusu umowa nie idzie — mail z przelewem tak, a szkoła widzi
-  to w „Mailach, które nie doszły” (powód tekstem: `recordEmailIssue`
-  z ciągiem znaków zapisuje go bez zmian). Pobieranie: szkoła
-  `/api/bookings/:id/contract` (przycisk w `RegistrationPanel`; przed
-  wysyłką podgląd z dzisiejszą datą), rodzic `/obozy/rejestracja/umowa?token=`
-  (link w „Moim koncie”, tylko po wysyłce) — `Cache-Control: private,
-  no-store`. Podpisaną kopię rodzic odsyła na `obozy@`
+- **Writes only through server actions** (`app/(frontend)/konto/actions.ts`).
+  REST `create`/`update`/`delete` closed to everyone but the school; actions
+  use `overrideAccess: true` AFTER their own validation, consent recording and
+  — when changing data — checking that it is the logged-in person's account
+  (id from the session, never from the form). Read: own account only
+  (`adminOrSelf`), because `/api/customers/me` reads through the access rule.
+- **Forms do not reveal whether an address has an account.** Registering with
+  a taken address shows the same "sprawdź skrzynkę", and the owner finds out BY
+  EMAIL: a confirmed account gets "Masz już konto" (a login button + a link to a
+  new password), an unconfirmed one — a new confirmation link. Until 02.10.2026
+  an ordinary password reset email went out and looked like an error. "Nie
+  pamiętam hasła" answers the same for every address. Login has **one message**
+  for a wrong password and a locked account: Payload checks the lock BEFORE the
+  password, so a separate "konto zablokowane" would confirm an account exists
+  after five deliberately wrong attempts. REST (`/api/customers/login`) returns
+  both errors separately — there only the nginx limit protects. Accepted risk:
+  five wrong attempts lock someone else's account for 15 minutes.
+- **Login requires a confirmed address** (`auth.verify`). Payload's
+  verification token does NOT expire by itself, so expiry is OURS: the link
+  works for 48 h (`VERIFY_LINK_HOURS`), checked on `/konto/potwierdz` against
+  the `verificationSentAt` field (set on every send). The endpoint
+  `/api/customers/verify/:token` would skip this check — **closed in nginx**
+  (works locally). The new-password link works for 2 h (`RESET_LINK_HOURS`).
+  **The token stays after confirmation** (since 10.10.2026): opening the link a
+  second time (a refresh, a mail scanner, a double click) shows "Adres
+  potwierdzony", not "Link nie działa", although the account was already
+  confirmed (reported in testing). We save `_verified` through
+  `payload.db.updateOne`, because Payload's field hook clears the token on every
+  `update` setting `_verified`.
+- **"Wyślij link ponownie"** — in three places: after a correct password on an
+  unconfirmed account (Payload says so only AFTER checking the password), on the
+  expired link page and on `/konto/wyslij-link` (the link "Nie dotarł mail z
+  potwierdzeniem?" under the login and in the registration confirmation — the
+  button after the password alone turned out to be invisible). The answer is
+  always the same, with or without an account. Each send issues a NEW token, so
+  only the newest link works. An address ALREADY confirmed gets the "Masz już
+  konto" email instead of a link (the `reason: 'resend'` variant) — until
+  10.10.2026 it got nothing, while the page said "wysłaliśmy" (reported in
+  testing). We save the token through `payload.db.updateOne`, because Payload's
+  `_verificationToken` field rejects every update. Accepted knowingly: sending
+  works on the address alone, without a password. The link goes only to the
+  address owner's inbox, so the only effect is invalidating their older link;
+  flooding with emails is cut by the nginx limit.
+- **We send account emails OURSELVES** (`lib/accountEmails.ts`), Payload only
+  gives the token (`disableVerificationEmail`, `disableEmail`). Its sending goes
+  without a text version, and the first real confirmation email landed in spam
+  (02.10.2026). The email hooks in the collection stay for Payload's REST paths,
+  which the site does not use.
+- **An unconfirmed account is deleted after 7 days** (settled 02.10.2026,
+  `UNVERIFIED_ACCOUNT_DAYS` in `lib/expiry.ts`), counted from the LAST link sent,
+  not from creation — someone asking for a new link on day six will not lose the
+  account before the link expires. The sweep is scheduled by
+  `src/instrumentation.ts` (once, at Next server start): **daily at 8:00 Polish
+  time** (`DAILY_SWEEP_HOUR`, `msUntilDailySweep` in `lib/expiry.ts`, since
+  24.10.2026), with no run at start. Until that day it ran a minute after start
+  and every 24 h — the hour depended on the last deployment, and since camps the
+  sweep sends reminders to parents and the email about the pre-camp draft
+  (a deployment at 23:40 = emails at 23:41 every night). A server off at 8:00
+  skips the day — the steps count from dates, the next run catches up. On
+  demand (tests): `npm run sweep`. **Not through Payload's job queue**: its cron
+  starts only after the first `getPayload({ cron: true })` (e.g. logging in to
+  the panel), so after a restart it would wait for traffic, and it adds a
+  table, a migration and endpoints. With several application instances each
+  would sweep separately — harmlessly, but to be changed if there were ever
+  more of them. Setting a password from the email **marks the address as
+  confirmed** — Payload does not do this itself
+  (`auth/operations/resetPassword.js`), and without it an account created at
+  booking (stage 2) would never log in.
+- **Links in emails from `PUBLIC_URL`**, not from the Host header (a forged Host
+  = a foreign domain in a link with a password-change code) nor from `SITE_URL`
+  (the target domain, until the switch it leads to the old site). The variable
+  is read at startup — switching the domain is a change in `deploy/.env`.
+  "Otwórz w panelu" in the contact form message email took `SITE_URL` and led to
+  a 404 of the old site (14.10.2026) — `email/links.test.ts` makes sure no link
+  to `/admin` is built from `SITE_URL`.
+- **`/api/customers/first-register` blocked in nginx** (404). Payload exposes
+  it for every collection with login and, as long as the table is empty,
+  creates an account through it bypassing the rules, confirmed at once. Locally
+  (no nginx) the endpoint works — do not test anything on it.
+- **nginx limits:** participant endpoints accepting a secret — the `login`
+  zone; SUBMISSIONS of forms on `/logowanie`, `/rejestracja`, `/konto/…` — the
+  `account_forms` zone (10/min; GET is not counted). Without it registration and
+  password reset would be free email sending to any address from our domain.
+- **⚠️ An action limit in the application too** (`lib/actionLimit.ts`, since
+  25.10.2026, audit). Next runs a server action sent to ANY page, not only the
+  one with the form, and `/admin` is exempt from the `site_actions` zone
+  (Payload's actions when editing). Password reset, registration, newsletter,
+  contact and bookings posted with a `Next-Action` header to `/admin` went
+  without any limit — free email sending and Brevo's daily limit eaten in a
+  minute. Checked on a build behind nginx from the repo: nginx cuts off after
+  11 on the proper path, through `/admin` — only the application. One budget
+  per address (`X-Real-IP` from nginx; the application port is not exposed),
+  20 at once and 10/min — bigger than nginx, so an ordinary user meets nginx
+  first. Without the header (`npm run dev`, tests) there is no limit. **A new
+  action that sends an email or checks a password — `actionAllowed()` after
+  validation.** An exception in nginx cannot be based on the action ID: it
+  changes with the build.
+- **`?next=` after login without control characters** (`safeNextPath`, since
+  25.10.2026, audit): `/%09/evil.com` went through (the browser removes the tab
+  and reads `//evil.com` — an open redirect), `%0a` gave a 500.
+- **The panel and the site share the cookie** `payload-token` (one
+  `cookiePrefix`). Logging in as a participant in the same browser logs you out
+  of the panel and vice versa. For the site a panel account is "not a
+  participant" (`getCurrentCustomer()` in `lib/auth.ts`). For testing — two
+  browsers or a private window.
+- **The header asks `/api/customers/me` from the browser** (`useAccount.ts`), on
+  every page change. Reading the cookie in the layout would make every page
+  dynamic and kill the cache (`revalidate = 300`). Without JS: always "Zaloguj
+  się" — and `/logowanie` redirects logged-in people onwards.
+- **⚠️ Payload errors are recognised by `status`, never by `instanceof`**
+  (`lib/authErrors.ts`, since 18.10.2026). In the built application a form sent
+  BEFORE the page's JavaScript loads lands in a different part of the server,
+  with its own copy of the error classes — `instanceof AuthenticationError` gave
+  `false` for a wrong password: login said "Nie udało się zalogować", and "Usuń
+  konto" a general error instead of "Nieprawidłowe hasło". In `next dev` and
+  after JS loads there is one copy, so ordinary clicking does not show it.
+  Checking: `next build`, a server from `.next/standalone` and a form sent
+  without JS (or before it loads).
+  **The other side of the same thing: an error class name can be EMPTY** (since
+  18.10.2026, `lib/errorResponse.ts`, the global `afterError` hook). Payload
+  keeps an error's message only when the error has a `name`, and `APIError`
+  takes it from the class name — the CI image minified it to an empty one.
+  Deleting a date with bookings showed "An unknown error occurred." instead of
+  our refusal; a local build named the class "k" and worked. The hook restores
+  the message of an explicit error (`isPublic` or status ≠ 500), only when
+  Payload answered with that generic text. You will not reproduce this locally
+  with a build — checking: an error with `name = ''` thrown from a collection
+  hook.
+- **Logout through `/api/customers/logout`**, not by deleting the cookie: the
+  endpoint also invalidates the session (`auth.useSessions`).
+- **Account pages have `noindex`** and are not in the sitemap.
+- **Phone required, in the Next Step Pro format**: `+`, country code and 9
+  digits (`^\+[0-9]{1,4}[0-9]{9}$`, the same pattern as there). Spaces, dashes
+  and brackets are removed BEFORE the check (`normalizePhone`) and saved that
+  way. The pattern guards the shape (10–13 digits), not that the number exists.
+- **Forms send back the entered values on error** (`values` in the action
+  state, `defaultValue` in the fields). React 19 clears the form after EVERY
+  action, including a failed one — without this one error wiped a whole
+  registration, and "popraw zaznaczone pola" pointed at empty fields (reported
+  02.10.2026). Applies to the contact form and the newsletter too. Passwords
+  never come back — that is why registration, course booking and new password
+  have `onSubmit={stopInvalidSubmit}` (`AccountFields.tsx`, since 10.10.2026):
+  an error the browser knows (missing consent, a bad field by the same rules —
+  `TextField` copies them into `setCustomValidity`) stops the submission before
+  it reaches the server. Before, a forgotten consent wiped the entered password.
+  The server checks everything anyway.
+- **Live validation in account forms** (`components/AccountFields.tsx`),
+  settled 02.10.2026: a field turns red only after LEAVING it with an error,
+  then changes with every letter until it passes (a green tick); **an empty
+  field does NOT turn red on leaving** (since 16.10.2026) — only on submit or
+  when something was in it. The message under a field pushed the links down by
+  a line: Safari puts the cursor in the login email field, and a click on "Nie
+  pamiętam hasła" hit an empty spot (reported in testing); the password has a
+  counter from the first letter. The rules are the same functions the server
+  checks (`checkName`, `checkEmail`, `checkPhone`, `checkNewPassword` in
+  `lib/validation.ts`) — the browser only says it earlier, the server decides.
+  The error colour is the `error` token (#b42318, 6.5:1 on white), not `rope`
+  — a blue frame reads as "active field". First and last name: at least 2
+  letters, because surnames Li and Wu exist.
+- **Password: minimum 10 characters, no composition rules** (NIST 800-63B).
+  The hint under the field encourages a password not used anywhere else — not
+  "a few ordinary words" (that read as encouragement of a weak password). Login
+  checks only that the fields are present — length rules at login would reveal
+  which passwords do not exist.
+- **"Twoje dane" in Moje konto** (since 18.10.2026, `DetailsForm`,
+  `updateAccountDetails`, `lib/accountDetails.ts`): first name, last name,
+  phone — the same rules as at registration. "Zapisz" inactive until the fields
+  differ from the saved ones (`sameAccountDetails` — like the server: without
+  spaces in the phone). The change also goes to the person's UPCOMING,
+  non-cancelled bookings (Mateusz's decision: the school must call a working
+  number); past and cancelled ones keep the copy from booking day. Without
+  recounting places and without emails (`skipRecount`, `skipStatusEmail`).
+  **The email address is not here** — changing it requires confirming the NEW
+  address by email, otherwise a typo cuts you off from the account; for now
+  through the school.
+- **"Usuń konto" in Moje konto** (`/konto/usun`, since 04.10.2026). Requires
+  the password again — an open session on someone else's computer is not
+  enough. Deletes the account and its sessions; **bookings stay with the
+  school**, detached from the account (the `customer` field is optional, so the
+  foreign key sets it to null — checked 04.10.2026). It is a separate
+  processing purpose (organising the course, settlements) with its own consent;
+  the page says so before deletion, and names an upcoming booking — deleting the
+  account does NOT cancel it. Full deletion of bookings is a request to the
+  school, depending on retention periods (to be settled with Krzysiek). After
+  deletion a confirmation email goes out. Creating an account on the same
+  address later will attach the old bookings again (`claimBookings`) — it is
+  the same, proven person.
+- **"Dane osoby — kopia albo usunięcie"** (above the "Uczestnicy" list,
+  `ErasePersonPanel`, `lib/personErasure.ts`, since 10.10.2026) — GDPR requests
+  handled by the school without a programmer. **Copy**
+  (`/api/customers/person-data`): by default a readable HTML document in Polish
+  (`lib/personDataDocument.ts`, since 12.10.2026 — JSON with field names was not
+  fit to send to a person; it opens in the browser, prints to PDF),
+  `?format=json` — the same set for data portability. Both from everything we
+  have under the address, from an ALLOW LIST of fields — the account also has
+  the password hash, salt, sessions and tokens, the newsletter entry an
+  unsubscribe token; these are keys, not the person's data, and must not go out
+  in a file sent by email (a test guards this). **Deletion:** by email address
+  (case-insensitive, exact comparison) it deletes the account, bookings (also
+  without an account), messages, the newsletter entry and the rows of
+  recipients of sent messages — the panel does not show that table. Two steps:
+  a preview (GET), then deletion (POST) only with the address typed a second
+  time — the server checks that too. The log has who and how many, never whose
+  address. Panel accounts (`users`) are not touched. The text about backups
+  ("znikną po 40 dniach") repeats the retention from `abc-backup.sh`.
+- **Children (camp bookings)** — see "Camp bookings". The account books the
+  parent; the children are in their bookings, without separate accounts.
+
+### Panel accounts (`users`)
+
+All equal — no roles (each can change and delete any other). Roles only when a
+person with less access joins.
+
+- **The panel cookie has `Secure` in production** (since 25.10.2026, audit) —
+  Payload's default does not have it (`collections/config/defaults.js`), the
+  participant cookie had it from the start.
+
+- **An email after a change of a panel account's password or address** (since
+  13.10.2026, hooks in `Users.ts`, the `panelAccountChangedEmail` template).
+  "Zmień hasło" in Payload does NOT ask for the current password, so a panel
+  left open on someone else's computer is enough to take over the account — the
+  email tells the owner when and from which account, and points to "Nie
+  pamiętasz hasła?" (the link goes to THEIR inbox). On an address change the
+  email goes to the old and the new one and does NOT point to the reset (the
+  link would go to the new address, after a takeover — someone else's), only to
+  Mateusz. The password is visible only in `beforeChange` (afterwards Payload
+  hashes it and removes it from the data), hence a marker in `req.context` by
+  id. A reset from the link does not call the `update` hooks — no email. Asking
+  for the current password is postponed: it needs its own view in the panel.
+
+---
+
+## Course bookings (Zapisy na kursy)
+
+Since 03.10.2026 (stage 2). The form `/kursy/[slug]/zapis`, the `Bookings`
+collection, logic in `lib/bookings.ts` (pure functions) and
+`lib/bookingEffects.ts` (side effects).
+
+- **One person = one booking.** A couple books twice — Krzysiek has the name of
+  every participant (list, insurance).
+- **Free places are COUNTED when the date has a number of places**: capacity
+  minus active bookings (`ACTIVE_STATUSES` — without "lista rezerwowa" and
+  "rezygnacja"). Every booking change and capacity change recounts the date,
+  and the `open` ↔ `waitlist` status switches by itself. **Without a number of
+  places** nothing is counted, the manually set status decides. A phone booking
+  counts when Krzysiek adds it by hand in "Zapisy" (no emails — arranged in
+  person).
+- **Email optional in a booking — only in the panel** (since 12.10.2026): a
+  phone booking without an address. The form on the site still requires it
+  (`validateBooking`). An empty field is saved as `null`. Without an address
+  nothing goes out: the status email (and it is not "a mail that did not get
+  through"), broadcasts (`dedupeRecipients` skips an empty address); in the
+  email about a freed place the person appears with name and phone. "Dane
+  osoby" search by address, so they will not find such a booking — it is
+  deleted from the "Zapisy" list.
+- **Contact details in a booking are a COPY** from the moment of booking, also
+  with an account. The email address is saved in lower case (hook in
+  `Bookings.ts`), because attaching to an account and the duplicate check
+  compare exactly.
+- **A booking without an account reaches an account only after PROOF of the
+  address** (`claimBookings`: login, address confirmation, password from the
+  email) — never from the form. "Załóż mi konto" at booking creates the account
+  right away (the booking attached to it) and sends a link to set the password;
+  an account without a set password disappears after 7 days like every
+  unconfirmed one.
+- **⚠️ A booking goes in a TRANSACTION with a lock on the date**
+  (`lib/bookingService.ts`, `pg_advisory_xact_lock`). Measured 03.10.2026
+  without the lock: five people at once for one place — all got a place; a
+  double click — two bookings. With the lock: one person gets the place, four
+  the waiting list; five clicks — one booking. A second lock (on the address)
+  protects account creation when the same person books two dates at once.
+  **Do not move place counting or the booking out of this transaction.**
+- **A second booking by the same person for the same date** answers "przyjęte"
+  without a new entry — a different answer would reveal who booked. For the
+  same reason with "załóż mi konto" the message is one, whether the account was
+  new or waiting for confirmation (then a new confirmation link goes out).
+  **A repeated booking with "Załóż mi konto"** (since 17.10.2026; before, the
+  tick got lost and the page promised an email): the booking stays one, but the
+  account is created — from the FIRST booking's data, not from the new form
+  (Mateusz's decision) — and the password link goes out; setting the password
+  attaches the booking (`claimBookings`). A first booking already with an
+  account (a double click with the tick) — nothing, so that a second email does
+  not go out.
+- **A past date turns "zakończony" by itself** (since 12.10.2026,
+  `finishPastSessions` in the daily sweep, `finishedSessionsWhere`): only
+  "zapisy otwarte" and "lista rezerwowa", "odwołany" stays. The boundary is the
+  start of YESTERDAY in UTC — the last day is sometimes saved as UTC or Polish
+  midnight (22:00–23:00 UTC the day before), so a date never ends on its last
+  day, at the latest two days after. The site, the dashboard and "Moje konto"
+  look at the dates anyway — this is the order of the date list in the panel.
+- **A date with bookings cannot be deleted** (`beforeDelete` hook in
+  `Sessions.ts`): Postgres refuses anyway (the `session` field is required), but
+  with the message "Failed query"; now the panel says to set the status
+  "odwołany" / "zakończony".
+- **A freed place with a waiting list → an email to Krzysiek** with the queue
+  (cancellation, a deleted booking, a bigger capacity). Nobody is moved up
+  automatically — Krzysiek may want to call first.
+- **Session expired while filling in** (a form without contact fields): the
+  action answers "zaloguj się ponownie" instead of demanding invisible fields.
+- **What booking does NOT do (knowingly, for later):** cancelling or changing
+  the dates of a date does not notify those booked (that is broadcasts,
+  stage 5); the booking's caption in the panel does not refresh after the
+  date's dates change.
+- **Emails**: after booking to the participant (accepted / waiting list, no
+  amounts — deposit rules are to be settled) and to Krzysiek; on a status change
+  in the panel to confirmed / paid / cancelled — to the participant
+  (`statusEmailFor`). Each email separately after booking, an error does not
+  undo the booking.
+- **"Opłacony" sends an email only BEFORE the first day of the course** (since
+  14.10.2026, `courseStarted` — the day in Polish time). Most pay in cash on
+  the first day, and Krzysiek marks it during or after the course — "Płatność
+  zaksięgowana" after the course was odd. The participant sees the status in
+  "Moje konto". The booking hook reads the date (`joins: false`); a failed read
+  = an email as before. The panel list loads rows without the date
+  (`depth: 0`), so its question at "opłacony" says "jeśli kurs jeszcze się nie
+  zaczął".
+- **An email to the participant that did not go out is recorded in the
+  booking** (`recordEmailIssue`, since 03.10.2026): fields "Mail, który nie
+  doszedł" (what and why, in plain words — `emailFailureReason`), date and
+  "Załatwione"; a dashboard tile counts the unticked ones. These emails have NO
+  queue or retries — Krzysiek gets in touch himself. A further error on an
+  unticked one is appended, after ticking it starts over. The write from the
+  hook goes through the `req` of the save in progress: the row is locked by its
+  transaction, a write over another connection would wait forever. Context
+  `skipRecount` + `skipStatusEmail`.
+- **⚠️ The `bookings` field (join) in `Sessions` carries personal data.** The
+  site reads dates through the Local API bypassing the rules, so EVERY date
+  query in site code has `joins: false` (`lib/content.ts`, "Moje konto",
+  `bookingEffects`). Checked 03.10.2026: a date's REST does not show bookings to
+  an anonymous user or to another participant, the page code does not contain
+  them.
+- The nginx `account_forms` limit also covers POST to `/kursy/*/zapis` and
+  `/obozy/*/zapis`.
+
+---
+
+## Camp bookings (Zapisy na obozy)
+
+Since 19.10.2026 (stage 4), deployed 25.10.2026 (0.11.0).
+Krzysiek's procedure (20.10.2026): (1) a short booking reserves the place,
+(2) an email with a link to the registration form, (3) after the form the
+contract to sign and the transfer details — from this email 7 days for the
+500 zł deposit, the rest by the start day, (4) about 2 weeks before the camp an
+information pack and an empty qualification card as PDF (the card stays on
+paper — the Kuratorium template). Full refund up to 30 days before the camp.
+The whole path works without an account; an account for those who want one.
+
+- **One `bookings` collection for courses and camps** (decision 19.10.2026),
+  told apart by the `kind` field (`course` / `camp`). Place counting, the
+  waiting list, broadcasts, "Dane osoby", anonymisation and the dashboard work
+  on this one — a second collection would mean building and testing each of
+  these things a second time. The panel menu has two items, "Zapisy na kursy"
+  and "Zapisy na obozy" (`BookingsNavLinks`, the same list with `?where[kind]`),
+  because the school checks one or the other. Payload's own "Zapisy" link is
+  hidden in `custom.css` (`#nav-bookings`), not through `admin.hidden` — that
+  would also switch off the list routes. On a Payload bump check that the link
+  still has this `id`.
+- **On a camp the first name, last name and contact are the PARENT**, the
+  participant is the child (`childFirstName`, `childLastName` — required only
+  with `kind = camp`; `childBirthDate` comes from the registration form). The
+  booking label takes the child's name. One child = one booking (like "one
+  person = one booking").
+- **Booking on the site: `/obozy/[slug]/zapis`** (step 1), only for a camp
+  (`camps.kind = camp`) — a trip and classes redirect to `/kontakt`, because the
+  "Zapisz się" button in the header cannot tell them apart by the address. The
+  parent enters the turnus, themselves and one or more children
+  (`MAX_CHILDREN`); each child is a separate booking in THE SAME transaction
+  with a lock as a course (`createCampBookings`) — children counted in order,
+  so with no places the first gets a place, the next the waiting list. **When
+  there are more children than free places**, the form warns and gives a choice
+  (decision 21.10.2026): the first on the places, the rest on the waiting list,
+  or all on the waiting list (`togetherOrWaitlist` — siblings together or not
+  at all; the server counts again under the lock). Krzysiek can always add
+  places and change a status by hand.
+- **Siblings share an address**, so a camp duplicate is the address + the
+  child's first and last name (`childKey`, ignoring case and extra spaces), not
+  the address alone as with a course. A repeated booking of the same children
+  answers the same as the first, without new entries and emails.
+- **One link, one form, one contract per sign-up** (decision 21.10.2026, as in
+  Krzysiek's contract template): children with a place from one sign-up share
+  one `registrationToken` (a `hidden` field — it is not in the panel or in any
+  API response; the Local API reads it only with `showHiddenFields`). Token =
+  sign-up: the form has a part for each child, and the parent's address, the
+  invoice and the consents are once. A child from the waiting list gets no
+  token — once a place frees up it gets ITS OWN (its own form and its own
+  contract). To the parent one email after booking, one with the transfer
+  details (deposit × children, one transfer, one deadline), one reminder per
+  sign-up; to the school one per sign-up.
+- **Camp emails through `CAMP_EMAIL`** (`obozy@abcwspinania.info`, decision
+  20.10.2026): the booking notification goes there, and the email to the parent
+  has it as `replyTo` — replies and signed contracts come back there. Empty =
+  like `ADMIN_NOTIFY_EMAIL`. The sender stays `EMAIL_FROM` until the school's
+  domain is authenticated in Brevo. **For the time of testing `CAMP_EMAIL` stays
+  EMPTY** (locally and in production) — camp emails then go, as with courses, to
+  `ADMIN_NOTIFY_EMAIL` (Mateusz's Gmail, a filter forwards to Krzysiek). `obozy@`
+  is entered in `deploy/.env` on the day bookings open.
+- **The date must match the kind**: `filterOptions` shows in the panel only
+  dates of the given kind, and `validate` (`sessionMatchesKind`) enforces this on
+  save — it replaces Payload's check, whose message read "nieprawidłowe wybory:
+  1". A date whose course or camp was deleted (the field cleared by Postgres)
+  matches every kind — otherwise none of its bookings could ever be saved again,
+  not even a status change. The `bookings_camp_kind` migration switches to
+  `camp` the bookings added earlier by hand on camp dates (a hand-written
+  `UPDATE` — do not delete when squashing migrations).
+- **Consent to photos of the child — optional, but an ANSWER is required**
+  (`photoConsent` + the text in `photoConsentText`). Since 24.10.2026 the
+  registration form asks "zgadzam się / nie zgadzam się", with nothing ticked in
+  advance, and does not submit without a choice (`PhotoChoice`,
+  `PHOTO_CHOICE_MISSING`). Before, it was a checkbox: Mateusz's concern was that
+  parents skip it, and Krzysiek then weeds out photos. Consent ticked in advance
+  or "untick if not" is not consent under GDPR (CJEU Planet49, recital 32) —
+  hence a choice, not a default "yes". With "no", `false` is saved without
+  text; a form sent earlier, when corrected, has ticked what was saved.
+  Unticking in the panel = withdrawing consent.
+- **Registration form (step 2): `/obozy/rejestracja?token=…`**, without an
+  account — the key is the `registrationToken` from the email. Per child: PESEL
+  (birth date computed from it, `lib/pesel.ts`, goes to the booking), height,
+  allergies, medication, diet, illnesses, photo consent (optional). Once: the
+  parent's home address (for the contract and invoice, copied onto every
+  booking — it is in anonymisation and the data copy), "chcę fakturę", consent
+  to the activities (required), GDPR consent to the child's data and health.
+  Works until the camp's start day — the parent comes back with the same link
+  and corrects (medication in February vs in July); closed for the waiting list
+  and cancellation. "Zapisz zmiany" on a correction is inactive until the
+  answers differ from the saved ones (since 24.10.2026, `answersOf` — like
+  "Zapisz" in Moje konto); without JS it stays active so the form can be sent.
+  Logic: `lib/campRegistration.ts`.
+- **PESEL and health in a separate collection `camp-registrations`** (read only
+  by the school): deleted by themselves a month after the camp
+  (`CAMP_HEALTH_RETENTION_MONTHS`, daily sweep, `expiredRegistrationsWhere`),
+  while the booking stays 5 years. The sentence about a month is also in the
+  consent clause and must be in the privacy policy. **Deleting a booking
+  deletes its form** (`beforeDelete` hook in `Bookings`) — otherwise Postgres
+  will refuse (required `booking`), and the health data would outlive the
+  booking; this covers the panel and "Dane osoby". The person's data copy
+  contains the form with its booking.
+- **Form emails without health data** — neither to the parent nor to the school
+  (Brevo and years in an inbox). The school gets "wypełniony / poprawiony" with a
+  link to the panel.
+- **The form link outside the first email**: a child moved from the waiting
+  list to a place gets it automatically (`afterChange` hook), and "Wyślij
+  rodzicowi link" in the booking panel (`RegistrationPanel`, endpoint
+  `/api/bookings/:id/registration-link`) — for a booking added by hand or a lost
+  email. The token stays the same. A reminder once, after
+  `REGISTRATION_REMINDER_DAYS` (4) without a form.
+- **Deposit (step 3)**: amount, account, transfer title and refund rule in one
+  place — `lib/campPayment.ts` (a change of amount or account = one edit). The
+  first submission of the form sets `depositDueAt` to `DEPOSIT_DAYS` (7) and
+  sends the parent the transfer details; a correction of the form does not move
+  the deadline (the school can move it by hand in the panel). After the deadline
+  without a deposit — one reminder (`depositReminderWhere`), the place is NOT
+  released (Krzysiek's decision). The deadline does not depend on the "confirmed"
+  status: a booking "zgłoszony" and "potwierdzony" alike gets the reminder and
+  counts as a late deposit — Krzysiek's confirmation is not a step on a camp.
+  Krzysiek marks the payment with the status "zaliczka wpłacona" — on a camp
+  this sends the email "zostało X zł" (`statusEmailForKind`; on a course the
+  deposit is still without an email; **siblings from one sign-up get ONE
+  email** when the deposit is marked on the last child with a place — with the
+  names of the children with a deposit and the total amount, Mateusz's decision
+  22.10.2026; a child marked straight away as "opłacony" does not hold the
+  email back and is not included in it or in the amount). **When the child the
+  email was waiting for drops out** (cancellation, waiting list, deleted
+  booking), the pending email is sent by THE DAILY SWEEP
+  (`sendWaitingDepositEmails`, marker `depositEmailAt`), not by the status
+  change: a family cancelling entirely is clicked one child at a time and would
+  get "zaliczka wpłynęła" between two cancellations. Amount remaining = the
+  price of the turnus or camp minus 500 zł; without a price in the panel the
+  email gives no amount, rather than a wrong one.
+- **"Dane do faktury" in the booking panel** (`InvoicePanel`, when the parent
+  ticks the invoice): the parent with address or a company (name, NIP,
+  address), the child, birth date, the date, the entry in the organisers'
+  register (`CAMP_ORGANISER_REGISTRY`) and the camp's number in the Kuratorium
+  (the `kuratoriumNumber` field of the date, entered by the school; without a
+  number — a link to the date, since 24.10.2026). Krzysiek issues the invoice
+  himself in his program (to a company — through KSeF, 22.10.2026).
+- **Invoice to a company in the registration form** (since 22.10.2026): under
+  "Potrzebuję faktury" the field "Na firmę", and under it name, NIP and address
+  — shown by CSS alone (`group-has-[…:checked]`), so they work without JS. NIP
+  checked with the check digit (`checkNip`), saved without dashes
+  (`normalizeNip`). **A hidden field does not block submission**:
+  `stopInvalidSubmit` skips invisible fields (`checkVisibility()`) — without
+  this the empty company fields stopped every form without an invoice. The
+  server checks them only with an invoice to a company.
+- **Contract (step 4, since 22.10.2026)**: the text from Krzysiek's template
+  with his corrections (`lib/campContract.ts`, pure, tested), PDF through
+  `pdf-lib` + `@pdf-lib/fontkit` with the Inter font from `public/fonts/`
+  (Polish characters; read from `process.cwd()`, rule 15). **The font is
+  embedded in full** — the subset from fontkit lost glyphs (the text copied, on
+  the page there were holes). This is guarded by `contractPdf.test.ts` (since
+  25.10.2026): both fonts in the PDF have the size of the files in
+  `public/fonts/`, every character of the contract (also from names with Polish
+  letters) has a glyph in Inter, the signature from the panel is in the PDF, and
+  without it the contract is still created. Each of the three tests checked red
+  on deliberately broken code. One contract per sign-up, it goes AS AN
+  ATTACHMENT to the email with the transfer details — the day of sending = the
+  day of conclusion, the 7 days of the deposit count from it. On sending, the
+  booking gets `contractSentAt` and `contractPrice`: the date of conclusion and
+  the price in a contract downloaded later stay the same, even after a price
+  change in the panel; the rest (parent, address, list of children) is built
+  from the booking's current data on every download. Without a price for the
+  turnus the contract does not go — the transfer email does, and the school
+  sees it in "Maile, które nie doszły" (the reason as text: `recordEmailIssue`
+  with a string saves it unchanged). Download: the school
+  `/api/bookings/:id/contract` (a button in `RegistrationPanel`; before sending
+  a preview with today's date), the parent `/obozy/rejestracja/umowa?token=`
+  (a link in "Moje konto", only after sending) — `Cache-Control: private,
+  no-store`. The parent sends the signed copy back to `obozy@`
   (`CONTRACT_RETURN_EMAIL`).
-- **Pieczątka z podpisem NIE jest w repo** (repo jest publiczne): wgrywa się
-  ją raz na każdym serwerze w „Ustawieniach obozów” (global `camp-config`),
-  do kolekcji `private-files` — czyta tylko szkoła, także sam plik
-  (`/api/private-files/file/…` → 403 bez konta szkoły). Pliki leżą
-  w `uploads/private` (ten sam wolumen, więc kopia nocna je obejmuje).
-  **Celowo bez wpisu w `localPatterns` i bez bloku nginx** (wyjątek od
-  zasady 23): nic z tej kolekcji nie jest pokazywane na stronie, a długi
-  cache byłby odwrotnością celu. Za to odpowiedź z plikiem ma jawne
-  `Cache-Control: private, no-store` (`modifyResponseHeaders`, od
-  22.10.2026): Payload nie wysyła żadnego, a Cloudflare trzyma `.png` bez
-  tego nagłówka na swoim brzegu — pobranie przez konto szkoły oddałoby
-  podpis każdemu pytającemu o ten adres. Bez wybranego podpisu umowa
-  wychodzi z pustym miejscem na podpis organizatora, a zapis dostaje notkę
-  („Mail, który nie doszedł” na pulpicie). **Usunięcie pliku w „Plikach
-  prywatnych” samo czyści pole w „Ustawieniach obozów”** (klucz obcy) —
-  znalezione przy audycie 22.10.2026: nowy plik wgrany, stary usunięty,
-  umowy szły bez podpisu i nikt by o tym nie wiedział.
-- **„Stwórz nowy” zaczyna od rodzaju listy, z której przyszedłeś** (od
-  25.10.2026, `BookingKindField`): Payload otwiera goły formularz, który
-  zaczynał zawsze od „kurs”. Lista zapamiętuje swoją połowę w
-  `sessionStorage` (`BookingsListDescription`, `LAST_LIST_KIND_KEY`), pole
-  ustawia ją TYLKO w nowym zapisie (`kindForNewBooking`); zablokowana pamięć
-  przeglądarki = domyślny „kurs”, jak dawniej.
-- **„Zduplikuj” zapisu obozowego = nowe dziecko** (od 22.10.2026): tak
-  szkoła dopisze rodzeństwo przez telefon. Kopia zostawia rodzica, kontakt
-  i turnus, a zeruje wszystko, co należało do PIERWSZEGO dziecka
-  (`beforeDuplicate` na polach): status (wraca na „zgłoszony” — kopia
-  opłaconego zapisu była „opłacona”), token formularza (inaczej kopia weszłaby
-  do cudzego formularza i umowy), „formularz wypełniony”, datę urodzenia,
-  zgodę na zdjęcia, termin zaliczki, umowę i notkę o mailu. To samo przy
-  terminie: kopia turnusu nie dziedziczy numeru z Kuratorium ani znacznika
-  „szkic przed obozem zrobiony”. Payload kopiuje przy duplikacie także pola
-  `hidden` — nowe pole zapisu albo terminu: zdecyduj, czy kopia ma je mieć.
-- **Mail przed obozem** (od 22.10.2026, `lib/campPreCamp.ts` czysty,
-  `lib/campPreCampDrafts.ts` w dziennym sprzątaniu): `preCampReminderDays`
-  (domyślnie 16, „Ustawienia obozów”) przed turnusem system zakłada SZKIC
-  wysyłki do jego rodziców z tekstem standardowym Krzyśka (edytowalny tam
-  samo; pusta linia = akapit, „- ” = punkt listy) i mailem mówi o tym
-  `CAMP_EMAIL`. **Sam nie wysyła nic** — miejsce zbiórki, daty i godziny są
-  w nawiasach do uzupełnienia. System wpisuje sam nazwę obozu i linię
-  o śpiworze (tylko gdy obóz ma „własne śpiwory”). Raz na turnus
-  (`preCampDraftAt`, oznaczany po założeniu szkicu, przed mailem); turnus
-  bez nikogo z miejscem czeka do następnego dnia.
-  - **„Wyślij” odmawia, dopóki w treści został `[nawias]`** (od 22.10.2026,
-    `unfilledPlaceholders` w `lib/broadcasts.ts`, w KAŻDEJ wysyłce): temat
-    i treść, wersja angielska tylko gdy pójdzie. Krzysiek może szkic zmienić
-    w całości albo usunąć — blokuje wyłącznie to, co zostało w nawiasach.
-    „Wyślij próbnie” działa, żeby mógł zobaczyć szkic u siebie.
-  - **Pusta karta kwalifikacyjna w załączniku** (od 22.10.2026): PDF
-    w „Ustawieniach obozów” (`qualificationCard`, plik w `private-files`,
-    które od tego dnia przyjmują też PDF), w szkicu pole „Dołącz kartę
-    kwalifikacyjną” zaznaczone przez system. Bez karty w PDF „Wyślij”
-    i „Wyślij próbnie” odmawiają z instrukcją. Mail z kartą ma na górze ramkę
-    „W ZAŁĄCZNIKU: PUSTA KARTA KWALIFIKACYJNA” (`CARD_ATTACHED`, pole
-    `callout` w `layout.ts`, od 24.10.2026) — dokłada ją system, nie tekst
-    szkoły. Typ pliku sprawdza wysyłka, nie
-    `filterOptions` pola: Payload sprawdza je uprawnieniami żądania, więc
-    zapis bez zalogowanego konta szkoły (dane testowe) był odrzucany.
-  - **Wysyłka do turnusu obozu = mail obozowy**: nadawca „ABC Wspinania ·
-    Obozy” i `replyTo` na `CAMP_EMAIL` (`campTurnus` w `broadcastSender.ts`).
-    Do 22.10.2026 każda wysyłka miała zwykłego nadawcę i odpowiedzi na
-    `ADMIN_NOTIFY_EMAIL` — odpowiedzi rodziców nie trafiałyby na `obozy@`,
-    a filtr Gmaila przekazywałby mail przed obozem Krzyśkowi jak kursowy.
-- **Pulpit dzieli kafelki na kursy i obozy** (`SchoolDashboard`); przy obozach
-  dodatkowo „Bez formularza” (miejsce jest, formularza nie ma) i „Zaliczka po
-  terminie” — to, za czym Krzysiek dzwoni.
-- **Excel turnusu obozu ma własne kolumny** (`campTable` w
-  `lib/sessionExport.ts`): dziecko, data urodzenia, wzrost, uczulenia, leki,
-  dieta, choroby, zgoda na zdjęcia, status, formularz, termin zaliczki,
-  rodzic z telefonem i adresem, faktura. Dane o zdrowiu wychodzą w tym pliku
-  CELOWO (lista na obóz); kopia pobrana na komputer szkoły nie znika sama.
-- **„Moje konto” rodzica**: przy zapisie obozowym imię dziecka, link do
-  formularza („Wypełnij” / „Popraw”), „Pobierz umowę” (po jej wysłaniu;
-  zwykły `<a>`, nie `next/link`, który prefetchowałby plik) i stan płatności
-  (`paymentLine`) — link z tokenem tylko dla zapisów własnego konta.
-- **Polityka prywatności PL i EN** (wersja 2026-10-22) opisuje zapis dziecka,
-  formularz rejestracyjny (PESEL i zdrowie na zgodę z art. 9 ust. 2 lit. a,
-  kasowane miesiąc po obozie), zgodę na zdjęcia, adres rodzica i dane firmy
-  do faktury.
-- **Mail „Ustaw hasło do konta” po zapisie na obóz to mail obozowy**
-  (od 25.10.2026, `lib/campAccountEmails.ts`): nadawca „ABC Wspinania ·
-  Obozy”, odpowiedzi na `CAMP_EMAIL` — jak reszta maili z zapisu na obóz,
-  a filtr przekazywania w testach puszcza tylko kursowe. Ten sam mail po
-  kursie idzie od zwykłego nadawcy; link potwierdzający i inne maile o
-  koncie zostają zwykłe. Poza `actions.ts`, bo każdy eksport pliku
-  `"use server"` to akcja, którą może wywołać każdy.
-- **Maile o statusie zapisu obozowego mówią o obozie i dziecku**
-  (`campStatusEmail`), nie o kursie, i mają `replyTo` na `CAMP_EMAIL`.
-- **Testy integracyjne nie wołają przez HTTP niczego, co wysyła mail** —
-  serwer deweloperski ma prawdziwy klucz Brevo. „Wyślij link” sprawdza się
-  w procesie testów (`registrationLinkHandler`), przez HTTP tylko odmowę.
-- Nowe pola osoby trafiają w trzy miejsca naraz: anonimizacja
-  (`anonymizeExpiredBookings`), kopia danych (`personErasure.ts`, lista
-  dozwolonych pól) i jej dokument (`personDataDocument.ts`).
+- **The stamp with signature is NOT in the repo** (the repo is public): it is
+  uploaded once on every server in "Ustawienia obozów" (the `camp-config`
+  global), to the `private-files` collection — read only by the school, the
+  file itself too (`/api/private-files/file/…` → 403 without a school account).
+  Files sit in `uploads/private` (the same volume, so the nightly backup covers
+  them). **Deliberately without a `localPatterns` entry and without an nginx
+  block** (an exception to rule 23): nothing from this collection is shown on
+  the site, and a long cache would be the opposite of the goal. Instead the
+  response with the file has an explicit `Cache-Control: private, no-store`
+  (`modifyResponseHeaders`, since 22.10.2026): Payload sends none, and
+  Cloudflare keeps a `.png` without this header at its edge — a download by the
+  school account would hand the signature to anyone asking for that address.
+  Without a chosen signature the contract goes out with an empty space for the
+  organiser's signature, and the booking gets a note ("Mail, który nie doszedł"
+  on the dashboard). **Deleting the file in "Pliki prywatne" clears the field in
+  "Ustawienia obozów" by itself** (foreign key) — found in the audit of
+  22.10.2026: a new file uploaded, the old one deleted, contracts went without a
+  signature and nobody would have known.
+- **"Stwórz nowy" starts from the kind of the list you came from** (since
+  25.10.2026, `BookingKindField`): Payload opens a bare form that always started
+  from "kurs". The list remembers its half in `sessionStorage`
+  (`BookingsListDescription`, `LAST_LIST_KIND_KEY`), the field sets it ONLY in a
+  new booking (`kindForNewBooking`); blocked browser storage = the default
+  "kurs", as before.
+- **"Zduplikuj" on a camp booking = a new child** (since 22.10.2026): this is
+  how the school adds a sibling by phone. The copy keeps the parent, the
+  contact and the turnus, and resets everything that belonged to the FIRST
+  child (`beforeDuplicate` on the fields): status (back to "zgłoszony" — a copy
+  of a paid booking was "opłacony"), the form token (otherwise the copy would
+  enter someone else's form and contract), "formularz wypełniony", birth date,
+  photo consent, deposit deadline, contract and the email note. The same with a
+  date: a copy of a turnus does not inherit the Kuratorium number or the marker
+  "szkic przed obozem zrobiony". Payload also copies `hidden` fields on
+  duplicate — a new field on a booking or a date: decide whether the copy
+  should have it.
+- **The email before a camp** (since 22.10.2026, `lib/campPreCamp.ts` pure,
+  `lib/campPreCampDrafts.ts` in the daily sweep): `preCampReminderDays`
+  (default 16, "Ustawienia obozów") before the turnus the system creates a
+  DRAFT broadcast to its parents with Krzysiek's standard text (editable in the
+  same place; an empty line = a paragraph, "- " = a list item) and tells
+  `CAMP_EMAIL` about it by email. **It sends nothing by itself** — the meeting
+  place, dates and times are in brackets to be filled in. The system fills in
+  the camp's name and the line about the sleeping bag (only when the camp has
+  "własne śpiwory"). Once per turnus (`preCampDraftAt`, marked after the draft
+  is created, before the email); a turnus with nobody holding a place waits
+  until the next day.
+  - **"Wyślij" refuses while a `[bracket]` remains in the text** (since
+    22.10.2026, `unfilledPlaceholders` in `lib/broadcasts.ts`, in EVERY
+    broadcast): subject and text, the English version only when it will go out.
+    Krzysiek can change the draft entirely or delete it — only what stayed in
+    brackets blocks. "Wyślij próbnie" works, so he can see the draft himself.
+  - **The empty qualification card as an attachment** (since 22.10.2026): a PDF
+    in "Ustawienia obozów" (`qualificationCard`, a file in `private-files`,
+    which from that day also accept PDF), in the draft the field "Dołącz kartę
+    kwalifikacyjną" ticked by the system. Without the card as PDF "Wyślij" and
+    "Wyślij próbnie" refuse with instructions. An email with the card has at the
+    top the box "W ZAŁĄCZNIKU: PUSTA KARTA KWALIFIKACYJNA" (`CARD_ATTACHED`, the
+    `callout` field in `layout.ts`, since 24.10.2026) — added by the system, not
+    by the school's text. The file type is checked by the sending, not by the
+    field's `filterOptions`: Payload checks those with the request's
+    permissions, so a save without a logged-in school account (test data) was
+    rejected.
+  - **A broadcast to a camp turnus = a camp email**: sender "ABC Wspinania ·
+    Obozy" and `replyTo` to `CAMP_EMAIL` (`campTurnus` in `broadcastSender.ts`).
+    Until 22.10.2026 every broadcast had the ordinary sender and replies to
+    `ADMIN_NOTIFY_EMAIL` — parents' replies would not reach `obozy@`, and the
+    Gmail filter would forward the pre-camp email to Krzysiek like a course one.
+- **The dashboard splits tiles into courses and camps** (`SchoolDashboard`);
+  with camps additionally "Bez formularza" (there is a place, there is no form)
+  and "Zaliczka po terminie" — what Krzysiek calls about.
+- **A camp turnus's Excel has its own columns** (`campTable` in
+  `lib/sessionExport.ts`): child, birth date, height, allergies, medication,
+  diet, illnesses, photo consent, status, form, deposit deadline, parent with
+  phone and address, invoice. Health data goes out in this file DELIBERATELY
+  (the list for the camp); a copy downloaded to the school's computer does not
+  disappear by itself.
+- **The parent's "Moje konto"**: on a camp booking the child's name, a link to
+  the form ("Wypełnij" / "Popraw"), "Pobierz umowę" (after it was sent; a plain
+  `<a>`, not `next/link`, which would prefetch the file) and the payment state
+  (`paymentLine`) — the link with the token only for the account's own bookings.
+- **Privacy policy PL and EN** (version 2026-10-22) describes the child's
+  booking, the registration form (PESEL and health on consent under Art. 9(2)(a),
+  deleted a month after the camp), photo consent, the parent's address and the
+  company data for the invoice.
+- **The "Ustaw hasło do konta" email after a camp booking is a camp email**
+  (since 25.10.2026, `lib/campAccountEmails.ts`): sender "ABC Wspinania ·
+  Obozy", replies to `CAMP_EMAIL` — like the rest of the camp booking emails,
+  and the forwarding filter in testing lets through only course ones. The same
+  email after a course goes from the ordinary sender; the confirmation link and
+  other account emails stay ordinary. Outside `actions.ts`, because every export
+  of a `"use server"` file is an action anyone can call.
+- **Camp booking status emails talk about the camp and the child**
+  (`campStatusEmail`), not the course, and have `replyTo` to `CAMP_EMAIL`.
+  "Potwierdzony" sends "Miejsce potwierdzone: …" — information only, nothing
+  depends on it.
+- **Integration tests do not call over HTTP anything that sends email** — the
+  development server has the real Brevo key. "Wyślij link" is checked in the
+  test process (`registrationLinkHandler`), over HTTP only the refusal.
+- New person fields go to three places at once: anonymisation
+  (`anonymizeExpiredBookings`), the data copy (`personErasure.ts`, the allow list
+  of fields) and its document (`personDataDocument.ts`).
 
-## Panel szkoły — pulpit, szybki status, eksport
+## School panel — dashboard, quick status, export
 
-Od 03.10.2026 (etap 3). Własne elementy panelu w `src/components/admin/`,
-podpięte ścieżkami w configu — **po dodaniu albo przeniesieniu któregoś:
-`npm run generate:importmap`** (plik `importMap.js` jest generowany,
-zasada 25), inaczej panel nie znajdzie komponentu.
+Since 03.10.2026 (stage 3). Custom panel elements in `src/components/admin/`,
+hooked up by paths in the config — **after adding or moving one of them:
+`npm run generate:importmap`** (the `importMap.js` file is generated, rule 25),
+otherwise the panel will not find the component.
 
-- **Pulpit „Do zrobienia”** (`SchoolDashboard`, `admin.components.
-  beforeDashboard`): nowe zgłoszenia, potwierdzone (czekają na zaliczkę),
-  lista rezerwowa, maile, które nie doszły, nowe wiadomości — każda liczba to link do listy
-  przefiltrowanej przez `?where[...]` w adresie; pod spodem 12 najbliższych
-  terminów z obłożeniem „zajęte / limit” i linkami do zapisanych i Excela.
-- **„Pulpit” na górze menu panelu** (`DashboardNavLink`,
-  `admin.components.beforeNavLinks`, od 18.10.2026). Payload wraca na pulpit
-  tylko przez małe logo nad tytułem strony (dymek „Panel”), a jego menu nie
-  ma takiej pozycji — kto pierwszy raz otworzył „Zapisy”, nie wiedział, jak
-  wrócić do „Do zrobienia”. Znaczniki i klasy jak w linkach Payloada
-  (`nav__link`), więc przy jego podbiciu sprawdzić, czy menu ich nie zmieniło.
-  Logo w rogu zostaje Payloada: własne `graphics.Icon` rysuje też obrazek
-  podglądu `/api/og`, gdzie obrazek z adresu względnego się nie wczyta.
-- **Lista zapisów po terminach** (od 24.10.2026): linki „Zapisy na kursy /
-  na obozy” w menu (`BookingsNavLinks`, warunki `bookingsMenuConditions`, adres
-  z `lib/adminListUrl.ts`) i kafelki pulpitu (`lib/dashboardConditions.ts` —
-  te same warunki liczą i filtrują) otwierają ją
-  posortowaną po `sessionStart`, od miesiąca wstecz (`LIST_DAYS_BACK`), po
-  100 wierszy — wcześniej najnowsze zapisy na górze mieszały wszystkie
-  terminy. **Parametry w adresie, nie tylko w `defaultSort`**: Payload
-  zapamiętuje każdemu ostatnie sortowanie i liczbę wierszy i to one wygrywają
-  z ustawieniami kolekcji (zmierzone: `limit: 10` z preferencji).
-  `sessionStart` to KOPIA daty terminu (hook etykiety zapisu i `afterChange`
-  w `Sessions`, przez `db.updateMany`): sortowanie po `session.startDate`
-  działa w Local API, ale warunku po polu relacji filtr panelu nie pokazuje —
-  działałby niewidocznie. Z tego samego powodu warunki w linku to jedno
-  `where[and][N]…`, jedno pole na warunek (`whereParams` odmawia innego):
-  płaskie `where[a]…&where[b]…` albo zagnieżdżone `and` filtr pokazuje jako
-  mniej warunków, niż działa — lista trojga dzieci wyglądała jak cała lista.
-  NIE `where[or][0][and][N]` (format samego filtra): przy nim Payload
-  rozwija „Filtry” przy każdym otwarciu listy (`validateWhereQuery`
-  w `ListControls`). Test przechodzi przez każdy kafelek.
-  Grupowanie Payloada (`admin.groupBy`, beta)
-  odrzucone: 10 wierszy na grupę i grupy w kolejności id terminu. Migracja
-  `bookings_session_start` wypełnia kopię w istniejących zapisach (ręczny
-  `UPDATE` — nie kasować przy sklejaniu migracji). Opis pod
-  nagłówkiem mówi, gdzie jesteś (`describeBookingsList` w
-  `lib/bookingsList.ts`): połowa (kursy/obozy) i widok — który kafelek, menu,
-  jeden termin albo filtry ręczne — rozpoznany z SAMYCH warunków w adresie,
-  nie ze znacznika: zmiana filtra zmienia opis; pod spodem, kiedy status
-  wysyła maila.
-  Kolumny: „Uczestnik” (`participant` — dziecko przy obozie, osoba przy
-  kursie; składany z etykietą, w formularzu ukryty) i „Termin” osobno —
-  jedna etykieta z oboma czytała się źle. `participant` to dane osoby:
-  czyści go anonimizacja; w kopii danych go nie ma (to samo co imiona).
-  Linki z menu niosą też `columns` — kolumny wybrane ręcznie wracają do
-  tych przy następnym kliknięciu w menu.
-- **Status jako lista rozwijana na liście zapisów** (`BookingStatusCell`).
-  Zapisuje przez REST, więc działa wszystko, co idzie za zmianą statusu
-  (mail, przeliczenie miejsc). Status wysyłający kursantowi maila pyta
-  najpierw — klik w zły wiersz nie może wysłać „zapis anulowany”. To samo dla
-  wiadomości z formularza (`MessageStatusCell`, od 10.10.2026: nowa → w toku →
-  załatwiona jednym kliknięciem, bez pytania — nikt nie dostaje maila). Wspólny
-  komponent: `StatusSelectCell`.
-- **Eksport uczestników terminu** — `GET /api/sessions/:id/export`
-  (`lib/sessionExport.ts`), przycisk na stronie terminu. Tylko konto szkoły.
-  CSV pod POLSKIEGO Excela (`lib/csv.ts`): BOM (inaczej „Å»aneta”), średnik,
-  komórki zaczynające się od `= + - @` z apostrofem (formuła wpisana
-  w formularz nie wykona się u Krzyśka), telefon jako `="+48 600 …"` (bez
-  tego Excel robi z niego liczbę bez plusa).
-- **Każde widoczne pole daty ma `displayFormat`** (`d.MM.yyyy` albo
-  `d.MM.yyyy, HH:mm`). Bez niego Payload pokazuje datę po amerykańsku
-  („10/23/2026”) — mimo polskiego panelu. Znalezione 24.10.2026 przy
-  „Dacie zgody” w formularzu rejestracyjnym; poprawione we wszystkich
-  kolekcjach. Pole `hidden` go nie potrzebuje. Daty na listach i „Utworzono”
-  biorą `admin.dateFormat` z `payload.config.ts` — domyślny Payloada dawał
-  „października 23 2026, 2:05 PM”.
-- **`@payloadcms/ui` tylko jako JAWNA zależność** (od 12.10.2026 w
-  `package.json`, przypięta co do numeru jak reszta Payloada, grupa `payload`
-  w Dependabocie). Do tego dnia była wyłącznie zależnością Payloada i import
-  działałby przypadkiem. Weszła dla `useFormModified` w panelu wysyłek; gdzie
-  wystarcza adres (id terminu w eksporcie), zostaje adres.
-
----
-
-## Wysyłki i newsletter
-
-Od 03.10.2026 (etap 5). Kolekcja `Broadcasts` („Wysyłki”, grupa „Zapisy”),
-logika w `lib/broadcasts.ts` (czyste funkcje) i `lib/broadcastSender.ts`
-(odbiorcy, kolejka, endpointy), newsletter w `lib/newsletter.ts`.
-
-- **Trzy grupy odbiorców:** zapisani na jeden termin, wszyscy z nadchodzącymi
-  zapisami (termin od dziś, status `open`/`waitlist`), newsletter (tylko
-  `subscribed`). Domyślnie osoby z miejscem (`ACTIVE_STATUSES`); lista
-  rezerwowa po zaznaczeniu „Także lista rezerwowa” (decyzja 03.10.2026).
-  Jeden mail na adres — para z jednym adresem dostaje jeden.
-- **Lista odbiorców USTALANA w chwili „Wyślij”** — wiersz w
-  `broadcast-deliveries` na adres, w transakcji z blokadą na wysyłkę
-  (`pg_advisory_xact_lock(7303, id)`). Zmierzone 03.10.2026: dwa kliknięcia
-  naraz — jedno 200, drugie 409, dwa wiersze, nie cztery.
-- **Wysyła zegar w procesie serwera** (`instrumentation.ts`, co 20 s, 20
-  maili na takt), nie kolejka zadań Payloada — powód jak przy sprzątaniu
-  kont. Każdy wiersz oznaczany jako wysłany dopiero PO przyjęciu przez Brevo;
-  przyjęte ryzyko: awaria dokładnie między tymi krokami wyśle jeden mail
-  dwa razy. **Zegar startuje tylko przy starcie serwera** — po zmianie
-  w `instrumentation.ts` lokalnie trzeba zrestartować `npm run dev`.
-- **Jeden takt kolejki naraz — dwie blokady.** Flaga na `globalThis`
-  (zegar i endpoint „Wyślij” Next pakuje osobno; flaga w module dawała
-  dwie kopie i — zmierzone 04.10.2026 — 20 maili do 10 adresów) oraz
-  `pg_try_advisory_xact_lock(7304)` na cały takt, wspólny dla WSZYSTKICH
-  procesów: drugiej instancji albo testów integracyjnych kolejkujących do
-  bazy, nad którą tyka serwer deweloperski z prawdziwym kluczem Brevo.
-- **Jedna zepsuta wysyłka nie może zatrzymać kolejki.** Znalezione
-  05.10.2026: wysyłka „w trakcie”, której termin usunięto (Postgres
-  wyczyścił pole), nie przechodziła walidacji „Wybierz termin” przy zapisie
-  własnych liczników — każdy takt padał, a z nim wszystkie wysyłki za nią.
-  Teraz termin jest wymagany tylko w szkicu, każda wysyłka w takcie ma
-  własny `catch`, a bez terminu notka pod mailem jest ogólna.
-- **Błędy wysyłki** (`classifySendError`): dzienny limit Brevo (401/402/403/429,
-  „credit/limit/quota”) albo odrzucony klucz WSTRZYMUJĄ wysyłkę na godzinę
-  i wznawiają ją same; odrzucony adres — błąd tylko tego wiersza; sieć i 5xx
-  — ponowienie za 10 min, do 5 prób. Darmowy plan Brevo = 300 maili dziennie
-  łącznie ze wszystkimi innymi mailami strony.
-- **„Wyślij” i „Wyślij próbnie” wyłączone przy niezapisanych zmianach**
-  (od 12.10.2026, `BroadcastPanel`, `useFormModified`): endpointy czytają
-  ZAPISANĄ wersję, więc dopisana i niezapisana wersja angielska wychodziła
-  bez niej (zgłoszone przy testach). Edytor treści zgłasza zmianę dopiero,
-  gdy przeglądarka jest bezczynna (do 500 ms) — dlatego po kliknięciu panel
-  czeka 700 ms i sprawdza jeszcze raz. Sprawdzone w przeglądarce: kliknięcie
-  zaraz po wpisaniu kończy się „Nic nie wysłano”.
-- **Kopia z „Zduplikuj” nie wychodzi bez przejrzenia** (od 12.10.2026,
-  pole `copyUnreviewed`): Payload zapisuje kopię od razu, więc jedno
-  „Wyślij” wysyłało tę samą wiadomość drugi raz (zgłoszone przy testach).
-  Hook `beforeChange` kolekcji rozpoznaje kopię po `originalDoc` przy
-  `create` (Payload podaje tam oryginał — BEZ id, usuwa je przed hookami;
-  przy zwykłym tworzeniu pusty obiekt); pierwszy zapis albo „Sprawdzone”
-  w panelu (bo „Zapisz” Payloada jest wyłączone na formularzu bez zmian)
-  zdejmuje znacznik. `sendHandler` odmawia też sam (409). Próbna wysyłka
-  kopii działa.
-- **Wysłanej wiadomości nie da się zmienić** (pola z `access.update` tylko dla
-  szkicu + hook `beforeChange`) — ma zostać to, co ludzie dostali. „Zduplikuj” (menu ⋮)
-  daje szkic z wyzerowanymi licznikami (`beforeDuplicate`).
-- **Treść z edytora → mail przez NASZ konwerter** (`lib/email/richText.ts`),
-  nie `@payloadcms/richtext-lexical/html`: style inline (Outlook), każdy tekst
-  przez `escapeHtml`, linki tylko `http(s)`/`mailto`/`tel`. Edytor wysyłek ma
-  okrojone funkcje (bez obrazków, tabel, linków do dokumentów panelu).
-  `layout.ts` przyjmuje gotowy `body` WYŁĄCZNIE z tego konwertera.
-- **Wersja angielska opcjonalna** — idzie do osób z `language = en`, gdy ma
-  i temat, i treść; inaczej polska. Panel ostrzega przed „Wyślij”.
-- **Newsletter z potwierdzeniem (double opt-in, 03.10.2026).** Formularz
-  zapisuje `pending` + token i wysyła link; wysyłki dostają tylko
-  `subscribed`. Adresy sprzed tej daty zostały `subscribed` (ta sama zgoda,
-  zapisana treścią). Niepotwierdzone usuwa dzienne sprzątanie po 7 dniach.
-  Ponowny zapis w ciągu 10 min nie wysyła drugiego maila. Odpowiedź
-  formularza jest jedna dla każdego adresu.
-- **Potwierdzenie i wypisanie PRZYCISKIEM, nie samym linkiem**
-  (`/newsletter/potwierdz`, `/newsletter/wypisz`) — skaner poczty otwiera
-  linki za człowieka; przy koncie to tylko dowód adresu, tu byłaby to zgoda
-  albo jej wycofanie w czyimś imieniu.
-- **Wypisanie jednym kliknięciem z poziomu skrzynki** — nagłówki
-  `List-Unsubscribe` + `List-Unsubscribe-Post` (RFC 8058) na newsletterze,
-  POST na `/api/newsletter/unsubscribe?token=` (endpoint kolekcji, zawsze
-  200). Wiadomości do zapisanych na kurs ich nie mają — to informacja
-  o usłudze, nie marketing. Sprawdzone 03.10.2026: Brevo przyjmuje te nagłówki.
-- **Wypisany zostaje w bazie** (`unsubscribed` + data) — dowód wycofania
-  zgody. Wypisany między „Wyślij” a swoją kolejką jest pomijany (`skipped`).
-- **Limit nginx `site_actions`**: wysłania akcji serwerowych (POST
-  z `Next-Action`) z KAŻDEJ strony — newsletter jest w stopce. **Panel
-  `/admin` wyłączony z limitu**: Payload używa akcji serwerowych przy edycji
-  formularzy i 10/min zablokowałoby pracę.
+- **The "Do zrobienia" dashboard** (`SchoolDashboard`, `admin.components.
+  beforeDashboard`): new sign-ups, confirmed (waiting for the deposit), waiting
+  list, emails that did not get through, new messages — each number is a link
+  to a list filtered through `?where[...]` in the address; below, the 12 nearest
+  dates with occupancy "taken / limit" and links to those booked and to Excel.
+- **"Pulpit" at the top of the panel menu** (`DashboardNavLink`,
+  `admin.components.beforeNavLinks`, since 18.10.2026). Payload returns to the
+  dashboard only through the small logo above the page title (tooltip "Panel"),
+  and its menu has no such item — someone who opened "Zapisy" for the first time
+  did not know how to get back to "Do zrobienia". Markup and classes as in
+  Payload's links (`nav__link`), so on its bump check the menu has not changed
+  them. The logo in the corner stays Payload's: a custom `graphics.Icon` also
+  draws the `/api/og` preview image, where an image from a relative address will
+  not load.
+- **The booking list by dates** (since 24.10.2026): the links "Zapisy na kursy /
+  na obozy" in the menu (`BookingsNavLinks`, conditions
+  `bookingsMenuConditions`, address from `lib/adminListUrl.ts`) and the dashboard
+  tiles (`lib/dashboardConditions.ts` — the same conditions count and filter)
+  open it sorted by `sessionStart`, from a month back (`LIST_DAYS_BACK`), 100
+  rows at a time — before, the newest bookings on top mixed all the dates.
+  **Parameters in the address, not only in `defaultSort`**: Payload remembers
+  each user's last sort and row count, and those win over the collection's
+  settings (measured: `limit: 10` from preferences). `sessionStart` is a COPY of
+  the date's start (the booking label hook and `afterChange` in `Sessions`,
+  through `db.updateMany`): sorting by `session.startDate` works in the Local
+  API, but the panel filter does not show a condition on a relationship field —
+  it would work invisibly. For the same reason the conditions in the link are one
+  `where[and][N]…`, one field per condition (`whereParams` refuses anything
+  else): a flat `where[a]…&where[b]…` or a nested `and` the filter shows as fewer
+  conditions than it applies — a list of three children looked like the whole
+  list. NOT `where[or][0][and][N]` (the filter's own format): with it Payload
+  expands "Filtry" every time the list opens (`validateWhereQuery` in
+  `ListControls`). A test goes through every tile. Payload's grouping
+  (`admin.groupBy`, beta) rejected: 10 rows per group and groups in order of the
+  date's id. The `bookings_session_start` migration fills the copy in existing
+  bookings (a hand-written `UPDATE` — do not delete when squashing migrations).
+  The description under the heading says where you are (`describeBookingsList`
+  in `lib/bookingsList.ts`): the half (courses/camps) and the view — which tile,
+  the menu, one date or manual filters — recognised from the conditions in the
+  address ALONE, not from a marker: changing a filter changes the description;
+  below it, when a status sends an email. Columns: "Uczestnik" (`participant` —
+  the child on a camp, the person on a course; composed with the label, hidden
+  in the form) and "Termin" separately — one label with both read badly.
+  `participant` is personal data: anonymisation clears it; it is not in the data
+  copy (the same as the names). The menu links also carry `columns` — columns
+  chosen by hand go back to these on the next click in the menu.
+- **Status as a dropdown on the booking list** (`BookingStatusCell`). Saves
+  through REST, so everything that follows a status change works (email,
+  recounting places). A status that sends an email to the participant asks first
+  — a click on the wrong row must not send "zapis anulowany". The same for
+  contact form messages (`MessageStatusCell`, since 10.10.2026: new → in progress
+  → done with one click, without asking — nobody gets an email). Shared
+  component: `StatusSelectCell`.
+- **Export of a date's participants** — `GET /api/sessions/:id/export`
+  (`lib/sessionExport.ts`), a button on the date's page. School account only.
+  CSV for POLISH Excel (`lib/csv.ts`): BOM (otherwise "Å»aneta"), semicolon,
+  cells starting with `= + - @` get an apostrophe (a formula typed into the form
+  will not run on Krzysiek's computer), phone as `="+48 600 …"` (without it Excel
+  makes it a number without the plus).
+- **Every visible date field has `displayFormat`** (`d.MM.yyyy` or
+  `d.MM.yyyy, HH:mm`). Without it Payload shows the date American-style
+  ("10/23/2026") — despite the Polish panel. Found 24.10.2026 on "Data zgody" in
+  the registration form; fixed in all collections. A `hidden` field does not
+  need it. Dates on lists and "Utworzono" take `admin.dateFormat` from
+  `payload.config.ts` — Payload's default gave "października 23 2026, 2:05 PM".
+- **`@payloadcms/ui` only as an EXPLICIT dependency** (since 12.10.2026 in
+  `package.json`, pinned to the exact number like the rest of Payload, the
+  `payload` group in Dependabot). Until that day it was only Payload's
+  dependency and the import would have worked by accident. It came in for
+  `useFormModified` in the broadcasts panel; where an address is enough (the
+  date id in the export), the address stays.
 
 ---
 
-## Maile (Brevo)
+## Broadcasts and newsletter (Wysyłki i newsletter)
 
-Od 01.10.2026 aplikacja wysyła maile przez **Brevo, przez jego HTTP API**
-(`src/lib/email/brevo.ts`), a nie przez SMTP.
+Since 03.10.2026 (stage 5). The `Broadcasts` collection ("Wysyłki", group
+"Zapisy"), logic in `lib/broadcasts.ts` (pure functions) and
+`lib/broadcastSender.ts` (recipients, queue, endpoints), the newsletter in
+`lib/newsletter.ts`.
 
-- **Własny łącznik, nie `@payloadcms/email-nodemailer`.** Zmierzone 01.10.2026:
-  oficjalny adapter ciągnie `nodemailer` 9.1.1 z dwoma zgłoszeniami **high**,
-  a bramka `npm audit --audit-level=high` zatrzymałaby każdy PR. Poprawka jest
-  w nodemailer 10, którego adapter nie przyjmuje. Wrócić do oficjalnego, gdy
-  przejdzie na nodemailer ≥ 10.0.6 — wtedy zmiana dostawcy to konfiguracja.
-- **⚠️ Brevo dokleja WŁASNY nagłówek wypisania do każdego maila, który go nie
-  ma** (także transakcyjnego; wyłączenie tylko na planie Enterprise).
-  Znalezione 21.10.2026 w nagłówkach maila próbnego: Gmail pokazuje go jako
-  „Anuluj subskrypcję”, a kliknięcie wpisuje adres na listę wypisanych
-  w Brevo — potem Brevo przyjmuje nasze maile do tej osoby i PO CICHU ich nie
-  doręcza (potwierdzenia, statusy, nowe hasło), a aplikacja nie wie. Nagłówek
-  podany przez nas zastępuje ten Brevo (sprawdzone tego samego dnia), więc
-  adapter (`withServiceUnsubscribe` w `lib/email/brevo.ts`) daje każdemu
-  mailowi bez własnego nasz: `/o-mailach/wypisz` — GET prowadzi na stronę
-  z wyjaśnieniem, POST (jedno kliknięcie Gmaila; `List-Unsubscribe-Post`
-  dokłada Brevo) odpowiada 200 i niczego nie zmienia. Newsletter zostaje przy
-  swoim prawdziwym wypisaniu. Przycisk w Gmailu zostaje — bez żadnego
-  nagłówka wróciłby ten z Brevo.
-- **Bez `BREVO_API_KEY` maile idą do konsoli** (Payload ostrzega przy starcie).
-  Celowo: lokalnie i w CI nikt nie dostanie maila przez przypadek.
-- **Nadawca musi być na domenie uwierzytelnionej w Brevo** (SPF + DKIM +
-  DMARC). Dziś `zapisy@szkolawspinaczkowa.pl` — rekordy w Cloudflare,
-  sprawdzone 01.10.2026: SPF, DKIM i DMARC `PASS` w Gmailu. Adres nadawcy
-  wygrywa zawsze, nawet gdy kod poda inny `from` — obcy adres nie przejdzie
-  SPF/DKIM i trafi do spamu albo zostanie odrzucony.
-  **Przy przełączeniu na `abcwspinania.info`**: uwierzytelnić tę domenę
-  w Brevo i zmienić `EMAIL_FROM` w `deploy/.env` — bez nowego obrazu.
-- **Domena nadawcy nie ma skrzynki** (brak rekordu MX). Odpowiedź na mail
-  „od” `zapisy@` nie dojdzie nigdzie — dlatego każdy mail, na który ktoś może
-  odpisać, MUSI mieć `replyTo` (powiadomienie o wiadomości: osoba pisząca).
-- **⚠️ Śledzenia w Brevo nie da się wyłączyć — jest zanonimizowane.** Brevo
-  wstawia piksel otwarcia i przepisuje każdy link przez swój serwer; w API
-  nie ma przełącznika (pełne wyłączenie według forum Brevo: tylko na prośbę
-  albo w planie Enterprise). Decyzja z 01.10.2026: zostajemy przy
-  anonimizacji — `contactPixelTrackingConsent: false` przy każdym odbiorcy
-  (w kodzie) **i** „Anonymous email tracking: Yes” na ekranie „Tracking”
-  w ustawieniach Brevo. Ustawienie w panelu jest per konto — **nowe konto
-  Brevo trzeba przestawić ręcznie**; kod chroni i bez tego. Musi to znaleźć
-  się w polityce prywatności.
-- **Mail po zapisie, nie zamiast zapisu.** Hook `afterChange` wysyła po
-  zapisaniu do bazy; błąd wysyłki jest logowany i nie psuje formularza.
-  Brevo niedostępny = wiadomość czeka w panelu, nie ginie.
-- **Dwa języki maili do odwiedzających (PL/EN), domyślnie polski.** Od
-  15.10.2026 każdy, kto języka nie wybrał (zapis bez konta, nowe konto,
-  newsletter), dostaje `DEFAULT_LANGUAGE` = polski; angielski tylko po
-  przestawieniu w „Moim koncie” (albo przez szkołę w panelu). Do tego dnia
-  decydował nagłówek `Accept-Language` (`pickLanguage()`): przeglądarka po
-  angielsku to w Polsce częste ustawienie, nie język osoby, i Polacy dostawali
-  maile po angielsku. `email.test.ts` pilnuje, że żaden kod nie czyta już
-  `accept-language`. Język **zapisujemy przy zgłoszeniu** (`language`), żeby
-  późniejsze maile szły tym samym językiem. Pole w Wiadomościach jest ukryte
-  w panelu (zawsze polski; kolumna zostaje — starsze wiersze mają dawne
-  zgadywanie, a jej usunięcie to migracja). Maile do szkoły są po polsku,
-  **bez dopisku o języku** (do 14.10.2026 był „odpowiedz po angielsku”).
-- **Nagłówek maili: ORYGINALNE logo + nazwa tekstem** (od 12.10.2026,
-  `header()` w `layout.ts`). Logo to PDF klienta bez zmian, wyrenderowany do
-  `public/logo/email-logo.png` (`design/logo/email_logo.py`) — nie dorysowany
-  znak z nagłówka strony. PNG z naszego serwera (`publicUrl()`), bo poczta nie
-  pokazuje SVG; nazwa zostaje tekstem, bo Outlook blokuje obrazki. Lokalnie
-  obrazka nie widać (Gmail nie sięgnie do localhost). Podmiana pliku = nowa
-  nazwa (zasada 13).
-- **Szablony to czyste funkcje** (`src/lib/email/templates.ts`, wygląd
-  w `layout.ts`) — bez Payloada, testowane gołym `node --test`. Każda wartość
-  od odwiedzającego przechodzi przez `escapeHtml` w `layout.ts`; szablon nie
-  składa HTML-a sam. Kolory z `BRAND_COLORS` (`site.ts`).
-- **`serverURL` w `payload.config.ts` jest CELOWO nieustawiony**, mimo
-  ostrzeżenia Payloada „Request origin "" is not in the CORS/CSRF allowlist”.
-  Payload dopisuje `serverURL` do listy CSRF (`payload/dist/config/sanitize.js`),
-  a od tej chwili odrzuca ciasteczko logowania z żądania, którego `Origin`
-  jest spoza listy (`auth/extractJWT.js`) — czyli każdy zapis w panelu
-  otwartym pod inną domeną. `SITE_URL` to domena DOCELOWA,
-  a panel działa dziś pod tymczasową — ustawienie go wylogowałoby panel na
-  `szkolawspinaczkowa.pl`. Bez niego link w mailu resetu hasła bierze domenę
-  z żądania: sprawdzone 01.10.2026, z przeglądarki przychodzi pełny
-  `http://…/admin/reset/…`. Ostrzeżenie i link bez domeny (`/admin/reset/…`)
-  pojawiają się tylko przy wywołaniu z `payload run`, gdzie żądania nie ma.
-- **Limit darmowego planu: 300 maili dziennie.** Przy newsletterze do decyzji
-  Krzyśka płatny plan.
+- **Three recipient groups:** those booked on one date, everyone with upcoming
+  bookings (date from today, status `open`/`waitlist`), the newsletter (only
+  `subscribed`). By default people with a place (`ACTIVE_STATUSES`); the waiting
+  list after ticking "Także lista rezerwowa" (decision 03.10.2026). One email
+  per address — a couple with one address gets one.
+- **The recipient list is FIXED at the moment of "Wyślij"** — a row in
+  `broadcast-deliveries` per address, in a transaction with a lock on the
+  broadcast (`pg_advisory_xact_lock(7303, id)`). Measured 03.10.2026: two clicks
+  at once — one 200, the other 409, two rows, not four.
+- **Sending is done by a timer in the server process** (`instrumentation.ts`,
+  every 20 s, 20 emails per tick), not by Payload's job queue — the reason as
+  with the account sweep. Each row is marked as sent only AFTER Brevo accepts
+  it; accepted risk: a failure exactly between these steps sends one email
+  twice. **The timer starts only at server start** — after a change in
+  `instrumentation.ts`, `npm run dev` has to be restarted locally.
+- **One queue tick at a time — two locks.** A flag on `globalThis` (Next bundles
+  the timer and the "Wyślij" endpoint separately; a flag in the module gave two
+  copies and — measured 04.10.2026 — 20 emails to 10 addresses) and
+  `pg_try_advisory_xact_lock(7304)` on the whole tick, shared by ALL processes:
+  a second instance, or integration tests queuing to the database over which the
+  development server with the real Brevo key ticks.
+- **One broken broadcast must not stop the queue.** Found 05.10.2026: a
+  broadcast "w trakcie" whose date was deleted (Postgres cleared the field) did
+  not pass the "Wybierz termin" validation when saving its own counters — every
+  tick failed, and with it all broadcasts behind it. Now the date is required
+  only in a draft, each broadcast in a tick has its own `catch`, and without a
+  date the note under the email is general.
+- **Sending errors** (`classifySendError`): Brevo's daily limit (401/402/403/429,
+  "credit/limit/quota") or a rejected key PAUSE the broadcast for an hour and
+  resume it by themselves; a rejected address — an error of that row only;
+  network and 5xx — a retry in 10 min, up to 5 attempts. The free Brevo plan =
+  300 emails a day including all other emails of the site.
+- **"Wyślij" and "Wyślij próbnie" disabled with unsaved changes** (since
+  12.10.2026, `BroadcastPanel`, `useFormModified`): the endpoints read the SAVED
+  version, so an added and unsaved English version went out without it
+  (reported in testing). The text editor reports a change only when the browser
+  is idle (up to 500 ms) — that is why after a click the panel waits 700 ms and
+  checks again. Checked in the browser: a click right after typing ends with
+  "Nic nie wysłano".
+- **A copy from "Zduplikuj" does not go out unreviewed** (since 12.10.2026, the
+  `copyUnreviewed` field): Payload saves the copy at once, so one "Wyślij" sent
+  the same message a second time (reported in testing). The collection's
+  `beforeChange` hook recognises a copy by `originalDoc` on `create` (Payload
+  gives the original there — WITHOUT the id, it removes it before the hooks; on
+  ordinary creation an empty object); the first save or "Sprawdzone" in the
+  panel (because Payload's "Zapisz" is disabled on an unchanged form) removes
+  the marker. `sendHandler` also refuses by itself (409). A test send of the copy
+  works.
+- **A sent message cannot be changed** (fields with `access.update` only for a
+  draft + a `beforeChange` hook) — what people received has to stay.
+  "Zduplikuj" (⋮ menu) gives a draft with reset counters (`beforeDuplicate`).
+- **Content from the editor → email through OUR converter**
+  (`lib/email/richText.ts`), not `@payloadcms/richtext-lexical/html`: inline
+  styles (Outlook), every text through `escapeHtml`, links only
+  `http(s)`/`mailto`/`tel`. The broadcast editor has trimmed features (no
+  images, tables, links to panel documents). `layout.ts` accepts a ready `body`
+  ONLY from this converter.
+- **The English version is optional** — it goes to people with `language = en`,
+  when it has both a subject and a text; otherwise Polish. The panel warns
+  before "Wyślij".
+- **Newsletter with confirmation (double opt-in, 03.10.2026).** The form saves
+  `pending` + a token and sends a link; broadcasts get only `subscribed`.
+  Addresses from before that date stayed `subscribed` (the same consent, saved
+  as text). Unconfirmed ones are deleted by the daily sweep after 7 days. A
+  repeated sign-up within 10 min does not send a second email. The form's answer
+  is the same for every address.
+- **Confirmation and unsubscribe with a BUTTON, not the link alone**
+  (`/newsletter/potwierdz`, `/newsletter/wypisz`) — a mail scanner opens links
+  on a person's behalf; for an account that is only proof of address, here it
+  would be consent or its withdrawal in someone's name.
+- **One-click unsubscribe from the inbox** — the headers `List-Unsubscribe` +
+  `List-Unsubscribe-Post` (RFC 8058) on the newsletter, POST to
+  `/api/newsletter/unsubscribe?token=` (a collection endpoint, always 200).
+  Messages to those booked on a course do not have them — that is service
+  information, not marketing. Checked 03.10.2026: Brevo accepts these headers.
+- **An unsubscribed person stays in the database** (`unsubscribed` + date) —
+  proof of consent withdrawal. Someone who unsubscribes between "Wyślij" and
+  their turn in the queue is skipped (`skipped`).
+- **nginx `site_actions` limit**: submissions of server actions (POST with
+  `Next-Action`) from ANY page — the newsletter is in the footer. **The `/admin`
+  panel excluded from the limit**: Payload uses server actions when editing
+  forms and 10/min would block work.
 
 ---
 
-## Budżet pamięci (Ampere A1, 2 OCPU / 12 GB)
+## Emails (Brevo)
 
-Limity **parametryzowane** przez `deploy/.env`. Domyślnie, przy całej maszynie:
+Since 01.10.2026 the application sends emails through **Brevo, through its HTTP
+API** (`src/lib/email/brevo.ts`), not through SMTP.
 
-| Usługa | Limit | Heap / strojenie |
+- **Our own connector, not `@payloadcms/email-nodemailer`.** Measured
+  01.10.2026: the official adapter pulls `nodemailer` 9.1.1 with two **high**
+  advisories, and the `npm audit --audit-level=high` gate would stop every PR.
+  The fix is in nodemailer 10, which the adapter does not accept. Go back to the
+  official one when it moves to nodemailer ≥ 10.0.6 — then changing the provider
+  is configuration.
+- **⚠️ Brevo attaches ITS OWN unsubscribe header to every email that does not
+  have one** (transactional too; switching off only on the Enterprise plan).
+  Found 21.10.2026 in the headers of a test email: Gmail shows it as "Anuluj
+  subskrypcję", and a click puts the address on Brevo's unsubscribed list —
+  after that Brevo accepts our emails to that person and SILENTLY does not
+  deliver them (confirmations, statuses, new password), and the application
+  does not know. A header given by us replaces Brevo's (checked the same day),
+  so the adapter (`withServiceUnsubscribe` in `lib/email/brevo.ts`) gives every
+  email without its own ours: `/o-mailach/wypisz` — GET leads to a page with an
+  explanation, POST (Gmail's one click; `List-Unsubscribe-Post` is added by
+  Brevo) answers 200 and changes nothing. The newsletter keeps its real
+  unsubscribe. The button in Gmail stays — without any header, Brevo's would
+  come back.
+- **Without `BREVO_API_KEY` emails go to the console** (Payload warns at start).
+  Deliberately: locally and in CI nobody will get an email by accident.
+- **The sender must be on a domain authenticated in Brevo** (SPF + DKIM +
+  DMARC). Today `zapisy@szkolawspinaczkowa.pl` — records in Cloudflare, checked
+  01.10.2026: SPF, DKIM and DMARC `PASS` in Gmail. The sender address always
+  wins, even when the code gives a different `from` — a foreign address will not
+  pass SPF/DKIM and will land in spam or be rejected.
+  **When switching to `abcwspinania.info`**: authenticate that domain in Brevo
+  and change `EMAIL_FROM` in `deploy/.env` — without a new image.
+- **The sender domain has no mailbox** (no MX record). A reply to an email
+  "from" `zapisy@` will not arrive anywhere — that is why every email someone
+  may reply to MUST have `replyTo` (contact message notification: the person
+  writing).
+- **⚠️ Tracking in Brevo cannot be switched off — it is anonymised.** Brevo
+  inserts an open pixel and rewrites every link through its server; the API has
+  no switch (full switching off according to the Brevo forum: only on request or
+  on the Enterprise plan). Decision of 01.10.2026: we stay with anonymisation —
+  `contactPixelTrackingConsent: false` on every recipient (in code) **and**
+  "Anonymous email tracking: Yes" on the "Tracking" screen in the Brevo
+  settings. The panel setting is per account — **a new Brevo account has to be
+  switched by hand**; the code protects without it too. This must be in the
+  privacy policy.
+- **The email after the save, not instead of the save.** The `afterChange` hook
+  sends after saving to the database; a sending error is logged and does not
+  break the form. Brevo unavailable = the message waits in the panel, it is not
+  lost.
+- **Two languages of emails to visitors (PL/EN), Polish by default.** Since
+  15.10.2026 everyone who did not choose a language (a booking without an
+  account, a new account, the newsletter) gets `DEFAULT_LANGUAGE` = Polish;
+  English only after switching in "Moje konto" (or by the school in the panel).
+  Until that day the `Accept-Language` header decided (`pickLanguage()`): a
+  browser in English is a common setting in Poland, not the person's language,
+  and Poles got emails in English. `email.test.ts` makes sure no code reads
+  `accept-language` any more. The language is **saved with the submission**
+  (`language`), so that later emails go in the same language. The field in
+  Messages is hidden in the panel (always Polish; the column stays — older rows
+  have the old guess, and removing it is a migration). Emails to the school are
+  in Polish, **without a note about the language** (until 14.10.2026 there was
+  "odpowiedz po angielsku").
+- **Email header: the ORIGINAL logo + the name as text** (since 12.10.2026,
+  `header()` in `layout.ts`). The logo is the client's PDF unchanged, rendered to
+  `public/logo/email-logo.png` (`design/logo/email_logo.py`) — not the mark
+  redrawn from the site header. A PNG from our server (`publicUrl()`), because
+  mail does not show SVG; the name stays text, because Outlook blocks images.
+  Locally the image is not visible (Gmail will not reach localhost). Replacing
+  the file = a new name (rule 13).
+- **Templates are pure functions** (`src/lib/email/templates.ts`, the look in
+  `layout.ts`) — without Payload, tested with bare `node --test`. Every value
+  from a visitor goes through `escapeHtml` in `layout.ts`; a template does not
+  compose HTML itself. Colours from `BRAND_COLORS` (`site.ts`).
+- **`serverURL` in `payload.config.ts` is DELIBERATELY unset**, despite
+  Payload's warning "Request origin "" is not in the CORS/CSRF allowlist".
+  Payload adds `serverURL` to the CSRF list (`payload/dist/config/sanitize.js`),
+  and from then on rejects the login cookie from a request whose `Origin` is
+  outside the list (`auth/extractJWT.js`) — i.e. every save in a panel opened
+  under a different domain. `SITE_URL` is the TARGET domain, and the panel works
+  today under a temporary one — setting it would log the panel out on
+  `szkolawspinaczkowa.pl`. Without it the link in the password reset email takes
+  the domain from the request: checked 01.10.2026, from the browser comes a full
+  `http://…/admin/reset/…`. The warning and a link without a domain
+  (`/admin/reset/…`) appear only when called from `payload run`, where there is
+  no request.
+- **Free plan limit: 300 emails a day.** With the newsletter, a paid plan is
+  Krzysiek's decision.
+
+---
+
+## Memory budget (Ampere A1, 2 OCPU / 12 GB)
+
+Limits **parameterised** through `deploy/.env`. By default, with the whole
+machine:
+
+| Service | Limit | Heap / tuning |
 |---|---|---|
 | postgres | 1 GB | `shared_buffers=256MB`, `effective_cache_size=768MB`, `work_mem=8MB`, `max_connections=40` |
 | app | 2 GB | `--max-old-space-size=1536` |
 | nginx | 128 MB | — |
 
-Profil „pół maszyny" (1 OCPU / 6 GB) czeka zakomentowany w `deploy/.env.example`.
+The "half machine" profile (1 OCPU / 6 GB) waits commented out in
+`deploy/.env.example`.
 
-**Zmieniasz `POSTGRES_MEM_LIMIT` — obniż też `shared_buffers`
-i `effective_cache_size`.** Sam limit kontenera Postgresowi nic nie mówi; przy
-zbyt niskim zostanie ubity przez OOM, zamiast zwolnić. To samo dotyczy
-`APP_MEM_LIMIT` i `--max-old-space-size`.
+**You change `POSTGRES_MEM_LIMIT` — lower `shared_buffers` and
+`effective_cache_size` too.** The container limit alone tells Postgres
+nothing; with one too low it will be killed by OOM instead of slowing down. The
+same applies to `APP_MEM_LIMIT` and `--max-old-space-size`.
 
-nginx ma **128 MB, nie 32 MB**: w anovastudio z limitem 32m dostawał OOM przy
-wysyłce 27 zdjęć naraz do biblioteki mediów.
+nginx has **128 MB, not 32 MB**: in anovastudio with a 32m limit it got OOM when
+27 photos were uploaded at once to the media library.
 
-`setup-swap.sh` (2 GB, swappiness 10) zostaje mimo zapasu pamięci — jako
-bezpiecznik przy szczytach sharpa. Skrypt jest idempotentny.
-
----
-
-## Lista pierwszego uruchomienia na serwerze
-
-1. `deploy/.env` z `.env.example`, sekrety wygenerowane
-   (`openssl rand -hex 32`, każdy osobno). **Hex, nie base64:** hasło do bazy
-   trafia do `DATABASE_URI` (`postgresql://user:HASŁO@...`), a base64 potrafi
-   wylosować `/`, który ten adres rozcina — aplikacja nie łączy się z bazą,
-   a komunikat nie mówi nic o haśle.
-2. Certyfikaty w `deploy/certs`. Domena za Cloudflare dostaje **Origin
-   Certificate** (15 lat, bez odnawiania) — patrz „Domena tymczasowa
-   i Cloudflare" niżej. Domena docelowa do dnia przełączenia działa na
-   certyfikacie tymczasowym (self-signed w `fullchain.pem`/`privkey.pem`):
-   nginx bez niego nie wstaje, a prawdziwego nie da się wystawić, zanim DNS
-   wskaże serwer.
-3. Rekordy DNS A dla `@` i `www` na publiczny adres instancji.
-4. ~~Przejęcie wolumenu uploadów na uid 1000~~ — **niepotrzebne**. Sprawdzone
-   26.09.2026 na produkcji: Docker przy pierwszym montowaniu pustego nazwanego
-   wolumenu kopiuje właściciela z obrazu, więc `/app/uploads` od razu należy
-   do `node` i zapis działa. Punkt został, żeby nikt go nie „przywracał".
-5. Workflow **Deploy** — stawia kontenery i zakłada schemat na czystej bazie
-   (migracje są jego częścią).
-6. Konto administratora: wejść na `https://abcwspinania.info/admin`, ekran
-   „utwórz pierwszego użytkownika".
-   ⚠️ Zrobić to **od razu po pierwszym deployu**. Dopóki nie ma żadnego konta,
-   ekran rejestracji pierwszego administratora jest dostępny dla każdego, kto
-   zna adres.
-7. Zmienne repozytorium `SITE_URL` (domena **docelowa** — wpiekana w obraz)
-   i opcjonalnie `SMOKE_URL` (adres, pod którym smoke test ma sprawdzać
-   stronę, gdy docelowa jeszcze nie wskazuje serwera), oraz sekrety:
-   `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_PATH`, `GHCR_OWNER`,
-   `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `PAYLOAD_SECRET`.
-
-   ⚠️ **`SITE_URL` ustawia się PRZED scaleniem, które ma ją zawierać.** Zmiana
-   zmiennej niczego nie przebudowuje — działa dopiero przy następnym obrazie.
-   Zmierzone 28.09.2026: PR scalony rano, zmienna ustawiona wieczorem, obraz
-   0.5.4 wyszedł z `localhost:3000` w mapie strony i adresach kanonicznych,
-   a CI był zielony. Sprawdzenie obrazu przed wdrożeniem:
-   `grep -rl "https://<domena>" /app/.next | wc -l` w kontenerze — zero
-   znaczy, że adres nie wszedł.
-8. Maile: w `deploy/.env` `BREVO_API_KEY`, `EMAIL_FROM` (adres na domenie
-   uwierzytelnionej w Brevo), `ADMIN_NOTIFY_EMAIL`, `CAMP_EMAIL` (skrzynka
-   obozów) i `PUBLIC_URL` (adres,
-   pod którym strona działa TERAZ — linki w mailach do kursantów). W Brevo:
-   „Anonymous email tracking: Yes”. Bez klucza strona działa, ale maile
-   lądują w logu kontenera.
-
-**Czego NIE ma już na tej liście:** wyklikiwania uprawnień publicznych w panelu.
-Są w kodzie i jadą z deployem.
+`setup-swap.sh` (2 GB, swappiness 10) stays despite the memory headroom — as a
+fuse for sharp peaks. The script is idempotent.
 
 ---
 
-## Przekierowania ze starej strony
+## First-run checklist on the server (Lista pierwszego uruchomienia)
 
-Od 05.10.2026. Stare adresy Joomli → nowe odpowiedniki,
-`redirects()` w `next.config.ts` z listy w `src/lib/legacyRedirects.ts`,
-na stałe (308). Działają na każdej domenie — na tymczasowej nikt z nich
-nie przychodzi, więc ożyją same w dniu przełączenia.
+1. `deploy/.env` from `.env.example`, secrets generated
+   (`openssl rand -hex 32`, each separately). **Hex, not base64:** the database
+   password goes into `DATABASE_URI` (`postgresql://user:PASSWORD@...`), and
+   base64 can draw a `/`, which splits that address — the application does not
+   connect to the database, and the message says nothing about the password.
+2. Certificates in `deploy/certs`. A domain behind Cloudflare gets an **Origin
+   Certificate** (15 years, no renewal) — see "Temporary domain and Cloudflare"
+   below. Until the switch the target domain works on a temporary certificate
+   (self-signed in `fullchain.pem`/`privkey.pem`): nginx does not start without
+   it, and a real one cannot be issued before DNS points to the server.
+3. DNS A records for `@` and `www` to the instance's public address.
+4. ~~Taking over the uploads volume to uid 1000~~ — **unnecessary**. Checked
+   26.09.2026 in production: on the first mount of an empty named volume Docker
+   copies the owner from the image, so `/app/uploads` belongs to `node` straight
+   away and writing works. The item stays so that nobody "restores" it.
+5. The **Deploy** workflow — starts the containers and creates the schema on a
+   clean database (migrations are part of it).
+6. The administrator account: go to `https://abcwspinania.info/admin`, the
+   "create first user" screen.
+   ⚠️ Do this **right after the first deploy**. As long as there is no account,
+   the first administrator registration screen is available to anyone who knows
+   the address.
+7. Repository variables `SITE_URL` (the **target** domain — baked into the
+   image) and optionally `SMOKE_URL` (the address at which the smoke test should
+   check the site while the target one does not point to the server yet), and
+   secrets: `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_PATH`,
+   `GHCR_OWNER`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`,
+   `PAYLOAD_SECRET`.
 
-- **Spis zrobiony przejściem po linkach** starej strony (nie miała mapy):
-  około czterdziestu podstron i artykułów. Kalendarz (`/kalendarz/...`
-  generuje stronę na każdy dzień) i tagi — jedną regułą na całą sekcję.
-- **Tylko DOKŁADNE stare ścieżki, żadnych wzorców na prefiksach nowej
-  strony** (`/kursy/*`, `/aktualnosci/*`, `/obozy/*`). Nowy wpis
-  `/aktualnosci/25-lat-abc-wspinania` zaczyna się od cyfr jak stare
-  `/aktualnosci/107-20lat` — reguła „numerowany adres” połknęłaby go.
-- **`legacyRedirects.test.ts` pilnuje**: żadna reguła nie przechwytuje trasy
-  z `src/app/(frontend)` ani adresu treści z listy `CONTENT`; każdy cel
-  istnieje; każdy znaleziony stary adres jest obsłużony; brak łańcuchów.
-  ⚠️ `CONTENT` to adresy z panelu na 05.10.2026 — **zmiana sluga kursu,
-  obozu albo wpisu w panelu łamie przekierowanie na niego bez śladu**.
-  Przy zmianie sluga: popraw cel w `legacyRedirects.ts` i `CONTENT`.
-- Stare artykuły bez odpowiednika → `/aktualnosci`, stare „O ABC” → `/o-nas`.
-- **Po przełączeniu domeny**: Search Console, raport „Strony” — stare
-  adresy mają przechodzić na nowe, bez 404.
+   ⚠️ **`SITE_URL` is set BEFORE the merge that is to contain it.** Changing the
+   variable rebuilds nothing — it takes effect only with the next image.
+   Measured 28.09.2026: PR merged in the morning, variable set in the evening,
+   image 0.5.4 came out with `localhost:3000` in the sitemap and canonical
+   addresses, and CI was green. Checking the image before deploying:
+   `grep -rl "https://<domain>" /app/.next | wc -l` in the container — zero
+   means the address did not get in.
+8. Emails: in `deploy/.env` `BREVO_API_KEY`, `EMAIL_FROM` (an address on a
+   domain authenticated in Brevo), `ADMIN_NOTIFY_EMAIL`, `CAMP_EMAIL` (the camps
+   mailbox) and `PUBLIC_URL` (the address at which the site works NOW — links in
+   emails to participants). In Brevo: "Anonymous email tracking: Yes". Without
+   the key the site works, but emails land in the container log.
 
-**Przy okazji: mapa strony nie odświeżała się wcale.** `sitemap.ts` nie miał
-`revalidate`, więc Next generował ją raz, przy buildzie w CI — bez bazy —
-i trzymał na zawsze (`initialRevalidateSeconds: false` w
-`.next/prerender-manifest.json`). Produkcja pokazywała w mapie tylko strony
-stałe, bez żadnego kursu, obozu ani wpisu. `revalidate` layoutu NIE dociera
-do tras metadanych (`sitemap`, `robots`, `manifest`) — każda potrzebuje
-własnego. Teraz `revalidate = 3600`.
-
----
-
-## Kopie zapasowe
-
-Od 06.10.2026. Wzór: Next Step Pro (`nsp-backup.sh`), działający
-tam od 09.2026 — powody każdego kroku przeniesione razem z kodem.
-
-- **Co noc o 03:00** (`/etc/cron.d/abc-backup`) `deploy/abc-backup.sh`: zrzut bazy
-  (`pg_dump`, plain SQL, gzip) i archiwum wolumenu uploadów (Media + Galeria; cache
-  obrazków pominięty — Next odbuduje go sam). **Archiwum uploadów tylko gdy się
-  zmieniły** (odcisk ścieżka|rozmiar|mtime w `/var/lib/abc-backup/files-state`),
-  najrzadziej co 30 dni; każde jest pełne, a do zrzutu z dnia X pasuje najnowsze
-  archiwum ≤ X, nie „z tej samej daty”. `FILES_REFRESH_DAYS` musi być mniejsze niż
-  retencja na Drive — inaczej przycinanie skasowałoby jedyne archiwum (skrypt
-  odmawia startu).
-- **Dwa poziomy:** dysk serwera (7 dni, `/backups`, tylko root) i Google Drive
-  (40 dni, od 09.10.2026; wcześniej 90) przez `rclone` z remote'em **`crypt`** —
-  szyfrowanie PRZED wysłaniem. Polityka prywatności (`/polityka-prywatnosci`,
-  wchodzi z zapisami) mówi „do 40 dni” — każda zmiana retencji wymaga poprawki
-  strony i `PRIVACY_POLICY_VERSION`.
-  Drive na start Mateusza (decyzja 06.10.2026); przeniesienie na konto szkoły
-  albo przekazanie haseł Krzyśkowi — do ustalenia.
-- **Każdy plik powstaje jako `.part` i dostaje właściwą nazwę dopiero po
-  sprawdzeniu**: zrzut — po znaczniku `PostgreSQL database dump complete` (obcięty
-  zrzut gzipuje się poprawnie i przechodzi `gunzip -t`), archiwum — po `tar tzf`.
-  Sprawdzone 06.10.2026: zrzut ucięty w połowie zostaje `.part` i kończy przebieg błędem.
-- **`rclone copy`, nigdy `sync`** — inaczej lokalne sprzątanie po 7 dniach
-  kasowałoby też kopie na Drive.
-- **`/backups/milestones`** — zrzuty ręczne przed ryzykowną operacją (Deploy z nową
-  migracją na prawdziwych danych, major Postgresa). Nie czyści ich nic, ani lokalnie, ani na Drive.
-- **Alarm przez healthchecks.io** (`/etc/abc-backup.env`, `HEALTHCHECK_URL`):
-  start, sukces albo `/fail`. Cisza = awaria. Bez skonfigurowanego Drive przebieg
-  robi kopie lokalne i **kończy się błędem** — brak kopii poza serwerem ma być widać.
-- **Instaluje je workflow Deploy** (`setup-backups.sh`, jak swap): skrypt, cron,
-  logrotate, katalogi, `rclone` z apt. Idempotentne, błąd nie blokuje wdrożenia.
-  **Sekretów nie dotyka**: `/root/.config/rclone/rclone.conf` (token Google
-  i hasła szyfrowania) i `HEALTHCHECK_URL` ustawia się ręcznie raz —
-  `deploy/RESTORE.md`, sekcja 0. ⚠️ **`rclone.conf` musi być w menedżerze haseł**:
-  bez niego kopie na Drive są nie do odczytania, także przez nas. **I `deploy/.env`
-  z serwera też** (sekcja 0.3) — GitHub nie oddaje zapisanych sekretów, a przy
-  odbudowie `POSTGRES_USER` i `POSTGRES_DB` muszą być takie jak w zrzucie.
-- **Odbudowa po utracie całego serwera: `RESTORE.md`, sekcja 8** (06.10.2026) —
-  nowa maszyna, sekrety z menedżera haseł, Deploy, kopia z Drive, dopiero na końcu DNS.
-- **Odtwarzanie i ćwiczenie: `deploy/RESTORE.md`.** Ćwiczenie raz na kwartał, na
-  tymczasowym kontenerze, z wynikiem zapisanym w tabeli. Przećwiczone lokalnie
-  06.10.2026 (zrzut z bazy deweloperskiej wlany bez błędu, liczby wierszy zgodne).
-  Użytkownik tymczasowej bazy musi nazywać się jak na produkcji — inaczej zrzut
-  przerywa się na `ALTER ... OWNER TO`.
-- Wszystkie ścieżki i nazwy w skrypcie można nadpisać zmiennymi środowiska (próba
-  na Macu); wartości domyślne są produkcyjne.
-- **⚠️ Nigdy `polecenie | grep -q` przy `set -o pipefail`.** Znalezione przy
-  pierwszym prawdziwym przebiegu (06.10.2026): `rclone listremotes | grep -qx
-  abc-crypt:` — grep kończy na pierwszej linii, rclone dostaje SIGPIPE przy drugiej
-  (`gdrive:`), a `pipefail` robi z trafienia porażkę (kod 141). Skonfigurowany Drive
-  wyglądał na brak. Lokalnie niewidoczne: bez rclone nie było drugiej linii. Wynik
-  najpierw do zmiennej, potem `grep -q ... <<<"$zmienna"` — tak samo przy znaczniku
-  końca zrzutu.
-- **Konfiguracja Drive na serwerze zrobiona 06.10.2026** (`RESTORE.md`, sekcja 0.1):
-  token z Maca przeniesiony bez wyświetlania, hasła szyfrowania wygenerowane na
-  serwerze. Pierwsza pełna kopia: 67 s (108 MB zdjęć). **Ćwiczenie odtworzenia z kopii
-  pobranej z Drive: zgodne z produkcją** (wynik w tabeli `RESTORE.md`, sekcja 5).
+**What is NOT on this list any more:** clicking through public permissions in
+the panel. They are in code and travel with the deploy.
 
 ---
 
-## Domena tymczasowa i Cloudflare
+## Redirects from the old site
 
-Ustalone 26.09.2026. Do czasu przełączenia `abcwspinania.info` (pod którą wciąż
-działa stara strona klienta) nowa strona stoi pod **`szkolawspinaczkowa.pl`**,
-za Cloudflare. Domena była wcześniej nieużywana — nie ma historii w Google ani
-poczty, więc przejęcie jej niczego nie odcina.
+Since 05.10.2026. Old Joomla addresses → new counterparts, `redirects()` in
+`next.config.ts` from the list in `src/lib/legacyRedirects.ts`, permanent
+(308). They work on every domain — nobody comes from them to the temporary one,
+so they will come alive by themselves on the day of the switch.
 
-- **Google nie może jej zaindeksować.** Blok nginx dla tej domeny wysyła
-  `X-Robots-Tag: noindex, nofollow`. Nagłówek, a nie `Disallow` w robots.txt —
-  zakaz czytania ukryłby przed Google sam `noindex`.
-- **`SITE_URL` wskazuje od razu domenę DOCELOWĄ**, nie tymczasową. Mapa strony,
-  adresy kanoniczne i dane strukturalne mówią Google o `abcwspinania.info`
-  od pierwszego dnia, więc przy przełączeniu nie ma czego przestawiać ani
-  przebudowywać. Smoke test sprawdza w tym czasie `SMOKE_URL`.
-- **Bloki nginx dla domeny docelowej nie wiedzą o tymczasowej.** W dniu
-  przełączenia usuwa się fragment oznaczony w `nginx.conf` (albo zamienia na
-  301 do domeny docelowej), kasuje zmienną `SMOKE_URL` i zmienia `PUBLIC_URL`
-  w `deploy/.env` na domenę docelową — bez dotykania reszty.
-- **Certyfikat Origin z Cloudflare musi leżeć w `certs/` PRZED wdrożeniem
-  configu**, który go wskazuje. Brak pliku: `nginx -t` pada w deployu, a przy
-  najbliższym restarcie kontenera nginx nie wstaje — razem z domeną docelową.
-  Tryb SSL w Cloudflare: **Full (strict)**.
-- **Lista adresów Cloudflare (`set_real_ip_from`) jest wpisana ręcznie.** Bez
-  niej limit logowania liczy wszystkich odwiedzających jako jeden adres
-  Cloudflare i pięć cudzych pomyłek blokuje panel każdemu. Cloudflare rzadko
-  zmienia pulę, ale adres spoza listy psuje to po cichu — przy przełączaniu
-  domeny docelowej porównać z <https://www.cloudflare.com/ips>. **Od
-  27.10.2026 ta sama lista steruje zaporą** (niżej): zakres, którego w niej
-  brak, to odwiedzający obsługiwani przez tę lokalizację Cloudflare z błędem
-  522 — już nie po cichu.
-- **⚠️ Porty 80 i 443 przyjmują ruch WYŁĄCZNIE z Cloudflare** (od
-  27.10.2026, `deploy/origin-firewall.sh`, wzór z Next Step Pro). Bez tego
-  ktoś znający adres serwera omijał Cloudflare i jego reguły (blokada
-  skanerów `.env`/`.php`, reguły zarządzane). Instaluje ją Deploy
-  (`setup-origin-firewall.sh`: zakresy IPv4 wycięte z `set_real_ip_from`
-  w `nginx.conf`, usługa systemd odtwarza reguły po restarcie). Reguły siedzą
-  w łańcuchu `ABC-ORIGIN` za `DOCKER-USER` — Docker publikuje porty przez
-  NAT, łańcucha `INPUT` (ufw) ten ruch nie dotyka. Dopasowanie po
-  `--ctstate DNAT`, nie po samym porcie: w Next Step Pro blokada po porcie
-  łapała wyjście aplikacji do API na 443 (504 przy każdym wywołaniu) —
-  sprawdzone w teście z Dockerem w Dockerze, z celowo zepsutą regułą. Porty
-  publikowane tylko na IPv4 (`0.0.0.0:` w `docker-compose.prod.yml`) — bez
-  adresu Docker otwiera je też na IPv6, poza tą zaporą. Skutki:
-  - **Strona nie odpowiada pod samym IP serwera** (ani `curl --resolve`) —
-    sprawdzać przez domenę. Ruch z samego serwera (`curl localhost`, health
-    check w Deployu) i SSH działają.
-  - **Wpis `@`/`www` musi mieć pomarańczową chmurkę.** Szara (DNS only) =
-    strona martwa dla wszystkich. Dotyczy też przełączenia domeny docelowej
-    i odbudowy serwera (`RESTORE.md` 8.5).
-  - **Let's Encrypt tylko przez Cloudflare** — HTTP-01 z serwerów LE wprost
-    na port 80 nie przejdzie (dziś certyfikaty Origin, więc nie dotyczy).
-  - Zakresów za mało (< 10) albo śmieć w liście — skrypt odmawia i zostawia
-    poprzednie reguły. Awaryjne zdjęcie zapory na serwerze:
-    `sudo /usr/local/sbin/abc-origin-firewall.sh --remove` (do następnego
-    Deploya albo restartu).
+- **The inventory was made by walking the links** of the old site (it had no
+  sitemap): about forty subpages and articles. The calendar (`/kalendarz/...`
+  generates a page for every day) and tags — one rule for the whole section.
+- **Only EXACT old paths, no patterns on the new site's prefixes** (`/kursy/*`,
+  `/aktualnosci/*`, `/obozy/*`). The new post
+  `/aktualnosci/25-lat-abc-wspinania` starts with digits like the old
+  `/aktualnosci/107-20lat` — a "numbered address" rule would swallow it.
+- **`legacyRedirects.test.ts` guards**: no rule captures a route from
+  `src/app/(frontend)` or a content address from the `CONTENT` list; every target
+  exists; every old address found is handled; no chains.
+  ⚠️ `CONTENT` is the addresses from the panel as of 05.10.2026 — **changing
+  the slug of a course, camp or post in the panel breaks the redirect to it
+  without a trace**. When changing a slug: fix the target in
+  `legacyRedirects.ts` and `CONTENT`.
+- Old articles without a counterpart → `/aktualnosci`, the old "O ABC" →
+  `/o-nas`.
+- **After the domain switch**: Search Console, the "Pages" report — old
+  addresses should go to the new ones, without 404.
+
+**By the way: the sitemap did not refresh at all.** `sitemap.ts` had no
+`revalidate`, so Next generated it once, at the build in CI — without a
+database — and kept it forever (`initialRevalidateSeconds: false` in
+`.next/prerender-manifest.json`). Production showed only static pages in the
+sitemap, without any course, camp or post. The layout's `revalidate` does NOT
+reach metadata routes (`sitemap`, `robots`, `manifest`) — each needs its own.
+Now `revalidate = 3600`.
 
 ---
 
-## Świadome braki — nie „przywracaj" ich bez powodu
+## Backups (Kopie zapasowe)
 
-- **Nie ma workflow pilnującego `VERSION`.** W anovastudio został usunięty:
-  Dependabot nie umie edytować tego pliku, a automatyczny bump powodował
-  konflikty scalania na tej jednej linii. **Podbijamy ręcznie, w każdym PR-ze**
-  (ustalone 24.09.2026) — ostatnia cyfra przy poprawkach i drobiazgach,
-  środkowa przy nowej funkcji. Powód nie jest porządkowy: CI etykietuje obraz
-  zawartością tego pliku, więc dwa scalenia bez podbicia **nadpisują tę samą
-  etykietę** i „wdróż wersję 0.1.0" przestaje znaczyć cokolwiek konkretnego.
-  Od pierwszego wdrożenia u Krzyśka oznacza to brak możliwości cofnięcia się
-  do wcześniejszego stanu.
-  **Wyjątek (od 15.10.2026): PR, który nie rusza niczego ze ścieżek CI**
-  (`web/**`, `.github/workflows/ci.yml` — lista `paths` w `ci.yml`), czyli
-  np. sam `docs/` albo `CLAUDE.md`, **nie podbija `VERSION`**. Taki merge
-  nie buduje obrazu, więc nie ma czego etykietować — a podbicie samo
-  uruchomiłoby CI (`VERSION` jest na tej liście) i zbudowało obraz identyczny
-  z poprzednim pod nowym numerem. Przy dziesiątkach poprawek scenariusza
-  w czasie testów numer rósłby bez żadnej zmiany na produkcji.
-- **`version` w `web/package.json` NIE jest synchronizowany z `VERSION`** i nie
-  ma być. Nic go nie czyta — pakiet jest prywatny, nie trafia do npm — a w
-  anovastudio stoi na `0.1.0` przy `VERSION` równym `1.8.6`. Jedynym numerem
-  wersji tego projektu jest plik `VERSION`.
-- **Deploy nie jest automatyczny.** Tylko `workflow_dispatch`. Wdrożenie na
-  maszynę klienta to decyzja, nie skutek uboczny merge'a.
-- **Migracje są częścią deployu, ale tylko w górę** — patrz „Migracje
-  schematu”.
-- **Nie ma drugiego obrazu z narzędziami.** Świadomie, z powodu dysku.
-- **Nie ma szablonu PR-a** (`.github/pull_request_template.md`, usunięty
-  13.10.2026). GitHub wklejał go do każdego opisu, a opis i tak przychodzi
-  gotowy, więc szablon był tylko do kasowania. Jego lista kontrolna niczego
-  nie wymuszała: lint, format, typy, testy, build i audyt to bramki CI,
-  a reszta (typy i migracje, obraz arm64, Node w `ci.yml`, wpis tutaj) jest
-  opisana w tym pliku.
+Since 06.10.2026. Template: Next Step Pro (`nsp-backup.sh`), running there since
+09.2026 — the reasons for each step carried over together with the code.
+
+- **Every night at 03:00** (`/etc/cron.d/abc-backup`) `deploy/abc-backup.sh`: a
+  database dump (`pg_dump`, plain SQL, gzip) and an archive of the uploads
+  volume (Media + Gallery; the image cache skipped — Next rebuilds it by
+  itself). **The uploads archive only when they changed** (a fingerprint
+  path|size|mtime in `/var/lib/abc-backup/files-state`), at least every 30
+  days; each one is full, and the dump from day X matches the newest archive
+  ≤ X, not "from the same date". `FILES_REFRESH_DAYS` must be smaller than the
+  retention on Drive — otherwise pruning would delete the only archive (the
+  script refuses to start).
+- **Two levels:** the server disk (7 days, `/backups`, root only) and Google
+  Drive (40 days, since 09.10.2026; before that 90) through `rclone` with a
+  **`crypt`** remote — encryption BEFORE sending. The privacy policy
+  (`/polityka-prywatnosci`, comes in with bookings) says "do 40 dni" — every
+  change of retention requires a fix of the page and of
+  `PRIVACY_POLICY_VERSION`. Drive on Mateusz's account to start with (decision
+  06.10.2026); moving it to the school's account or handing the passwords to
+  Krzysiek — to be settled.
+- **Every file is created as `.part` and gets its proper name only after a
+  check**: the dump — after the `PostgreSQL database dump complete` marker (a
+  truncated dump gzips correctly and passes `gunzip -t`), the archive — after
+  `tar tzf`. Checked 06.10.2026: a dump cut off halfway stays `.part` and ends
+  the run with an error.
+- **`rclone copy`, never `sync`** — otherwise local pruning after 7 days would
+  also delete the copies on Drive.
+- **`/backups/milestones`** — manual dumps before a risky operation (a Deploy
+  with a new migration on real data, a Postgres major). Nothing prunes them,
+  neither locally nor on Drive.
+- **Alarm through healthchecks.io** (`/etc/abc-backup.env`,
+  `HEALTHCHECK_URL`): start, success or `/fail`. Silence = failure. Without a
+  configured Drive the run makes local copies and **ends with an error** — no
+  copy outside the server has to be visible.
+- **Installed by the Deploy workflow** (`setup-backups.sh`, like swap): the
+  script, cron, logrotate, directories, `rclone` from apt. Idempotent, an error
+  does not block the deployment. **It does not touch secrets**:
+  `/root/.config/rclone/rclone.conf` (the Google token and the encryption
+  passwords) and `HEALTHCHECK_URL` are set by hand once — `deploy/RESTORE.md`,
+  section 0. ⚠️ **`rclone.conf` must be in the password manager**: without it
+  the copies on Drive cannot be read, by us either. **And `deploy/.env` from the
+  server too** (section 0.3) — GitHub does not give back saved secrets, and on
+  a rebuild `POSTGRES_USER` and `POSTGRES_DB` must be the same as in the dump.
+- **Rebuild after losing the whole server: `RESTORE.md`, section 8**
+  (06.10.2026) — a new machine, secrets from the password manager, Deploy, the
+  copy from Drive, DNS only at the end.
+- **Restoring and the drill: `deploy/RESTORE.md`.** A drill once a quarter, on a
+  temporary container, with the result written into the table. Drilled locally
+  06.10.2026 (a dump from the development database loaded without an error, row
+  counts matching). The temporary database's user must have the same name as in
+  production — otherwise the dump stops at `ALTER ... OWNER TO`.
+- All paths and names in the script can be overridden with environment
+  variables (a try on a Mac); the default values are production ones.
+- **⚠️ Never `command | grep -q` with `set -o pipefail`.** Found on the first
+  real run (06.10.2026): `rclone listremotes | grep -qx abc-crypt:` — grep ends
+  on the first line, rclone gets SIGPIPE on the second (`gdrive:`), and
+  `pipefail` turns a hit into a failure (code 141). A configured Drive looked
+  missing. Invisible locally: without rclone there was no second line. Result
+  into a variable first, then `grep -q ... <<<"$variable"` — the same with the
+  end-of-dump marker.
+- **Drive configuration on the server done 06.10.2026** (`RESTORE.md`, section
+  0.1): the token moved from the Mac without displaying it, the encryption
+  passwords generated on the server. The first full copy: 67 s (108 MB of
+  photos). **The restore drill from a copy downloaded from Drive: matching
+  production** (result in the `RESTORE.md` table, section 5).
 
 ---
 
-## Proces
+## Temporary domain and Cloudflare (Domena tymczasowa i Cloudflare)
 
-- **⚠️ Akcje GitHub przypięte do SHA, nie do tagu** (od 25.10.2026, audyt):
-  `uses: owner/action@<40 znaków> # vX.Y.Z`. Tag autor może przestawić na
-  inny kod, a `appleboy/ssh-action` dostaje klucz SSH do serwera — przejęte
-  konto autora = przejęty serwer (tak wyciekły sekrety tysięcy projektów
-  przy `tj-actions/changed-files`, 03.2025). Dependabot (`github-actions`)
-  podbija SHA razem z komentarzem. **Nowa akcja: od razu z SHA**
-  (`gh api repos/<owner>/<repo>/commits/<tag> --jq .sha`), nigdy z samym tagiem.
-- **Token GitHuba tylko do odczytu** (`permissions: contents: read` we
-  wszystkich workflowach; `packages: write` wyłącznie w jobie `docker`
-  w `ci.yml`). Obraz z GHCR serwer ściąga bez tokena. Wartości z formularza
-  `workflow_dispatch` idą do skryptu przez `env:`, nie przez `${{ }}` w
-  `run:` — wyrażenie jest wklejane w kod powłoki przed jego uruchomieniem;
-  wersja w Deploy jest dodatkowo sprawdzana wzorcem tagu.
-- **Kontenery z `no-new-privileges`** (`x-security` w
-  `docker-compose.prod.yml`, od 25.10.2026): proces w kontenerze nie zyska
-  uprawnień przez pliki setuid. Sprawdzone przed dodaniem: Postgres (start,
-  zapytanie, `pg_dump` ze znacznikiem końca), nginx (`nginx -t`, workery jako
-  `nginx`), obraz aplikacji (200, użytkownik `node`, zapis do `uploads`).
-- **Zmiany w Dockerfile lub w pliku blokady buduj lokalnie przed wypchnięciem.**
-  `npm ci` w czystym kontenerze wyłapuje rozjazd blokady, a `--platform
-  linux/arm64` dodatkowo braki binariów natywnych dla aarch64.
-- **Nie oceniaj kompletności obrazu po `ls node_modules`.** Zmierzone: ani
-  `@payloadcms/db-postgres`, ani `drizzle-orm` nie istnieją w obrazie jako
-  katalogi, a aplikacja czyta z Postgresa bez zarzutu — Turbopack wbudował je
-  w chunki serwera. Jedyny wiarygodny test to **uruchomić obraz**. Uwaga na
-  pułapkę: uruchomienie `.next/standalone/server.js` z wnętrza drzewa projektu
-  NIE jest takim testem, bo Node znajduje brakujące moduły piętro wyżej.
-- **Sprzątanie obrazów w deployu idzie PRZED `pull`**, nie po. Pull przerwany na
-  braku miejsca kończy deploy na czerwono. Kasowanie jest jawne, po tagach,
-  z `KEEP=2` — `docker image prune -af --filter until=` przy magazynie containerd
-  przepuszcza obrazy otagowane i uzbierają się wszystkie wersje od początku projektu.
-- **`nginx.conf` jest montowany z hosta**, więc `up -d` go nie przeładuje przy
-  niezmienionym tagu obrazu — deploy robi jawne `nginx -t` i `nginx -s reload`.
+Settled 26.09.2026. Until `abcwspinania.info` is switched (the client's old
+site still runs under it), the new site stands under
+**`szkolawspinaczkowa.pl`**, behind Cloudflare. The domain was unused before —
+it has no history in Google and no mail, so taking it over cuts off nothing.
 
-### Weryfikacja lokalna
+- **Google must not index it.** The nginx block for this domain sends
+  `X-Robots-Tag: noindex, nofollow`. A header, not `Disallow` in robots.txt — a
+  ban on reading would hide the `noindex` itself from Google.
+- **`SITE_URL` points straight at the TARGET domain**, not the temporary one.
+  The sitemap, canonical addresses and structured data tell Google about
+  `abcwspinania.info` from day one, so at the switch there is nothing to change
+  or rebuild. The smoke test checks `SMOKE_URL` in the meantime.
+- **The nginx blocks for the target domain do not know about the temporary
+  one.** On the day of the switch the fragment marked in `nginx.conf` is removed
+  (or replaced with a 301 to the target domain), the `SMOKE_URL` variable is
+  deleted and `PUBLIC_URL` in `deploy/.env` is changed to the target domain —
+  without touching the rest.
+- **The Cloudflare Origin certificate must be in `certs/` BEFORE the config
+  pointing to it is deployed.** No file: `nginx -t` fails in the deploy, and at
+  the next container restart nginx does not start — together with the target
+  domain. SSL mode in Cloudflare: **Full (strict)**.
+- **The list of Cloudflare addresses (`set_real_ip_from`) is entered by hand.**
+  Without it the login limit counts all visitors as one Cloudflare address and
+  five mistakes by others block the panel for everyone. Cloudflare rarely
+  changes the pool, but an address outside the list breaks this silently — when
+  switching the target domain compare with <https://www.cloudflare.com/ips>.
+  **Since 27.10.2026 the same list drives the firewall** (below): a range missing
+  from it means visitors served by that Cloudflare location get error 522 — no
+  longer silently.
+- **⚠️ Ports 80 and 443 accept traffic ONLY from Cloudflare** (since
+  27.10.2026, `deploy/origin-firewall.sh`, template from Next Step Pro). Without
+  this, someone who knew the server's address bypassed Cloudflare and its rules
+  (blocking `.env`/`.php` scanners, managed rules). Installed by Deploy
+  (`setup-origin-firewall.sh`: IPv4 ranges cut out of `set_real_ip_from` in
+  `nginx.conf`, a systemd service restores the rules after a reboot). The rules
+  sit in the `ABC-ORIGIN` chain behind `DOCKER-USER` — Docker publishes ports
+  through NAT, the `INPUT` chain (ufw) does not touch this traffic. Matching by
+  `--ctstate DNAT`, not by the port alone: in Next Step Pro a block by port
+  caught the application's outgoing calls to an API on 443 (504 on every call)
+  — checked in a Docker-in-Docker test, with a deliberately broken rule. Ports
+  published only on IPv4 (`0.0.0.0:` in `docker-compose.prod.yml`) — without an
+  address Docker opens them on IPv6 too, outside this firewall. Effects:
+  - **The site does not answer under the server's bare IP** (nor
+    `curl --resolve`) — check through the domain. Traffic from the server itself
+    (`curl localhost`, the health check in Deploy) and SSH work.
+  - **The `@`/`www` record must have the orange cloud.** Grey (DNS only) = the
+    site dead for everyone. This also applies to switching the target domain and
+    to rebuilding the server (`RESTORE.md` 8.5).
+  - **Let's Encrypt only through Cloudflare** — HTTP-01 from LE servers straight
+    to port 80 will not get through (today Origin certificates, so it does not
+    apply).
+  - Too few ranges (< 10) or junk in the list — the script refuses and leaves
+    the previous rules. Emergency removal of the firewall on the server:
+    `sudo /usr/local/sbin/abc-origin-firewall.sh --remove` (until the next
+    Deploy or reboot).
+- **⚠️ "Email Address Obfuscation" in Cloudflare is OFF** (since 27.10.2026, a
+  zone setting, not code). When on, it replaces every address in HTML with
+  "[email protected]" and restores it with a script from `/cdn-cgi/` — the
+  person's data copy (`/api/customers/person-data`) downloaded as a file and
+  opened from disk had only "[email protected]" instead of addresses (found in
+  test I1), and `/kontakt` without JS the same. **When switching the target
+  domain, turn the same off on its zone.** Check:
+  `curl -s https://<domain>/kontakt | grep -c __cf_email__` = 0.
+
+---
+
+## Deliberate gaps — do not "restore" them without a reason
+
+- **There is no workflow guarding `VERSION`.** In anovastudio it was removed:
+  Dependabot cannot edit this file, and an automatic bump caused merge conflicts
+  on this one line. **We bump by hand, in every PR** (settled 24.09.2026) — the
+  last digit for fixes and small things, the middle one for a new feature. The
+  reason is not tidiness: CI tags the image with the contents of this file, so
+  two merges without a bump **overwrite the same tag** and "deploy version 0.1.0"
+  stops meaning anything specific. From the first deployment at Krzysiek's this
+  means no way to go back to an earlier state.
+  **Exception (since 15.10.2026): a PR that touches nothing in the CI paths**
+  (`web/**`, `.github/workflows/ci.yml` — the `paths` list in `ci.yml`), e.g.
+  `docs/` alone or `CLAUDE.md`, **does not bump `VERSION`**. Such a merge does
+  not build an image, so there is nothing to tag — and the bump itself would run
+  CI (`VERSION` is on that list) and build an image identical to the previous one
+  under a new number. With dozens of scenario fixes during testing the number
+  would grow without any change in production.
+- **`version` in `web/package.json` is NOT synchronised with `VERSION`** and is
+  not meant to be. Nothing reads it — the package is private, it does not go to
+  npm — and in anovastudio it stands at `0.1.0` while `VERSION` is `1.8.6`. The
+  only version number of this project is the `VERSION` file.
+- **Deploy is not automatic.** Only `workflow_dispatch`. A deployment to the
+  client's machine is a decision, not a side effect of a merge.
+- **Migrations are part of the deploy, but only up** — see "Schema migrations".
+- **There is no second image with tools.** Deliberately, because of the disk.
+- **There is no PR template** (`.github/pull_request_template.md`, removed
+  13.10.2026). GitHub pasted it into every description, and the description
+  comes ready anyway, so the template was only there to be deleted. Its
+  checklist enforced nothing: lint, format, types, tests, build and audit are CI
+  gates, and the rest (types and migrations, the arm64 image, Node in `ci.yml`,
+  an entry here) is described in this file.
+
+---
+
+## Process
+
+- **⚠️ GitHub actions pinned to a SHA, not a tag** (since 25.10.2026, audit):
+  `uses: owner/action@<40 characters> # vX.Y.Z`. The author can move a tag to
+  different code, and `appleboy/ssh-action` gets the SSH key to the server — a
+  taken-over author account = a taken-over server (that is how the secrets of
+  thousands of projects leaked with `tj-actions/changed-files`, 03.2025).
+  Dependabot (`github-actions`) bumps the SHA together with the comment. **A new
+  action: with a SHA from the start**
+  (`gh api repos/<owner>/<repo>/commits/<tag> --jq .sha`), never with a bare tag.
+- **GitHub token read-only** (`permissions: contents: read` in all workflows;
+  `packages: write` only in the `docker` job in `ci.yml`). The server pulls the
+  image from GHCR without a token. Values from the `workflow_dispatch` form go
+  into the script through `env:`, not through `${{ }}` in `run:` — the
+  expression is pasted into the shell code before it runs; the version in Deploy
+  is additionally checked against the tag pattern.
+- **Containers with `no-new-privileges`** (`x-security` in
+  `docker-compose.prod.yml`, since 25.10.2026): a process in a container will
+  not gain privileges through setuid files. Checked before adding: Postgres
+  (start, a query, `pg_dump` with the end marker), nginx (`nginx -t`, workers as
+  `nginx`), the application image (200, user `node`, writing to `uploads`).
+- **Build changes to the Dockerfile or the lock file locally before pushing.**
+  `npm ci` in a clean container catches a lock mismatch, and
+  `--platform linux/arm64` additionally missing native binaries for aarch64.
+- **Do not judge the image's completeness by `ls node_modules`.** Measured:
+  neither `@payloadcms/db-postgres` nor `drizzle-orm` exists in the image as a
+  directory, and the application reads from Postgres without a problem —
+  Turbopack built them into the server chunks. The only reliable test is to
+  **run the image**. Beware of the trap: running `.next/standalone/server.js`
+  from inside the project tree is NOT such a test, because Node finds the missing
+  modules one level up.
+- **Image cleanup in the deploy goes BEFORE `pull`**, not after. A pull aborted
+  for lack of space ends the deploy in red. Deletion is explicit, by tags, with
+  `KEEP=2` — `docker image prune -af --filter until=` with the containerd store
+  lets tagged images through and every version since the project's start piles
+  up.
+- **`nginx.conf` is mounted from the host**, so `up -d` will not reload it with
+  an unchanged image tag — the deploy does an explicit `nginx -t` and
+  `nginx -s reload`.
+
+### Local verification
 
 ```bash
-docker compose up -d                  # baza na 5435
+docker compose up -d                  # database on 5435
 cd web
 npm ci
-npm run migrate                       # schemat z migracji w repo
-npm run dev                           # strona :3000, panel :3000/admin
+npm run migrate                       # schema from the migrations in the repo
+npm run dev                           # site :3000, panel :3000/admin
 
 npm run lint && npx tsc --noEmit && npm test && npm run build
-npm run audit                             # bramka BLOKUJĄCA w CI (npm audit + wyjątki)
-npm run test:integration                  # przy działającym npm run dev (patrz niżej)
+npm run audit                             # BLOCKING gate in CI (npm audit + exceptions)
+npm run test:integration                  # with npm run dev running (see below)
 npm run generate:types && git diff --exit-code src/payload-types.ts
 
-# nginx.conf — nazwa `app` nie rozwiązuje się poza siecią compose,
-# więc do testu podmieniamy ją na adres IP
+# nginx.conf — the name `app` does not resolve outside the compose network,
+# so for the test we replace it with an IP address
 sed 's|http://app:3000|http://127.0.0.1:3000|g' ../deploy/nginx.conf > /tmp/n.conf
 docker run --rm -v /tmp/n.conf:/etc/nginx/conf.d/default.conf:ro \
   -v "$PWD/../deploy/certs:/etc/nginx/certs:ro" nginx:1.31-alpine nginx -t
 
-# Workflow'y (wymaga zainicjowanego repozytorium git)
+# Workflows (requires an initialised git repository)
 docker run --rm -v "$PWD/..:/repo" -w /repo rhysd/actionlint:latest -color
 ```
 
-### Testy ręczne
+### Manual tests (Testy ręczne)
 
-Od 06.10.2026. Scenariusz: `docs/testy-reczne.html` — źródło
-PDF-a (Chrome headless, `--print-to-pdf --no-pdf-header-footer`; PDF poza
-repo). **Zmieniasz funkcję — zmień jej kroki w tym samym commicie.**
+Since 06.10.2026. Scenarios: `docs/testy-reczne.html` (courses) and
+`docs/testy-obozy.html` (camps) — the sources of the PDFs (Chrome headless,
+`--print-to-pdf --no-pdf-header-footer`; PDFs outside the repo). **You change a
+feature — change its steps in the same commit.**
 
-- **Pisany głosem Mateusza, dla Krzyśka** (od 13.10.2026): bez kratek do
-  zaznaczania — błąd od razu na WhatsApp, blokujący zatrzymuje test do
-  naprawy. Część techniczna (P, Z) to dodatek na końcu.
-- **Hasło kont testowych i skrzynka testera są w PDF-ie, NIE w pliku.**
-  W HTML-u stoją `{{HASLO_TESTOWE}}`, `{{HASLO_PANELU}}` (tymczasowe hasło
-  panelu Krzyśka) i `{{SKRZYNKA}}` (część `TEST_INBOX` przed @); PDF robi
-  się z kopii w scratchpadzie z podstawionymi wartościami (repo jest
-  publiczne, to wartości sekretów `TEST_PASSWORD` i `TEST_INBOX`).
-  `TEST_PASSWORD` może być równe jawnemu `LOCAL_PASSWORD` (decyzja
-  14.10.2026: konta testowe są zmyślone, a skrypt nie zakłada kont panelu).
-  Hasło tymczasowe panelu Krzyśka ma osobny znacznik — zmienia je przy
-  pierwszym logowaniu.
-- **Maile w rundzie Krzyśka idą do obu**: `TEST_INBOX` i `ADMIN_NOTIFY_EMAIL`
-  zostają Gmailem Mateusza, a filtr Gmaila przekazuje wszystko od
-  `zapisy@szkolawspinaczkowa.pl` na `biuro@abcwspinania.info` (krok Z4).
-- **Dwa skrypty, jeden moduł** (od 22.10.2026, `web/scripts/test-data/`):
-  `seed:test:courses` (= dawne `seed:test`, alias zostaje — używa go workflow
-  „Test data” i scenariusz kursów) i `seed:test:camps` (scenariusz
-  `docs/testy-obozy.html`). Wspólne w `common.ts`: skrzynka, hasło (te same
-  konta i to samo hasło w obu), sprzątanie, okno czasu. **Osobne tagi**
-  `+abctest-` i `+abctestoboz-` — żaden nie zawiera drugiego, więc `clean`
-  jednego nie rusza danych drugiego; „bez znacznika” liczy oba. Osobne okna
-  (`seed-test:since`, `seed-test-camps:since`) i osobne notatki terminów
-  („TERMIN TESTOWY…”, „TURNUS TESTOWY…”). Dane obozów wpisują stany tymi
-  samymi funkcjami co strona (`saveRegistration`, `sendRegistrationEmails`
-  z podmienionym `sendEmail`), turnusy mają własną cenę 2500 zł; linki do
-  formularzy rejestracyjnych są w podsumowaniu tylko lokalnie.
-- Dane: `TEST_INBOX=ty@gmail.com npm run seed:test` (`web/scripts/test-data/courses.ts`).
-  Każdy adres to alias jednej skrzynki (`ty+abctest-ola@gmail.com`), więc
-  konta są osobne, a maile — prawdziwe, przez Brevo — trafiają do testera.
-  Znacznik `+abctest-` w adresie i dopisek „TERMIN TESTOWY — nie zapisuj się”
-  przy terminie to sposób, w jaki skrypt znajduje swoje dane: każde
-  uruchomienie najpierw je kasuje, `-- clean` tylko kasuje. Wysyłki usuwa,
-  gdy WSZYSCY ich odbiorcy mają znacznik.
-- **Na produkcji (od 13.10.2026) — tylko workflow „Test data”**
-  (`test-data.yml`, potwierdzenie słowem `test-data`; wybór danych `courses`
-  albo `camps` — od 25.10.2026, domyślnie kursy, więc stary sposób z
-  `testy-reczne.html` działa bez zmian; akcje `seed`, `clean`,
-  `clean-all`), tym samym tunelem co Migrate. Repozytorium jest
-  PUBLICZNE, więc logi też: skrzynka i hasło kont to sekrety `TEST_INBOX`
-  i `TEST_PASSWORD`, a skrypt nie wypisuje adresu, tokenu ani danych osoby —
-  same id. **Konta panelu na produkcji nie zakłada** (znane hasło do panelu
-  szkoły w publicznym repo); testerzy używają własnych. Wygasły link Ewy —
-  tylko lokalnie. Job ustawia `NODE_ENV=production`: przy innym Payload
-  przy starcie pchnąłby schemat do bazy klienta (tryb `push`) i zostawił
-  wpis `dev`, na którym staje Migrate. Skrypt bez `TEST_DATA_ON_PRODUCTION=yes`
-  odmawia startu przy `NODE_ENV=production`.
-- **To, co tester wpisze BEZ znacznika** (konto na prawdziwy adres, zapis
-  telefoniczny na prawdziwym terminie), da się odróżnić od prawdziwych danych
-  tylko po CZASIE. Pierwsze wgranie zapisuje początek rundy w `payload.kv`
-  (`seed-test:since`, zostaje przez kolejne wgrania i `clean`); `clean`
-  wypisuje id rzeczy bez znacznika z tego okresu, `clean-all` je usuwa
-  i zamyka okres. Bez ślepego kasowania — na produkcji w tym czasie może
-  przyjść prawdziwa wiadomość.
-- Seed niczego nie wysyła (`payload.sendEmail` podmieniony); maile idą
-  dopiero z kliknięć testera. Konto do rejestracji od zera
-  (`+abctest-nowy`) celowo nie powstaje.
-- Wygasły link potwierdzający (Ewa) — token i `verificationSentAt` sprzed
-  3 dni zapisane przez `payload.db.updateOne`, jak w `sendVerificationLink`.
-- Daty terminów w podsumowaniu przez `formatDateRange` — tak jak na stronie
-  (UTC); inna strefa dawała dzień różnicy wobec Terminarza.
+- **Written in Mateusz's voice, for Krzysiek** (since 13.10.2026), in Polish:
+  no boxes to tick — an error straight to WhatsApp, a blocking one stops the
+  test until fixed. The technical part (P, Z) is an appendix at the end.
+- **The test accounts' password and the tester's inbox are in the PDF, NOT in
+  the file.** The HTML has `{{HASLO_TESTOWE}}` and `{{SKRZYNKA}}` (the part of
+  `TEST_INBOX` before the @); the PDF is made from a copy in the scratchpad with
+  the values substituted (the repo is public, these are the values of the
+  secrets `TEST_PASSWORD` and `TEST_INBOX`). `TEST_PASSWORD` may equal the public
+  `LOCAL_PASSWORD` (decision 14.10.2026: the test accounts are made up, and the
+  script does not create panel accounts). Krzysiek's panel password is not in the
+  scenario (since 27.10.2026): he changed the temporary one from the first PDF to
+  his own.
+- **A step names what the tester sees on screen**, not the scenario's own
+  labels: the panel does not show the "TURNUS TESTOWY" note on the "Terminy"
+  list, so a test date is found there by its dates (since 27.10.2026, found in
+  the first production run).
+- **Emails in Krzysiek's round go to both**: `TEST_INBOX` and
+  `ADMIN_NOTIFY_EMAIL` stay Mateusz's Gmail, and a Gmail filter forwards
+  everything from `zapisy@szkolawspinaczkowa.pl` to `biuro@abcwspinania.info`
+  (step Z4).
+- **Two scripts, one module** (since 22.10.2026, `web/scripts/test-data/`):
+  `seed:test:courses` (= the former `seed:test`, the alias stays — the "Test
+  data" workflow and the courses scenario use it) and `seed:test:camps` (the
+  `docs/testy-obozy.html` scenario). Shared in `common.ts`: inbox, password (the
+  same accounts and the same password in both), cleanup, time window. **Separate
+  tags** `+abctest-` and `+abctestoboz-` — neither contains the other, so `clean`
+  of one does not touch the other's data; "without a tag" counts both. Separate
+  windows (`seed-test:since`, `seed-test-camps:since`) and separate date notes
+  ("TERMIN TESTOWY…", "TURNUS TESTOWY…"). The camp data writes its states with
+  the same functions as the site (`saveRegistration`, `sendRegistrationEmails`
+  with `sendEmail` swapped), the turnuses have their own price of 2500 zł; links
+  to registration forms are in the summary only locally.
+- **Test dates count from the moment of loading.** The courses' open date
+  starts 14 days after `seed`, the camps' turnuses after 10 days, ~5 and ~7
+  weeks — a round longer than about 10 days needs a new `seed` (which wipes
+  what was done). The emails of the daily sweep (the deposit reminder, the
+  pre-camp draft) come at the first 8:00 after loading — data loaded in the
+  evening = those steps the next morning.
+- Data: `TEST_INBOX=you@gmail.com npm run seed:test`
+  (`web/scripts/test-data/courses.ts`). Each address is an alias of one inbox
+  (`you+abctest-ola@gmail.com`), so the accounts are separate, and the emails —
+  real, through Brevo — reach the tester. The `+abctest-` tag in the address and
+  the note "TERMIN TESTOWY — nie zapisuj się" on the date are how the script
+  finds its data: each run first deletes it, `-- clean` only deletes. It deletes
+  broadcasts when ALL their recipients have the tag.
+- **In production (since 13.10.2026) — only the "Test data" workflow**
+  (`test-data.yml`, confirmation with the word `test-data`; the choice of data
+  `courses` or `camps` — since 25.10.2026, courses by default, so the old way
+  from `testy-reczne.html` works unchanged; actions `seed`, `clean`,
+  `clean-all`), through the same tunnel as Migrate. The repository is PUBLIC, so
+  the logs are too: the inbox and the account password are the secrets
+  `TEST_INBOX` and `TEST_PASSWORD`, and the script does not print an address, a
+  token or a person's data — ids only. **It does not create a panel account in
+  production** (a known password to the school's panel in a public repo); testers
+  use their own. Ewa's expired link — only locally. The job sets
+  `NODE_ENV=production`: with anything else Payload would push the schema to the
+  client's database at start (`push` mode) and leave the `dev` row, on which
+  Migrate stops. Without `TEST_DATA_ON_PRODUCTION=yes` the script refuses to
+  start with `NODE_ENV=production`.
+- **What the tester enters WITHOUT the tag** (an account on a real address, a
+  phone booking on a real date) can be told from real data only by TIME. The
+  first load records the start of the round in `payload.kv` (`seed-test:since`,
+  it stays through later loads and `clean`); `clean` lists the ids of untagged
+  things from that period, `clean-all` deletes them and closes the period. No
+  blind deleting — a real message may arrive in production in that time.
+- The seed sends nothing (`payload.sendEmail` swapped); emails go only from the
+  tester's clicks. The account for registering from scratch (`+abctest-nowy`)
+  is deliberately not created.
+- Expired confirmation link (Ewa) — the token and a `verificationSentAt` from 3
+  days ago saved through `payload.db.updateOne`, as in `sendVerificationLink`.
+- Dates of the dates in the summary through `formatDateRange` — as on the site
+  (UTC); a different time zone gave a day of difference against the Terminarz.
 
-### Instrukcja dla szkoły
+### School guide (Instrukcja dla szkoły)
 
-Od 13.10.2026 w repo: `docs/instrukcja-zapisy.html` (źródło PDF-a
-„Zapisy na kursy, wysyłki i newsletter” dla Krzyśka), zrzuty obok, w
-`docs/instrukcja-zapisy/`. Wcześniej istniał tylko PDF z 05.10 — źródło
-zaginęło i przy pierwszej aktualizacji trzeba było je odtwarzać z tekstu
-PDF-a. Pisana głosem Mateusza, prostym językiem. **Zmieniasz coś, co szkoła
-widzi w panelu albo w mailach — popraw instrukcję w tym samym commicie.**
-Zrzuty: lokalny serwer, dane z `seed:test` z adresami przestawionymi na
-`@example.com` (żadnych prawdziwych osób ani adresu testera), Chrome
-headless; plakietkę trybu deweloperskiego (`nextjs-portal`) usunąć przed
-zrzutem. Pytania „Zmienić status…?” i „Wysłać do…?” to okienka przeglądarki
-— w trybie headless ich nie widać, opisane są tekstem.
+Since 13.10.2026 in the repo: `docs/instrukcja-zapisy.html` (the source of the
+PDF "Zapisy na kursy, wysyłki i newsletter" for Krzysiek), screenshots next to
+it, in `docs/instrukcja-zapisy/`. Before, only the PDF of 05.10 existed — the
+source was lost and at the first update it had to be rebuilt from the PDF's
+text. Written in Mateusz's voice, in plain Polish. **You change something the
+school sees in the panel or in emails — fix the guide in the same commit.**
+Screenshots: the local server, data from `seed:test` with addresses switched to
+`@example.com` (no real people and not the tester's address), Chrome headless;
+remove the development mode badge (`nextjs-portal`) before the screenshot. The
+questions "Zmienić status…?" and "Wysłać do…?" are browser dialogs — not visible
+in headless mode, they are described in text.
 
-### Testy integracyjne
+### Integration tests
 
-Od 05.10.2026 `npm run test:integration` (`web/tests/integration/`), także
-w CI (job `integration`: Postgres jako usługa, schemat WYŁĄCZNIE z migracji,
-serwer `.next/standalone/server.js` jak w obrazie; job `docker` czeka na niego):
-prawdziwa baza i działający serwer (`TEST_BASE_URL`, domyślnie
-`http://localhost:3000`). Sprawdza to, czego nie widzą testy jednostkowe:
-kto czyta co przez REST (kursant nie widzi cudzych zapisów ani danych
-szkoły), wyścig o ostatnie miejsce i podwójne
-kliknięcie, newsletter z potwierdzeniem, kolejkę wysyłek, odnotowane
-maile, usunięcie konta.
+Since 05.10.2026 `npm run test:integration` (`web/tests/integration/`), also in
+CI (the `integration` job: Postgres as a service, the schema ONLY from
+migrations, the `.next/standalone/server.js` server as in the image; the
+`docker` job waits for it): a real database and a running server
+(`TEST_BASE_URL`, by default `http://localhost:3000`). It checks what unit tests
+do not see: who reads what through REST (a participant does not see others'
+bookings or the school's data), the race for the last place and the double
+click, the newsletter with confirmation, the broadcast queue, recorded emails,
+account deletion.
 
-- **Własny mały runner, nie `node:test`.** Testy idą przez `payload run`
-  (`.env`, aliasy `@/`, prawdziwy Payload — bez nowej zależności), a ono
-  woła `process.exit(0)`, gdy tylko skrypt się załaduje: `node:test`
-  zostałby ucięty, a błędy kończyłyby się kodem 0. `harness.ts` czeka na
-  każdy test i sam ustawia kod wyjścia; nieudane sprzątanie też go psuje.
-- **Żaden mail nie wychodzi**: skrypt zeruje `BREVO_API_KEY`, a
-  `payload.sendEmail` jest podmieniony na skrzynkę w pamięci, którą testy
-  czytają. Przez HTTP testy czytają, dostają odmowy i wypisują z newslettera
-  — nic, co wysyła maile. Wszystko, co wysyła, wołają w swoim procesie (endpointy wysyłek z kontem szkoły na
-  żądaniu), bo maili serwera nie da się stąd zatrzymać.
-- **Każdy rekord ma znacznik i jest kasowany na końcu** — można je puszczać
-  na bazie deweloperskiej. Kasowanie przez `where` idzie przez `removeWhere`:
-  hurtowe `payload.delete` NIE rzuca, tylko zwraca odmowy w `errors` —
-  wysyłki „w trakcie” zostawały w bazie po cichu i blokowały kolejkę
-  następnego przebiegu.
-- **Sprzątanie dzienne w testach — tylko na własnych turnusach**
-  (`onlySessions` w `sendRegistrationReminders`, `sendDepositReminders`,
+- **Our own small runner, not `node:test`.** The tests go through `payload run`
+  (`.env`, `@/` aliases, real Payload — without a new dependency), and that calls
+  `process.exit(0)` as soon as the script loads: `node:test` would be cut off,
+  and failures would end with code 0. `harness.ts` waits for every test and sets
+  the exit code itself; a failed cleanup breaks it too.
+- **No email goes out**: the script zeroes `BREVO_API_KEY`, and
+  `payload.sendEmail` is swapped for an in-memory inbox the tests read. Over HTTP
+  the tests read, get refusals and unsubscribe from the newsletter — nothing that
+  sends email. Everything that sends, they call in their own process (the
+  broadcast endpoints with a school account on the request), because the
+  server's emails cannot be stopped from here.
+- **Every record has a tag and is deleted at the end** — they can run on the
+  development database. Deleting by `where` goes through `removeWhere`: a bulk
+  `payload.delete` does NOT throw, it returns refusals in `errors` — broadcasts
+  "w trakcie" stayed in the database silently and blocked the next run's queue.
+- **The daily sweep in tests — only on their own turnuses** (`onlySessions` in
+  `sendRegistrationReminders`, `sendDepositReminders`,
   `deleteExpiredRegistrations`, `sendWaitingDepositEmails`,
-  `preparePreCampDrafts`; od 22.10.2026). Testy chodzą po bazie
-  deweloperskiej, na której leżą dane z `seed:test:camps`: przypomnienie
-  o zaliczce wysłane przez test „do outboxa” oznaczało zapis testera jako
-  przypomniany i krok scenariusza przestawał działać.
-- **Zmiana kolekcji = restart `npm run dev` przed testami HTTP.** Serwer
-  deweloperski nie przeładowuje konfiguracji Payloada w locie (zmierzone
-  04–05.10.2026: nowe pola nieznane, zmieniona reguła dostępu nadal stara),
-  więc test dostępu mierzyłby STARĄ konfigurację.
-- Sprawdzone mutacjami 05.10.2026: zdjęta blokada „Wyślij” → czerwony test
-  podwójnego kliknięcia; `read: () => true` w `Bookings` → trzy czerwone
-  testy dostępu.
+  `preparePreCampDrafts`; since 22.10.2026). The tests run on the development
+  database, where the data from `seed:test:camps` lies: a deposit reminder sent
+  by a test "to the outbox" marked the tester's booking as reminded and the
+  scenario step stopped working.
+- **A collection change = restart `npm run dev` before the HTTP tests.** The
+  development server does not reload Payload's configuration on the fly
+  (measured 04–05.10.2026: new fields unknown, a changed access rule still old),
+  so an access test would measure the OLD configuration.
+- Checked with mutations 05.10.2026: the "Wyślij" lock removed → a red double
+  click test; `read: () => true` in `Bookings` → three red access tests.
 
 ---
 
-## Następne etapy — świadomie poza tym szkieletem
+## Next stages — deliberately outside this skeleton
 
-1. **Rezerwacje i konta uczestników.** W Payloadzie logowanie to właściwość
-   kolekcji (`auth: true`), więc konta uczestników będą **drugą kolekcją z tym
-   samym mechanizmem** — nie osobnym światem, jak wtyczka users-permissions
-   w Strapim obok kont administratorów.
-2. **Zapisy, konta uczestników, wysyłki** — plan etapów z 01.10.2026
-   (maile, uprawnienia, konta, zapis na kurs, panel, obozy, wysyłki, RODO).
-   Maile działają od etapu 0 (patrz „Maile (Brevo)”); formularz kontaktowy
-   powiadamia Krzyśka, a reset hasła do panelu wychodzi mailem.
-   Zgoda marketingowa do newslettera idzie tym samym wzorcem co
-   `src/lib/consent.ts`: treść + wersja, nie samo „tak".
-3. **Panel operacyjny** — kalendarz obozów, wykresy. W Payloadzie
-   to **własne widoki w tym samym panelu** (udokumentowana funkcja), a nie
-   osobny obszar w Next.js, jak musiałoby być przy Strapim.
+1. **Bookings and participant accounts.** In Payload login is a property of a
+   collection (`auth: true`), so participant accounts will be **a second
+   collection with the same mechanism** — not a separate world, like the
+   users-permissions plugin in Strapi next to the administrator accounts.
+2. **Bookings, participant accounts, broadcasts** — the stage plan of
+   01.10.2026 (emails, permissions, accounts, course booking, panel, camps,
+   broadcasts, GDPR). Emails work since stage 0 (see "Emails (Brevo)"); the
+   contact form notifies Krzysiek, and the panel password reset goes out by
+   email. The marketing consent for the newsletter follows the same pattern as
+   `src/lib/consent.ts`: text + version, not a bare "yes".
+3. **Operations panel** — a camp calendar, charts. In Payload these are **custom
+   views in the same panel** (a documented feature), not a separate area in
+   Next.js, as it would have had to be with Strapi.
 
-## Do potwierdzenia z klientem
+## To be confirmed with the client
 
-- Czy domena zostaje `abcwspinania.info`. Występuje w `deploy/nginx.conf`
-  (trzy bloki `server_name`) i w zmiennej repozytorium `SITE_URL`. Grep po
-  `abcwspinania.info` musi zwracać wyłącznie te miejsca.
-- Telefon i adres e-mail — wpisuje je Krzysiek w globalu `site-config`
-  w panelu, bez commita i deployu. Dopóki telefon jest pusty, strona **nie
-  renderuje** linku `tel:` zamiast renderować zepsuty.
-- Model treści: sześć kolekcji treściowych (`Courses`, `Camps`, `Sessions`,
-  `Posts`, `Testimonials`, `Instructors`) i pięć globali. Etykiety w panelu
-  są po polsku — to je widzi Krzysiek.
+- Whether the domain stays `abcwspinania.info`. It appears in
+  `deploy/nginx.conf` (three `server_name` blocks) and in the repository variable
+  `SITE_URL`. A grep for `abcwspinania.info` must return only these places.
+- Phone and email address — Krzysiek enters them in the `site-config` global in
+  the panel, without a commit and deploy. As long as the phone is empty, the site
+  **does not render** a `tel:` link instead of rendering a broken one.
+- The content model: six content collections (`Courses`, `Camps`, `Sessions`,
+  `Posts`, `Testimonials`, `Instructors`) and five globals. The labels in the
+  panel are in Polish — that is what Krzysiek sees.
