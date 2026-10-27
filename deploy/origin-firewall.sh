@@ -37,8 +37,9 @@ set -euo pipefail
 RANGES_FILE="/etc/abc-origin-firewall/cloudflare-v4.txt"
 CHAIN="ABC-ORIGIN"
 PORTS="80 443"
-# Cloudflare publishes 15 IPv4 ranges (10.2026). Fewer than this means the
+# Cloudflare publishes 15 IPv4 ranges (10.2026). Fewer than 10 means the
 # list was cut or parsed wrong — better no filter than a site closed to all.
+# The same threshold stands in setup-origin-firewall.sh.
 MIN_RANGES=10
 
 if [[ "${EUID}" -ne 0 ]]; then
