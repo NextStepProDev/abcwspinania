@@ -145,20 +145,36 @@ jobs:
             # version since the start of the project piled up. We delete
             # explicitly, by tag: images held by containers stay, plus the KEEP
             # newest of each repository — enough for a manual rollback without
-            # GHCR. `|| true` — cleanup must never kill the deploy.
+            # GHCR.
+            # Counted by image ID, not by row (since 31.10.2026, after
+            # anovastudio #104): one image can carry two tags (`main` and the
+            # version number after a deploy by `main` or `sha-…`), and as rows
+            # they took both places — the rollback version got deleted. Every
+            # tag of the third and older DISTINCT images goes. `<none>` rows are
+            # skipped before ranking, so the rule does not depend on the
+            # `dangling=false` filter. Images in use are matched by ID too: by
+            # name, an image whose tag a later deploy took over stopped being
+            # protected.
+            # `|| true` / `|| echo` at the end of every pipeline — with
+            # `set -euo pipefail` an empty result, a failed `docker images` or
+            # `docker rmi` would otherwise kill the deploy.
             KEEP=2
-            IN_USE=$(docker ps -a --format '{{.Image}}' | sort -u)
+            IN_USE=$(docker ps -aq | xargs -r docker inspect --format '{{.Image}}' \
+              | sed 's/^sha256://' | cut -c1-12 | tr '\n' ' ' || true)
             for REPO in abcwspinania; do
               docker images "ghcr.io/${GHCR_OWNER}/${REPO}" \
                 --filter 'dangling=false' \
-                --format '{{.CreatedAt}}\t{{.Repository}}:{{.Tag}}' \
-                | sort -r | tail -n +$((KEEP + 1)) | cut -f2 \
+                --format '{{.CreatedAt}}\t{{.ID}} {{.Repository}}:{{.Tag}}' \
+                | sort -r | cut -f2 \
+                | awk -v keep="$KEEP" -v used="$IN_USE" '
+                    BEGIN { n = split(used, u, " "); for (i = 1; i <= n; i++) inuse[u[i]] = 1 }
+                    $2 ~ /:<none>$/ { next }
+                    !($1 in rank) { rank[$1] = ++k }
+                    rank[$1] > keep && !($1 in inuse) { print $2 }' \
                 | while read -r IMG; do
-                    if ! printf '%s\n' "$IN_USE" | grep -qxF "$IMG"; then
-                      echo "cleanup: removing $IMG"
-                      docker rmi "$IMG" || true
-                    fi
-                  done
+                    echo "cleanup: removing $IMG"
+                    docker rmi "$IMG" || true
+                  done || echo "WARN: image cleanup for ${REPO} failed — deploy continues"
             done
             # Layers orphaned by the removed tags (this variant, without a filter, works).
             docker image prune -f || true
@@ -226,11 +242,24 @@ jobs:
 
       - name: Verify deployment health
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: VERSION
           script: |
+            # Healthy alone is not enough (since 31.10.2026): the previous
+            # version is healthy too, so a deploy in which compose did not
+            # replace the container passed this check. The container must run
+            # the tag being deployed.
+            IMAGE=$(docker inspect --format '{{.Config.Image}}' abcwspinania-app-prod 2>/dev/null || echo "missing")
+            if [ "${IMAGE##*:}" != "$VERSION" ]; then
+              echo "ERROR: abcwspinania-app-prod runs '$IMAGE', expected tag '$VERSION'."
+              exit 1
+            fi
+            echo "abcwspinania-app-prod runs $IMAGE"
             echo "Waiting for the app to report healthy..."
             for i in $(seq 1 16); do
               APP=$(docker inspect --format='{{.State.Health.Status}}' abcwspinania-app-prod 2>/dev/null || echo "missing")
