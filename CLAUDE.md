@@ -2067,7 +2067,21 @@ it has no history in Google and no mail, so taking it over cuts off nothing.
   for lack of space ends the deploy in red. Deletion is explicit, by tags, with
   `KEEP=2` — `docker image prune -af --filter until=` with the containerd store
   lets tagged images through and every version since the project's start piles
-  up.
+  up. **Counted by image ID, not by tag row** (since 31.10.2026, the same fix
+  as anovastudio #104): after a deploy by `main` or `sha-…` one image carries
+  two tags, and as two rows it took both `KEEP` places — the rollback version
+  was deleted. `<none>` rows are skipped before ranking; images held by
+  containers are matched by ID (`docker ps -aq | xargs docker inspect`), not by
+  name — a tag taken over by a later deploy left its old image unprotected.
+  Every cleanup pipeline ends with `|| true` / `|| echo WARN` (`set -euo
+  pipefail`: nothing to delete or a failed `docker rmi` must not stop the
+  deploy).
+- **"Verify deployment health" first checks the container's TAG** (since
+  31.10.2026): `abcwspinania-app-prod` must run the version being deployed
+  (`{{.Config.Image}}`, the part after `:`), only then the health loop. Healthy
+  alone passed a deploy in which compose kept the old container — the old
+  version is healthy too. The version comes through `env:` + `envs:`, not
+  `${{ }}` in the script.
 - **`nginx.conf` is mounted from the host**, so `up -d` will not reload it with
   an unchanged image tag — the deploy does an explicit `nginx -t` and
   `nginx -s reload`.
