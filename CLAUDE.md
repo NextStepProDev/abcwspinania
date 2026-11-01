@@ -411,9 +411,13 @@ of defence is `timeout 300` on the command itself.
   the solution is a version bump.
 - **The audit gate has an exception list — `web/scripts/audit-gate.mjs`**
   (`npm run audit`, since 03.10.2026). `npm audit` alone only knows "all or
-  nothing". Today one exception:
+  nothing". Today two exceptions, both in one package:
   **`happy-dom`** (`GHSA-834v-8h66-3h79`, since 25.10.2026; published on the
-  evening of 23.10 — code execution through an import alias in a page script).
+  evening of 23.10 — code execution through an import alias in a page script;
+  and `GHSA-c8p4-j97h-3vg8`, since 01.11.2026; published on the evening of
+  28.10 — server-side requests to any URL from an `<iframe>` or a stylesheet
+  `<link>` in parsed HTML, fixed in 21.0.0; it stopped every PR, Dependabot's
+  too).
   Chain: `@payloadcms/richtext-lexical` → `@lexical/headless` 0.50 →
   `happy-dom` 20; the fix is only in 21.0.4, i.e. in a major that `^20` will
   not accept — in Payload 3.92 as well. `happy-dom` is loaded only by
@@ -430,8 +434,8 @@ of defence is `timeout 300` on the command itself.
     before.
   - An entry the audit no longer reports **also fails the gate** (`STALE`), so
     an exception will not stay silently after a fix.
-  - **On a Payload bump:** `npm ls happy-dom` — from 21.0.4 remove the entry
-    (the gate will report it as `STALE` anyway).
+  - **On a Payload bump:** `npm ls happy-dom` — from 21.0.4 remove both entries
+    (the gate will report them as `STALE` anyway).
   - A new exception only with a description in the script: why it is
     unreachable and when to remove it. Lowering the gate level or
     `continue-on-error` — no.

@@ -20,6 +20,12 @@ const ACCEPTED = {
   // nothing here parses anyone's HTML. Remove when `npm ls happy-dom` shows
   // ≥ 21.0.4 (a Payload with a newer @lexical/headless).
   'GHSA-834v-8h66-3h79': 'happy-dom — never imported by the app, not in the image',
+  // happy-dom: server-side requests to any URL when parsing HTML with an
+  // <iframe> or <link rel="stylesheet"> (published 28.10.2026). The same
+  // chain and the same reason as the entry above: nothing here hands HTML to
+  // happy-dom, because nothing loads it. Fixed in 21.0.0; remove together
+  // with the entry above, when `npm ls happy-dom` shows ≥ 21.0.4.
+  'GHSA-c8p4-j97h-3vg8': 'happy-dom — never imported by the app, not in the image',
 }
 
 const BLOCKING = new Set(['high', 'critical'])
