@@ -23,7 +23,7 @@ their reasons.
 | Layer | Technology |
 |---|---|
 | Application | Next.js 16.4.3 — App Router, TypeScript, Tailwind 4, Turbopack |
-| CMS | **Payload 3.92.0**, running INSIDE the Next application |
+| CMS | **Payload 3.92.1**, running INSIDE the Next application |
 | Database | PostgreSQL 18 |
 | Deployment | Docker Compose + nginx, image from GHCR, Oracle Cloud **Ampere A1** |
 
@@ -327,7 +327,7 @@ of defence is `timeout 300` on the command itself.
   `context.getFilename()` — an API removed in 10.
 - **All Payload packages must go in one version.** `@payloadcms/next` declares
   the `payload` peer **to the exact number**, so a mismatch breaks `npm ci`.
-  That is why they are pinned exactly (`3.92.0`, no `^`) and bumped in one PR
+  That is why they are pinned exactly (`3.92.1`, no `^`) and bumped in one PR
   by the `payload` group in Dependabot. Never separately.
   **By hand** (25.10.2026, 3.90.2 → 3.92.0): just the new numbers in
   `package.json` and `npm install` gave ERESOLVE (`Conflicting peer
@@ -391,7 +391,7 @@ of defence is `timeout 300` on the command itself.
   that pins the dependency, and **removing it at the Payload bump, once Payload
   pins the fixed version** — left in silently, it would one day pull Payload
   back to an older one. **On a Payload bump:** `npm ls undici esbuild` in
-  `web/`; if `esbuild` is still pre-fix (in 3.92.0: 0.18 through `drizzle-kit`)
+  `web/`; if `esbuild` is still pre-fix (in 3.92.1: 0.18 through `drizzle-kit`)
   — check it has not got into the image.
 - **`dompurify` forced to 3.4.17** (`overrides["monaco-editor"].dompurify`
   in `web/package.json`, since 22.10.2026) — the same reason and the same form
@@ -400,7 +400,7 @@ of defence is `timeout 300` on the command itself.
   The code editor never starts here (rule 19), but the audit gate stopped every
   PR, including the Next patch. The fix is a patch alone. **On a Payload bump:**
   `npm ls dompurify`; when `monaco-editor` comes with ≥ 3.4.17 — remove this
-  `overrides` entry and this paragraph (in Payload 3.92.0 still 3.4.15).
+  `overrides` entry and this paragraph (in Payload 3.92.1 still 3.4.15).
 - **Next 16.4.3** (since 25.10.2026; 16.4.2 since 22.10.2026): on 22.10 two
   critical holes were published in 16.4.0 (`GHSA-2464-fhr4-w9xw` — the image
   optimiser with SVG, `GHSA-673q-mjm6-r5xr`). Dependabot did not make a PR in
@@ -536,10 +536,10 @@ actually exposed.
 ### Boilerplate in `(payload)/`
 
 Files with the header "GENERATED AUTOMATICALLY BY PAYLOAD" come straight from
-the `templates/blank` template in version **v3.92.0** (the same as in v3.90.1,
-checked 25.10.2026). One deliberate change: `layout.tsx` imports `./custom.css`
-instead of `./custom.scss`, because we are not adding a SCSS pipeline for one
-empty stylesheet.
+the `templates/blank` template in version **v3.92.1** (the same as in v3.90.1
+and v3.92.0, checked 01.11.2026). One deliberate change: `layout.tsx` imports
+`./custom.css` instead of `./custom.scss`, because we are not adding a SCSS
+pipeline for one empty stylesheet.
 
 ### ⚠️ `withPayload` headers — `Critical-CH` only in the panel
 
