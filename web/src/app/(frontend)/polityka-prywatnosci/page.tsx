@@ -226,6 +226,17 @@ export default function PrivacyPolicyPage() {
               </li>
             </List>
             <p>
+              Na stronie{' '}
+              <Link href="/kontakt" className={policyLinkClass}>
+                Kontakt
+              </Link>{' '}
+              pokazujemy mapę dojazdu z Map Google. Mapa wczytuje się z serwerów Google (Google
+              Ireland Ltd.), które — jak przy każdym wyświetleniu strony — otrzymują przy tym
+              standardowe informacje techniczne, np. adres IP. Google korzysta z nich na zasadach
+              opisanych w swojej polityce prywatności (policies.google.com/privacy). Podstawą jest
+              nasz uzasadniony interes: ułatwienie dojazdu do szkoły (art. 6 ust. 1 lit. f RODO).
+            </p>
+            <p>
               Dane możemy też przekazać organom publicznym, jeśli wymaga tego prawo (np. urzędowi
               skarbowemu w zakresie rozliczeń).
             </p>
@@ -270,7 +281,7 @@ export default function PrivacyPolicyPage() {
               Używamy tylko ciasteczka niezbędnego do logowania (<code>payload-token</code>) —
               zapisuje się, gdy się zalogujesz, i pozwala nie logować się przy każdej podstronie.
               Cloudflare może dodatkowo zapisać techniczne ciasteczko służące ochronie strony przed
-              botami.
+              botami, a mapa Google na stronie Kontakt — ciasteczka Google, na zasadach Google.
             </p>
           </Section>
 

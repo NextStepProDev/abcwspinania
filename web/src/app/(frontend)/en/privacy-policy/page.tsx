@@ -225,6 +225,17 @@ export default function PrivacyPolicyEnglishPage() {
               </li>
             </List>
             <p>
+              The Polish{' '}
+              <Link href="/kontakt" className={policyLinkClass}>
+                Contact
+              </Link>{' '}
+              page shows a Google Maps map of how to reach us. The map loads from Google&apos;s
+              servers (Google Ireland Ltd.), which — as with any page view — receive standard
+              technical information in the process, such as the IP address. Google uses it as
+              described in its own privacy policy (policies.google.com/privacy). The legal basis is
+              our legitimate interest: helping you find the school (Art. 6(1)(f) GDPR).
+            </p>
+            <p>
               We may also pass data to public authorities where the law requires it (for example to
               the tax office, for settlements).
             </p>
@@ -267,7 +278,8 @@ export default function PrivacyPolicyEnglishPage() {
             <p>
               We use only the cookie needed to log in (<code>payload-token</code>) — it is set when
               you log in and keeps you logged in from page to page. Cloudflare may also set a
-              technical cookie that protects the site from bots.
+              technical cookie that protects the site from bots, and the Google map on the Contact
+              page — Google&apos;s cookies, under Google&apos;s rules.
             </p>
           </Section>
 
