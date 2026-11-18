@@ -43,9 +43,11 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
   await db.execute(sql`
    ALTER TABLE "gallery_photos" DISABLE ROW LEVEL SECURITY;
   DROP TABLE "gallery_photos" CASCADE;
-  ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_gallery_photos_fk";
-  
-  DROP INDEX "payload_locked_documents_rels_gallery_photos_id_idx";
+  -- CASCADE above already dropped the constraint (measured 18.11.2026: without
+  -- IF EXISTS this down failed on "constraint … does not exist" — the trap
+  -- CLAUDE.md describes). IF EXISTS on the index too, for the same reason.
+  ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT IF EXISTS "payload_locked_documents_rels_gallery_photos_fk";
+  DROP INDEX IF EXISTS "payload_locked_documents_rels_gallery_photos_id_idx";
   ALTER TABLE "media" ADD COLUMN "show_in_gallery" boolean DEFAULT false;
   ALTER TABLE "payload_locked_documents_rels" DROP COLUMN "gallery_photos_id";`)
 }

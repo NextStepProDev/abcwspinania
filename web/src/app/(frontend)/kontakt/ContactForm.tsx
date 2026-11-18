@@ -194,9 +194,9 @@ export function ContactForm({
         )}
       </div>
 
-      {/* Pułapka na roboty. `hidden` zamiast `display:none` w CSS — część botów
-          czyta arkusze stylów i omija pola ukryte stylem. tabIndex i autoComplete
-          trzymają ją poza zasięgiem klawiatury i menedżerów haseł. */}
+      {/* A trap for bots. `hidden` instead of `display:none` in CSS — some bots
+          read stylesheets and skip fields hidden by style. tabIndex and
+          autoComplete keep it out of reach of the keyboard and password managers. */}
       <input
         type="text"
         name="website"
@@ -221,8 +221,8 @@ export function ContactForm({
             aria-invalid={state.errors?.consent ? true : undefined}
             className="mt-1 size-4 shrink-0"
           />
-          {/* Pełna treść klauzuli jest widoczna przy polu, a nie schowana pod
-              linkiem. Ta sama treść trafia do bazy razem ze zgłoszeniem. */}
+          {/* The full clause is visible next to the field, not hidden behind a
+              link. The same text goes into the database with the submission. */}
           <span>
             <ConsentText text={CONSENT_TEXT} />
           </span>

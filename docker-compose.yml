@@ -1,21 +1,23 @@
-# Środowisko DEWELOPERSKIE — wyłącznie baza danych.
+# DEVELOPMENT environment — the database only.
 #
-# Aplikację (Next.js z Payloadem w środku) uruchamiamy lokalnie przez
-# `npm run dev` — przeładowywanie kodu w kontenerze jest wolniejsze i myli
-# ścieżki. W kontenerze siedzi tylko to, czego nie chcemy instalować
-# na maszynie: Postgres.
+# The application (Next.js with Payload inside) runs locally through
+# `npm run dev` — reloading code inside a container is slower and confuses
+# paths. The container holds only what we do not want to install on the
+# machine: Postgres.
 #
-# WERSJA GŁÓWNA POSTGRESA MUSI ODPOWIADAĆ PRODUKCJI (deploy/docker-compose.prod.yml).
-# Rozjazd tutaj oznacza testowanie na innym silniku bazy niż ten, który obsługuje
-# klienta. Major jest zablokowany w .github/dependabot.yml — w OBU wpisach compose.
+# THE POSTGRES MAJOR VERSION MUST MATCH PRODUCTION (deploy/docker-compose.prod.yml).
+# A mismatch here means testing on a different database engine than the one
+# serving the client. The major is blocked in .github/dependabot.yml — in BOTH
+# compose entries.
 #
-# PORT HOSTA 5435. Rejestr portów w katalogu Projects (stan 26.10.2026):
+# HOST PORT 5435. The port registry of the Projects directory (as of 26.10.2026):
 #   5432 → next-step-pro-climbing-hub, first-aid-kit-api
 #   5433 → fire-academy-hub, template_project, first-aid-kit-api (dev)
 #   5434 → anovastudio
-#   5435 → abcwspinania  ← ten projekt
-#   5436 → kd-training (od 26.10.2026)
-# Kolejny projekt bierze 5437. Bez tego rejestru dwa projekty naraz nie wstaną.
+#   5435 → abcwspinania  ← this project
+#   5436 → kd-training (since 26.10.2026)
+# The next project takes 5437. Without this registry two projects will not
+# start at once.
 
 services:
   postgres:
@@ -25,24 +27,24 @@ services:
     environment:
       POSTGRES_DB: abcwspinania
       POSTGRES_USER: abcwspinania
-      # Hasło deweloperskie — świadomie trywialne i jawne. Baza słucha wyłącznie
-      # na 127.0.0.1, nie ma w niej danych klienta, a sekret w repo byłby gorszy
-      # niż jego brak. Produkcja bierze hasło z deploy/.env.
+      # The development password — deliberately trivial and public. The database
+      # listens only on 127.0.0.1, holds no client data, and a secret in the repo
+      # would be worse than none. Production takes its password from deploy/.env.
       POSTGRES_PASSWORD: abcwspinania
     ports:
-      # Tylko pętla zwrotna. Bez "127.0.0.1:" Docker otwiera port na WSZYSTKICH
-      # interfejsach, z pominięciem zapory hosta — baza deweloperska byłaby
-      # widoczna w sieci lokalnej (kawiarnia, hotel, coworking).
+      # Loopback only. Without "127.0.0.1:" Docker opens the port on ALL
+      # interfaces, bypassing the host firewall — the development database would
+      # be visible on the local network (a café, a hotel, a coworking space).
       - "127.0.0.1:5435:5432"
     volumes:
-      # UWAGA: punkt montowania to /var/lib/postgresql, NIE /var/lib/postgresql/data.
-      # Obrazy postgres:18+ przechowują dane w podkatalogu z numerem wersji głównej
-      # (/var/lib/postgresql/18/docker), żeby dało się użyć `pg_upgrade --link` bez
-      # przechodzenia przez granicę montowania. Wolumen podpięty pod stare
-      # /var/lib/postgresql/data sprawia, że kontener NIE WSTAJE — zgłasza
+      # NOTE: the mount point is /var/lib/postgresql, NOT /var/lib/postgresql/data.
+      # postgres:18+ images keep data in a subdirectory named after the major
+      # version (/var/lib/postgresql/18/docker), so that `pg_upgrade --link` can
+      # be used without crossing a mount boundary. A volume mounted at the old
+      # /var/lib/postgresql/data makes the container NOT START — it reports
       # "there appears to be PostgreSQL data in: /var/lib/postgresql/data
-      # (unused mount/volume)" i kończy się jako unhealthy.
-      # Sprawdzone na obrazie postgres:18-alpine 19.09.2026. Szczegóły:
+      # (unused mount/volume)" and ends up unhealthy.
+      # Checked on the postgres:18-alpine image 19.09.2026. Details:
       # https://github.com/docker-library/postgres/pull/1259
       - abcwspinania_pgdata_dev:/var/lib/postgresql
     healthcheck:

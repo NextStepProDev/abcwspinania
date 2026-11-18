@@ -111,8 +111,8 @@ export default async function PostPage({ params }: Props) {
       </section>
 
       <Container className="grid gap-10 py-12 lg:grid-cols-[240px_1fr] lg:gap-16 lg:py-16">
-        {/* Spis treści składany z nagłówków w treści — nie ma go w panelu,
-            więc nie może się rozjechać z tekstem. */}
+        {/* The table of contents is built from the headings in the text — it is
+            not in the panel, so it cannot drift from the text. */}
         {toc.length > 1 ? (
           <nav aria-label="Spis treści" className="lg:sticky lg:top-28 lg:self-start">
             <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-[0.06em] text-rock-600">

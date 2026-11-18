@@ -173,15 +173,15 @@ export default async function EnglishPage() {
               <tbody>
                 {forTable.map((k) => (
                   <tr key={k.id} className="border-b border-rock-100 last:border-0">
-                    {/* Nazwa po angielsku, gdy jest; inaczej polska — lepiej
-                        pokazać oryginał niż pustą komórkę. */}
+                    {/* The English name when there is one; otherwise the Polish —
+                        better the original than an empty cell. */}
                     <td className="px-6 py-4 font-medium">{k.titleEn || k.title}</td>
                     <td className="px-6 py-4 text-rock-600">{k.duration ?? '—'}</td>
                     <td className="px-6 py-4 text-rock-600">
                       {POZIOM_EN[k.level ?? ''] ?? formatLevel(k.level) ?? '—'}
                     </td>
-                    {/* Ceny zaciągają się z tych samych kursów co po polsku,
-                        więc nie mogą się z nimi rozjechać. */}
+                    {/* Prices come from the same courses as in Polish, so they
+                        cannot drift apart from them. */}
                     <td className="px-6 py-4 text-right font-semibold tabular-nums">
                       {formatPriceLabel(k.price, k.priceFrom)}
                     </td>

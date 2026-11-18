@@ -6,58 +6,58 @@ import type { NextConfig } from 'next'
 
 import { LEGACY_REDIRECTS } from './src/lib/legacyRedirects'
 
-// ESM: `__dirname` nie istnieje, bo package.json ma "type": "module"
-// (wymagane przez Payload).
+// ESM: there is no `__dirname`, because package.json has "type": "module"
+// (required by Payload).
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
-// Pliki z public/ (zdjęcia hero, logo) Next oddaje domyślnie z `Cache-Control:
-// max-age=0`. Tydzień cache + doba serwowania starej wersji w tle. ŚWIADOMIE bez
-// `immutable`: te nazwy nie mają w sobie hasha, więc podmiana zdjęcia pod tą samą
-// nazwą byłaby niewidoczna nawet przez tydzień. Zmieniasz zdjęcie — zmień nazwę.
+// Files from public/ (hero photos, the logo) Next serves by default with
+// `Cache-Control: max-age=0`. A week of cache + a day of serving the old version
+// while revalidating. DELIBERATELY without `immutable`: these names carry no
+// hash, so a photo replaced under the same name would stay invisible for a week
+// at least. You change a photo — change its name.
 const STATIC_MEDIA_CACHE = 'public, max-age=604800, stale-while-revalidate=86400'
 
 /**
- * Polityka bezpieczeństwa treści dla STRONY PUBLICZNEJ.
+ * The Content-Security-Policy for the PUBLIC SITE.
  *
- * Siedzi tutaj, a nie w nginx, z dwóch powodów:
- *  1. Panel Payloada potrzebuje luźniejszej polityki niż strona, a rozdzielenie
- *     tego w nginx wymagałoby osobnego bloku `location /admin` — w którym własny
- *     `add_header` KASUJE dziedziczenie z bloku `server`, więc trzeba by tam
- *     powtórzyć komplet nagłówków bezpieczeństwa i pilnować, żeby nie rozjechały
- *     się z resztą.
- *  2. Next zna własne trasy, więc wykluczenie /admin i /api jest tu dokładne.
+ * It lives here, not in nginx, for two reasons:
+ *  1. Payload's panel needs a looser policy than the site, and splitting that
+ *     in nginx would need a separate `location /admin` block — in which its own
+ *     `add_header` DROPS inheritance from the `server` block, so the full set
+ *     of security headers would have to be repeated there and kept in step
+ *     with the rest.
+ *  2. Next knows its own routes, so excluding /admin and /api is exact here.
  *
- * ⚠️ nginx świadomie NIE ustawia CSP. Gdyby ustawiał, przeglądarka dostałaby ten
- * nagłówek DWA razy i zastosowała ten bardziej restrykcyjny — czyli w praktyce
- * losowo, zależnie od tego, który blok zadziałał. Jedno źródło, tutaj.
+ * ⚠️ nginx deliberately does NOT set a CSP. If it did, the browser would get
+ * the header TWICE and apply the stricter one — in practice at random,
+ * depending on which block took effect. One source, here.
  *
- * Zakres podyktowany tym, czego strona faktycznie używa:
- *  • 'unsafe-inline' w script-src — Next wstrzykuje dane hydracji i JSON-LD
- *    w znacznikach <script> bez nonce'a,
- *  • 'unsafe-inline' w style-src — Tailwind i next/font ustawiają style inline,
- *  • img-src z data: i blob: — podglądy next/image oraz generowana ikona,
- *  • BEZ font-src do zewnętrznych hostów: next/font serwuje kroje z naszej
- *    domeny, więc nic nie wychodzi na zewnątrz.
- * Świadomie BEZ upgrade-insecure-requests: całość i tak idzie po HTTPS.
+ * The scope follows what the site actually uses:
+ *  • 'unsafe-inline' in script-src — Next injects hydration data and JSON-LD
+ *    in <script> tags without a nonce,
+ *  • 'unsafe-inline' in style-src — Tailwind and next/font set inline styles,
+ *  • img-src with data: and blob: — next/image placeholders and the generated icon,
+ *  • NO font-src to outside hosts: next/font serves the typefaces from our own
+ *    domain, so nothing goes outside.
+ * Deliberately NO upgrade-insecure-requests: everything goes over HTTPS anyway.
  */
-// JEDYNE odstępstwo między dev a produkcją: 'unsafe-eval' w script-src.
+// The ONLY difference between dev and production: 'unsafe-eval' in script-src.
 //
-// Deweloperski build Reacta woła eval() do odtwarzania stosów wywołań
-// i pozostałej diagnostyki. Bez tego na każdym wczytaniu strony w dev leci
-// do konsoli błąd „eval() is not supported in this environment", a komunikaty
-// o błędach tracą czytelne stosy. Zmierzone 20.09.2026: aplikacja działa
-// poprawnie także BEZ tego rozluźnienia — hydracja przechodzi, komponenty
-// kliknięte reagują — więc to wyłącznie wygoda w diagnozowaniu, nie warunek
-// działania.
+// React's development build calls eval() to rebuild call stacks and for other
+// diagnostics. Without it every page load in dev logs "eval() is not supported
+// in this environment" to the console, and error messages lose readable
+// stacks. Measured 20.09.2026: the application works correctly WITHOUT this
+// loosening too — hydration passes, clicked components respond — so it is
+// purely a debugging convenience, not a condition for working.
 //
-// Produkcyjny build Reacta nie woła eval(), więc na produkcji polityka
-// zostaje wąska. Rozróżnienie po NODE_ENV: `next dev` ustawia 'development',
-// budowanie obrazu — 'production'.
+// React's production build does not call eval(), so in production the policy
+// stays narrow. Told apart by NODE_ENV: `next dev` sets 'development', the
+// image build — 'production'.
 //
-// Świadomie NIE rozluźniamy tu connect-src: 'self' obejmuje już WebSocket do
-// tego samego źródła, więc HMR działa bez dopisywania ws:. (Gdy HMR nie
-// wstaje, przyczyną jest zwykle `allowedDevOrigins` niżej, a nie CSP.)
+// connect-src is deliberately NOT loosened here: 'self' already covers a
+// WebSocket to the same origin, so HMR works without adding ws:. (When HMR does
+// not come up, the cause is usually `allowedDevOrigins` below, not the CSP.)
 const DEV = process.env.NODE_ENV !== 'production'
 
 const CSP = [
@@ -85,7 +85,7 @@ const nextConfig: NextConfig = {
     // `withPayload` spreads `experimental`, so the flag survives it.
     globalNotFound: true,
   },
-  // Nie ogłaszaj, na czym stoi serwis.
+  // Do not announce what the site runs on.
   poweredByHeader: false,
   // The old Joomla site's addresses → their new counterparts, permanently
   // (308). The list and the reasons are in `src/lib/legacyRedirects.ts`.
@@ -97,44 +97,45 @@ const nextConfig: NextConfig = {
       { source: '/images/:path*', headers: [{ key: 'Cache-Control', value: STATIC_MEDIA_CACHE }] },
       { source: '/logo/:path*', headers: [{ key: 'Cache-Control', value: STATIC_MEDIA_CACHE }] },
       {
-        // Wszystko OPRÓCZ panelu i API. Panel Payloada ładuje własne zasoby
-        // w sposób, którego ta polityka nie przepuszcza, a zaostrzanie jej
-        // pod cudzy panel kończy się białym ekranem po każdej aktualizacji CMS-a.
+        // Everything EXCEPT the panel and the API. Payload's panel loads its own
+        // resources in ways this policy does not allow, and tightening it around
+        // someone else's panel ends in a blank screen after every CMS update.
         source: '/((?!admin|api/).*)',
         headers: [{ key: 'Content-Security-Policy', value: CSP }],
       },
     ]
   },
-  // `127.0.0.1` obok tuneli: wejście pod adresem IP zamiast `localhost` jest
-  // dla Next-a innym źródłem i blokuje kanał HMR („Blocked cross-origin request
-  // to Next.js dev resource"). Objaw jest mylący — strona renderuje się dobrze,
-  // ale komponenty klienckie nie ożywają, bo bootstrap dev nie dochodzi do końca.
-  // `192.168.*.*`: telefon w domowym Wi-Fi (`npm run dev -- -H 0.0.0.0`) przy
-  // testach ręcznych — bez tego menu ☰ i formularze na telefonie nie działały
-  // (12.10.2026). Dotyczy wyłącznie `next dev`.
+  // `127.0.0.1` next to the tunnels: opening the site by IP instead of
+  // `localhost` is a different origin for Next and blocks the HMR channel
+  // ("Blocked cross-origin request to Next.js dev resource"). The symptom
+  // misleads — the page renders fine, but client components never come alive,
+  // because the dev bootstrap does not finish.
+  // `192.168.*.*`: a phone on the home Wi-Fi (`npm run dev -- -H 0.0.0.0`) in
+  // manual tests — without it the ☰ menu and the forms did not work on the
+  // phone (12.10.2026). Applies to `next dev` only.
   allowedDevOrigins: ['127.0.0.1', '192.168.*.*', '*.ngrok-free.app', '*.ngrok.app', '*.ngrok.dev'],
   turbopack: {
     root: path.resolve(dirname),
   },
   images: {
-    // Zdjęcia z biblioteki mediów serwuje teraz TA SAMA aplikacja, pod
-    // /api/media/file/**. Nie ma już zdalnego hosta, więc znika cała sekcja
-    // remotePatterns i flaga dangerouslyAllowLocalIP, które istniały wyłącznie
-    // po to, żeby optymalizator mógł sięgnąć do osobnego kontenera Strapi.
+    // Photos from the media library are served by THE SAME application, under
+    // /api/media/file/**. There is no remote host any more, so the whole
+    // remotePatterns section and the dangerouslyAllowLocalIP flag are gone —
+    // they existed only so the optimiser could reach a separate Strapi container.
     //
-    // ⚠️ KAŻDA kolekcja z uploadem potrzebuje TU własnego wpisu. Payload serwuje
-    // pliki pod /api/<slug>/file/**, a `next/image` z adresem spoza tej listy
-    // nie renderuje pustego miejsca, tylko RZUCA WYJĄTKIEM — cała podstrona
-    // zwraca 500. Zmierzone 23.09.2026 przy dodawaniu kolekcji `gallery-photos`:
-    // lint, typy, testy i `build` przeszły komplet, bo strona jest dynamiczna
-    // i przy budowaniu nie było w bazie ani jednego zdjęcia. Wyszło dopiero po
-    // wejściu na /galeria z prawdziwym plikiem.
+    // ⚠️ EVERY collection with uploads needs its own entry HERE. Payload serves
+    // files under /api/<slug>/file/**, and `next/image` with an address outside
+    // this list does not render an empty spot, it THROWS — the whole subpage
+    // returns 500. Measured 23.09.2026 when adding the `gallery-photos`
+    // collection: lint, types, tests and `build` all passed, because the page is
+    // dynamic and the database held no photo at build time. It only came out
+    // after opening /galeria with a real file.
     localPatterns: [
       { pathname: '/api/media/file/**' },
       { pathname: '/api/gallery-photos/file/**' },
-      // Zdjęcia z repozytorium (public/images) — archiwum rodzinne na /o-nas.
-      // Te nie przechodzą przez Payloada, ale przez optymalizator Next-a już
-      // tak, więc i one potrzebują wpisu.
+      // Photos from the repository (public/images) — the family archive on
+      // /o-nas. They do not go through Payload, but they do go through Next's
+      // optimiser, so they need an entry too.
       { pathname: '/images/**' },
     ],
     minimumCacheTTL: 60 * 60 * 24 * 30,

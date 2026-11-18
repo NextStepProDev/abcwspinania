@@ -1,19 +1,21 @@
-# Produkcja — Oracle Cloud, kształt Ampere A1 (aarch64).
+# Production — Oracle Cloud, the Ampere A1 shape (aarch64).
 #
-# ⚠️ ARCHITEKTURA: Ampere A1 to ARM64. Obraz MUSI być zbudowany pod linux/arm64
-# (patrz .github/workflows/ci.yml — job docker leci na ubuntu-24.04-arm). Obraz
-# amd64 wstaje tu z "exec format error", widocznym dopiero na serwerze.
+# ⚠️ ARCHITECTURE: Ampere A1 is ARM64. The image MUST be built for linux/arm64
+# (see .github/workflows/ci.yml — the docker job runs on ubuntu-24.04-arm). An
+# amd64 image starts here with "exec format error", visible only on the server.
 #
-# JEDNA APLIKACJA. Payload działa wewnątrz Next.js, więc strona, panel i API to
-# ten sam proces — nie ma osobnego kontenera CMS-a ani subdomeny api.*.
+# ONE APPLICATION. Payload runs inside Next.js, so the site, the panel and the
+# API are the same process — there is no separate CMS container and no api.*
+# subdomain.
 #
-# BUDŻET PAMIĘCI I STROJENIE parametryzowane przez .env — razem, jednym
-# profilem, żeby nie dało się zmienić limitu kontenera bez przeliczenia tego,
-# co w nim faktycznie działa. Wartości domyślne poniżej zakładają CAŁĄ
-# darmową maszynę Ampere (2 OCPU / 12 GB):
-#     postgres 1g + app 2g + nginx 128m ≈ 3,2 GB
-# Dzielisz limit Ampere na dwie instancje (1 OCPU / 6 GB)? Odkomentuj profil
-# "pół maszyny" w .env.example — limity I strojenie Postgresa/Node'a razem.
+# MEMORY BUDGET AND TUNING are parameterised through .env — together, as one
+# profile, so that a container limit cannot be changed without recomputing
+# what actually runs in it. The defaults below assume the WHOLE free Ampere
+# machine (2 OCPU / 12 GB):
+#     postgres 1g + app 2g + nginx 128m ≈ 3.2 GB
+# Splitting the Ampere allowance into two instances (1 OCPU / 6 GB)? Uncomment
+# the "half machine" profile in .env.example — the limits AND the Postgres/Node
+# tuning together.
 
 # Log rotation for every container. Docker's default json-file driver keeps
 # logs without limit: the disk fills slowly, and nginx's access log keeps
@@ -34,9 +36,9 @@ x-security: &security
 
 services:
   postgres:
-    # WERSJA GŁÓWNA musi się zgadzać z docker-compose.yml w korzeniu repo.
-    # Major zablokowany w .github/dependabot.yml — w OBU wpisach compose.
-    # Podbicie majora to MIGRACJA DANYCH, nie podmiana obrazu (patrz CLAUDE.md).
+    # The MAJOR VERSION must match docker-compose.yml at the repo root.
+    # The major is blocked in .github/dependabot.yml — in BOTH compose entries.
+    # A major bump is a DATA MIGRATION, not an image swap (see CLAUDE.md).
     image: postgres:18-alpine
     container_name: abcwspinania-postgres-prod
     logging: *logging
@@ -46,16 +48,17 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    # Publikacja WYŁĄCZNIE na pętli zwrotnej serwera. Baza nie jest widoczna
-    # z internetu; ten port istnieje po to, żeby workflow „Migrate" mógł się
-    # do niej dostać tunelem SSH i zastosować migracje. Bez "127.0.0.1:"
-    # Docker otworzyłby go na wszystkich interfejsach, OMIJAJĄC zaporę hosta.
+    # Published ONLY on the server's loopback. The database is not visible from
+    # the internet; this port exists so that the "Migrate" workflow (and
+    # Deploy, which calls it) can reach it through an SSH tunnel and apply
+    # migrations. Without "127.0.0.1:" Docker would open it on every
+    # interface, BYPASSING the host firewall.
     ports:
       - "127.0.0.1:5432:5432"
-    # Strojenie idzie razem z mem_limit, żeby nigdy nie rozjechały się przy
-    # zmianie profilu (patrz CLAUDE.md: "zmieniasz POSTGRES_MEM_LIMIT — obniż
-    # też shared_buffers i effective_cache_size"). Wartości domyślne poniżej
-    # to profil "cała maszyna"; profil "pół maszyny" nadpisuje je w .env.
+    # Tuning goes together with mem_limit, so they never drift apart when the
+    # profile changes (see CLAUDE.md: "You change POSTGRES_MEM_LIMIT — lower
+    # shared_buffers and effective_cache_size too"). The defaults below are the
+    # "whole machine" profile; the "half machine" profile overrides them in .env.
     command: >
       postgres
       -c shared_buffers=${POSTGRES_SHARED_BUFFERS:-256MB}
@@ -65,11 +68,12 @@ services:
       -c max_connections=${POSTGRES_MAX_CONNECTIONS:-40}
       -c random_page_cost=1.1
     volumes:
-      # ⚠️ PUNKT MONTOWANIA TO /var/lib/postgresql, NIE /var/lib/postgresql/data.
-      # Obrazy postgres:18+ trzymają dane w podkatalogu z numerem wersji głównej
-      # (/var/lib/postgresql/18/docker). Przy starym punkcie kontener NIE WSTAJE:
-      # "there appears to be PostgreSQL data in: /var/lib/postgresql/data
-      # (unused mount/volume)". Sprawdzone na postgres:18-alpine 19.09.2026.
+      # ⚠️ THE MOUNT POINT IS /var/lib/postgresql, NOT /var/lib/postgresql/data.
+      # postgres:18+ images keep data in a subdirectory named after the major
+      # version (/var/lib/postgresql/18/docker). With the old mount point the
+      # container DOES NOT START: "there appears to be PostgreSQL data in:
+      # /var/lib/postgresql/data (unused mount/volume)". Checked on
+      # postgres:18-alpine 19.09.2026.
       - abcwspinania_pgdata_prod:/var/lib/postgresql
     mem_limit: ${POSTGRES_MEM_LIMIT:-1g}
     healthcheck:
@@ -88,27 +92,27 @@ services:
     environment:
       NODE_ENV: production
       DATABASE_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      # Podpisuje tokeny sesji panelu. MUSI być inny niż lokalnie.
+      # Signs the panel's session tokens. MUST differ from the local one.
       PAYLOAD_SECRET: ${PAYLOAD_SECRET}
-      # Maile przez Brevo. Puste = maile tylko w logu kontenera (Payload
-      # ostrzega o tym przy starcie). Opis zmiennych: deploy/.env.example.
+      # Emails through Brevo. Empty = emails only in the container log (Payload
+      # warns about it at start). The variables are described in deploy/.env.example.
       BREVO_API_KEY: ${BREVO_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-}
       EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-ABC Wspinania}
       ADMIN_NOTIFY_EMAIL: ${ADMIN_NOTIFY_EMAIL:-}
       CAMP_EMAIL: ${CAMP_EMAIL:-}
-      # Adres, pod którym strona FAKTYCZNIE działa — z niego idą linki
-      # w mailach (potwierdzenie konta, nowe hasło). Opis: deploy/.env.example.
+      # The address the site ACTUALLY runs at — links in emails are built from
+      # it (account confirmation, new password). See deploy/.env.example.
       PUBLIC_URL: ${PUBLIC_URL:-}
-      # Musi się zgadzać z APP_MEM_LIMIT z tego samego powodu co strojenie
-      # Postgresa wyżej — sam limit kontenera Node'owi nic nie mówi.
+      # Must match APP_MEM_LIMIT for the same reason as the Postgres tuning
+      # above — the container limit alone tells Node nothing.
       NODE_OPTIONS: "--max-old-space-size=${NODE_MAX_OLD_SPACE_SIZE:-1536}"
     volumes:
-      # Pliki wgrane przez panel. Punkt montowania zgodny z UPLOAD_DIR
-      # ustawionym w web/Dockerfile.
+      # Files uploaded through the panel. The mount point matches UPLOAD_DIR
+      # set in web/Dockerfile.
       - abcwspinania_uploads_prod:/app/uploads
-      # Cache optymalizatora obrazów — nazwany wolumen, żeby przeżył restart
-      # kontenera; inaczej każde zdjęcie jest przeliczane od nowa.
+      # The image optimiser's cache — a named volume, so it survives a container
+      # restart; otherwise every photo is recomputed from scratch.
       - abcwspinania_image_cache_prod:/app/.next/cache
     mem_limit: ${APP_MEM_LIMIT:-2g}
     depends_on:
@@ -133,8 +137,8 @@ services:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./certs:/etc/nginx/certs:ro
       - ./certbot-www:/var/www/certbot:ro
-    # 128m, nie 32m. W anovastudio nginx z limitem 32m dostawał OOM przy wysyłce
-    # 27 zdjęć naraz do biblioteki mediów; 64m to naprawiło.
+    # 128m, not 32m. In anovastudio nginx with a 32m limit was OOM-killed when 27
+    # photos were uploaded to the media library at once; 64m fixed it.
     mem_limit: ${NGINX_MEM_LIMIT:-128m}
     depends_on: [app]
     networks: [internal]
