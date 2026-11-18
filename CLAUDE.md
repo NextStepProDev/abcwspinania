@@ -22,7 +22,7 @@ their reasons.
 
 | Layer | Technology |
 |---|---|
-| Application | Next.js 16.4.3 — App Router, TypeScript, Tailwind 4, Turbopack |
+| Application | Next.js 16.4.6 — App Router, TypeScript, Tailwind 4, Turbopack |
 | CMS | **Payload 3.92.1**, running INSIDE the Next application |
 | Database | PostgreSQL 18 |
 | Deployment | Docker Compose + nginx, image from GHCR, Oracle Cloud **Ampere A1** |
@@ -401,7 +401,12 @@ of defence is `timeout 300` on the command itself.
   PR, including the Next patch. The fix is a patch alone. **On a Payload bump:**
   `npm ls dompurify`; when `monaco-editor` comes with ≥ 3.4.17 — remove this
   `overrides` entry and this paragraph (in Payload 3.92.1 still 3.4.15).
-- **Next 16.4.3** (since 25.10.2026; 16.4.2 since 22.10.2026): on 22.10 two
+- **Next 16.4.6** (since 18.11.2026; 16.4.3 since 25.10.2026, 16.4.2 since
+  22.10.2026). 16.4.6 closes two `moderate` cache holes
+  (`GHSA-mfr8-8qww-v76h`, `GHSA-vc7v-qv4w-wrv8` — `'use cache'`, which we do
+  not use), but the bump was forced anyway: Next's own check aborted
+  `next build` on 16.4.3, so CI could not build an image (audit, 18.11.2026).
+  The same story on 22.10: two
   critical holes were published in 16.4.0 (`GHSA-2464-fhr4-w9xw` — the image
   optimiser with SVG, `GHSA-673q-mjm6-r5xr`). Dependabot did not make a PR in
   the first hours — GitHub had not yet created an alert, and the patch PR is
@@ -411,7 +416,7 @@ of defence is `timeout 300` on the command itself.
   the solution is a version bump.
 - **The audit gate has an exception list — `web/scripts/audit-gate.mjs`**
   (`npm run audit`, since 03.10.2026). `npm audit` alone only knows "all or
-  nothing". Today two exceptions, both in one package:
+  nothing". Today three exceptions in two packages:
   **`happy-dom`** (`GHSA-834v-8h66-3h79`, since 25.10.2026; published on the
   evening of 23.10 — code execution through an import alias in a page script;
   and `GHSA-c8p4-j97h-3vg8`, since 01.11.2026; published on the evening of
@@ -429,6 +434,14 @@ of defence is `timeout 300` on the command itself.
   (`GHSA-vfj7-8cjw-p6xm`, build tools through `sass` 1.77.4) — GitHub withdrew
   that advisory on 23.10.2026, the gate reported the entry as `STALE` and it
   was removed.
+  **`picomatch`** (`GHSA-fc5q-39xc-vjpf`, since 18.11.2026 — ReDoS through
+  repeated extglobs in a glob PATTERN): no fixed release exists at all (every
+  version up to the newest 4.0.7). Chains: `@payloadcms/next` → `sass` 1.77.4
+  → `chokidar` 3, and `payload` → `json-schema-to-typescript` → `tinyglobby`
+  (`generate:types`) — developer tools, none in `.next/standalone` (checked
+  18.11.2026). The image has only Next's vendored copy, which npm audit does
+  not see, matching patterns from our config, never from a request. Remove
+  when a patched picomatch is out and `npm ls picomatch` shows it.
   - An exception covers **one identifier**, not a package or a level — any
     other high/critical hole, including a new one in `happy-dom`, stops CI as
     before.

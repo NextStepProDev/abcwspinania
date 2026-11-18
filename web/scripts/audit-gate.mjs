@@ -26,6 +26,18 @@ const ACCEPTED = {
   // happy-dom, because nothing loads it. Fixed in 21.0.0; remove together
   // with the entry above, when `npm ls happy-dom` shows ≥ 21.0.4.
   'GHSA-c8p4-j97h-3vg8': 'happy-dom — never imported by the app, not in the image',
+  // picomatch: ReDoS through repeated extglobs in a PATTERN (published
+  // 19.10.2026, first stopped the gate on 18.11.2026). No fixed release
+  // exists — every version up to the newest 4.0.7 is affected — so neither a
+  // bump nor an override can close it. Chains: @payloadcms/next → sass 1.77.4
+  // → chokidar 3 (sass's file watcher) and payload → json-schema-to-typescript
+  // → tinyglobby (`generate:types`); both run on a developer machine, neither
+  // is in `.next/standalone` (checked 18.11.2026). The only picomatch in the
+  // image is Next's own vendored copy, which npm audit does not see, matching
+  // patterns from our config (`images.localPatterns`), never from a request.
+  // Remove once `npm view picomatch version` shows a patched release and
+  // `npm ls picomatch` has picked it up (the gate reports this entry as STALE).
+  'GHSA-fc5q-39xc-vjpf': 'picomatch — no fixed release; glob patterns are ours, build tools only',
 }
 
 const BLOCKING = new Set(['high', 'critical'])

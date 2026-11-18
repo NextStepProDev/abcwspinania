@@ -45,6 +45,12 @@ jobs:
   migrate:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # The "Migrate" button and the migration inside Deploy never run at once
+    # (audit, 18.11.2026). On the JOB, not the workflow: Deploy calls this
+    # file, and a workflow-level group would be shared with the caller's run.
+    concurrency:
+      group: migrate
+      cancel-in-progress: false
     defaults:
       run:
         working-directory: web

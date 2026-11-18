@@ -32,6 +32,14 @@ on:
 permissions:
   contents: read
 
+# One deploy at a time (audit, 18.11.2026). Two clicks of "Run workflow" gave
+# two runs side by side: two migrations on one database and two `up -d`s
+# racing, the older version possibly winning. The second run now waits for
+# the first; nothing is cancelled halfway through a migration.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
 jobs:
   prepare:
     runs-on: ubuntu-latest
