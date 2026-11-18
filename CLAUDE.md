@@ -856,6 +856,15 @@ Since 06.10.2026 (working version, to be confirmed by Krzysiek).
   (`lib/expiry.ts`, backups in `deploy/abc-backup.sh`) — fix the page and bump
   `PRIVACY_POLICY_VERSION`. A mismatch is invisible to tests, and before the
   UODO (the Polish data protection authority) what counts is what is written.
+- **The Google Maps map on `/kontakt` loads straight away, and the policy says
+  so** (since 18.11.2026, version 2026-11-18): one paragraph under "Komu
+  przekazujemy dane" — Google receives technical data such as the IP address,
+  legitimate interest. A click-to-load map with an "IP goes to Google" note was
+  considered and rejected (Mateusz's decision): visitors do not know it from
+  other sites, and the note reads as if we traded data. Google is not our
+  processor, so it is a paragraph after the list, not an item in it. Any other
+  third-party embed (YouTube, a widget) — a sentence in the policy in the same
+  commit.
 - **Automatic retention periods:** contact form messages 12 months
   (`MESSAGE_RETENTION_MONTHS`, the same daily sweep as accounts), unconfirmed
   accounts and newsletter sign-ups 7 days, container logs 3 × 10 MB per
