@@ -90,8 +90,8 @@ export default async function Kontakt({ searchParams }: Props) {
               )}
               {address && (
                 <ContactRow icon={<Pin size={18} />} label="Adres">
-                  {/* Adres w znaczniku <address> i równolegle w danych
-                      strukturalnych, żeby wyszukiwarka nie musiała go zgadywać. */}
+                  {/* The address in an <address> tag and, alongside, in the
+                      structured data, so the search engine need not guess it. */}
                   <address className="not-italic leading-6">{address}</address>
                 </ContactRow>
               )}

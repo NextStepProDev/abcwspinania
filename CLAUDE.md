@@ -416,7 +416,7 @@ of defence is `timeout 300` on the command itself.
   the solution is a version bump.
 - **The audit gate has an exception list — `web/scripts/audit-gate.mjs`**
   (`npm run audit`, since 03.10.2026). `npm audit` alone only knows "all or
-  nothing". Today three exceptions in two packages:
+  nothing". Today two exceptions, both in one package:
   **`happy-dom`** (`GHSA-834v-8h66-3h79`, since 25.10.2026; published on the
   evening of 23.10 — code execution through an import alias in a page script;
   and `GHSA-c8p4-j97h-3vg8`, since 01.11.2026; published on the evening of
@@ -434,14 +434,11 @@ of defence is `timeout 300` on the command itself.
   (`GHSA-vfj7-8cjw-p6xm`, build tools through `sass` 1.77.4) — GitHub withdrew
   that advisory on 23.10.2026, the gate reported the entry as `STALE` and it
   was removed.
-  **`picomatch`** (`GHSA-fc5q-39xc-vjpf`, since 18.11.2026 — ReDoS through
-  repeated extglobs in a glob PATTERN): no fixed release exists at all (every
-  version up to the newest 4.0.7). Chains: `@payloadcms/next` → `sass` 1.77.4
-  → `chokidar` 3, and `payload` → `json-schema-to-typescript` → `tinyglobby`
-  (`generate:types`) — developer tools, none in `.next/standalone` (checked
-  18.11.2026). The image has only Next's vendored copy, which npm audit does
-  not see, matching patterns from our config, never from a request. Remove
-  when a patched picomatch is out and `npm ls picomatch` shows it.
+  The same happened on 18.11.2026 with **`picomatch`** (`GHSA-fc5q-39xc-vjpf`,
+  high, no fixed release, developer tools only): it stopped the gate in the
+  morning, the exception went into the audit branch, and GitHub withdrew the
+  advisory at 15:38 UTC the same day — the PR's CI reported the entry as
+  `STALE` and it was removed before the merge.
   - An exception covers **one identifier**, not a package or a level — any
     other high/critical hole, including a new one in `happy-dom`, stops CI as
     before.
@@ -1905,8 +1902,11 @@ Since 06.10.2026. Template: Next Step Pro (`nsp-backup.sh`), running there since
 - **`rclone copy`, never `sync`** — otherwise local pruning after 7 days would
   also delete the copies on Drive.
 - **`/backups/milestones`** — manual dumps before a risky operation (a Deploy
-  with a new migration on real data, a Postgres major). Nothing prunes them,
-  neither locally nor on Drive.
+  with a new migration on real data, a Postgres major). Exempt from the 7-day
+  local prune, deleted after 40 days locally and on Drive (since 18.11.2026,
+  audit). Until then nothing pruned them, while the privacy policy says
+  backups live "do 40 dni" — the promise to the visitor decides, a dump that
+  must live longer is moved off the server by hand.
 - **Alarm through healthchecks.io** (`/etc/abc-backup.env`,
   `HEALTHCHECK_URL`): start, success or `/fail`. Silence = failure. Without a
   configured Drive the run makes local copies and **ends with an error** — no

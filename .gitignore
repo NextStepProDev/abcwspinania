@@ -2,16 +2,16 @@ node_modules/
 .DS_Store
 *.log
 
-# Prywatne notatki robocze — nigdy nie trafiają do repozytorium klienta.
+# Private working notes — never go into the client's repository.
 pytania.md
-# Zobowiązania wobec klienta (od 25.10.2026 poza repo, które jest publiczne).
+# Commitments to the client (outside the repo since 25.10.2026 — it is public).
 ZAKRES.md
 
-# Artefakty deployu żyjące wyłącznie na serwerze
+# Deploy artefacts that live only on the server
 deploy/.env
 deploy/certs/
 deploy/certbot-www/
 
-# Lokalne środowiska
+# Local environments
 .env
 .env.local

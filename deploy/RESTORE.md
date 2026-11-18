@@ -110,7 +110,7 @@ W healthchecks.io check powinien zrobić się zielony. Potem **sekcja 5 — ćwi
 |---|---|---|
 | Baza (co noc) | `/backups/db/<RRRR-MM-DD>.sql.gz` | `abc-crypt:db/` |
 | Pliki (`/app/uploads`: Media, Galeria) — **tylko gdy się zmieniły**, najrzadziej co 30 dni; najnowsze zostaje lokalnie zawsze | `/backups/files/<RRRR-MM-DD>.tar.gz` | `abc-crypt:files/` |
-| Zrzuty ręczne przed ryzykowną operacją | `/backups/milestones/` (bez limitu) | `abc-crypt:milestones/` (bez limitu) |
+| Zrzuty ręczne przed ryzykowną operacją | `/backups/milestones/` (40 dni) | `abc-crypt:milestones/` (40 dni) |
 
 - **Archiwum plików nie powstaje co noc.** Skrypt porównuje listę plików (nazwa, rozmiar,
   data modyfikacji) z poprzednią (`/var/lib/abc-backup/files-state`) i pakuje je tylko przy
@@ -163,7 +163,7 @@ DATE=2026-10-21
 cd /home/ubuntu/abcwspinania
 PG="docker exec -i abcwspinania-postgres-prod"
 
-# 2.1 Zrzut stanu obecnego — do milestones, którego nic nie przycina
+# 2.1 Zrzut stanu obecnego — do milestones (przycinane dopiero po 40 dniach)
 $PG sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' | gzip \
   | sudo tee "/backups/milestones/PRZED-ODTWORZENIEM-$(date +%F-%H%M).sql.gz" >/dev/null
 
@@ -309,7 +309,9 @@ docker exec abcwspinania-postgres-prod sh -c 'pg_dump -U "$POSTGRES_USER" "$POST
 sudo gunzip -c "$F" | tail -20 | grep -q 'PostgreSQL database dump complete' && echo "OK: $F"
 ```
 
-`milestones/` nie czyści nic — ani 7 dni lokalnie, ani 40 na Drive. Kasujesz ręcznie.
+`milestones/` nie podlega 7 dniom lokalnie — zrzut znika po **40 dniach**, na serwerze i na Drive
+(od 18.11.2026; wcześniej nie znikał wcale, a polityka prywatności obiecuje kopie „do 40 dni”).
+Zrzut, który ma żyć dłużej, przenosisz poza serwer świadomie, ręcznie.
 
 ---
 

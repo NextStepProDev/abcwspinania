@@ -68,7 +68,7 @@ export default async function CoursePage({ params }: Props) {
 
   return (
     <main>
-      {/* --- Nagłówek --- */}
+      {/* --- Header --- */}
       <section className="relative isolate overflow-hidden bg-rock-950">
         <MountainBackdrop variant="short" />
         <div className="absolute inset-0 bg-rock-950/65" />
@@ -208,9 +208,9 @@ export default async function CoursePage({ params }: Props) {
           {course.faq && course.faq.length > 0 && (
             <section>
               <h2 className="mb-5 text-[28px] leading-tight lg:text-[32px]">Częste pytania</h2>
-              {/* <details> z treścią OBECNĄ w HTML-u. Googlebot nie klika
-                  w rozwijane sekcje, więc odpowiedzi muszą być w źródle strony
-                  niezależnie od tego, czy ktoś je rozwinął (reguła 9). */}
+              {/* <details> with the content PRESENT in the HTML. Googlebot does
+                  not click expandable sections, so the answers must be in the
+                  page source whether or not anyone expanded them (rule 9). */}
               <div className="flex flex-col gap-3">
                 {course.faq.map((q, i) => (
                   <details
@@ -241,7 +241,7 @@ export default async function CoursePage({ params }: Props) {
           )}
         </div>
 
-        {/* --- Karta zapisu --- */}
+        {/* --- Booking card --- */}
         <aside className="lg:sticky lg:top-28 lg:self-start">
           <div className="flex flex-col gap-5 rounded-2xl border border-rock-100 bg-white p-6 shadow-[0_4px_16px_rgba(42,38,32,0.08)]">
             <div>

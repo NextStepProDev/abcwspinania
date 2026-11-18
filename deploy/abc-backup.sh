@@ -6,8 +6,9 @@
 #   2. tar of the uploads volume    -> /backups/files/<date>.tar.gz — only when
 #      the uploads changed, or the newest archive is FILES_REFRESH_DAYS old
 #   3. upload to the encrypted Google Drive remote (abc-crypt:)
-#   4. prune: 7 days locally, 40 days on the remote — /backups/milestones is
-#      exempt, and the newest uploads archive is always kept locally
+#   4. prune: 7 days locally, 40 days on the remote; /backups/milestones
+#      40 days in both places, and the newest uploads archive is always kept
+#      locally
 #
 # Two levels: the server's own disk for a
 # quick restore, and an encrypted copy off the server for when the server
@@ -34,9 +35,13 @@ BACKUP_ROOT="${BACKUP_ROOT:-/backups}"
 DB_DIR="${BACKUP_ROOT}/db"
 FILES_DIR="${BACKUP_ROOT}/files"
 # Dumps taken by hand before a risky operation (a schema migration on data
-# that matters, a major Postgres upgrade) go here, and NO prune touches them,
-# local or remote. In Next Step Pro a pre-upgrade dump kept next to the daily
-# ones was one night from deletion while the volume it backed up was gone.
+# that matters, a major Postgres upgrade) go here. The 7-day local prune does
+# not touch them — in Next Step Pro a pre-upgrade dump kept next to the daily
+# ones was one night from deletion while the volume it backed up was gone —
+# but they go after REMOTE_RETENTION_DAYS, locally and on the remote. Until
+# 18.11.2026 nothing pruned them at all, while the privacy policy promises
+# backups "up to 40 days" (audit). A dump that must live longer is moved off
+# this server by hand, as a deliberate decision.
 MILESTONE_DIR="${BACKUP_ROOT}/milestones"
 DB_BACKUP="${DB_DIR}/${DATE}.sql.gz"
 FILES_BACKUP="${FILES_DIR}/${DATE}.tar.gz"
@@ -195,13 +200,14 @@ rclone copy "$BACKUP_ROOT" "$REMOTE" --exclude "*.part" --log-file="$LOG" --log-
 # 4. Prune — the two archives age independently
 # --------------------------------------------------------------------------
 log "Prune remote older than ${REMOTE_RETENTION_DAYS}d"
-# The exclude is the remote half of the milestone rule above.
+# Milestones included: `rclone copy` keeps the local modification time, so a
+# milestone ages on the remote from the day it was taken, like locally.
 # --drive-use-trash=false deletes for good instead of moving to the Drive trash:
 # the trash counts against the account's 15 GB and Google empties it only after
 # 30 days, so every copy held space for 70 days instead of 40. An expired backup
 # has nothing worth undeleting. Same rule as the three sibling projects.
 rclone delete "$REMOTE" --min-age "${REMOTE_RETENTION_DAYS}d" --drive-use-trash=false \
-  --exclude "milestones/**" --log-file="$LOG" --log-level INFO
+  --log-file="$LOG" --log-level INFO
 
 log "Prune local older than ${LOCAL_RETENTION_DAYS}d"
 find "$DB_DIR"    -name '*.sql.gz' -mtime "+${LOCAL_RETENTION_DAYS}" -delete
@@ -210,6 +216,12 @@ find "$DB_DIR"    -name '*.sql.gz' -mtime "+${LOCAL_RETENTION_DAYS}" -delete
 # must still have one. File names are dates, so sorting by name is by age.
 NEWEST_FILES=$(find "$FILES_DIR" -maxdepth 1 -name '*.tar.gz' | sort | tail -1)
 find "$FILES_DIR" -name '*.tar.gz' -mtime "+${LOCAL_RETENTION_DAYS}" ! -path "${NEWEST_FILES:-/none}" -delete
+# Milestones keep the remote's 40 days here too: longer than the daily copies,
+# never longer than the policy. `+39` is "40 full days or more", the same
+# moment `--min-age 40d` takes it off the remote above; with `+40` a file
+# would linger locally one day longer and the next night's copy would upload
+# it again.
+find "$MILESTONE_DIR" -type f -mtime "+$((REMOTE_RETENTION_DAYS - 1))" -delete
 # Leftovers from failed runs: kept for inspection, but not forever.
 find "$DB_DIR" "$FILES_DIR" -name '*.part' -mtime "+${LOCAL_RETENTION_DAYS}" -delete
 

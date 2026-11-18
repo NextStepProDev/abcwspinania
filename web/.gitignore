@@ -1,29 +1,29 @@
-# zależności
+# dependencies
 /node_modules
 /.pnp
 .pnp.*
 
-# produkty budowania
+# build output
 /.next/
 /out/
 /build
 *.tsbuildinfo
 next-env.d.ts
 
-# testy i pokrycie
+# tests and coverage
 /coverage
 
-# środowisko
+# environment
 .env
 .env*.local
 
-# różne
+# misc
 .DS_Store
 *.pem
 npm-debug.log*
 yarn-error.log*
 .vercel
 
-# pliki wgrane lokalnie przez panel
+# files uploaded locally through the panel
 /uploads/*
 !/uploads/.gitkeep
