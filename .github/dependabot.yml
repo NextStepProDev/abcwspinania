@@ -1,10 +1,17 @@
 version: 2
+# Every Monday at 06:00 Warsaw time, the same slot in all of the owner's projects, so the week's
+# dependency PRs from every repo land together and get cleared in one sitting. `time` is not
+# decoration: without it Dependabot picks a random hour per repo. Fresh releases wait out
+# Dependabot's default 3-day cooldown (security updates do not).
 updates:
   # --- The app (Next.js + Payload) ---
   - package-ecosystem: npm
     directory: /web
     schedule:
-      interval: monthly
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Warsaw
     open-pull-requests-limit: 5
     ignore:
       # ESLint must stay on 9.x. `eslint-config-next` declares the peer
@@ -76,7 +83,10 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: monthly
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Warsaw
     groups:
       github-actions:
         patterns:
@@ -92,7 +102,10 @@ updates:
   - package-ecosystem: docker
     directory: /web
     schedule:
-      interval: monthly
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Warsaw
     ignore:
       - dependency-name: node
         update-types: ["version-update:semver-major"]
@@ -112,14 +125,20 @@ updates:
   - package-ecosystem: docker-compose
     directory: /
     schedule:
-      interval: monthly
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Warsaw
     ignore:
       - dependency-name: postgres
         update-types: ["version-update:semver-major"]
   - package-ecosystem: docker-compose
     directory: /deploy
     schedule:
-      interval: monthly
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Warsaw
     ignore:
       - dependency-name: postgres
         update-types: ["version-update:semver-major"]
