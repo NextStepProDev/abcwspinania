@@ -30,3 +30,12 @@ The old item can be deleted from Media afterwards, once nothing points to it.
 Until 13.10.2026 the hero showed the logo standing behind the rock, masked
 by a sky map of this photo (`make_mask.py`, now only in git history). See
 rule 27 in `CLAUDE.md`.
+
+## The slideshow (since 28.11.2026)
+
+The hero now cycles through photos from two panel collections:
+**Nagłówek — komputer** (wide photos) and **Nagłówek — telefon** (upright
+photos, shown below 640 px). The single photo in **Strona główna** is only a
+fallback, used while **Nagłówek — komputer** is empty — so on a server where nobody has
+uploaded hero photos yet, nothing changes. The retouched photo above is a
+good first entry in **Nagłówek — komputer**.

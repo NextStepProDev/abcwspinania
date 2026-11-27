@@ -464,6 +464,52 @@ export function croppedSource(media: Uploaded): { url: string; width: number; he
 }
 
 /**
+ * One photo of the home page hero slideshow, as the client component needs it.
+ * `position` is `focalPosition()` — the hero crops every photo (rule 26).
+ */
+export type HeroSlide = { url: string; alt: string; position?: string }
+
+/**
+ * A hero photo from the panel, or `null` without a file. Always the ORIGINAL:
+ * the hero is the largest image on the site and its frame has the photo's own
+ * shape (wide on a computer, upright on a phone), so the optimiser's resize by
+ * width costs nothing that gets cropped away (rule 24).
+ */
+export function heroSlide(
+  media:
+    | { url?: string | null; alt?: string | null; focalX?: number | null; focalY?: number | null }
+    | null
+    | undefined,
+): HeroSlide | null {
+  if (!media?.url) return null
+  return { url: media.url, alt: media.alt ?? '', position: focalPosition(media) }
+}
+
+type HeroSource = Parameters<typeof heroSlide>[0]
+
+/**
+ * Which photos the hero shows on each shape of screen:
+ *  • computer — its own list, else the single "Strona główna" photo from
+ *    before the slideshow, else the phone list (cropped, but a photo);
+ *  • phone — its own list, else whatever the computer got.
+ * Both empty → the page draws the ridge illustration. Photos without a file
+ * are skipped, so one broken entry does not leave a hole in the rotation.
+ */
+export function heroLists(
+  wide: HeroSource[],
+  tall: HeroSource[],
+  single: HeroSource,
+): { wide: HeroSlide[]; tall: HeroSlide[] } {
+  const slides = (photos: HeroSource[]) =>
+    photos.map(heroSlide).filter((slide): slide is HeroSlide => slide !== null)
+  const ownWide = slides(wide)
+  const ownTall = slides(tall)
+  const fallback = slides([single])
+  const heroWide = ownWide.length ? ownWide : fallback.length ? fallback : ownTall
+  return { wide: heroWide, tall: ownTall.length ? ownTall : heroWide }
+}
+
+/**
  * Splits text into its first sentence and the rest, for places that show only
  * the first on a phone (the home page hero) and the whole on wider screens.
  * `head + rest` is always the original text, so rendering both — the rest

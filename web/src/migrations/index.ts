@@ -22,6 +22,7 @@ import * as migration_20261022_220341_broadcast_qualification_card from './20261
 import * as migration_20261024_184632_bookings_session_start from './20261024_184632_bookings_session_start';
 import * as migration_20261024_185634_bookings_participant from './20261024_185634_bookings_participant';
 import * as migration_20261127_011413_broadcasts_upcoming_split from './20261127_011413_broadcasts_upcoming_split';
+import * as migration_20261127_230040_hero_photos from './20261127_230040_hero_photos';
 
 export const migrations = [
   {
@@ -142,6 +143,11 @@ export const migrations = [
   {
     up: migration_20261127_011413_broadcasts_upcoming_split.up,
     down: migration_20261127_011413_broadcasts_upcoming_split.down,
-    name: '20261127_011413_broadcasts_upcoming_split'
+    name: '20261127_011413_broadcasts_upcoming_split',
+  },
+  {
+    up: migration_20261127_230040_hero_photos.up,
+    down: migration_20261127_230040_hero_photos.down,
+    name: '20261127_230040_hero_photos'
   },
 ];

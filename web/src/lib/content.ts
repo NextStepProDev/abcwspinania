@@ -10,6 +10,8 @@ import type {
   Instructor,
   Media,
   GalleryPhoto,
+  HeroWidePhoto,
+  HeroTallPhoto,
   SiteConfig,
   HomePage,
   AboutPage,
@@ -471,6 +473,32 @@ export function getGalleryImages(limit = 200): Promise<GalleryPhoto[]> {
         collection: 'gallery-photos',
         limit,
         sort: '-createdAt',
+        depth: 0,
+      })
+      return docs
+    },
+    [],
+  )
+}
+
+// --- Home page hero ----------------------------------------------------------
+
+/**
+ * Photos for the hero slideshow, in the order set by dragging in the panel
+ * (`orderable` — the `_order` field). Wide ones for a computer, upright ones
+ * for a phone; see `collections/HeroPhotos.ts`. A dozen is already more than
+ * anyone waits through, so the limit is a ceiling, not a target.
+ */
+export function getHeroPhotos(
+  slug: 'hero-wide-photos' | 'hero-tall-photos',
+): Promise<(HeroWidePhoto | HeroTallPhoto)[]> {
+  return withPayloadSafe(
+    slug,
+    async (payload) => {
+      const { docs } = await payload.find({
+        collection: slug,
+        limit: 12,
+        sort: '_order',
         depth: 0,
       })
       return docs

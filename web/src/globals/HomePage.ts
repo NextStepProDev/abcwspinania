@@ -63,9 +63,9 @@ export const HomePage: GlobalConfig = {
           label: 'Zdjęcie w tle',
           admin: {
             description:
-              'Szerokie, poziome zdjęcie. Lewa strona jest przyciemniana pod tekst, ' +
-              'więc to, co najciekawsze, powinno być po prawej. Puste pole zostawia ' +
-              'dotychczasową ilustrację grani.',
+              'Zapasowe, pojedyncze zdjęcie. Nagłówek pokazuje zdjęcia z zakładek ' +
+              '„Nagłówek — komputer” i „Nagłówek — telefon”; to pole działa tylko, ' +
+              'gdy zakładka „Nagłówek — komputer” jest pusta.',
           },
         },
       ],
