@@ -180,6 +180,49 @@ h3 {
   transition-timing-function: ease, ease, ease, ease, ease, ease, ease, ease, ease, ease-out;
 }
 
+/* Home page hero photos (`HeroSlideshow`). The focal point arrives as a CSS
+   variable, because the server's first photo is a <picture> with one <img>
+   for two files: the phone's point overrides the computer's at the same
+   width as its <source>. The slow zoom is anchored on the point too, so the
+   part the client framed stays in view while it moves. */
+.hero-photo {
+  object-position: var(--hero-pos, 50% 50%);
+  transform-origin: var(--hero-pos, 50% 50%);
+}
+@media (width < 40rem) {
+  .hero-photo {
+    object-position: var(--hero-pos-phone, var(--hero-pos, 50% 50%));
+    transform-origin: var(--hero-pos-phone, var(--hero-pos, 50% 50%));
+  }
+}
+/* Longer than one photo's turn (7 s + 1.6 s fade), so it is still moving as
+   it fades out. Every other photo zooms out instead of in. Only with motion
+   allowed: the rule below would otherwise jump it straight to the end. */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-drift {
+    animation: hero-zoom-in 10s ease-out both;
+  }
+  .hero-drift.hero-drift-out {
+    animation-name: hero-zoom-out;
+  }
+}
+@keyframes hero-zoom-in {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.08);
+  }
+}
+@keyframes hero-zoom-out {
+  from {
+    transform: scale(1.08);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
 /* Respect the system setting — without it section entry animations can make
    motion-sensitive people feel sick. */
 @media (prefers-reduced-motion: reduce) {

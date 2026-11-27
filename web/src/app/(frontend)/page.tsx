@@ -8,10 +8,11 @@ import {
   getTestimonials,
   getPosts,
   getSiteConfig,
+  getHeroPhotos,
   telHref,
   asImage,
 } from '@/lib/content'
-import { yearsSince, focalPosition, splitFirstSentence } from '@/lib/format'
+import { yearsSince, focalPosition, heroLists, splitFirstSentence } from '@/lib/format'
 import { pageMetadata } from '@/lib/seo'
 import { SELECTABLE_ICONS, type IconName } from '@/components/Icons'
 import { CourseCard } from '@/components/CourseCard'
@@ -22,6 +23,7 @@ import { MountainBackdrop } from '@/components/MountainBackdrop'
 import { MountainRidges } from '@/components/MountainRidges'
 import { SignWatermark } from '@/components/Logo'
 import { HeroSignAtEdge } from '@/components/HeroSign'
+import { HeroSlideshow } from '@/components/HeroSlideshow'
 import { Button, Badge, SectionHeading, Container, ImagePlaceholder } from '@/components/Ui'
 
 // Exported as generateMetadata, NOT as `export const metadata` — that form
@@ -38,44 +40,41 @@ export function generateMetadata(): Metadata {
 export default async function Home() {
   // Every query is independent of the others, so they run in parallel — run in
   // series they would add up their latencies.
-  const [content, courses, sessions, testimonials, posts, siteConfig] = await Promise.all([
-    getHomePage(),
-    getCourses(),
-    getUpcomingSessions(4),
-    getTestimonials(),
-    getPosts(3),
-    getSiteConfig(),
-  ])
+  const [content, courses, sessions, testimonials, posts, siteConfig, widePhotos, tallPhotos] =
+    await Promise.all([
+      getHomePage(),
+      getCourses(),
+      getUpcomingSessions(4),
+      getTestimonials(),
+      getPosts(3),
+      getSiteConfig(),
+      getHeroPhotos('hero-wide-photos'),
+      getHeroPhotos('hero-tall-photos'),
+    ])
   // The homepage shows testimonials explicitly marked for it; when nobody has
   // marked any, we take the first two so the section does not vanish.
   const marked = testimonials.filter((t) => t.onHomepage)
   const homepageTestimonials = (marked.length > 0 ? marked : testimonials).slice(0, 2)
   const tel = telHref(siteConfig)
   const years = yearsSince(siteConfig.foundedYear)
-  const heroImage = asImage(content?.heroImage)
+  // A server where nobody has uploaded hero photos yet looks exactly as it
+  // did: the single "Strona główna" photo, or the illustration (`heroLists`).
+  const hero = heroLists(widePhotos, tallPhotos, asImage(content?.heroImage))
+  const hasPhoto = hero.wide.length > 0
   const heroText = content?.heroText ? splitFirstSentence(content.heroText) : null
 
   return (
     <main>
       {/* --- Hero header --- */}
       <section className="relative isolate overflow-hidden bg-rock-950">
-        {heroImage?.url ? (
-          // The ORIGINAL, not the 750px `medium` variant — this is the single
-          // largest image on the site, and Next's optimizer already resizes it
-          // per device (rule 24's reasoning: one resize cost, paid once, here).
-          <Image
-            src={heroImage.url}
-            alt={heroImage.alt ?? ''}
-            fill
-            loading="eager"
-            sizes="100vw"
-            className="object-cover"
-            style={{ objectPosition: focalPosition(heroImage) }}
-          />
+        {hasPhoto ? (
+          // The ORIGINALS, not the 750px `medium` variant — the largest images
+          // on the site, resized per device by Next's optimizer (rule 24).
+          <HeroSlideshow wide={hero.wide} tall={hero.tall} />
         ) : (
           <MountainBackdrop />
         )}
-        {heroImage?.url ? (
+        {hasPhoto ? (
           // A flat tint can't win here: dark enough to keep the text legible
           // over the photo's brightest leaves, and the photo itself goes dull;
           // light enough to stay vivid, and letters disappear into pale

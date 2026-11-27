@@ -3,6 +3,7 @@ import type { CollectionConfig } from 'payload'
 import { Users } from './Users'
 import { Media } from './Media'
 import { GalleryPhotos } from './GalleryPhotos'
+import { HeroTallPhotos, HeroWidePhotos } from './HeroPhotos'
 import { Courses } from './Courses'
 import { Camps } from './Camps'
 import { Sessions } from './Sessions'
@@ -38,6 +39,8 @@ export const collections: CollectionConfig[] = [
   Instructors,
   Media,
   GalleryPhotos,
+  HeroWidePhotos,
+  HeroTallPhotos,
   PrivateFiles,
   Messages,
   Newsletter,

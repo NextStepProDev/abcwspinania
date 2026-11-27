@@ -804,6 +804,17 @@ silently stop recognising it.
     uploaded once and chosen in "Strona główna". Instructions and the reason
     for a new file rather than overwriting the old one: `design/hero/README.md`.
 
+    **Since 28.11.2026 the hero is a slideshow** (`components/HeroSlideshow.tsx`,
+    Krzysiek's request): photos from two collections, `hero-wide-photos`
+    (computer) and `hero-tall-photos` (phone, below `sm`), ordered by dragging
+    (`orderable`, experimental in Payload — check it on every bump). An empty
+    computer list falls back on the "Strona główna" photo, then on the phone
+    list; an empty phone list on the computer one; nothing at all → the ridge
+    illustration. Only the first photo is in the HTML (a
+    `<picture>` with a source per shape); the rest are mounted on the client
+    one step before their turn. The slow zoom is CSS (`.hero-drift`), off with
+    "reduce motion", and then there is no rotation either.
+
 28. **⚠️ Permissions: every collection declares ALL operations, never
     `Boolean(req.user)`.** Settled 01.10.2026, before participant accounts.
     For an operation a collection does not declare, Payload assumes "anyone

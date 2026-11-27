@@ -80,6 +80,8 @@ export interface Config {
     instructors: Instructor;
     media: Media;
     'gallery-photos': GalleryPhoto;
+    'hero-wide-photos': HeroWidePhoto;
+    'hero-tall-photos': HeroTallPhoto;
     'private-files': PrivateFile;
     messages: Message;
     newsletter: Newsletter;
@@ -111,6 +113,8 @@ export interface Config {
     instructors: InstructorsSelect<false> | InstructorsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     'gallery-photos': GalleryPhotosSelect<false> | GalleryPhotosSelect<true>;
+    'hero-wide-photos': HeroWidePhotosSelect<false> | HeroWidePhotosSelect<true>;
+    'hero-tall-photos': HeroTallPhotosSelect<false> | HeroTallPhotosSelect<true>;
     'private-files': PrivateFilesSelect<false> | PrivateFilesSelect<true>;
     messages: MessagesSelect<false> | MessagesSelect<true>;
     newsletter: NewsletterSelect<false> | NewsletterSelect<true>;
@@ -929,6 +933,76 @@ export interface GalleryPhoto {
   };
 }
 /**
+ * Zdjęcia zmieniające się w nagłówku strony głównej na komputerze i tablecie. Poziome, najlepiej co najmniej 2400 px szerokości. Lewa strona jest przyciemniana pod tekst, więc to, co najciekawsze, powinno być po prawej. Kolejność ustawiasz, przeciągając wiersze — pierwsze zdjęcie pokazuje się od razu po wejściu na stronę. Pliki JPG, PNG, WebP lub AVIF. Zdjęcie z iPhone’a w formacie HEIC najpierw zapisz jako JPG (np. „Eksportuj” w Zdjęciach na Macu) — HEIC pokazuje tylko Safari.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "hero-wide-photos".
+ */
+export interface HeroWidePhoto {
+  id: number;
+  _order?: string | null;
+  /**
+   * Co widać na zdjęciu — czyta to Google i czytniki ekranu. Zdjęcie w nagłówku jest zwykle tłem, więc pole można zostawić puste.
+   */
+  alt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+  sizes?: {
+    medium?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
+}
+/**
+ * Zdjęcia zmieniające się w nagłówku strony głównej na telefonie. Pionowe, najlepiej co najmniej 1200 px szerokości. Na zdjęciu leży tekst i logo na dole, więc ważne rzeczy nie powinny być przy samej dolnej krawędzi. Gdy ta lista jest pusta, telefon pokazuje zdjęcia z „Nagłówek — komputer”. Kolejność ustawiasz, przeciągając wiersze. Pliki JPG, PNG, WebP lub AVIF. Zdjęcie z iPhone’a w formacie HEIC najpierw zapisz jako JPG (np. „Eksportuj” w Zdjęciach na Macu) — HEIC pokazuje tylko Safari.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "hero-tall-photos".
+ */
+export interface HeroTallPhoto {
+  id: number;
+  _order?: string | null;
+  /**
+   * Co widać na zdjęciu — czyta to Google i czytniki ekranu. Zdjęcie w nagłówku jest zwykle tłem, więc pole można zostawić puste.
+   */
+  alt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+  sizes?: {
+    medium?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
+}
+/**
  * Pliki widoczne tylko w panelu: pieczątka z podpisem do umów obozowych, pusta karta kwalifikacyjna do maila przed obozem. Strona ich nie pokazuje.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1082,6 +1156,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'gallery-photos';
         value: number | GalleryPhoto;
+      } | null)
+    | ({
+        relationTo: 'hero-wide-photos';
+        value: number | HeroWidePhoto;
+      } | null)
+    | ({
+        relationTo: 'hero-tall-photos';
+        value: number | HeroTallPhoto;
       } | null)
     | ({
         relationTo: 'private-files';
@@ -1504,6 +1586,72 @@ export interface GalleryPhotosSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "hero-wide-photos_select".
+ */
+export interface HeroWidePhotosSelect<T extends boolean = true> {
+  _order?: T;
+  alt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+  sizes?:
+    | T
+    | {
+        medium?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "hero-tall-photos_select".
+ */
+export interface HeroTallPhotosSelect<T extends boolean = true> {
+  _order?: T;
+  alt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+  sizes?:
+    | T
+    | {
+        medium?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "private-files_select".
  */
 export interface PrivateFilesSelect<T extends boolean = true> {
@@ -1727,7 +1875,7 @@ export interface HomePage {
   heroTitle: string;
   heroText?: string | null;
   /**
-   * Szerokie, poziome zdjęcie. Lewa strona jest przyciemniana pod tekst, więc to, co najciekawsze, powinno być po prawej. Puste pole zostawia dotychczasową ilustrację grani.
+   * Zapasowe, pojedyncze zdjęcie. Nagłówek pokazuje zdjęcia z zakładek „Nagłówek — komputer” i „Nagłówek — telefon”; to pole działa tylko, gdy zakładka „Nagłówek — komputer” jest pusta.
    */
   heroImage?: (number | null) | Media;
   /**

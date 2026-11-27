@@ -133,6 +133,8 @@ const nextConfig: NextConfig = {
     localPatterns: [
       { pathname: '/api/media/file/**' },
       { pathname: '/api/gallery-photos/file/**' },
+      { pathname: '/api/hero-wide-photos/file/**' },
+      { pathname: '/api/hero-tall-photos/file/**' },
       // Photos from the repository (public/images) — the family archive on
       // /o-nas. They do not go through Payload, but they do go through Next's
       // optimiser, so they need an entry too.
