@@ -181,6 +181,69 @@ export function statusEmailForKind(
   return statusEmailFor(previous, next, sessionStart, now)
 }
 
+/**
+ * Whether a status change gives the child a place it did not have — the
+ * moment the parent needs the form (the sign-up email had no link for a
+ * child on the waiting list). The Bookings hook then sends the link, unless
+ * the form is already in.
+ */
+export function movedUpFromWaitlist(
+  previous: string | null | undefined,
+  next: string | null | undefined,
+): boolean {
+  return (
+    previous === 'waitlist' &&
+    (ACTIVE_STATUSES as readonly (string | null | undefined)[]).includes(next)
+  )
+}
+
+const STATUS_LABEL: Record<string, string> = Object.fromEntries(
+  BOOKING_STATUS_OPTIONS.map((o) => [o.value, o.label]),
+)
+
+/**
+ * The question the bookings list asks before a status change that emails
+ * someone — null when nobody is emailed. A click on the wrong row must not
+ * send anything unasked. The list loads rows without their session, so for
+ * "paid" it says when the email goes; and without the registration state, so
+ * for a camp child moved up from the waiting list it says "unless the form
+ * is in" (until 27.11.2026 that change asked nothing, though the link went).
+ *
+ * `kind` unknown (a row without the field) counts as a camp — the side that
+ * emails more, so the question stays.
+ */
+export function statusChangeQuestion(
+  kind: string | null | undefined,
+  from: string,
+  to: string,
+  hasAddress: boolean,
+): string | null {
+  if (!hasAddress || from === to) return null
+  const camp = kind !== 'course'
+  const known = kind === 'camp' || kind === 'course'
+  const who = kind === 'camp' ? 'rodzic' : known ? 'kursant' : 'uczestnik'
+  const Who = who[0]!.toUpperCase() + who.slice(1)
+  const what = kind === 'camp' ? 'obóz' : known ? 'kurs' : 'termin'
+  const change = `Zmienić status na „${STATUS_LABEL[to] ?? to}”?`
+  const email = statusEmailForKind(
+    camp ? 'camp' : 'course',
+    from as BookingStatus,
+    to as BookingStatus,
+  )
+  const link = camp && movedUpFromWaitlist(from, to)
+  const linkLine = 'z linkiem do formularza rejestracyjnego (chyba że rodzic już go wysłał)'
+  if (!email && !link) return null
+  if (!email) return `${change} Rodzic dostanie maila ${linkLine}.`
+  const main =
+    email === 'paid'
+      ? `${change} Jeśli ${what} jeszcze się nie zaczął, ${who} dostanie maila.`
+      : email === 'deposit'
+        ? // Siblings get one email, when the last of them is marked (`sendStatusEmail`).
+          `${change} Rodzic dostanie maila — przy rodzeństwie jednego, po zaznaczeniu ostatniego dziecka.`
+        : `${change} ${Who} dostanie maila.`
+  return link ? `${main} Rodzic dostanie też maila ${linkLine}.` : main
+}
+
 const polishDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw' })
 
 /**
@@ -293,4 +356,23 @@ export function childKey(
 export function anonymizedLabel(label: string | null | undefined): string {
   const parts = (label ?? '').split(' · ')
   return ['zanonimizowany', ...parts.slice(1)].join(' · ')
+}
+
+/**
+ * A person on the waiting list as the "Zwolniło się miejsce" email names
+ * them: on a camp the child — the one who gets the place — with the parent
+ * to call; on a course the participant. Until 27.11.2026 a camp's queue
+ * listed the parents under a sentence saying children were waiting.
+ */
+export function waitingListName(b: {
+  kind?: string | null
+  firstName?: string | null
+  lastName?: string | null
+  childFirstName?: string | null
+  childLastName?: string | null
+}): string {
+  const person = [b.firstName, b.lastName].filter(Boolean).join(' ')
+  const child = [b.childFirstName, b.childLastName].filter(Boolean).join(' ')
+  if (b.kind !== 'camp' || !child) return person
+  return person ? `${child} (rodzic: ${person})` : child
 }

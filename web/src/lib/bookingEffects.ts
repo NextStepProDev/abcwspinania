@@ -5,11 +5,20 @@ import {
   availability,
   formatSessionDates,
   placeFreedForWaitlist,
+  waitingListName,
   type StatusEmail,
 } from '@/lib/bookings'
 import { emailFailureReason } from '@/lib/broadcasts'
-import { campMailbox, campPrice, campSender, joinNames, paymentDetails } from '@/lib/campPayment'
+import {
+  bookingPrice,
+  campMailbox,
+  campPrice,
+  campSender,
+  joinNames,
+  paymentDetails,
+} from '@/lib/campPayment'
 import { publicUrl } from '@/lib/email/links'
+import { mailboxFor, senderFor } from '@/lib/email/mailboxes'
 import type { EmailLanguage } from '@/lib/email/language'
 import { bookingStatusEmail, campStatusEmail, placeFreedNotification } from '@/lib/email/templates'
 import type { Booking, Session } from '@/payload-types'
@@ -87,7 +96,10 @@ async function announceFreedPlace(
   spotsLeft: number | null,
   req?: Req,
 ): Promise<void> {
-  const to = process.env.ADMIN_NOTIFY_EMAIL
+  // A camp's waiting list is the camp mailbox's business, like the rest of
+  // its sign-ups; a course's — the course one (`email/mailboxes.ts`).
+  const kind = session.camp ? 'camp' : 'course'
+  const to = mailboxFor(kind)
   if (!to) return
   const { docs: waiting } = await payload.find({
     collection: 'bookings',
@@ -102,17 +114,24 @@ async function announceFreedPlace(
     return
   const summary = await sessionSummary(payload, session.id, 'pl', req)
   const email = placeFreedNotification({
+    kind,
     courseTitle: summary?.courseTitle ?? '',
     dates: summary?.dates ?? '',
     spotsLeft,
     waiting: waiting.map((b) => ({
-      name: `${b.firstName} ${b.lastName}`,
+      name: waitingListName(b),
       phone: b.phone,
       email: b.email ?? null,
     })),
     adminUrl: `${publicUrl()}/admin/collections/sessions/${session.id}`,
   })
-  await payload.sendEmail({ to, subject: email.subject, html: email.html, text: email.text })
+  await payload.sendEmail({
+    to,
+    from: senderFor(kind),
+    subject: email.subject,
+    html: email.html,
+    text: email.text,
+  })
 }
 
 /** The course title, dates and place of a session, for an email in `lang`. */
@@ -280,7 +299,12 @@ export async function sendStatusEmail(
         campTitle: summary.courseTitle,
         dates: summary.dates,
         location: summary.location,
-        payment: status === 'deposit' ? paymentDetails(lang, children, summary.price, null) : null,
+        // The price the contract was concluded at, not today's (decided
+        // 27.11.2026) — "zostało X zł" must match what the parent signed.
+        payment:
+          status === 'deposit'
+            ? paymentDetails(lang, children, bookingPrice(booking, summary.price), null)
+            : null,
         accountUrl,
       })
     : bookingStatusEmail(lang, status as 'confirmed' | 'paid' | 'cancelled', {
@@ -291,8 +315,8 @@ export async function sendStatusEmail(
   await payload.sendEmail({
     to: booking.email,
     // A reply goes to the school, not to an address with no mailbox.
-    ...(camp ? { from: campSender() } : {}),
-    replyTo: (camp ? campMailbox() : process.env.ADMIN_NOTIFY_EMAIL) || undefined,
+    from: camp ? campSender() : senderFor('course'),
+    replyTo: camp ? campMailbox() : mailboxFor('course'),
     subject: email.subject,
     html: email.html,
     text: email.text,

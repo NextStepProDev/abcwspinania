@@ -163,13 +163,27 @@ test('every address form Payload may pass reaches Brevo as an object', () => {
 
 const sender = { email: 'zapisy@szkolawspinaczkowa.pl', name: 'ABC Wspinania' }
 
-test('the configured sender address always wins', () => {
+test('a sender outside the authenticated domain is replaced, its name kept', () => {
   const body = toBrevoBody(
     { to: 'a@x.pl', from: 'Payload <info@payloadcms.com>', subject: 's' },
     sender,
   )
   assert.equal(body.sender.email, sender.email)
   assert.equal(body.sender.name, 'Payload')
+})
+
+test('a sender on the authenticated domain is kept — kursy@ and obozy@ next to biuro@', () => {
+  const school = { email: 'biuro@abcwspinania.info', name: 'ABC Wspinania' }
+  const body = toBrevoBody(
+    {
+      to: 'a@x.pl',
+      from: { name: 'ABC Wspinania · Obozy', address: 'obozy@abcwspinania.info' },
+      subject: 's',
+    },
+    school,
+  )
+  assert.deepEqual(body.sender, { email: 'obozy@abcwspinania.info', name: 'ABC Wspinania · Obozy' })
+  assert.equal(toBrevoBody({ to: 'a@x.pl', subject: 's' }, school).sender.email, school.email)
 })
 
 test('the body carries reply-to, html and text', () => {
@@ -531,6 +545,7 @@ import { placeFreedNotification } from '@/lib/email/templates'
 
 test('the freed-place email names the session and the first person waiting', () => {
   const email = placeFreedNotification({
+    kind: 'course',
     courseTitle: 'Kurs PZA',
     dates: '4–9 maja 2027',
     spotsLeft: 1,
@@ -550,6 +565,7 @@ test('the freed-place email names the session and the first person waiting', () 
 test('someone waiting without an email address is listed by name and phone', () => {
   // A phone booking may have no address (decided 12.10.2026).
   const email = placeFreedNotification({
+    kind: 'course',
     courseTitle: 'Kurs PZA',
     dates: '4–9 maja 2027',
     spotsLeft: 1,
@@ -807,4 +823,29 @@ test('a broadcast with the qualification card says so at the very top, in capita
     /ATTACHED: THE BLANK QUALIFICATION CARD/,
   )
   assert.doesNotMatch(broadcastEmail('pl', base).html, /ZAŁĄCZNIKU/)
+})
+
+test('a freed place on a camp says turnus and obóz, and how the parent gets the form', () => {
+  const email = placeFreedNotification({
+    kind: 'camp',
+    courseTitle: 'Obóz wspinaczkowo-przygodowy',
+    dates: '26 czerwca – 3 lipca 2027',
+    spotsLeft: 1,
+    waiting: [{ name: 'Tymek Zając', phone: '+48600100200', email: 'e@x.pl' }],
+    adminUrl: 'https://x.pl/admin/collections/sessions/10',
+  })
+  assert.match(email.text, /Obóz: Obóz wspinaczkowo-przygodowy/)
+  assert.match(email.text, /Turnus: 26 czerwca/)
+  assert.match(email.text, /formularza rejestracyjnego/)
+  assert.doesNotMatch(email.text, /Kurs:/)
+})
+
+test('the note under an upcoming-bookings broadcast names courses, camps or both', () => {
+  const base = { subject: 'S', body: { html: '<p>T</p>', text: 'T' } }
+  const note = (scope: 'course' | 'camp' | 'all', lang: 'pl' | 'en' = 'pl') =>
+    broadcastEmail(lang, { ...base, reason: { kind: 'upcoming', scope } }).text
+  assert.match(note('course'), /zapis na nadchodzący kurs w ABC/)
+  assert.match(note('camp'), /zapis na nadchodzący obóz w ABC/)
+  assert.match(note('all'), /nadchodzący kurs lub obóz/)
+  assert.match(note('camp', 'en'), /an upcoming camp/)
 })

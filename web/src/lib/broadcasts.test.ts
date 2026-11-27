@@ -258,3 +258,21 @@ test('a broadcast with a [blank] left from the template is caught, in either ver
     [],
   )
 })
+
+import { BROADCAST_AUDIENCE_OPTIONS, upcomingScope } from '@/lib/broadcasts'
+
+test('upcoming courses and upcoming camps are separate audiences; both together stay', () => {
+  assert.equal(upcomingScope('upcomingCourses'), 'course')
+  assert.equal(upcomingScope('upcomingCamps'), 'camp')
+  assert.equal(upcomingScope('upcoming'), 'all')
+  assert.equal(upcomingScope('session'), null)
+  assert.equal(upcomingScope('newsletter'), null)
+  const values = BROADCAST_AUDIENCE_OPTIONS.map((o) => o.value)
+  assert.deepEqual(values, [
+    'session',
+    'upcomingCourses',
+    'upcomingCamps',
+    'upcoming',
+    'newsletter',
+  ])
+})

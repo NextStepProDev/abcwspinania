@@ -12,6 +12,7 @@ import { recordEmailIssue, sessionSummary } from '@/lib/bookingEffects'
 import { createBooking } from '@/lib/bookingService'
 import { DEFAULT_LANGUAGE, type EmailLanguage } from '@/lib/email/language'
 import { publicUrl, tokenLink } from '@/lib/email/links'
+import { mailboxFor, senderFor } from '@/lib/email/mailboxes'
 import {
   bookingReceivedEmail,
   newAccountFromBookingEmail,
@@ -211,7 +212,8 @@ export async function bookCourse(
     await payload
       .sendEmail({
         to: contact.email,
-        replyTo: process.env.ADMIN_NOTIFY_EMAIL || undefined,
+        from: senderFor('course'),
+        replyTo: mailboxFor('course'),
         ...pick(
           bookingReceivedEmail(language, {
             firstName: contact.firstName,
@@ -235,11 +237,12 @@ export async function bookCourse(
 
     await sendAccountEmails(payload, booking.id, language, newAccount, unconfirmedAccount)
 
-    const notify = process.env.ADMIN_NOTIFY_EMAIL
+    const notify = mailboxFor('course')
     if (notify) {
       await payload
         .sendEmail({
           to: notify,
+          from: senderFor('course'),
           replyTo: { name: `${contact.firstName} ${contact.lastName}`, address: contact.email },
           ...pick(
             newBookingNotification({

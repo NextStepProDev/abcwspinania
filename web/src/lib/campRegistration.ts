@@ -11,7 +11,7 @@ import {
 } from 'payload'
 
 import { isAdmin } from '@/lib/access'
-import { ACTIVE_STATUSES, formatSessionDates } from '@/lib/bookings'
+import { formatSessionDates } from '@/lib/bookings'
 import {
   CONTRACT_RETURN_EMAIL,
   campSeason,
@@ -37,6 +37,7 @@ import {
 } from '@/lib/email/templates'
 import {
   campMailbox,
+  bookingPrice,
   campPrice,
   campSender,
   depositDueDate,
@@ -561,20 +562,7 @@ export async function sendRegistrationLink(
   return true
 }
 
-/**
- * Whether a status change gives the child a place it did not have — the
- * moment the parent needs the form (the sign-up email had no link for a
- * child on the waiting list).
- */
-export function movedUpFromWaitlist(
-  previous: string | null | undefined,
-  next: string | null | undefined,
-): boolean {
-  return (
-    previous === 'waitlist' &&
-    (ACTIVE_STATUSES as readonly (string | null | undefined)[]).includes(next)
-  )
-}
+export { movedUpFromWaitlist } from '@/lib/bookings'
 
 // --- the daily sweep -------------------------------------------------------------
 
@@ -680,7 +668,7 @@ export async function sendDepositReminders(
               payment: paymentDetails(
                 lang,
                 names,
-                campPrice(session?.price, camp?.price),
+                bookingPrice(lead, campPrice(session?.price, camp?.price)),
                 lead.depositDueAt ?? null,
               ),
             }),
