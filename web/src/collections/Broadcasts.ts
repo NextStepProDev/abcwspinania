@@ -76,7 +76,7 @@ export const Broadcasts: CollectionConfig = {
     defaultColumns: ['subject', 'audience', 'status', 'sentCount', 'startedAt'],
     group: 'Zapisy',
     description:
-      'Wiadomości do grup: zapisanych na termin, wszystkich z nadchodzącymi zapisami albo newslettera. Zapisz, wyślij próbnie do siebie, potem „Wyślij”.',
+      'Wiadomości do grup: zapisanych na termin, wszystkich z nadchodzącymi kursami, obozami (albo obu naraz) albo newslettera. Zapisz, wyślij próbnie do siebie, potem „Wyślij”.',
   },
   access: {
     read: isAdmin,
@@ -156,7 +156,7 @@ export const Broadcasts: CollectionConfig = {
       validate: (value: unknown) => hasText(value as RichTextValue) || 'Wpisz treść wiadomości.',
       admin: {
         description:
-          'Na górze maila pojawi się temat jako nagłówek, na dole — skąd ktoś ma tę wiadomość. Odpowiedzi trafiają na adres szkoły.',
+          'Na górze maila pojawi się temat jako nagłówek, na dole — skąd ktoś ma tę wiadomość. Przy kursie mail idzie z kursy@, przy obozie z obozy@, a do wszystkich i do newslettera z biuro@ — tam trafiają odpowiedzi.',
       },
     },
     {

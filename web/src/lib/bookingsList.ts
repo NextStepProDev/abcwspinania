@@ -109,7 +109,7 @@ function aboutOf(view: ListView, kind: BookingKind | null): string {
 
 function rulesOf(kind: BookingKind | null): string {
   if (kind === 'camp') {
-    return 'Imię, nazwisko i kontakt to dane rodzica, a uczestnik to dziecko. Zmiana statusu na „potwierdzony”, „zaliczka wpłacona” albo „rezygnacja” wysyła maila rodzicowi, na „opłacony” — tylko przed rozpoczęciem obozu. Zapis telefoniczny dodaj ręcznie (rodzaj zapisu: obóz; rodzeństwo — „Zduplikuj” w zapisie dziecka); liczy się wtedy do wolnych miejsc.'
+    return 'Imię, nazwisko i kontakt to dane rodzica, a uczestnik to dziecko. Zmiana statusu na „potwierdzony”, „zaliczka wpłacona” albo „rezygnacja” wysyła maila rodzicowi, na „opłacony” — tylko przed rozpoczęciem obozu. Dziecko z listy rezerwowej, które dostaje miejsce, dostaje też link do formularza rejestracyjnego. Zapis telefoniczny dodaj ręcznie (rodzaj zapisu: obóz; rodzeństwo — „Zduplikuj” w zapisie dziecka); liczy się wtedy do wolnych miejsc.'
   }
   if (kind === 'course') {
     return 'Zmiana statusu na „potwierdzony” albo „rezygnacja” wysyła maila kursantowi, na „opłacony” — tylko przed pierwszym dniem kursu. Zapis telefoniczny dodaj ręcznie; liczy się wtedy do wolnych miejsc.'

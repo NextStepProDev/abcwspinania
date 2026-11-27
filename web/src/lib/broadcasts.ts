@@ -8,14 +8,37 @@ import { hasText, renderRichText, type RichTextValue } from '@/lib/email/richTex
  * `broadcastSender.ts`.
  */
 
-export const BROADCAST_AUDIENCES = ['session', 'upcoming', 'newsletter'] as const
+export const BROADCAST_AUDIENCES = [
+  'session',
+  'upcomingCourses',
+  'upcomingCamps',
+  'upcoming',
+  'newsletter',
+] as const
 export type BroadcastAudience = (typeof BROADCAST_AUDIENCES)[number]
 
+/**
+ * Upcoming courses and upcoming camps apart (decided 27.11.2026): the school
+ * writes different things to course participants and to camp parents, and a
+ * parent reading "your upcoming course" under a camp message was confused.
+ * `upcoming` — both together — stays for the rare message to everyone, and
+ * for the broadcasts sent before the split.
+ */
 export const BROADCAST_AUDIENCE_OPTIONS = [
   { label: 'zapisani na jeden termin', value: 'session' },
-  { label: 'wszyscy z nadchodzącymi zapisami', value: 'upcoming' },
+  { label: 'wszyscy z nadchodzącymi kursami', value: 'upcomingCourses' },
+  { label: 'wszyscy z nadchodzącymi obozami (rodzice)', value: 'upcomingCamps' },
+  { label: 'wszyscy z nadchodzącymi zapisami — kursy i obozy', value: 'upcoming' },
   { label: 'newsletter (potwierdzone adresy)', value: 'newsletter' },
 ] satisfies { label: string; value: BroadcastAudience }[]
+
+/** Whose upcoming bookings an "upcoming" audience means; null for the others. */
+export function upcomingScope(audience: unknown): 'course' | 'camp' | 'all' | null {
+  if (audience === 'upcomingCourses') return 'course'
+  if (audience === 'upcomingCamps') return 'camp'
+  if (audience === 'upcoming') return 'all'
+  return null
+}
 
 export const BROADCAST_STATUSES = ['draft', 'sending', 'sent'] as const
 export type BroadcastStatus = (typeof BROADCAST_STATUSES)[number]

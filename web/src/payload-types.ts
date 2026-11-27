@@ -674,7 +674,7 @@ export interface CampRegistration {
   createdAt: string;
 }
 /**
- * Wiadomości do grup: zapisanych na termin, wszystkich z nadchodzącymi zapisami albo newslettera. Zapisz, wyślij próbnie do siebie, potem „Wyślij”.
+ * Wiadomości do grup: zapisanych na termin, wszystkich z nadchodzącymi kursami, obozami (albo obu naraz) albo newslettera. Zapisz, wyślij próbnie do siebie, potem „Wyślij”.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "broadcasts".
@@ -683,7 +683,7 @@ export interface Broadcast {
   id: number;
   subject: string;
   /**
-   * Na górze maila pojawi się temat jako nagłówek, na dole — skąd ktoś ma tę wiadomość. Odpowiedzi trafiają na adres szkoły.
+   * Na górze maila pojawi się temat jako nagłówek, na dole — skąd ktoś ma tę wiadomość. Przy kursie mail idzie z kursy@, przy obozie z obozy@, a do wszystkich i do newslettera z biuro@ — tam trafiają odpowiedzi.
    */
   content: {
     root: {
@@ -716,7 +716,7 @@ export interface Broadcast {
     };
     [k: string]: unknown;
   } | null;
-  audience: 'session' | 'upcoming' | 'newsletter';
+  audience: 'session' | 'upcomingCourses' | 'upcomingCamps' | 'upcoming' | 'newsletter';
   session?: (number | null) | Session;
   /**
    * Domyślnie wiadomość dostają tylko osoby z miejscem. Zaznacz np. przy odwołaniu terminu albo zmianie dat.

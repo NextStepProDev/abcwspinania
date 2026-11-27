@@ -1,6 +1,6 @@
 'use client'
 
-import { BOOKING_STATUS_OPTIONS, statusEmailForKind, type BookingStatus } from '@/lib/bookings'
+import { BOOKING_STATUS_OPTIONS, statusChangeQuestion } from '@/lib/bookings'
 
 import { StatusSelectCell } from './StatusSelectCell'
 
@@ -20,12 +20,9 @@ export function BookingStatusCell(props: {
   // emailed, and the question would say otherwise. When the row does not
   // carry the field at all, it still asks — the safe side.
   const noAddress = props.rowData?.email === null || props.rowData?.email === ''
-  // Same safe side for the kind: a row without it may be a camp, whose
-  // deposit emails the parent — so it is treated as one.
-  const kind = props.rowData && 'kind' in props.rowData ? props.rowData.kind : 'camp'
-  const known = props.rowData?.kind
-  const who = known === 'camp' ? 'rodzic' : known ? 'kursant' : 'uczestnik'
-  const what = known === 'camp' ? 'obóz' : known ? 'kurs' : 'termin'
+  // Same safe side for the kind: a row without it counts as a camp, which
+  // emails more (`statusChangeQuestion`).
+  const kind = props.rowData && 'kind' in props.rowData ? props.rowData.kind : null
   return (
     <StatusSelectCell
       {...props}
@@ -33,22 +30,7 @@ export function BookingStatusCell(props: {
       options={BOOKING_STATUS_OPTIONS}
       fallback="new"
       label="Status zapisu"
-      // The list loads rows without their session, so the cell cannot tell
-      // whether the course has started: for "paid" it says when the email goes.
-      confirmFor={(from, to) =>
-        !noAddress && statusEmailForKind(kind, from as BookingStatus, to as BookingStatus)
-          ? to === 'paid'
-            ? `Zmienić status na „${labelOf(to)}”? Jeśli ${what} jeszcze się nie zaczął, ${who} dostanie maila.`
-            : to === 'deposit'
-              ? // Siblings get one email, when the last of them is marked (`sendStatusEmail`).
-                `Zmienić status na „${labelOf(to)}”? Rodzic dostanie maila — przy rodzeństwie jednego, po zaznaczeniu ostatniego dziecka.`
-              : `Zmienić status na „${labelOf(to)}”? ${who[0].toUpperCase()}${who.slice(1)} dostanie maila.`
-          : null
-      }
+      confirmFor={(from, to) => statusChangeQuestion(kind, from, to, !noAddress)}
     />
   )
-}
-
-function labelOf(status: string): string {
-  return BOOKING_STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status
 }

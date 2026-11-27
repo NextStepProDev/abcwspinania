@@ -1,5 +1,7 @@
 import type { PayloadEmailAdapter, SendEmailOptions } from 'payload'
 
+import { sameDomain } from '@/lib/email/mailboxes'
+
 /**
  * Payload email adapter talking to Brevo's HTTP API.
  *
@@ -159,11 +161,14 @@ export function toBrevoBody(
 
   const body: BrevoBody = {
     // Brevo sends only from an address on a domain authenticated in the
-    // account. Payload code may set `from` (e.g. its own auth emails do, from
-    // the defaults below), but anything else would be rejected — so the
-    // configured sender always wins the address, and only its display name
-    // can be overridden.
-    sender: { email: sender.email, name: from?.name ?? sender.name },
+    // account — the configured sender's. A `from` on that domain (kursy@,
+    // obozy@ next to biuro@ — `email/mailboxes.ts`) is kept; any other
+    // address (Payload's own defaults, a typo) would be refused, so the
+    // configured sender takes its place and only the display name is kept.
+    sender: {
+      email: from && sameDomain(from.email, sender.email) ? from.email : sender.email,
+      name: from?.name ?? sender.name,
+    },
     to,
     subject: String(message.subject ?? ''),
   }

@@ -220,6 +220,21 @@ test('broadcasts: who gets one — places only, or with the waiting list; one pe
   })
   assert.ok(upcoming.some((r) => r.email === email('bc-a')))
   assert.ok(!upcoming.some((r) => r.email === email('bc-c')))
+
+  // Upcoming courses and upcoming camps apart (27.11.2026): a course booking
+  // is among the courses, never among the camp parents.
+  const courses = await recipientsOf(payload, {
+    audience: 'upcomingCourses',
+    session: null,
+    includeWaitlist: false,
+  })
+  assert.ok(courses.some((r) => r.email === email('bc-a')))
+  const camps = await recipientsOf(payload, {
+    audience: 'upcomingCamps',
+    session: null,
+    includeWaitlist: false,
+  })
+  assert.ok(!camps.some((r) => r.email === email('bc-a')), 'a course participant is no camp parent')
 })
 
 test('broadcasts: two "Wyślij" clicks at once queue it once, and the queue sends it', async () => {
@@ -465,7 +480,7 @@ test('broadcasts: "Wyślij" refuses while a [blank] is left; a test send still g
   await drainQueue(broadcast.id)
 })
 
-test('broadcasts: to a camp turnus it goes from the camp sender, to a course as before', async () => {
+test('broadcasts: to a camp turnus it goes from the camp sender, to a course from the course one', async () => {
   const admin = await makeAdmin()
   const camp = await makeCamp()
   const turnus = await makeSession(camp.id, { camp: true })
@@ -486,7 +501,8 @@ test('broadcasts: to a camp turnus it goes from the camp sender, to a course as 
   const toCamp = outbox.find((m) => m.to === email('campmail-a'))
   const toCourse = outbox.find((m) => m.to === email('coursemail-a'))
   assert.equal(toCamp?.fromName, 'ABC Wspinania · Obozy')
-  assert.equal(toCourse?.fromName, undefined)
+  // Each kind has its own sender since 27.11.2026 (`email/mailboxes.ts`).
+  assert.equal(toCourse?.fromName, 'ABC Wspinania')
 })
 
 test('broadcasts: the qualification card goes attached when ticked — and only with a card set', async () => {

@@ -100,6 +100,7 @@ services:
       EMAIL_FROM: ${EMAIL_FROM:-}
       EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-ABC Wspinania}
       ADMIN_NOTIFY_EMAIL: ${ADMIN_NOTIFY_EMAIL:-}
+      COURSE_EMAIL: ${COURSE_EMAIL:-}
       CAMP_EMAIL: ${CAMP_EMAIL:-}
       # The address the site ACTUALLY runs at — links in emails are built from
       # it (account confirmation, new password). See deploy/.env.example.

@@ -2,7 +2,7 @@ import { getPayload } from 'payload'
 import config from '@payload-config'
 
 import { isUpcoming, type BookingStatus } from '@/lib/bookings'
-import { campPrice, paymentLine } from '@/lib/campPayment'
+import { bookingPrice, campPrice, paymentLine } from '@/lib/campPayment'
 import { contractUrl, registrationUrl } from '@/lib/campRegistration'
 import { formatDateRange } from '@/lib/format'
 import type { Session } from '@/payload-types'
@@ -94,7 +94,7 @@ export async function bookingsOf(customerId: number) {
       if (ahead) {
         row.payment = paymentLine(
           booking.status as BookingStatus,
-          campPrice(session.price, camp?.price),
+          bookingPrice(booking, campPrice(session.price, camp?.price)),
           booking.depositDueAt,
         )
       }

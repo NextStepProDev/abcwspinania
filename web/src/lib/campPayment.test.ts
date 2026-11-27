@@ -74,3 +74,11 @@ test('My account tells the parent where the money stands', () => {
   assert.equal(line('new', 2500, null), undefined, 'no deadline before the form')
   assert.equal(line('waitlist', 2500, '2027-03-08T10:00:00Z'), undefined)
 })
+
+import { bookingPrice } from '@/lib/campPayment'
+
+test('the balance counts from the contract’s price, not a price changed later', () => {
+  assert.equal(bookingPrice({ contractPrice: 2500 }, 2700), 2500)
+  assert.equal(bookingPrice({ contractPrice: null }, 2700), 2700, 'no contract yet: today’s price')
+  assert.equal(bookingPrice({}, null), null)
+})

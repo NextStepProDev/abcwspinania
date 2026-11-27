@@ -1,5 +1,6 @@
 import type { EmailLanguage } from '@/lib/email/language'
 import type { CampPaymentDetails } from '@/lib/email/templates'
+import { mailboxFor, senderFor, type MailSender } from '@/lib/email/mailboxes'
 import { formatPrice } from '@/lib/format'
 
 /**
@@ -34,6 +35,20 @@ export const CAMP_TRANSFER = {
 /** The transfer's title, as Krzysiek asked: "Obóz JURA + imię i nazwisko uczestnika". */
 export function transferTitle(childName: string): string {
   return `Obóz JURA ${childName}`.replace(/\s+/g, ' ').trim()
+}
+
+/**
+ * The price a booking's balance is counted from: the one its contract was
+ * concluded at (`contractPrice`, stored when the contract went out), else
+ * the turnus's current one. After a price change in the panel, "zostało X zł"
+ * in the emails and on "Moje konto" kept following the new price while the
+ * signed contract said the old one (found 27.11.2026).
+ */
+export function bookingPrice(
+  booking: { contractPrice?: number | null },
+  current: number | null,
+): number | null {
+  return typeof booking.contractPrice === 'number' ? booking.contractPrice : current
 }
 
 /** The turnus's price: its own when set, the camp's otherwise; null when neither has one. */
@@ -107,7 +122,7 @@ export function joinNames(lang: EmailLanguage, names: string[]): string {
  * which is the case all through testing (CLAUDE.md, "Zapisy na obozy").
  */
 export function campMailbox(): string | undefined {
-  return process.env.CAMP_EMAIL || process.env.ADMIN_NOTIFY_EMAIL || undefined
+  return mailboxFor('camp')
 }
 
 /**
@@ -133,15 +148,13 @@ export function paymentLine(
   return undefined
 }
 
-/**
- * The sender of every camp email: the configured address (`EMAIL_FROM` — the
- * Brevo adapter always sends from it) under its own name, "ABC Wspinania ·
- * Obozy" (decided 21.10.2026). A parent sees at once what the email is
- * about, and a mail filter tells camp emails from course ones by it — the
- * school's test forwarding passes the course ones only.
- */
-export const CAMP_SENDER_NAME = 'ABC Wspinania · Obozy'
+export { CAMP_SENDER_NAME } from '@/lib/email/mailboxes'
 
-export function campSender(): { name: string; address: string } {
-  return { name: CAMP_SENDER_NAME, address: process.env.EMAIL_FROM || 'obozy@abcwspinania.info' }
+/**
+ * The sender of every camp email: `CAMP_EMAIL` (obozy@) once it is on the
+ * domain authenticated in Brevo, `EMAIL_FROM` until then — under its own
+ * name, "ABC Wspinania · Obozy" (`email/mailboxes.ts`).
+ */
+export function campSender(): MailSender {
+  return senderFor('camp')
 }

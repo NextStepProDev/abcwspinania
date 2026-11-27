@@ -309,3 +309,51 @@ test('a camp’s other statuses follow the course rules', () => {
     null,
   )
 })
+
+import { statusChangeQuestion } from '@/lib/bookings'
+
+test('the list asks before a camp child leaves the waiting list — the form link goes then', () => {
+  // Until 27.11.2026 "lista rezerwowa" → "zgłoszony" asked nothing, though the
+  // parent got "Zwolniło się miejsce — formularz rejestracyjny".
+  assert.match(
+    statusChangeQuestion('camp', 'waitlist', 'new', true) ?? '',
+    /Rodzic dostanie maila z linkiem do formularza/,
+  )
+  const both = statusChangeQuestion('camp', 'waitlist', 'confirmed', true) ?? ''
+  assert.match(both, /Rodzic dostanie maila\./)
+  assert.match(both, /też maila z linkiem do formularza/)
+  // A course has no form: "zgłoszony" from the waiting list emails nobody.
+  assert.equal(statusChangeQuestion('course', 'waitlist', 'new', true), null)
+})
+
+test('the list asks only where somebody is emailed', () => {
+  assert.equal(statusChangeQuestion('course', 'new', 'deposit', true), null)
+  assert.equal(statusChangeQuestion('camp', 'new', 'waitlist', true), null)
+  assert.equal(statusChangeQuestion('camp', 'confirmed', 'confirmed', true), null)
+  // A phone booking without an address: nobody to email, nothing to ask.
+  assert.equal(statusChangeQuestion('camp', 'waitlist', 'confirmed', false), null)
+  assert.match(statusChangeQuestion('course', 'new', 'confirmed', true) ?? '', /Kursant dostanie/)
+  assert.match(statusChangeQuestion('course', 'new', 'paid', true) ?? '', /Jeśli kurs jeszcze/)
+  assert.match(statusChangeQuestion('camp', 'new', 'deposit', true) ?? '', /przy rodzeństwie/)
+  // A row without its kind counts as a camp — the side that emails more.
+  assert.match(statusChangeQuestion(null, 'new', 'deposit', true) ?? '', /Rodzic dostanie/)
+})
+
+import { waitingListName } from '@/lib/bookings'
+
+test('the freed-place queue names the child on a camp, the person on a course', () => {
+  // Until 27.11.2026 a camp's queue listed the parents ("Ewelina Zając"),
+  // under a sentence saying children were waiting.
+  const camp = {
+    kind: 'camp',
+    firstName: 'Ewelina',
+    lastName: 'Zając',
+    childFirstName: 'Tymek',
+    childLastName: 'Zając',
+  }
+  assert.equal(waitingListName(camp), 'Tymek Zając (rodzic: Ewelina Zając)')
+  assert.equal(
+    waitingListName({ kind: 'course', firstName: 'Marek', lastName: 'Zieliński' }),
+    'Marek Zieliński',
+  )
+})

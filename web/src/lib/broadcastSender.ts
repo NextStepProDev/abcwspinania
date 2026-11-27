@@ -15,7 +15,6 @@ import { isAdmin } from '@/lib/access'
 import { ACTIVE_STATUSES } from '@/lib/bookings'
 import { sessionSummary } from '@/lib/bookingEffects'
 import { txOf } from '@/lib/bookingService'
-import { campMailbox, campSender } from '@/lib/campPayment'
 import { readPrivateFile } from '@/lib/privateFiles'
 import {
   MAX_ATTEMPTS,
@@ -25,10 +24,12 @@ import {
   dedupeRecipients,
   hasEnglishVersion,
   unfilledPlaceholders,
+  upcomingScope,
   versionFor,
   type Recipient,
 } from '@/lib/broadcasts'
 import type { EmailLanguage } from '@/lib/email/language'
+import { mailboxFor, senderFor, type MailKind } from '@/lib/email/mailboxes'
 import { renderRichText } from '@/lib/email/richText'
 import { broadcastEmail, type BroadcastReason } from '@/lib/email/templates'
 import { ensureToken, oneClickUnsubscribeUrl, unsubscribeUrl } from '@/lib/newsletter'
@@ -123,6 +124,7 @@ export async function recipientsOf(
             { status: { in: statuses } },
             { 'session.startDate': { greater_than_equal: startOfTodayUtc() } },
             { 'session.status': { in: ['open', 'waitlist'] } },
+            ...upcomingKind(broadcast.audience),
           ],
         }
   const { docs } = await payload.find({
@@ -175,18 +177,28 @@ async function reasonFor(
     // The session deleted after "Wyślij": the general note, not "booked on: ."
     if (label) return { kind: 'session', label }
   }
-  return { kind: 'upcoming' }
+  const scope = upcomingScope(broadcast.audience)
+  return { kind: 'upcoming', scope: scope === 'course' || scope === 'camp' ? scope : 'all' }
+}
+
+/** Upcoming courses or upcoming camps only — nothing for "both" and the rest. */
+function upcomingKind(audience: Broadcast['audience']): Where[] {
+  const scope = upcomingScope(audience)
+  return scope === 'course' || scope === 'camp' ? [{ kind: { equals: scope } }] : []
 }
 
 /**
- * A broadcast to a camp turnus is camp mail like the rest: the "ABC
- * Wspinania · Obozy" sender (the name a mail filter tells camp email by) and
- * replies to the camp mailbox, where the parents' answers belong.
+ * Whose mail a broadcast is (`email/mailboxes.ts`): a course session or the
+ * upcoming courses — the course mailbox; a camp turnus or the upcoming camps —
+ * the camp one, with the "ABC Wspinania · Obozy" sender, where the parents'
+ * answers belong; everyone and the newsletter — the general one.
  */
-async function campTurnus(payload: Payload, broadcast: Broadcast): Promise<boolean> {
+async function mailKindOf(payload: Payload, broadcast: Broadcast): Promise<MailKind> {
+  const scope = upcomingScope(broadcast.audience)
+  if (scope === 'course' || scope === 'camp') return scope
   const sessionId =
     typeof broadcast.session === 'object' ? broadcast.session?.id : broadcast.session
-  if (broadcast.audience !== 'session' || !sessionId) return false
+  if (broadcast.audience !== 'session' || !sessionId) return 'general'
   const session = await payload
     .findByID({
       collection: 'sessions',
@@ -197,7 +209,8 @@ async function campTurnus(payload: Payload, broadcast: Broadcast): Promise<boole
       disableErrors: true,
     })
     .catch(() => null)
-  return Boolean(session?.camp)
+  if (session?.camp) return 'camp'
+  return session?.course ? 'course' : 'general'
 }
 
 /**
@@ -234,11 +247,11 @@ async function sendOne(
     reason: await reasonFor(payload, broadcast, version.lang, token),
     qualificationCard: Boolean(card),
   })
-  const camp = await campTurnus(payload, broadcast)
+  const kind = await mailKindOf(payload, broadcast)
   await payload.sendEmail({
     to: to.email,
-    ...(camp ? { from: campSender() } : {}),
-    replyTo: (camp ? campMailbox() : process.env.ADMIN_NOTIFY_EMAIL) || undefined,
+    from: senderFor(kind),
+    replyTo: mailboxFor(kind),
     subject: email.subject,
     html: email.html,
     text: email.text,

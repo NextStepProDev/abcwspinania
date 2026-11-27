@@ -1191,7 +1191,10 @@ collection, logic in `lib/bookings.ts` (pure functions) and
   "odwołany" / "zakończony".
 - **A freed place with a waiting list → an email to Krzysiek** with the queue
   (cancellation, a deleted booking, a bigger capacity). Nobody is moved up
-  automatically — Krzysiek may want to call first.
+  automatically — Krzysiek may want to call first. To the kind's mailbox
+  (since 27.11.2026): a camp's to `CAMP_EMAIL`, saying "Obóz" and "Turnus"
+  and naming the children with their parent (`waitingListName`) — until then
+  it went to the general box, said "Kurs" and listed the parents.
 - **Session expired while filling in** (a form without contact fields): the
   action answers "zaloguj się ponownie" instead of demanding invisible fields.
 - **What booking does NOT do (knowingly, for later):** cancelling or changing
@@ -1286,11 +1289,9 @@ The whole path works without an account; an account for those who want one.
 - **Camp emails through `CAMP_EMAIL`** (`obozy@abcwspinania.info`, decision
   20.10.2026): the booking notification goes there, and the email to the parent
   has it as `replyTo` — replies and signed contracts come back there. Empty =
-  like `ADMIN_NOTIFY_EMAIL`. The sender stays `EMAIL_FROM` until the school's
-  domain is authenticated in Brevo. **For the time of testing `CAMP_EMAIL` stays
-  EMPTY** (locally and in production) — camp emails then go, as with courses, to
-  `ADMIN_NOTIFY_EMAIL` (Mateusz's Gmail, a filter forwards to Krzysiek). `obozy@`
-  is entered in `deploy/.env` on the day bookings open.
+  like `ADMIN_NOTIFY_EMAIL`. It is also the SENDER — but only when on the
+  domain of `EMAIL_FROM` (see "Mailboxes per kind" in "Emails (Brevo)"). **Locally
+  `CAMP_EMAIL` stays EMPTY.**
 - **The date must match the kind**: `filterOptions` shows in the panel only
   dates of the given kind, and `validate` (`sessionMatchesKind`) enforces this on
   save — it replaces Payload's check, whose message read "nieprawidłowe wybory:
@@ -1393,7 +1394,10 @@ The whole path works without an account; an account for those who want one.
   day of conclusion, the 7 days of the deposit count from it. On sending, the
   booking gets `contractSentAt` and `contractPrice`: the date of conclusion and
   the price in a contract downloaded later stay the same, even after a price
-  change in the panel; the rest (parent, address, list of children) is built
+  change in the panel — and so does the balance ("zostało X zł" in the deposit
+  email and reminder, and on "Moje konto": `bookingPrice`, since 27.11.2026;
+  before, it followed the new price while the signed contract said the old);
+  the rest (parent, address, list of children) is built
   from the booking's current data on every download. Without a price for the
   turnus the contract does not go — the transfer email does, and the school
   sees it in "Maile, które nie doszły" (the reason as text: `recordEmailIssue`
@@ -1466,7 +1470,8 @@ The whole path works without an account; an account for those who want one.
     permissions, so a save without a logged-in school account (test data) was
     rejected.
   - **A broadcast to a camp turnus = a camp email**: sender "ABC Wspinania ·
-    Obozy" and `replyTo` to `CAMP_EMAIL` (`campTurnus` in `broadcastSender.ts`).
+    Obozy" and `replyTo` to `CAMP_EMAIL` (`mailKindOf` in `broadcastSender.ts`;
+    a course date or "upcoming courses" — the course mailbox, the same way).
     Until 22.10.2026 every broadcast had the ordinary sender and replies to
     `ADMIN_NOTIFY_EMAIL` — parents' replies would not reach `obozy@`, and the
     Gmail filter would forward the pre-camp email to Krzysiek like a course one.
@@ -1561,7 +1566,10 @@ otherwise the panel will not find the component.
 - **Status as a dropdown on the booking list** (`BookingStatusCell`). Saves
   through REST, so everything that follows a status change works (email,
   recounting places). A status that sends an email to the participant asks first
-  — a click on the wrong row must not send "zapis anulowany". The same for
+  — a click on the wrong row must not send "zapis anulowany". The question is
+  `statusChangeQuestion` (`lib/bookings.ts`, tested): it also asks when a camp
+  child leaves the waiting list for a place, because the form link goes then
+  (until 27.11.2026 "lista rezerwowa" → "zgłoszony" asked nothing). The same for
   contact form messages (`MessageStatusCell`, since 10.10.2026: new → in progress
   → done with one click, without asking — nobody gets an email). Shared
   component: `StatusSelectCell`.
@@ -1593,8 +1601,12 @@ Since 03.10.2026 (stage 5). The `Broadcasts` collection ("Wysyłki", group
 `lib/broadcastSender.ts` (recipients, queue, endpoints), the newsletter in
 `lib/newsletter.ts`.
 
-- **Three recipient groups:** those booked on one date, everyone with upcoming
-  bookings (date from today, status `open`/`waitlist`), the newsletter (only
+- **Recipient groups:** those booked on one date; everyone with upcoming
+  bookings (date from today, status `open`/`waitlist`) — upcoming COURSES,
+  upcoming CAMPS, or both (`upcomingCourses`, `upcomingCamps`, `upcoming`; split
+  27.11.2026: course participants and camp parents get different messages, and
+  a parent read "your upcoming course" under a camp one; `upcoming` stays for
+  messages to everyone and for broadcasts sent before); the newsletter (only
   `subscribed`). By default people with a place (`ACTIVE_STATUSES`); the waiting
   list after ticking "Także lista rezerwowa" (decision 03.10.2026). One email
   per address — a couple with one address gets one.
@@ -1706,11 +1718,22 @@ API** (`src/lib/email/brevo.ts`), not through SMTP.
   Deliberately: locally and in CI nobody will get an email by accident.
 - **The sender must be on a domain authenticated in Brevo** (SPF + DKIM +
   DMARC). Today `zapisy@szkolawspinaczkowa.pl` — records in Cloudflare, checked
-  01.10.2026: SPF, DKIM and DMARC `PASS` in Gmail. The sender address always
-  wins, even when the code gives a different `from` — a foreign address will not
-  pass SPF/DKIM and will land in spam or be rejected.
+  01.10.2026: SPF, DKIM and DMARC `PASS` in Gmail. The adapter keeps a `from`
+  only on `EMAIL_FROM`'s domain, any other address is replaced by `EMAIL_FROM`
+  (`toBrevoBody`) — a foreign address will not pass SPF/DKIM and will land in
+  spam or be rejected.
   **When switching to `abcwspinania.info`**: authenticate that domain in Brevo
-  and change `EMAIL_FROM` in `deploy/.env` — without a new image.
+  and set the variables below in `deploy/.env` — without a new image.
+- **Mailboxes per kind** (since 27.11.2026, `lib/email/mailboxes.ts`, decided
+  26.10.2026): courses → `COURSE_EMAIL` (kursy@), camps → `CAMP_EMAIL` (obozy@),
+  everything else → `EMAIL_FROM` + `ADMIN_NOTIFY_EMAIL` (biuro@). A kind's
+  mailbox is its sender, its `replyTo` and where the school's notifications
+  about it arrive. Empty = the general ones (locally and in CI — keep them
+  empty there). It becomes the sender only on `EMAIL_FROM`'s domain: set before
+  the school's domain is authenticated (or a Gmail typed in locally), it would
+  be a sender Brevo refuses. Course names stay "ABC Wspinania", camp ones
+  "ABC Wspinania · Obozy". New email code takes `senderFor(kind)` and
+  `mailboxFor(kind)`, never `ADMIN_NOTIFY_EMAIL` directly.
 - **The sender domain has no mailbox** (no MX record). A reply to an email
   "from" `zapisy@` will not arrive anywhere — that is why every email someone
   may reply to MUST have `replyTo` (contact message notification: the person
@@ -1835,8 +1858,8 @@ fuse for sharp peaks. The script is idempotent.
    `grep -rl "https://<domain>" /app/.next | wc -l` in the container — zero
    means the address did not get in.
 8. Emails: in `deploy/.env` `BREVO_API_KEY`, `EMAIL_FROM` (an address on a
-   domain authenticated in Brevo), `ADMIN_NOTIFY_EMAIL`, `CAMP_EMAIL` (the camps
-   mailbox) and `PUBLIC_URL` (the address at which the site works NOW — links in
+   domain authenticated in Brevo), `ADMIN_NOTIFY_EMAIL`, `COURSE_EMAIL` and
+   `CAMP_EMAIL` (the courses and camps mailboxes, on `EMAIL_FROM`'s domain) and `PUBLIC_URL` (the address at which the site works NOW — links in
    emails to participants). In Brevo: "Anonymous email tracking: Yes". Without
    the key the site works, but emails land in the container log.
 

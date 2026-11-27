@@ -943,6 +943,8 @@ export function registrationNotification(data: RegistrationNotificationData): Em
 }
 
 export interface PlaceFreedData {
+  /** A course date or a camp turnus — the email says which (27.11.2026). */
+  kind: 'course' | 'camp'
   courseTitle: string
   dates: string
   spotsLeft: number
@@ -953,9 +955,10 @@ export interface PlaceFreedData {
 
 /** To the school: a place freed up on a session with a waiting list. */
 export function placeFreedNotification(data: PlaceFreedData): Email {
+  const camp = data.kind === 'camp'
   const details: [string, string][] = [
-    ['Kurs', data.courseTitle],
-    ['Termin', data.dates],
+    [camp ? 'Obóz' : 'Kurs', data.courseTitle],
+    [camp ? 'Turnus' : 'Termin', data.dates],
     ['Wolne miejsca', String(data.spotsLeft)],
     ...data.waiting.map((w, i): [string, string] => [
       `${i + 1}. na liście`,
@@ -968,10 +971,15 @@ export function placeFreedNotification(data: PlaceFreedData): Email {
       lang: 'pl',
       heading: 'Zwolniło się miejsce',
       paragraphs: [
-        'Na tym terminie są wolne miejsca, a na liście rezerwowej czekają osoby — kolejność jak przy zapisie. Zmiana statusu osoby na „potwierdzony” wyśle jej maila.',
+        camp
+          ? 'Na tym turnusie są wolne miejsca, a na liście rezerwowej czekają dzieci — kolejność jak przy zapisie. Gdy zmienisz dziecku status z „lista rezerwowa” na miejsce, rodzic dostanie maila z linkiem do formularza rejestracyjnego.'
+          : 'Na tym terminie są wolne miejsca, a na liście rezerwowej czekają osoby — kolejność jak przy zapisie. Zmiana statusu osoby na „potwierdzony” wyśle jej maila.',
       ],
       details,
-      action: { label: 'Otwórz termin w panelu', href: data.adminUrl },
+      action: {
+        label: camp ? 'Otwórz turnus w panelu' : 'Otwórz termin w panelu',
+        href: data.adminUrl,
+      },
     }),
   }
 }
@@ -1042,23 +1050,34 @@ export function newsletterConfirmEmail(lang: EmailLanguage, data: { url: string 
 /** Why this person got a broadcast — the small print under it. */
 export type BroadcastReason =
   | { kind: 'session'; label: string }
-  | { kind: 'upcoming' }
+  | { kind: 'upcoming'; scope: 'course' | 'camp' | 'all' }
   | { kind: 'newsletter'; unsubscribeUrl: string }
 
 const BROADCAST_NOTE = {
   pl: {
     session: (label: string) =>
       `Dostajesz tę wiadomość, bo masz zapis na: ${label}. Odpowiedź na nią trafi wprost do nas.`,
-    upcoming:
-      'Dostajesz tę wiadomość, bo masz zapis na nadchodzący kurs w ABC Wspinania. Odpowiedź na nią trafi wprost do nas.',
+    // Camp parents read "kurs" under a camp message as a mistake (27.11.2026).
+    upcoming: {
+      course: 'nadchodzący kurs',
+      camp: 'nadchodzący obóz',
+      all: 'nadchodzący kurs lub obóz',
+    },
+    upcomingNote: (what: string) =>
+      `Dostajesz tę wiadomość, bo masz zapis na ${what} w ABC Wspinania. Odpowiedź na nią trafi wprost do nas.`,
     newsletter: 'Dostajesz tę wiadomość, bo ten adres jest zapisany na newsletter ABC Wspinania.',
     unsubscribe: 'Wypisz się z newslettera',
   },
   en: {
     session: (label: string) =>
       `You are receiving this because you are booked on: ${label}. Replies come straight to us.`,
-    upcoming:
-      'You are receiving this because you are booked on an upcoming course with ABC Wspinania. Replies come straight to us.',
+    upcoming: {
+      course: 'an upcoming course',
+      camp: 'an upcoming camp',
+      all: 'an upcoming course or camp',
+    },
+    upcomingNote: (what: string) =>
+      `You are receiving this because you are booked on ${what} with ABC Wspinania. Replies come straight to us.`,
     newsletter: 'You are receiving this because you subscribed to the ABC Wspinania newsletter.',
     unsubscribe: 'Unsubscribe from the newsletter',
   },
@@ -1089,7 +1108,7 @@ export function broadcastEmail(lang: EmailLanguage, data: BroadcastEmailData): E
     reason.kind === 'session'
       ? copy.session(reason.label)
       : reason.kind === 'upcoming'
-        ? copy.upcoming
+        ? copy.upcomingNote(copy.upcoming[reason.scope])
         : copy.newsletter
   const subject = oneLine(data.subject)
   const callout = data.qualificationCard ? CARD_ATTACHED[lang] : undefined
