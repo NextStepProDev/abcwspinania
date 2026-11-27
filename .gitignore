@@ -15,3 +15,6 @@ deploy/certbot-www/
 # Local environments
 .env
 .env.local
+
+# Claude Code local settings (may hold personal permissions); rules in .claude/rules/ are versioned
+.claude/settings.local.json
