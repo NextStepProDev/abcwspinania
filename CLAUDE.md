@@ -2219,11 +2219,14 @@ feature — change its steps in the same commit.**
 ### School guide (Instrukcja dla szkoły)
 
 Since 13.10.2026 in the repo: `docs/instrukcja-zapisy.html` (the source of the
-PDF "Zapisy na kursy, wysyłki i newsletter" for Krzysiek), screenshots next to
-it, in `docs/instrukcja-zapisy/`. Before, only the PDF of 05.10 existed — the
-source was lost and at the first update it had to be rebuilt from the PDF's
-text. Written in Mateusz's voice, in plain Polish. **You change something the
-school sees in the panel or in emails — fix the guide in the same commit.**
+PDF "Instrukcja panelu szkoły" for Krzysiek), screenshots next to it, in
+`docs/instrukcja-zapisy/`. Before, only the PDF of 05.10 existed — the source
+was lost and at the first update it had to be rebuilt from the PDF's text.
+Written in Mateusz's voice, in plain Polish. Since 27.11.2026 it covers camps
+too, and chapter 30 is the full list of emails — every situation, who gets
+which email, and where nothing is sent; Krzysiek answers "does this send an
+email?" from it. **You change something the school sees in the panel or in
+emails — fix the guide in the same commit, chapter 30 included.**
 Screenshots: the local server, data from `seed:test` with addresses switched to
 `@example.com` (no real people and not the tester's address), Chrome headless;
 remove the development mode badge (`nextjs-portal`) before the screenshot. The
