@@ -30,7 +30,7 @@
     "@payloadcms/richtext-lexical": "3.94.1",
     "@payloadcms/ui": "3.94.1",
     "@pdf-lib/fontkit": "1.1.1",
-    "graphql": "^16.14.2",
+    "graphql": "^16.15.0",
     "next": "16.4.6",
     "payload": "3.94.1",
     "pdf-lib": "1.17.1",
@@ -45,7 +45,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
-    "prettier": "3.9.10",
+    "prettier": "3.10.1",
     "tailwindcss": "^4",
     "typescript": "^6"
   },
