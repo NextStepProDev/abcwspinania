@@ -2,19 +2,25 @@
 <html lang="pl">
 <head>
 <meta charset="utf-8">
-<title>Zapisy na kursy, wysyłki i newsletter — ABC Wspinania</title>
+<title>Instrukcja panelu szkoły — kursy, obozy, wysyłki i newsletter — ABC Wspinania</title>
 <!--
-  The school's manual for the bookings panel, written in Mateusz's voice for
-  Krzysiek (plain Polish, no jargon). Source of the PDF; the PDF itself is not
-  kept in the repo. Screenshots next to it in instrukcja-zapisy/, taken from a
-  local server with seed:test data (example.com addresses, no real people).
+  The school's manual for the panel, written in Mateusz's voice for Krzysiek
+  (plain Polish, no jargon). It covers course bookings, camp bookings,
+  broadcasts, the newsletter, accounts and personal data, and ends with the
+  full list of emails: who gets which email in which situation (chapter 30),
+  built from the code in web/src/lib (templates.ts, bookings.ts,
+  bookingEffects.ts, campRegistration.ts, accountCleanup.ts,
+  campPreCampDrafts.ts, broadcastSender.ts, newsletter.ts).
+  Source of the PDF; the PDF itself is not kept in the repo. Screenshots next
+  to it in instrukcja-zapisy/, taken from a local server with seed:test data
+  (example.com addresses, no real people).
   Change something the school sees in the panel or the emails — change this
-  manual in the same commit.
+  manual in the same commit, the email list in chapter 30 included.
   PDF: Chrome headless, `--print-to-pdf --no-pdf-header-footer`.
 -->
 <style>
   @page { size: A4; margin: 16mm 15mm 16mm 15mm; }
-  :root { --ink: #23201b; --muted: #6b645a; --accent: #0b4a99; --soft: #eef3fa; --warn: #fff6e5; --warn-line: #e3a73a; --line: #ddd6cb; --head: #f4f1ec; }
+  :root { --ink: #23201b; --muted: #6b645a; --accent: #0b4a99; --soft: #eef3fa; --warn: #fff6e5; --warn-line: #e3a73a; --line: #ddd6cb; --head: #f4f1ec; --camp: #1f6b45; --camp-soft: #eaf5ee; }
   * { box-sizing: border-box; }
   body { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; color: var(--ink); font-size: 10.8pt; line-height: 1.55; margin: 0; }
   h1 { font-size: 28pt; line-height: 1.12; margin: 0 0 10pt; }
@@ -28,22 +34,39 @@
   .cover .brand { color: var(--accent); font-weight: 700; font-size: 13pt; margin-bottom: 18pt; letter-spacing: .02em; }
   .cover .lead { font-size: 13pt; color: var(--muted); max-width: 150mm; }
   .cover .meta { margin-top: 28pt; color: var(--muted); font-size: 10pt; }
+  .part { break-before: page; border-bottom: 3px solid var(--accent); padding-bottom: 4pt; margin: 0 0 10pt; }
+  .part .label { font-size: 9.5pt; font-weight: 700; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; }
+  .part .title { font-size: 20pt; font-weight: 700; }
+  .part.camp { border-color: var(--camp); }
+  .part.camp + h2, .camp-section h2 { color: var(--camp); }
   .box { border-radius: 5pt; padding: 7pt 10pt; margin: 8pt 0 10pt; break-inside: avoid; }
   .do { background: var(--soft); border-left: 4px solid var(--accent); }
   .warn { background: var(--warn); border-left: 4px solid var(--warn-line); }
+  .campbox { background: var(--camp-soft); border-left: 4px solid var(--camp); }
   .box > strong:first-child { display: block; margin-bottom: 2pt; }
   table { border-collapse: collapse; width: 100%; margin: 5pt 0 10pt; font-size: 9.8pt; }
   th, td { text-align: left; vertical-align: top; padding: 4pt 6pt; border: 1px solid var(--line); }
   th { background: var(--head); font-weight: 600; }
   tr { break-inside: avoid; }
+  table.mails td:first-child { width: 33%; }
+  table.mails td:nth-child(2) { width: 17%; }
+  table.mails tr.group td { background: var(--head); font-weight: 700; border-top: 2px solid var(--muted); }
+  .none { color: var(--muted); font-style: italic; }
   figure { margin: 8pt 0 12pt; break-inside: avoid; }
   figure img { display: block; width: 100%; border: 1px solid var(--line); border-radius: 4pt; }
   figure.narrow img { width: 78%; margin: 0 auto; }
   figcaption { font-size: 9pt; color: var(--muted); margin-top: 3pt; text-align: center; }
   .ui { font-weight: 600; }
+  .subj { font-style: italic; }
   .muted { color: var(--muted); }
   .toc ol { padding-left: 0; list-style: none; columns: 2; column-gap: 12mm; }
-  .toc li { margin-bottom: 5pt; }
+  .toc li { margin-bottom: 4pt; break-inside: avoid; }
+  .toc li.head { font-weight: 700; margin-top: 6pt; }
+  .faq dt { font-weight: 700; margin-top: 8pt; break-after: avoid; }
+  .faq dd { margin: 2pt 0 0 0; }
+  .steps { counter-reset: step; list-style: none; padding-left: 0; }
+  .steps > li { counter-increment: step; position: relative; padding-left: 24pt; margin-bottom: 6pt; }
+  .steps > li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 17pt; height: 17pt; border-radius: 50%; background: var(--camp); color: #fff; font-weight: 700; font-size: 9pt; text-align: center; line-height: 17pt; }
   code { font-family: "SF Mono", Menlo, monospace; font-size: 9pt; background: #f4f1ec; padding: 0 2pt; border-radius: 2pt; }
 </style>
 </head>
@@ -51,331 +74,876 @@
 
 <div class="cover">
   <div class="brand">ABC Wspinania</div>
-  <h1>Zapisy na kursy,<br>wysyłki i newsletter</h1>
-  <p class="lead">Instrukcja panelu dla szkoły — co się dzieje, gdy ktoś zapisuje się przez stronę, i co możesz z tym zrobić.</p>
-  <p class="meta">Wersja z 18 października 2026 · przygotował Mateusz</p>
+  <h1>Instrukcja panelu szkoły</h1>
+  <p class="lead">Zapisy na kursy i obozy, formularz rejestracyjny, umowy i zaliczki, wysyłki, newsletter, konta i dane osobowe — co dzieje się samo, co robisz Ty i kto dostaje jakiego maila.</p>
+  <p class="meta">Wersja z 27 listopada 2026 · przygotował Mateusz</p>
 </div>
 
 <section class="toc">
   <h2>Spis treści</h2>
   <ol>
+    <li class="head">Na start</li>
     <li>1. Najważniejsze w pigułce</li>
-    <li>2. Jak wejść do panelu</li>
-    <li>3. Jak kursant zapisuje się na kurs</li>
+    <li>2. Jak wejść do panelu i co jest w menu</li>
+    <li>3. Słowniczek</li>
     <li>4. Pulpit „Do zrobienia”</li>
-    <li>5. Nowe zgłoszenie — co z nim zrobić</li>
-    <li>6. Statusy zapisu i maile do kursanta</li>
-    <li>7. Wolne miejsca i lista rezerwowa</li>
-    <li>8. Zapis przez telefon</li>
-    <li>9. Termin: lista uczestników i Excel</li>
-    <li>10. Wysyłki — wiadomość do grupy osób</li>
-    <li>11. Newsletter</li>
-    <li>12. Maile, które nie doszły</li>
-    <li>13. Konta uczestników</li>
-    <li>14. Wiadomości z formularza kontaktowego</li>
-    <li>15. Dane osobowe — prośby z RODO i co znika samo</li>
-    <li>16. Ważne rzeczy o mailach</li>
-    <li>17. Czego jeszcze nie ma</li>
-    <li>Prośba na koniec</li>
+    <li class="head">Część I — Kursy</li>
+    <li>5. Jak kursant zapisuje się na kurs</li>
+    <li>6. Nowe zgłoszenie — co z nim zrobić</li>
+    <li>7. Statusy zapisu na kurs i maile</li>
+    <li>8. Wolne miejsca i lista rezerwowa</li>
+    <li>9. Zapis przez telefon</li>
+    <li>10. Termin: lista uczestników, Excel, odwołanie</li>
+    <li class="head">Część II — Obozy</li>
+    <li>11. Obóz w czterech krokach</li>
+    <li>12. Zapis dzieci na stronie</li>
+    <li>13. Formularz rejestracyjny</li>
+    <li>14. Umowa i dane do przelewu</li>
+    <li>15. Zaliczka i dopłata</li>
+    <li>16. Statusy zapisu na obóz i maile</li>
+    <li>17. Lista rezerwowa na obozie</li>
+    <li>18. Zapis obozowy przez telefon i rodzeństwo</li>
+    <li>19. Faktura</li>
+    <li>20. Mail przed obozem i karta kwalifikacyjna</li>
+    <li>21. Ustawienia obozów i dane obozu w panelu</li>
+    <li>22. Turnus: Excel i formularze rejestracyjne</li>
+    <li class="head">Część III — Wspólne</li>
+    <li>23. Wysyłki — wiadomość do grupy osób</li>
+    <li>24. Newsletter</li>
+    <li>25. Maile, które nie doszły</li>
+    <li>26. Konta uczestników i rodziców</li>
+    <li>27. Wiadomości z formularza kontaktowego</li>
+    <li>28. Dane osobowe — prośby z RODO i co znika samo</li>
+    <li>29. Ważne rzeczy o mailach</li>
+    <li class="head">Ściąga</li>
+    <li>30. Kto dostaje jakiego maila — pełna lista</li>
+    <li>31. Co strona robi sama o 8:00</li>
+    <li>32. Pytania i odpowiedzi</li>
+    <li>33. Czego strona nie robi</li>
   </ol>
-
-  <h2>1. Najważniejsze w pigułce</h2>
-  <ul>
-    <li><b>Ludzie zapisują się na kursy sami, przez stronę.</b> Ty dostajesz maila o każdym zapisie, a zgłoszenie czeka w panelu.</li>
-    <li><b>Zgłoszenie nie jest wiążące.</b> To Ty decydujesz: potwierdzasz miejsce, przyjmujesz zaliczkę, wpisujesz opłatę — zmieniając <b>status</b> zapisu.</li>
-    <li><b>Część statusów sama wysyła kursantowi maila</b> („potwierdzony”, „rezygnacja”, a „opłacony” tylko przed pierwszym dniem kursu — rozdział 6) — nie piszesz go ręcznie, wychodzi w chwili zmiany statusu. Zmieniasz status z listy „Zapisy” — panel najpierw zapyta, czy na pewno. W otwartym zapisie nie pyta: mail wyjdzie po „Zapisz”. Zapis bez adresu e-mail (np. telefoniczny) nie dostaje maila nigdy — wtedy panel też nie pyta.</li>
-    <li><b>Wolne miejsca liczą się same.</b> Gdy termin się zapełni, kolejne osoby trafiają na listę rezerwową, a gdy miejsce się zwolni — dostajesz maila z tą listą.</li>
-    <li><b>Możesz napisać do wszystkich zapisanych na termin</b>, do wszystkich z nadchodzącymi kursami albo do newslettera — w zakładce <span class="ui">Wysyłki</span>.</li>
-    <li><b>Jeśli jakiś mail do kursanta nie dojdzie, panel Ci o tym powie</b> — na pulpicie pojawi się kafelek „Maile, które nie doszły”.</li>
-    <li><b>Prośby z RODO</b> („co o mnie macie?”, „usuńcie moje dane”) załatwiasz sam, w kilka kliknięć (rozdział 15).</li>
-  </ul>
-  <div class="box do"><strong>Codziennie wystarczy jedno:</strong>
-  zajrzyj na pulpit panelu. Wszystko, co wymaga Twojej uwagi, jest na samej górze.</div>
 </section>
 
 <section>
-  <h2 style="margin-top:0" class="newpage">2. Jak wejść do panelu</h2>
-  <p>Panel to część strony tylko dla Ciebie. Wchodzisz na adres strony z dopiskiem <code>/admin</code>:</p>
+  <h2 class="newpage" style="margin-top:0">1. Najważniejsze w pigułce</h2>
+  <h3>Kursy</h3>
+  <ul>
+    <li><b>Ludzie zapisują się na kursy sami, przez stronę.</b> Ty dostajesz maila o każdym zapisie, a zgłoszenie czeka w panelu w <span class="ui">Zapisach na kursy</span>.</li>
+    <li><b>Zgłoszenie na kurs nie jest wiążące.</b> To Ty decydujesz: potwierdzasz miejsce, zaznaczasz zaliczkę, zaznaczasz opłatę — zmieniając <b>status</b> zapisu.</li>
+    <li><b>Trzy statusy same wysyłają kursantowi maila:</b> „potwierdzony”, „opłacony” (tylko przed pierwszym dniem kursu) i „rezygnacja”. Pozostałe zmiany statusu nie wysyłają nic.</li>
+  </ul>
+  <h3>Obozy</h3>
+  <ul>
+    <li><b>Rodzic zapisuje dzieci przez stronę</b> — zapis od razu rezerwuje miejsce. Potem dostaje link do <b>formularza rejestracyjnego</b> (PESEL, zdrowie, adres).</li>
+    <li><b>Po formularzu strona sama wysyła rodzicowi umowę</b> (PDF z Twoją pieczątką) i dane do przelewu zaliczki: 500 zł za dziecko, 7 dni na wpłatę.</li>
+    <li><b>Ty zaznaczasz tylko wpłaty:</b> „zaliczka wpłacona”, potem „opłacony”. Potwierdzanie miejsca na obozie nie jest potrzebne — strona nie czeka na nie z niczym.</li>
+    <li><b>Przypomnienia idą same</b>: o niewypełnionym formularzu (4 dni po linku) i o zaliczce po terminie (raz). Miejsca nikomu nie zabierają — decydujesz Ty.</li>
+    <li><b>16 dni przed turnusem</b> strona przygotowuje szkic maila do rodziców (zbiórka, co spakować, karta kwalifikacyjna) i daje Ci znać. Sama go nie wysyła — uzupełniasz i klikasz „Wyślij”.</li>
+  </ul>
+  <h3>Wszystko</h3>
+  <ul>
+    <li><b>Wolne miejsca liczą się same</b> — przy kursach i obozach. Gdy miejsce się zwolni, a ktoś czeka na liście rezerwowej, dostajesz maila. Z listy rezerwowej nikt nie wskakuje sam.</li>
+    <li><b>Zapis dodany ręcznie w panelu nie wysyła żadnego maila.</b> Zapis bez adresu e-mail nie dostaje maili nigdy.</li>
+    <li><b>Jeśli mail do kursanta albo rodzica nie dojdzie, panel Ci o tym powie</b> — kafelek „Maile, które nie doszły” na pulpicie.</li>
+    <li><b>Prośby z RODO</b> („co o mnie macie?”, „usuńcie moje dane”) załatwiasz sam, w kilka kliknięć (rozdział 28).</li>
+  </ul>
+  <div class="box do"><strong>Codziennie wystarczy jedno:</strong>
+  zajrzyj na pulpit panelu. Wszystko, co wymaga Twojej uwagi, jest na samej górze.</div>
+  <div class="box do"><strong>„Czy w takiej sytuacji idzie mail?”</strong>
+  Odpowiedź na każde takie pytanie jest w rozdziale 30 — jedna tabela z każdą sytuacją, każdym mailem i tym, kto go dostaje. Rozdział 32 to najczęstsze pytania z odpowiedziami.</div>
+</section>
+
+<section>
+  <h2 class="newpage" style="margin-top:0">2. Jak wejść do panelu i co jest w menu</h2>
+  <p>Panel to część strony tylko dla szkoły. Wchodzisz na adres strony z dopiskiem <code>/admin</code>:</p>
   <ul>
     <li>teraz, na stronie testowej: <b>szkolawspinaczkowa.pl/admin</b></li>
     <li>po przełączeniu na docelowy adres: <b>abcwspinania.info/admin</b></li>
   </ul>
   <p>Logujesz się swoim adresem e-mail i hasłem. Jeśli zapomnisz hasła, kliknij na ekranie logowania <span class="ui">Nie pamiętasz hasła?</span> — przyjdzie mail z linkiem do ustawienia nowego.</p>
-  <p><b>Swoje hasło zmienisz sam:</b> wejdź na <b>szkolawspinaczkowa.pl/admin/account</b> (albo kliknij ikonę swojego konta w panelu), kliknij <span class="ui">Zmień hasło</span>, wpisz nowe dwa razy i <span class="ui">Zapisz</span>. Po każdej zmianie hasła albo adresu e-mail konta przychodzi na Twoją skrzynkę mail „Zmieniono … do panelu”. Jeśli to nie była Twoja zmiana: przy zmienionym <b>haśle</b> od razu ustaw nowe przez <span class="ui">Nie pamiętasz hasła?</span> i daj mi znać; przy zmienionym <b>adresie</b> od razu dzwoń do mnie — link do nowego hasła poszedłby wtedy na cudzy adres. Panel nie pyta przy zmianie o stare hasło, dlatego <b>na cudzym komputerze zawsze się wylogowuj</b>.</p>
-  <p>Po lewej stronie (ikona z trzema kreskami) jest menu z zakładkami pogrupowanymi w cztery części:</p>
+  <p><b>Swoje hasło zmienisz sam:</b> kliknij ikonę swojego konta w panelu (albo wejdź na <code>/admin/account</code>), potem <span class="ui">Zmień hasło</span>, wpisz nowe dwa razy i <span class="ui">Zapisz</span>. Po każdej zmianie hasła albo adresu e-mail konta panelu przychodzi na skrzynkę tego konta mail <span class="subj">„Zmieniono … do panelu”</span>. Jeśli to nie była Twoja zmiana: przy zmienionym <b>haśle</b> od razu ustaw nowe przez <span class="ui">Nie pamiętasz hasła?</span> i daj mi znać; przy zmienionym <b>adresie</b> od razu dzwoń do mnie — link do nowego hasła poszedłby wtedy na cudzy adres. Panel nie pyta przy zmianie o stare hasło, dlatego <b>na cudzym komputerze zawsze się wylogowuj</b>.</p>
+  <p>Menu jest po lewej (gdy jest schowane — przycisk <span class="ui">☰</span> w lewym górnym rogu):</p>
   <table>
-    <thead><tr><th>Grupa</th><th>Zakładki</th><th>Do czego</th></tr></thead>
-    <tr><td><b>Treść</b></td><td>Kursy, Obozy i wyjazdy, Terminy, Aktualności, Opinie, Instruktorzy, Media, Galeria</td><td>to, co widać na stronie — tak jak dotychczas</td></tr>
-    <tr><td><b>Zapisy</b></td><td>Zapisy, Wysyłki, Uczestnicy</td><td>zgłoszenia na kursy, wiadomości do grup, konta kursantów</td></tr>
-    <tr><td><b>Kontakt</b></td><td>Wiadomości, Newsletter</td><td>wiadomości z formularza i adresy z newslettera</td></tr>
-    <tr><td><b>System</b></td><td>Konta panelu</td><td>osoby, które mogą logować się do panelu (Ty i ja)</td></tr>
+    <thead><tr><th style="width:34mm">Miejsce w menu</th><th style="width:62mm">Zakładki</th><th>Do czego</th></tr></thead>
+    <tr><td><b>Na samej górze</b></td><td>Pulpit, Zapisy na kursy, Zapisy na obozy</td><td>to, z czego korzystasz codziennie: pulpit „Do zrobienia” i dwie listy zapisów</td></tr>
+    <tr><td><b>Treść</b></td><td>Kursy, Obozy i wyjazdy, Terminy, Aktualności, Opinie, Instruktorzy, Media, Galeria</td><td>to, co widać na stronie; w <span class="ui">Terminach</span> są daty kursów i turnusy obozów</td></tr>
+    <tr><td><b>Treść stron</b></td><td>Strona główna, Strona „O nas”, Strona „Obozy i wyjazdy”, Strona po angielsku</td><td>teksty pojedynczych podstron</td></tr>
+    <tr><td><b>Zapisy</b></td><td>Formularze rejestracyjne, Wysyłki, Uczestnicy</td><td>dane z formularzy obozowych (PESEL, zdrowie), wiadomości do grup, konta kursantów i rodziców</td></tr>
+    <tr><td><b>Kontakt</b></td><td>Wiadomości, Newsletter</td><td>wiadomości z formularza kontaktowego i adresy z newslettera</td></tr>
+    <tr><td><b>Ustawienia</b></td><td>Ustawienia serwisu, Ustawienia obozów, Pliki prywatne</td><td>telefon i adres szkoły; pieczątka do umów, karta kwalifikacyjna i tekst maila przed obozem; pliki widoczne tylko dla szkoły</td></tr>
+    <tr><td><b>System</b></td><td>Konta panelu</td><td>osoby, które mogą logować się do panelu</td></tr>
   </table>
   <div class="box warn"><strong>Jedna przeglądarka = jedno logowanie.</strong>
-  Panel i strona dzielą logowanie. Jeśli w tej samej przeglądarce zalogujesz się na stronie jako kursant (np. żeby coś sprawdzić), wylogujesz się z panelu — i odwrotnie. Do takich sprawdzeń użyj drugiej przeglądarki albo okna prywatnego.</div>
-
-  <h2>3. Jak kursant zapisuje się na kurs</h2>
-  <p>Na stronie każdego kursu, w ramce z ceną, są najbliższe terminy z liczbą wolnych miejsc i przycisk <span class="ui">Zapisz się na kurs</span>.</p>
-  <figure><img src="instrukcja-zapisy/kurs.jpg" alt=""><figcaption>Strona kursu — z prawej terminy i przycisk zapisu.</figcaption></figure>
-  <p>Przycisk <span class="ui">Zapisz się</span> w nagłówku strony (na telefonie — pasek na dole ekranu) prowadzi do <span class="ui">Terminarza</span>: tam są wszystkie terminy, a przy każdym przycisk zapisu. Na stronie kursu prowadzi prosto do zapisu na ten kurs, a na stronie obozu — do formularza kontaktowego z wybranym tematem „Obóz lub wyjazd” (zapisy na obozy przez osobny formularz dojdą później, rozdział 17).</p>
+  Panel i strona dzielą logowanie. Jeśli w tej samej przeglądarce zalogujesz się na stronie jako kursant albo rodzic (np. żeby coś sprawdzić) — albo klikniesz link z maila do kursanta — wylogujesz się z panelu, i odwrotnie. Do takich sprawdzeń używaj drugiej przeglądarki albo okna prywatnego.</div>
+  <div class="box do"><strong>Wszystkie konta panelu mają te same uprawnienia.</strong>
+  Każde może zmienić wszystko, także inne konta panelu. Kursanci i rodzice do panelu nie wejdą — panel wpuszcza tylko konta z zakładki <span class="ui">Konta panelu</span>.</div>
 </section>
 
 <section>
-  <p>Po kliknięciu kursant widzi formularz: wybiera termin i wpisuje imię, nazwisko, adres e-mail i telefon. Może dopisać uwagi (np. „mam własny sprzęt”). Musi zaznaczyć zgodę na przetwarzanie danych.</p>
+  <h2>3. Słowniczek</h2>
+  <table>
+    <thead><tr><th style="width:40mm">Słowo</th><th>Co znaczy w tej instrukcji</th></tr></thead>
+    <tr><td><b>Termin</b></td><td>Jedna data kursu albo obozu, z liczbą miejsc i statusem. W panelu: <span class="ui">Treść → Terminy</span>.</td></tr>
+    <tr><td><b>Turnus</b></td><td>Termin obozu. Dla strony to to samo co termin — tylko należy do obozu, nie do kursu.</td></tr>
+    <tr><td><b>Zapis</b></td><td>Jedna osoba na jednym terminie. Na kursie — kursant. Na obozie — jedno dziecko (imię, nazwisko i kontakt w zapisie to dane rodzica). Para na kursie = dwa zapisy, rodzeństwo na obozie = jeden zapis na każde dziecko.</td></tr>
+    <tr><td><b>Zgłoszenie</b> (obóz)</td><td>Jedno wysłanie formularza zapisu na obóz — jedno albo kilkoro dzieci naraz. Dzieci z miejscem z jednego zgłoszenia mają <b>jeden</b> formularz rejestracyjny, <b>jedną</b> umowę i <b>jeden</b> przelew zaliczki.</td></tr>
+    <tr><td><b>Status zapisu</b></td><td>Gdzie jest zapis: zgłoszony, potwierdzony, zaliczka wpłacona, opłacony, lista rezerwowa, rezygnacja. Niektóre zmiany statusu wysyłają maila (rozdziały 7 i 16).</td></tr>
+    <tr><td><b>Status terminu</b></td><td>Zapisy otwarte, brak miejsc — lista rezerwowa, odwołany, zakończony.</td></tr>
+    <tr><td><b>Zajmuje miejsce</b></td><td>Zapis ze statusem zgłoszony, potwierdzony, zaliczka wpłacona albo opłacony. Lista rezerwowa i rezygnacja miejsca nie zajmują.</td></tr>
+    <tr><td><b>Formularz rejestracyjny</b></td><td>Drugi krok przy obozie: PESEL, wzrost, zdrowie dziecka, adres rodzica, faktura, zgody. Rodzic otwiera go linkiem z maila (konto niepotrzebne).</td></tr>
+    <tr><td><b>Poranne sprzątanie</b></td><td>Codziennie o 8:00 (czasu polskiego) strona sama wysyła przypomnienia, przygotowuje szkice maili przed obozem i usuwa stare dane. Szczegóły: rozdział 31.</td></tr>
+    <tr><td><b>Lista rozwijana statusu</b></td><td>Na listach zapisów w kolumnie „Status” każdy wiersz ma swoją listę. Zmiana zapisuje się od razu, bez „Zapisz”.</td></tr>
+    <tr><td><b>Stwórz nowy</b></td><td>Przycisk u góry listy w panelu, obok jej tytułu — dodaje nową pozycję (zapis, wysyłkę, termin).</td></tr>
+    <tr><td><b>„Wybierz wartość”</b></td><td>Szary napis w pustym polu wyboru. Znaczy „puste” — nic nie jest wybrane.</td></tr>
+    <tr><td><b>Skrzynka szkoły</b></td><td>Adres, na który przychodzą maile o zapisach na kursy, wiadomości z formularza i maile „Zwolniło się miejsce”.</td></tr>
+    <tr><td><b>Skrzynka obozowa</b></td><td><b>obozy@abcwspinania.info</b> — tu przychodzą maile o zapisach na obozy, formularzach i szkicach przed obozem, i tu trafiają odpowiedzi rodziców i podpisane umowy. Do dnia startu zapisów na obozy maile obozowe „do szkoły” idą na skrzynkę szkoły (rozdział 29).</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>4. Pulpit „Do zrobienia”</h2>
+  <p>Pierwszy ekran po zalogowaniu. Wrócisz na niego z każdego miejsca panelu, klikając <span class="ui">Pulpit</span> na samej górze menu. Kafelki są w trzech częściach: <b>Kursy</b>, <b>Obozy</b> i <b>Wszystko</b>. Każda liczba to link do listy właśnie tych spraw.</p>
+  <figure><img src="instrukcja-zapisy/pulpit.jpg" alt=""><figcaption>Pulpit panelu.</figcaption></figure>
+  <table>
+    <thead><tr><th style="width:24mm">Część</th><th style="width:44mm">Kafelek</th><th>Co liczy</th></tr></thead>
+    <tr><td rowspan="3">Kursy</td><td>Nowe zgłoszenia</td><td>zapisy na kursy ze statusem „zgłoszony” — jeszcze ich nie potwierdziłeś</td></tr>
+    <tr><td>Potwierdzone</td><td>zapisy na kursy „potwierdzone” — miejsce jest, zaliczki jeszcze nie zaznaczyłeś</td></tr>
+    <tr><td>Lista rezerwowa</td><td>osoby czekające na zwolnienie miejsca na kursie</td></tr>
+    <tr><td rowspan="4">Obozy</td><td>Nowe zgłoszenia</td><td>dzieci ze statusem „zgłoszony”. Przy obozie to normalny stan aż do wpłaty zaliczki — nie musisz ich potwierdzać</td></tr>
+    <tr><td>Bez formularza</td><td>dzieci z miejscem, których rodzic nie wysłał jeszcze formularza rejestracyjnego (tylko obozy, które się jeszcze nie zaczęły)</td></tr>
+    <tr><td>Zaliczka po terminie</td><td>minęło 7 dni od maila z umową, a zaliczki nie zaznaczyłeś (tylko obozy, które się jeszcze nie zaczęły) — do nich warto zadzwonić</td></tr>
+    <tr><td>Lista rezerwowa</td><td>dzieci czekające na zwolnienie miejsca</td></tr>
+    <tr><td rowspan="2">Wszystko</td><td>Maile, które nie doszły</td><td>zapisy, przy których mail do kursanta albo rodzica nie wyszedł — ta osoba o czymś nie wie (rozdział 25)</td></tr>
+    <tr><td>Nowe wiadomości</td><td>wiadomości z formularza kontaktowego ze statusem „nowa”</td></tr>
+  </table>
+  <p>Pod kafelkami jest tabela <b>Najbliższe terminy</b> — 12 najbliższych kursów i turnusów: ile miejsc zajętych na ile („5 / 6”), ile osób na liście rezerwowej i dwa linki — <span class="ui">zapisani</span> (lista osób tylko z tego terminu) i <span class="ui">Excel</span> (lista do pobrania). Kliknięcie daty otwiera sam termin.</p>
+  <p>„0 (bez limitu)” znaczy, że w terminie nie wpisano liczby miejsc (rozdział 8). Terminy, które minęły, same dostają status „zakończony” (w ciągu dwóch dni po ostatnim dniu) i znikają z tabeli.</p>
+  <h3>Listy zapisów</h3>
+  <p><span class="ui">Zapisy na kursy</span> i <span class="ui">Zapisy na obozy</span> w menu otwierają listę ułożoną według daty terminu — od terminów sprzed miesiąca, najbliższe na górze, po 100 wierszy na stronę. Kolumna <b>Uczestnik</b> to kursant albo dziecko, <b>Termin</b> — kurs lub turnus z datami. Nad listą jest zdanie, które mówi, co właśnie oglądasz (np. „Zapisy na obozy · Bez formularza”) i które statusy wysyłają maila. Starsze zapisy znajdziesz, usuwając warunek daty w <span class="ui">Filtrach</span>.</p>
+</section>
+
+<!-- ============================ CZĘŚĆ I — KURSY ============================ -->
+
+<div class="part"><div class="label">Część I</div><div class="title">Kursy</div></div>
+
+<section>
+  <h2 style="margin-top:0">5. Jak kursant zapisuje się na kurs</h2>
+  <p>Na stronie każdego kursu, w ramce z ceną, są najbliższe terminy z liczbą wolnych miejsc i przycisk <span class="ui">Zapisz się na kurs</span>. Wszystkie terminy są też w <span class="ui">Terminarzu</span> — przy każdym przycisk zapisu.</p>
+  <figure><img src="instrukcja-zapisy/kurs.jpg" alt=""><figcaption>Strona kursu — z prawej terminy i przycisk zapisu.</figcaption></figure>
+  <p>Przycisk <span class="ui">Zapisz się</span> w nagłówku strony (na telefonie — pasek na dole ekranu) prowadzi:</p>
   <ul>
-    <li>Jeśli <b>ma konto i jest zalogowany</b> — nie wpisuje danych, wybiera tylko termin.</li>
-    <li>Jeśli <b>nie ma konta</b> — może zaznaczyć „Załóż mi konto z tych danych”. Dostanie wtedy maila z linkiem do ustawienia hasła.</li>
+    <li>ze strony głównej — do Terminarza (wszystkie terminy); z listy kursów — do Terminarza z samymi kursami; z listy obozów — z samymi obozami;</li>
+    <li>ze strony kursu — prosto do zapisu na ten kurs;</li>
+    <li>ze strony obozu — do formularza zapisu na obóz;</li>
+    <li>ze strony wyjazdu albo zajęć cyklicznych — do formularza kontaktowego z tematem „Obóz lub wyjazd” (na wyjazdy i zajęcia nie ma zapisu przez stronę).</li>
+  </ul>
+</section>
+
+<section>
+  <h3>Formularz zapisu na kurs</h3>
+  <p>Kursant wybiera termin i wpisuje imię, nazwisko, adres e-mail i telefon (z numerem kierunkowym, np. +48). Może dopisać uwagi (np. „mam własny sprzęt”). Musi zaznaczyć zgodę na przetwarzanie danych.</p>
+  <ul>
+    <li>Jeśli <b>ma konto i jest zalogowany</b> — nie wpisuje danych, wybiera tylko termin i zaznacza zgodę.</li>
+    <li>Jeśli <b>nie ma konta</b> — może zaznaczyć „Załóż mi konto z tych danych”. Dostanie wtedy osobny mail z linkiem do ustawienia hasła (link działa 2 godziny; konto bez ustawionego hasła znika po 7 dniach, zapis zostaje).</li>
     <li>Na terminie bez wolnych miejsc formularz od razu mówi „brak miejsc — lista rezerwowa”.</li>
   </ul>
-  <div class="box do"><strong>Zapisy bez konta nie przepadają.</strong>
-  Jeśli ktoś zapisze się raz czy kilka razy bez konta, a kiedyś założy konto na <b>ten sam adres e-mail</b>, wszystkie te zapisy same przypną się do jego konta — zobaczy je w „Moich zapisach”, także te z minionych kursów. Dzieje się to dopiero, gdy potwierdzi adres (kliknie link z maila), więc nikt nie zobaczy cudzych zapisów, wpisując cudzy adres. Wielkie i małe litery w adresie nie mają znaczenia, ale literówka tak — zapis z błędnym adresem się nie przypnie.</div>
   <figure class="narrow"><img src="instrukcja-zapisy/zapis.jpg" alt=""><figcaption>Formularz zapisu (widok bez logowania).</figcaption></figure>
-
   <h3>Co dzieje się po kliknięciu „Zapisz się”</h3>
   <ol>
-    <li>Zapis pojawia się w panelu w zakładce <span class="ui">Zapisy</span> ze statusem „zgłoszony” (albo „lista rezerwowa”, gdy brak miejsc).</li>
-    <li>Kursant dostaje maila „Przyjęliśmy zgłoszenie” (albo „Lista rezerwowa”) z nazwą kursu i terminem.</li>
-    <li>Ty dostajesz maila „Nowy zapis” z danymi osoby i jej uwagami. Odpowiedź na tego maila trafi wprost do kursanta.</li>
+    <li>Zapis pojawia się w <span class="ui">Zapisach na kursy</span> ze statusem „zgłoszony” (albo „lista rezerwowa”, gdy brak miejsc).</li>
+    <li>Kursant dostaje maila <span class="subj">„Przyjęliśmy zgłoszenie: [kurs]”</span> (albo <span class="subj">„Lista rezerwowa: [kurs]”</span>) z kursem, terminem i miejscem. Bez kwot — mail mówi, że szczegóły płatności prześlesz osobno.</li>
+    <li>Na skrzynkę szkoły przychodzi <span class="subj">„Nowy zapis: [osoba] — [kurs]”</span> (albo <span class="subj">„Lista rezerwowa: …”</span>) z danymi, telefonem, uwagami i informacją, czy osoba ma konto. Odpowiedź na ten mail trafi wprost do kursanta.</li>
   </ol>
+  <div class="box do"><strong>Ten sam zapis dwa razy.</strong>
+  Gdy ktoś wyśle formularz drugi raz na <b>ten sam termin</b> z <b>tym samym adresem e-mail</b> (np. nie był pewien, czy poszło), strona odpowiada „przyjęte”, ale drugi zapis nie powstaje i nie idzie żaden mail. Zapis z rezygnacją się nie liczy — po rezygnacji można zapisać się na nowo. Jedyny wyjątek: jeśli przy drugim razie zaznaczy „Załóż mi konto”, a konta jeszcze nie ma — konto powstaje i przychodzi tylko mail z linkiem do hasła.</div>
+  <div class="box do"><strong>Zapisy bez konta nie przepadają.</strong>
+  Jeśli ktoś zapisze się bez konta, a kiedyś założy konto na <b>ten sam adres e-mail</b>, wszystkie te zapisy same przypną się do konta — zobaczy je w Moim koncie, także minione. Dzieje się to dopiero, gdy potwierdzi adres (kliknie link z maila albo się zaloguje), więc nikt nie zobaczy cudzych zapisów, wpisując cudzy adres. Wielkość liter w adresie nie ma znaczenia, ale literówka tak — zapis z błędnym adresem się nie przypnie.</div>
 </section>
 
 <section>
-  <p>Kursant z kontem widzi swoje zapisy i ich stan na stronie, w zakładce <span class="ui">Moje konto</span>. Tam też poprawia swoje imię, nazwisko i telefon (nowe dane trafiają od razu do jego <b>nadchodzących</b> zapisów — zobaczysz je w „Zapisach”; zakończone zostają bez zmian), wybiera, w jakim języku dostaje maile, i może sam usunąć konto. Adresu e-mail kursant sam nie zmieni — o to prosi Ciebie.</p>
-  <figure class="narrow"><img src="instrukcja-zapisy/konto.jpg" alt="" style="width:60%"><figcaption>Moje konto — tak kursant widzi swoje zapisy, swoje dane i język maili.</figcaption></figure>
-
-  <h2>4. Pulpit „Do zrobienia”</h2>
-  <p>Pierwszy ekran po zalogowaniu. Wrócisz na niego z każdego miejsca panelu, klikając <span class="ui">Pulpit</span> na samej górze menu po lewej (menu schowane — rozwiń je przyciskiem <span class="ui">☰</span> w lewym górnym rogu). Na górze pięć kafelków — każda liczba to link do listy właśnie tych spraw:</p>
-  <figure><img src="instrukcja-zapisy/pulpit.jpg" alt=""><figcaption>Pulpit panelu.</figcaption></figure>
-</section>
-
-<section>
-  <table>
-    <thead><tr><th style="width:42mm">Kafelek</th><th>Co znaczy</th></tr></thead>
-    <tr><td>Nowe zgłoszenia</td><td>zapisy, których jeszcze nie potwierdziłeś</td></tr>
-    <tr><td>Potwierdzone</td><td>osoby z potwierdzonym miejscem, które nie wpłaciły jeszcze zaliczki</td></tr>
-    <tr><td>Lista rezerwowa</td><td>osoby czekające na zwolnienie miejsca</td></tr>
-    <tr><td>Maile, które nie doszły</td><td>kursanci, do których mail nie dotarł — trzeba się odezwać samemu (rozdział 12)</td></tr>
-    <tr><td>Nowe wiadomości</td><td>wiadomości z formularza kontaktowego, których jeszcze nie ruszyłeś</td></tr>
-  </table>
-  <p>Pod kafelkami jest tabela <b>Najbliższe terminy</b> — 12 najbliższych kursów i obozów: ile miejsc zajętych na ile („5 / 6”), ile osób na liście rezerwowej i dwa linki — <span class="ui">zapisani</span> (lista osób tylko z tego terminu) i <span class="ui">Excel</span> (lista do pobrania). Link <span class="ui">zapisani</span> to najszybsza droga do uczestników jednego kursu.</p>
-  <p>„0 (bez limitu)” oznacza termin, w którym nie wpisano liczby miejsc — patrz rozdział 7. Terminy, które już minęły, same zmieniają status na „zakończony” (w ciągu dwóch dni po kursie) i znikają z tabeli.</p>
-
-  <h2>5. Nowe zgłoszenie — co z nim zrobić</h2>
+  <h2>6. Nowe zgłoszenie — co z nim zrobić</h2>
   <ol>
-    <li>Kliknij kafelek <span class="ui">Nowe zgłoszenia</span> albo wejdź w <span class="ui">Zapisy</span>.</li>
-    <li>Sprawdź osobę i jej uwagi. Jeśli trzeba — zadzwoń (telefon jest na liście).</li>
-    <li>Zmień status na „potwierdzony”. Kursant dostanie maila, że ma miejsce.</li>
-    <li>Szczegóły płatności wyślij kursantowi sam (mailem albo SMS-em) — mail o potwierdzeniu mówi tylko, że szczegóły płatności przyjdą osobno.</li>
-    <li>Gdy wpłynie zaliczka — status „zaliczka wpłacona”. Gdy całość — „opłacony”. Przed kursem kursant dostanie maila „Płatność zaksięgowana”; od pierwszego dnia kursu mail już nie wychodzi (rozdział 6).</li>
+    <li>Kliknij kafelek <span class="ui">Nowe zgłoszenia</span> (część Kursy) albo wejdź w <span class="ui">Zapisy na kursy</span>.</li>
+    <li>Sprawdź osobę i jej uwagi. Jeśli trzeba — zadzwoń (telefon jest w zapisie).</li>
+    <li>Zmień status na „potwierdzony”. Kursant dostanie maila <span class="subj">„Miejsce potwierdzone: [kurs]”</span>.</li>
+    <li>Szczegóły płatności wyślij kursantowi sam (mailem albo SMS-em) — maile strony przy kursach nie podają kwot ani numeru konta.</li>
+    <li>Gdy wpłynie zaliczka — status „zaliczka wpłacona” (bez maila). Gdy całość — „opłacony”: przed pierwszym dniem kursu kursant dostanie <span class="subj">„Płatność zaksięgowana: [kurs]”</span>, od pierwszego dnia — nic (rozdział 7).</li>
   </ol>
   <h3>Najszybciej: status prosto z listy</h3>
-  <p>Na liście <span class="ui">Zapisy</span> status każdej osoby to rozwijana lista. Wybierasz nowy i gotowe — nie trzeba wchodzić w zapis ani nic zapisywać.</p>
+  <p>Na liście zapisów status każdej osoby to rozwijana lista. Wybierasz nowy i gotowe — nie trzeba wchodzić w zapis ani nic zapisywać.</p>
   <figure><img src="instrukcja-zapisy/zapisy-lista.jpg" alt=""><figcaption>Lista zapisów — status zmienisz bezpośrednio w kolumnie „Status”.</figcaption></figure>
-  <div class="box warn"><strong>Panel pyta, zanim wyśle maila.</strong>
-  Przy zmianie na status, który wysyła kursantowi maila, pojawia się okienko „Zmienić status na „potwierdzony”? Kursant dostanie maila.” — to zabezpieczenie przed kliknięciem w zły wiersz. Przy „opłacony” pytanie brzmi „…Jeśli kurs jeszcze się nie zaczął, kursant dostanie maila.” — lista nie wie, czy kurs już trwa; panel sprawdzi to sam po kliknięciu <span class="ui">OK</span>. Kliknij <span class="ui">OK</span>, żeby zmienić, albo <span class="ui">Anuluj</span>, żeby nic się nie stało. Jeśli wybierzesz status, który zapis już ma, okienka nie będzie — nic się nie zmienia, więc i mail nie wychodzi.</div>
+  <div class="box warn"><strong>Na liście panel pyta, zanim wyśle maila.</strong>
+  Przy zmianie na status, który wysyła maila, pojawia się okienko, np. „Zmienić status na „potwierdzony”? Kursant dostanie maila.” — to zabezpieczenie przed kliknięciem w zły wiersz. Przy „opłacony” pytanie brzmi „…Jeśli kurs jeszcze się nie zaczął, kursant dostanie maila.” — lista nie wie, czy kurs już trwa; po <span class="ui">OK</span> strona sprawdzi datę sama. <span class="ui">OK</span> zmienia status, <span class="ui">Anuluj</span> nie zmienia niczego. Okienka nie ma: przy statusie, który nie wysyła maila; przy statusie, który zapis już ma; przy zapisie bez adresu e-mail.</div>
 </section>
 
 <section>
   <h3>Albo w samym zapisie</h3>
-  <p>Kliknięcie w nazwisko otwiera cały zapis: dane kontaktowe, uwagi kursanta i pole <b>Notatki szkoły</b> — tam możesz zapisać cokolwiek dla siebie (kursant tego nie widzi). Po zmianach kliknij <span class="ui">Zapisz</span> w prawym górnym rogu.</p>
+  <p>Kliknięcie w imię i nazwisko na liście otwiera cały zapis: dane kontaktowe, uwagi kursanta i pole <b>Notatki szkoły</b> — tam zapiszesz cokolwiek dla siebie (kursant tego nie widzi). Po zmianach kliknij <span class="ui">Zapisz</span> w prawym górnym rogu.</p>
   <figure><img src="instrukcja-zapisy/zapis-otwarty.jpg" alt=""><figcaption>Zapis otwarty w panelu.</figcaption></figure>
-  <div class="box warn"><strong>Uwaga:</strong>
-  w otwartym zapisie panel nie pyta o potwierdzenie — jeśli zmienisz tam status na „potwierdzony”, „opłacony” (przed kursem) albo „rezygnacja”, mail wyjdzie po kliknięciu <span class="ui">Zapisz</span>.</div>
-
-  <h2>6. Statusy zapisu i maile do kursanta</h2>
-  <table>
-    <thead><tr><th>Status</th><th>Kiedy go ustawić</th><th>Zajmuje miejsce?</th><th>Mail do kursanta</th></tr></thead>
-    <tr><td><b>zgłoszony</b></td><td>ustawia się sam po zapisie przez stronę</td><td>tak</td><td>— (dostał już „Przyjęliśmy zgłoszenie”)</td></tr>
-    <tr><td><b>potwierdzony</b></td><td>gdy potwierdzasz miejsce</td><td>tak</td><td>tak — „Miejsce potwierdzone”</td></tr>
-    <tr><td><b>zaliczka wpłacona</b></td><td>po wpłacie zaliczki</td><td>tak</td><td>nie</td></tr>
-    <tr><td><b>opłacony</b></td><td>po wpłacie całości</td><td>tak</td><td><b>tylko przed kursem</b> — „Płatność zaksięgowana”; od pierwszego dnia kursu bez maila</td></tr>
-    <tr><td><b>lista rezerwowa</b></td><td>ustawia się sam, gdy brak miejsc</td><td>nie</td><td>— (dostał już „Lista rezerwowa”)</td></tr>
-    <tr><td><b>rezygnacja</b></td><td>gdy ktoś rezygnuje albo odwołujesz zapis</td><td>nie — zwalnia miejsce</td><td>tak — „Zapis anulowany”</td></tr>
-  </table>
-  <p>Maile idą w języku kursanta — po polsku albo po angielsku (rozdział 16). Na każdego z nich kursant może po prostu odpowiedzieć, a odpowiedź trafi do Ciebie.</p>
-  <div class="box do"><strong>„Opłacony” w dniu kursu albo po nim — bez maila.</strong>
-  Większość osób płaci na miejscu, pierwszego dnia kursu, a status zmieniasz w trakcie albo po kursie. Mail „Płatność zaksięgowana” przyszedłby wtedy, gdy kurs już trwa albo się skończył — a ta osoba dała Ci pieniądze do ręki, więc taki mail tylko by ją zdziwił. Dlatego:
-  <ul style="margin:4pt 0 4pt">
-    <li><b>przed pierwszym dniem kursu</b> (np. ktoś zapłacił przelewem) — „opłacony” wysyła maila: kursant ma potwierdzenie, że pieniądze doszły;</li>
-    <li><b>od pierwszego dnia kursu</b> — status się zmienia, ale <b>mail nie wychodzi</b>. Nic nie musisz zaznaczać ani pamiętać — panel sprawdza datę sam.</li>
-  </ul>
-  Kursant z kontem i tak widzi status swojego zapisu w „Moim koncie” — także „opłacone”. Liczy się dzień w Polsce: od północy pierwszego dnia kursu mail już nie wyjdzie.</div>
-  <div class="box do"><strong>Rezygnacja zamiast usuwania.</strong>
-  Gdy ktoś się wycofa, ustaw „rezygnacja” zamiast kasować zapis — zostaje ślad w historii, a miejsce i tak się zwalnia.</div>
+  <div class="box warn"><strong>W otwartym zapisie panel NIE pyta.</strong>
+  Jeśli zmienisz tam status na taki, który wysyła maila, mail wyjdzie po kliknięciu <span class="ui">Zapisz</span>. Zmiana innych pól (notatki, telefon, uwagi, adres e-mail) nie wysyła niczego.</div>
+  <div class="box do"><strong>Przeniesienie na inny termin.</strong>
+  W otwartym zapisie możesz zmienić pole <b>Termin</b> i <span class="ui">Zapisz</span>. Miejsca przeliczą się na obu terminach. Kursant <b>nie</b> dostaje o tym maila — powiedz mu sam.</div>
 </section>
 
 <section>
-  <h2>7. Wolne miejsca i lista rezerwowa</h2>
-  <p>W każdym terminie (zakładka <span class="ui">Terminy</span>) jest pole <b>Liczba miejsc</b>.</p>
-  <ul>
-    <li><b>Gdy je wpiszesz</b> (np. 6) — panel sam liczy wolne miejsca: liczba miejsc minus zapisy, które zajmują miejsce (tabela w rozdziale 6). Gdy wolnych zabraknie, termin sam przełącza się na „brak miejsc — lista rezerwowa”, a nowe osoby trafiają na listę rezerwową. Gdy miejsce się zwolni — wraca na „zapisy otwarte”.</li>
-    <li><b>Gdy je zostawisz puste</b> — nic się nie liczy, a na stronie widać „zapytaj o miejsca”. Status terminu ustawiasz wtedy ręcznie.</li>
+  <h2>7. Statusy zapisu na kurs i maile</h2>
+  <table>
+    <thead><tr><th style="width:28mm">Status</th><th>Kiedy go ustawić</th><th style="width:24mm">Zajmuje miejsce?</th><th style="width:52mm">Mail do kursanta po zmianie na ten status</th></tr></thead>
+    <tr><td><b>zgłoszony</b></td><td>ustawia się sam po zapisie przez stronę</td><td>tak</td><td class="none">nie (dostał już „Przyjęliśmy zgłoszenie”)</td></tr>
+    <tr><td><b>potwierdzony</b></td><td>gdy potwierdzasz miejsce</td><td>tak</td><td><b>tak</b> — „Miejsce potwierdzone: [kurs]”</td></tr>
+    <tr><td><b>zaliczka wpłacona</b></td><td>po wpłacie zaliczki</td><td>tak</td><td class="none">nie</td></tr>
+    <tr><td><b>opłacony</b></td><td>po wpłacie całości</td><td>tak</td><td><b>tylko przed pierwszym dniem kursu</b> — „Płatność zaksięgowana: [kurs]”</td></tr>
+    <tr><td><b>lista rezerwowa</b></td><td>ustawia się sam, gdy brak miejsc</td><td>nie</td><td class="none">nie (dostał już „Lista rezerwowa”)</td></tr>
+    <tr><td><b>rezygnacja</b></td><td>gdy ktoś rezygnuje albo odwołujesz zapis</td><td>nie — zwalnia miejsce</td><td><b>tak</b> — „Zapis anulowany: [kurs]” (także po kursie)</td></tr>
+  </table>
+  <p>Maile idą w języku kursanta — po polsku albo po angielsku (rozdział 29). Na każdy z nich kursant może odpowiedzieć, a odpowiedź trafi na skrzynkę szkoły. Kursant z kontem ma w mailu przycisk <span class="ui">Moje konto</span>.</p>
+  <div class="box do"><strong>„Opłacony” w dniu kursu albo po nim — bez maila.</strong>
+  Większość osób płaci na miejscu, pierwszego dnia kursu, a status zmieniasz w trakcie albo po kursie. Mail „Płatność zaksięgowana” tylko by wtedy zdziwił. Dlatego:
+  <ul style="margin:4pt 0 4pt">
+    <li><b>przed pierwszym dniem kursu</b> (np. przelew) — „opłacony” wysyła maila: kursant ma potwierdzenie, że pieniądze doszły;</li>
+    <li><b>od pierwszego dnia kursu</b> (od północy czasu polskiego) — status się zmienia, ale <b>mail nie wychodzi</b>. Nic nie musisz zaznaczać — strona sprawdza datę sama.</li>
   </ul>
+  Kursant z kontem i tak widzi status w Moim koncie — także „opłacone”.</div>
+  <div class="box do"><strong>Rezygnacja zamiast usuwania.</strong>
+  Gdy ktoś się wycofa, ustaw „rezygnacja” zamiast kasować zapis — zostaje ślad w historii, kursant dostaje „Zapis anulowany”, a miejsce i tak się zwalnia. Usunięcie zapisu też zwalnia miejsce, ale <b>nie wysyła kursantowi maila</b>.</div>
+  <div class="box warn"><strong>Pomyłka w statusie?</strong>
+  Cofnięcie statusu nie „odwołuje” wysłanego maila. Jeśli przez pomyłkę ustawisz „rezygnacja” i od razu wrócisz na „potwierdzony”, kursant dostanie dwa maile: „Zapis anulowany” i „Miejsce potwierdzone”. Wtedy najlepiej do niego zadzwoń albo odpisz.</div>
+</section>
+
+<section>
+  <h2>8. Wolne miejsca i lista rezerwowa</h2>
+  <p>Ten rozdział dotyczy kursów i obozów tak samo. W każdym terminie (<span class="ui">Treść → Terminy</span>) jest pole <b>Liczba miejsc</b>.</p>
+  <ul>
+    <li><b>Gdy je wpiszesz</b> (np. 6) — strona sama liczy wolne miejsca: liczba miejsc minus zapisy, które zajmują miejsce (zgłoszony, potwierdzony, zaliczka, opłacony). Gdy wolnych zabraknie, termin sam przełącza się na „brak miejsc — lista rezerwowa”, a nowe osoby trafiają na listę rezerwową. Gdy miejsce się zwolni — termin wraca na „zapisy otwarte”.</li>
+    <li><b>Gdy je zostawisz puste</b> — nic się nie liczy, a na stronie widać „zapytaj o miejsca”. Status terminu ustawiasz wtedy ręcznie: przy „brak miejsc — lista rezerwowa” nowe zapisy trafiają na listę rezerwową, przy „zapisy otwarte” — dostają miejsce.</li>
+    <li>Terminy „odwołany” i „zakończony” znikają ze strony i nikt się na nie nie zapisze. Strona nie zmienia ich statusu sama (poza oznaczeniem minionych terminów jako zakończone).</li>
+  </ul>
+  <div class="box do"><strong>Możesz wpisać więcej osób, niż jest miejsc.</strong>
+  Zapis dodany ręcznie w panelu zawsze się zapisze — także ponad limit. Wolne miejsca pokażą wtedy 0, nie wartość ujemną.</div>
   <h3>Gdy zwolni się miejsce</h3>
-  <p>Jeśli na terminie jest lista rezerwowa, a miejsce się zwolni (rezygnacja, usunięty zapis albo większa liczba miejsc), dostaniesz maila „Zwolniło się miejsce” z całą listą rezerwową — w kolejności zapisu, z telefonem i adresem każdej osoby.</p>
+  <p>Jeśli na terminie ktoś czeka na liście rezerwowej, a wolnych miejsc przybędzie — przez rezygnację, usunięty zapis, przeniesienie osoby na inny termin albo większą liczbę miejsc — na skrzynkę szkoły przychodzi mail <span class="subj">„Zwolniło się miejsce: [kurs lub obóz], [daty]”</span> z całą listą rezerwową w kolejności zapisu, z telefonem i adresem każdej osoby.</p>
   <ol>
     <li>Zdecyduj, kogo przyjmujesz (zwykle pierwszą osobę z listy) — możesz najpierw zadzwonić.</li>
-    <li>Zmień jej status z „lista rezerwowa” na „potwierdzony”. Dostanie maila, że ma miejsce.</li>
+    <li>Zmień jej status z „lista rezerwowa” na „potwierdzony”. Dostanie maila, że ma miejsce (przy obozie także link do formularza — rozdział 17).</li>
   </ol>
-  <div class="box do"><strong>Nikt nie jest przesuwany z listy rezerwowej automatycznie</strong> — zawsze decydujesz Ty.</div>
+  <div class="box do"><strong>Nikt nie jest przesuwany z listy rezerwowej automatycznie</strong> — zawsze decydujesz Ty. Osoby z listy rezerwowej nie dostają maila o zwolnionym miejscu, dopóki nie zmienisz im statusu.</div>
+  <p class="muted">Mail „Zwolniło się miejsce” nie przychodzi, gdy na liście rezerwowej nikogo nie ma, ani przy terminie bez liczby miejsc.</p>
+</section>
 
-  <h2>8. Zapis przez telefon</h2>
+<section>
+  <h2>9. Zapis przez telefon</h2>
   <p>Jeśli ktoś zapisał się u Ciebie przez telefon, dopisz go w panelu — wtedy liczy się do wolnych miejsc i nikt nie „zajmie” jego miejsca przez stronę.</p>
   <ol>
-    <li>Wejdź w <span class="ui">Zapisy</span> i kliknij <span class="ui">Stwórz nowy</span> (przycisk obok tytułu listy).</li>
+    <li>Wejdź w <span class="ui">Zapisy na kursy</span> i kliknij <span class="ui">Stwórz nowy</span> (przycisk obok tytułu listy). Rodzaj zapisu ustawi się sam na „kurs”.</li>
     <li>Wybierz <b>Termin</b>, ustaw <b>Status</b> (np. „potwierdzony”) i wpisz imię, nazwisko i telefon.</li>
     <li><b>E-mail możesz zostawić pusty</b> — wiele osób dzwoni i nie podaje adresu.</li>
-    <li>Pole <b>Konto uczestnika</b> zostaw tak, jak jest — szary napis „Wybierz wartość” znaczy, że pole jest puste, i tak ma być.</li>
+    <li>Pole <b>Konto uczestnika</b> zostaw puste („Wybierz wartość”). Jeśli ta osoba założy kiedyś konto na adres wpisany w zapisie, zapis przypnie się sam.</li>
     <li>Kliknij <span class="ui">Zapisz</span>.</li>
   </ol>
   <figure><img src="instrukcja-zapisy/telefon.jpg" alt=""><figcaption>Zapis telefoniczny bez adresu e-mail.</figcaption></figure>
   <ul>
-    <li><b>Przy dodawaniu ręcznym nie wychodzą żadne maile</b> — ani do kursanta, ani do Ciebie. Umówiliście się osobiście, więc oboje już wiecie.</li>
-    <li><b>Bez adresu e-mail ta osoba nie dostaje nic, nigdy</b>: ani maili o zmianie statusu, ani wysyłek. Panel nie pyta wtedy przy zmianie statusu, bo nie ma do kogo pisać.</li>
-    <li><b>Jeśli adres wpiszesz</b>, późniejsze zmiany statusu (np. na „potwierdzony”) wysyłają maila jak przy każdym zapisie — „opłacony” tylko przed kursem (rozdział 6).</li>
+    <li><b>Przy dodawaniu ręcznym nie wychodzą żadne maile</b> — ani do kursanta, ani do Ciebie, niezależnie od wybranego statusu. Umówiliście się osobiście, więc oboje wiecie.</li>
+    <li><b>Bez adresu e-mail ta osoba nie dostaje nic, nigdy</b>: ani maili o zmianie statusu, ani wysyłek. Panel nie pyta wtedy przy zmianie statusu, a na pulpicie nie pojawia się „mail, który nie doszedł”.</li>
+    <li><b>Jeśli adres wpiszesz</b>, <b>późniejsze</b> zmiany statusu wysyłają maila jak przy każdym zapisie (rozdział 7) i osoba dostaje wysyłki do swojego terminu.</li>
   </ul>
 </section>
 
 <section>
-  <h2>9. Termin: lista uczestników i Excel</h2>
-  <p>Otwórz termin w zakładce <span class="ui">Terminy</span> (albo kliknij datę na pulpicie). Widzisz tam liczbę miejsc i wolne miejsca, a niżej tabelę <b>Zapisani</b> — wszyscy zapisani na ten termin, także rezerwowi i rezygnacje — ze zmianą statusu prosto z tabeli.</p>
-  <p>Z prawej przycisk <span class="ui">Pobierz listę uczestników (Excel)</span> — plik z kolumnami: Lp., imię, nazwisko, telefon, e-mail, status, uwagi od kursanta i data zapisu. Otwiera się w Excelu z polskimi znakami, a telefon zostaje z plusem. Przydaje się do ubezpieczenia albo jako wydruk na skały.</p>
+  <h2>10. Termin: lista uczestników, Excel, odwołanie</h2>
+  <p>Otwórz termin w <span class="ui">Treść → Terminy</span> (albo kliknij datę na pulpicie). Na liście terminów najbliższe są na górze. W terminie widzisz liczbę miejsc, wolne miejsca, status, dopisek, a niżej tabelę <b>Zapisani</b> — wszyscy zapisani na ten termin, także rezerwowi i rezygnacje.</p>
+  <p>Z prawej przycisk <span class="ui">Pobierz listę uczestników (Excel)</span>. Przy kursie plik ma kolumny: Lp., imię, nazwisko, telefon, e-mail, status, uwagi od kursanta i data zapisu (przy obozie — inne, rozdział 22). Otwiera się w Excelu z polskimi znakami, telefon zostaje z plusem. Przydaje się do ubezpieczenia albo jako wydruk na skały.</p>
   <figure><img src="instrukcja-zapisy/termin-zapisani.jpg" alt=""><figcaption>Termin w panelu: liczba miejsc, wolne miejsca, lista zapisanych i przycisk Excela.</figcaption></figure>
+  <h3>Pola terminu, które warto znać</h3>
+  <ul>
+    <li><b>Kurs</b> albo <b>Obóz lub wyjazd</b> — wypełnij jedno z nich, nigdy oba.</li>
+    <li><b>Od</b>, <b>Do</b> — daty; „Do” puste przy zajęciach jednodniowych.</li>
+    <li><b>Miejsce</b> — puste = strona weźmie miejsce z kursu lub obozu. Miejsce jest w mailach do kursantów i rodziców.</li>
+    <li><b>Cena dla tego terminu</b> — puste = cena z kursu lub obozu. Przy obozie ta cena trafia do umowy i do kwoty dopłaty (rozdział 14).</li>
+    <li><b>Dopisek</b> — np. „grupa w tygodniu”; widać go na stronie przy terminie.</li>
+  </ul>
   <h3>Po kursie i przy odwołaniu</h3>
   <ul>
-    <li><b>Po kursie nic nie musisz robić</b> — termin sam zmieni status na „zakończony” (w ciągu dwóch dni) i zniknie ze strony. Zapisy zostają w historii, a kursanci widzą kurs w archiwum w Moim koncie.</li>
+    <li><b>Po kursie nic nie musisz robić</b> — termin sam dostanie status „zakończony” (w ciągu dwóch dni po ostatnim dniu) i zniknie ze strony. Zapisy zostają w historii, a kursanci z kontem widzą kurs w Archiwum Mojego konta. Nikt nie dostaje maila.</li>
     <li><b>Odwołanie:</b> terminu, na który są zapisy, nie da się usunąć — panel to zablokuje i podpowie, co zrobić. Ustaw jego status na „odwołany”: zniknie ze strony, a zapisy zostaną.</li>
   </ul>
-  <div class="box warn"><strong>Odwołanie terminu nie powiadamia zapisanych.</strong>
-  Napisz do nich przez <span class="ui">Wysyłki</span> (rozdział 10) — wybierz ten termin i zaznacz „Także lista rezerwowa”.</div>
+  <div class="box warn"><strong>Odwołanie terminu i zmiana dat nie powiadamiają zapisanych.</strong>
+  Napisz do nich przez <span class="ui">Wysyłki</span> (rozdział 23) — wybierz ten termin i zaznacz „Także lista rezerwowa”. Statusy zapisów zostają takie, jakie były; jeśli chcesz, ustaw im „rezygnację” — ale wtedy każdy dostanie też mail „Zapis anulowany”.</div>
 </section>
 
+<!-- ============================ CZĘŚĆ II — OBOZY ============================ -->
+
+<div class="part camp"><div class="label">Część II</div><div class="title">Obozy</div></div>
+
+<section class="camp-section">
+  <h2 style="margin-top:0">11. Obóz w czterech krokach</h2>
+  <p>Zapis na obóz to Twoja procedura, tylko że maile i umowy robią się same. Cała droga działa <b>bez konta</b> — rodzic dostaje linki mailem. Konto jest dla chętnych (podgląd, umowa, stan płatności).</p>
+  <ol class="steps">
+    <li><b>Krótki zapis na stronie</b> (rozdział 12). Rodzic wybiera turnus, wpisuje dzieci i swoje dane. Każde dziecko z miejscem ma je od razu zarezerwowane. Rodzic dostaje maila z linkiem do formularza rejestracyjnego, Ty — maila „Nowy zapis na obóz”.</li>
+    <li><b>Formularz rejestracyjny</b> (rozdział 13). PESEL, wzrost, zdrowie dziecka, adres rodzica, faktura, zgody — raz dla całego zgłoszenia. Bez formularza po 4 dniach rodzic dostaje jedno przypomnienie.</li>
+    <li><b>Umowa i zaliczka</b> (rozdziały 14–15). Zaraz po pierwszym wysłaniu formularza rodzic dostaje umowę (PDF, z Twoją pieczątką) i dane do przelewu: 500 zł za dziecko w 7 dni. Rodzic odsyła podpisaną umowę na obozy@. Ty zaznaczasz wpłatę — rodzic dostaje maila, ile zostało do zapłaty. Po terminie bez wpłaty — jedno przypomnienie.</li>
+    <li><b>Mail przed obozem</b> (rozdział 20). 16 dni przed turnusem strona przygotowuje szkic (zbiórka, co spakować, pusta karta kwalifikacyjna w załączniku) i daje Ci znać. Uzupełniasz miejsce i godziny, klikasz „Wyślij”. Kartę dziecko przywozi wypełnioną na obóz.</li>
+  </ol>
+  <div class="box campbox"><strong>Co robisz Ty, a co strona.</strong>
+  <b>Ty:</b> zaznaczasz wpłaty („zaliczka wpłacona”, „opłacony”), decydujesz o liście rezerwowej, wpisujesz numer z Kuratorium, uzupełniasz i wysyłasz mail przed obozem, dzwonisz do rodziców z kafelków „Bez formularza” i „Zaliczka po terminie”, wystawiasz faktury w swoim programie.<br>
+  <b>Strona:</b> liczy miejsca, wysyła linki do formularza, umowy, dane do przelewu, przypomnienia, maile o wpłacie, przygotowuje szkic maila przed obozem, usuwa dane o zdrowiu miesiąc po obozie.</div>
+  <div class="box do"><strong>Obóz, wyjazd, zajęcia cykliczne.</strong>
+  W <span class="ui">Obozach i wyjazdach</span> każda pozycja ma <b>Rodzaj pozycji</b>. Zapis przez stronę, formularz, umowa i mail przed obozem działają tylko dla rodzaju <b>„obóz (kilkudniowy, z noclegiem)”</b>. Przy wyjazdach i zajęciach cyklicznych przycisk zapisu prowadzi do formularza kontaktowego.</div>
+</section>
+
+<section class="camp-section">
+  <h2>12. Zapis dzieci na stronie</h2>
+  <p>Rodzic wchodzi w turnus (z Terminarza albo ze strony obozu) i klika <span class="ui">Zapisz się</span>. W formularzu:</p>
+  <ul>
+    <li>wybiera <b>turnus</b>;</li>
+    <li>wpisuje <b>imię i nazwisko dziecka</b>; przyciskiem <span class="ui">+ Dodaj kolejne dziecko</span> dopisuje rodzeństwo (do 6 dzieci naraz);</li>
+    <li>wpisuje <b>swoje dane</b> (rodzic lub opiekun): imię, nazwisko, e-mail, telefon; może dopisać uwagi;</li>
+    <li>może zaznaczyć <b>„Załóż mi konto z tych danych”</b>, zaznacza zgodę i klika <span class="ui">Zapisz dziecko</span>.</li>
+  </ul>
+  <p>Zalogowany rodzic swoich danych nie wpisuje — biorą się z konta.</p>
+  <h3>Gdy dzieci jest więcej niż wolnych miejsc</h3>
+  <p>Formularz pokazuje ramkę „Wolne miejsca na tym turnusie: 1. Zapisujesz 2 dzieci.” i daje wybór:</p>
+  <ul>
+    <li><b>pierwsze dzieci na wolne miejsca, reszta na listę rezerwową</b> (zaznaczone z góry), albo</li>
+    <li><b>wszystkie na listę rezerwową</b> — „pojadą razem albo wcale”.</li>
+  </ul>
+  <p>Gdy wolnych miejsc nie ma wcale, ramki nie ma — wszystkie dzieci trafiają na listę rezerwową. Ty zawsze możesz zwiększyć liczbę miejsc w turnusie i zmienić status ręcznie.</p>
+  <h3>Co dzieje się po kliknięciu „Zapisz dziecko”</h3>
+  <ol>
+    <li>W <span class="ui">Zapisach na obozy</span> pojawia się zapis każdego dziecka — „zgłoszony” (z miejscem) albo „lista rezerwowa”.</li>
+    <li>Rodzic dostaje <b>jeden</b> mail za całe zgłoszenie: <span class="subj">„Zapis na obóz: [dzieci] — [obóz]”</span> z przyciskiem <span class="ui">Wypełnij formularz rejestracyjny</span> (jeden formularz dla wszystkich dzieci z miejscem). Dzieci z listy rezerwowej są w nim wymienione osobno — formularz dostaną, gdy zwolni się miejsce. Gdy wszystkie dzieci są na liście rezerwowej, temat brzmi <span class="subj">„Lista rezerwowa: …”</span> i przycisku formularza nie ma.</li>
+    <li>Jeśli zaznaczył „Załóż mi konto” i nie miał konta — osobny mail <span class="subj">„Ustaw hasło do konta”</span>.</li>
+    <li>Na skrzynkę obozową przychodzi <span class="subj">„Nowy zapis na obóz: [dzieci] — [obóz]”</span> (albo <span class="subj">„Lista rezerwowa: …”</span>) z dziećmi (rezerwowe z dopiskiem „LISTA REZERWOWA”), danymi rodzica, telefonem i uwagami. Przycisk w mailu otwiera listę zapisów tego turnusu. Odpowiedź trafi do rodzica.</li>
+  </ol>
+  <div class="box do"><strong>Kiedy zapis jest „ten sam”.</strong>
+  Strona uznaje dziecko za już zapisane, gdy zgadzają się trzy rzeczy: <b>ten sam turnus</b>, <b>ten sam adres e-mail rodzica</b> i <b>to samo imię i nazwisko dziecka</b> (wielkość liter i dodatkowe spacje nie mają znaczenia; zapis z rezygnacją się nie liczy). Wtedy nowy zapis nie powstaje i nie idzie żaden mail, a strona odpowiada tak samo jak za pierwszym razem. Jeśli w ponownym zgłoszeniu jest też nowe dziecko — powstaje tylko jego zapis, a maile mówią tylko o nim.<br>
+  Skutki: literówka w imieniu dziecka („Zosia” i „Zośka”) albo inny adres rodzica dają drugi zapis — zobaczysz dwa wpisy i jeden usuniesz.</div>
+</section>
+
+<section class="camp-section">
+  <h2>13. Formularz rejestracyjny</h2>
+  <p>Link do formularza rodzic dostaje mailem — w mailu po zapisie, w przypomnieniu, po przesunięciu z listy rezerwowej albo gdy wyślesz go z panelu. Rodzic z kontem ma go też w Moim koncie (<span class="ui">Wypełnij formularz rejestracyjny</span> / <span class="ui">Popraw formularz</span>). Konto nie jest potrzebne — link wystarcza.</p>
+  <h3>Co jest w formularzu</h3>
+  <table>
+    <thead><tr><th style="width:48mm">Część</th><th>Pola</th></tr></thead>
+    <tr><td>Dla każdego dziecka osobno</td><td>PESEL (data urodzenia liczy się z niego sama), wzrost, uczulenia, przyjmowane leki, dieta, choroby i przeciwwskazania, <b>zgoda na zdjęcia i nagrania</b> — rodzic musi wybrać „wyrażam zgodę” albo „nie wyrażam zgody”, nic nie jest zaznaczone z góry</td></tr>
+    <tr><td>Raz dla całego zgłoszenia</td><td>adres rodzica (ulica, kod, miejscowość — do umowy i faktury), „Potrzebuję faktury” (a pod nim „Na firmę”: nazwa, NIP, adres firmy), zgoda na udział dziecka w zajęciach, zgoda na przetwarzanie danych i zdrowia dziecka</td></tr>
+  </table>
+  <p>Formularz sprawdza PESEL i NIP (cyfrę kontrolną) — literówka nie przejdzie. Bez wyboru przy zdjęciach albo bez zgód formularz się nie wyśle, a wpisane dane zostają.</p>
+  <h3>Do kiedy działa</h3>
+  <ul>
+    <li>Od zapisu <b>do dnia rozpoczęcia obozu</b>. Rodzic może wracać tym samym linkiem i poprawiać (np. leki tydzień przed obozem). Przycisk <span class="ui">Zapisz zmiany</span> jest nieaktywny, dopóki czegoś nie zmieni.</li>
+    <li>Od pierwszego dnia obozu link już nie działa — liczy się papierowa karta kwalifikacyjna.</li>
+    <li>Dla dziecka z rezygnacją albo na liście rezerwowej formularz jest zamknięty (strona mówi dlaczego). Jedno zgłoszenie = jeden formularz: jeśli z rodzeństwa jedno zrezygnuje, w formularzu zostaje reszta.</li>
+  </ul>
+  <h3>Maile po wysłaniu formularza</h3>
+  <table>
+    <thead><tr><th style="width:42mm">Kiedy</th><th>Rodzic</th><th>Skrzynka obozowa</th></tr></thead>
+    <tr><td><b>Pierwsze wysłanie</b></td><td><span class="subj">„Formularz przyjęty, dane do przelewu — [dzieci]”</span> z umową PDF w załączniku (rozdział 14)</td><td><span class="subj">„Formularz rejestracyjny: [dzieci] — [obóz]”</span></td></tr>
+    <tr><td><b>Każda poprawka</b></td><td class="none">nic — drugi raz danych do przelewu nie dostaje, termin zaliczki się nie przesuwa</td><td><span class="subj">„Formularz poprawiony: [dzieci] — [obóz]”</span></td></tr>
+  </table>
+  <div class="box campbox"><strong>Danych o zdrowiu nie ma w żadnym mailu</strong> — ani do rodzica, ani do Ciebie. Są tylko w panelu: w zapisie dziecka po prawej, w ramce „Formularz rejestracyjny”, link <span class="ui">zobacz dane (PESEL, zdrowie)</span>, i w Excelu turnusu (rozdział 22).</div>
+  <h3>Przypomnienie i link z panelu</h3>
+  <ul>
+    <li><b>Przypomnienie idzie samo, jedno na każdy wysłany link:</b> gdy od wysłania linku minęły 4 dni, a formularza nie ma (rano o 8:00, tylko przed obozem, tylko dzieci z miejscem i z adresem e-mail). Temat: <span class="subj">„Przypomnienie: formularz rejestracyjny — [dzieci]”</span>. Rodzeństwo z jednego zgłoszenia dostaje jedno przypomnienie. Dalej — dzwonisz Ty (kafelek „Bez formularza”).</li>
+    <li><b>„Wyślij rodzicowi link do formularza”</b> — przycisk w zapisie dziecka, w ramce „Formularz rejestracyjny”. Panel zapyta, czy wysłać, i pokaże adres. Mail: <span class="subj">„Formularz rejestracyjny — [dzieci]”</span>. Link jest ten sam co wcześniej (stare maile dalej działają). Używaj go, gdy rodzicowi zginął mail albo zapis dodałeś ręcznie. Każde wysłanie linku z panelu (i po przesunięciu z listy rezerwowej) liczy 4 dni od nowa — jeśli formularz dalej nie przyjdzie, rodzic dostanie jeszcze jedno przypomnienie.</li>
+  </ul>
+</section>
+
+<section class="camp-section">
+  <h2>14. Umowa i dane do przelewu</h2>
+  <p>Umowa robi się sama z Twojego wzoru „Umowa imprezy turystycznej — Jura Lato” i danych z zapisu i formularza: rodzic z adresem, telefonem i e-mailem, dzieci z turnusem, cena (cyfrą i słownie), zaliczka, data zawarcia, Twoja pieczątka z podpisem. Przy obozie z zaznaczonym „Uczestnicy biorą własne śpiwory” umowa wpisuje „własne śpiwory”.</p>
+  <ul>
+    <li><b>Jedna umowa na zgłoszenie</b> — rodzeństwo zapisane razem jest w jednej umowie. Dziecko, które dostało miejsce później (z listy rezerwowej) albo zostało dopisane w panelu, ma <b>własny</b> formularz i <b>własną</b> umowę.</li>
+    <li><b>Wysyła się raz, z pierwszym formularzem</b>, jako załącznik do maila z danymi do przelewu. <b>Dzień wysłania = dzień zawarcia umowy</b>, i od niego liczy się 7 dni na zaliczkę.</li>
+    <li>Rodzic drukuje umowę, podpisuje i odsyła skan albo zdjęcie na <b>obozy@abcwspinania.info</b> (tak mówi mail). Strona nie śledzi, czy podpisana umowa wróciła — to sprawdzasz Ty w skrzynce.</li>
+    <li><b>Data zawarcia i cena w umowie zostają takie, jak w dniu wysłania</b>, nawet jeśli potem zmienisz cenę w panelu (kwota dopłaty w mailach i w Moim koncie liczy się jednak z aktualnej ceny — rozdział 32). Pozostałe dane (adres rodzica, lista dzieci) biorą się z aktualnego zapisu przy każdym pobraniu.</li>
+  </ul>
+  <h3>Gdzie pobrać umowę</h3>
+  <ul>
+    <li><b>Ty:</b> w zapisie dziecka, ramka „Formularz rejestracyjny” → <span class="ui">Pobierz umowę (PDF)</span>. Przed wysłaniem to podgląd z dzisiejszą datą i aktualną ceną. W zapisie widzisz też „Umowa wysłana” (data) i „Cena w umowie”.</li>
+    <li><b>Rodzic:</b> załącznik w mailu, a rodzic z kontem — <span class="ui">Pobierz umowę</span> w Moim koncie (dopiero po wysłaniu).</li>
+  </ul>
+  <h3>Dane do przelewu w mailu</h3>
+  <p>Zaliczka (500 zł × liczba dzieci z tego zgłoszenia), termin wpłaty (7 dni od maila), pozostała kwota (cena − 500 zł za każde dziecko, płatna najpóźniej w dniu rozpoczęcia obozu), odbiorca <b>IQ SERVICE Krzysztof Wróbel / ABC WSPINANIA</b>, numer konta <b>PL89 1140 2004 0000 3002 7291 9707</b>, tytuł przelewu „Obóz JURA [imię i nazwisko dziecka / dzieci]” i zasada zwrotu: rezygnacja do 30 dni przed obozem — zwrot całości, później zaliczka przepada. Mail mówi też, że pustą kartę kwalifikacyjną rodzic dostanie około dwóch tygodni przed obozem.</p>
+  <div class="box warn"><strong>Gdy czegoś brakuje w panelu.</strong>
+  <ul style="margin:4pt 0 0">
+    <li><b>Turnus i obóz bez ceny</b> — umowa <b>nie</b> idzie. Mail z danymi do przelewu idzie (bez pozostałej kwoty), a zapis dostaje notkę „Umowa nie poszła z danymi do przelewu” na kafelku „Maile, które nie doszły”. Wpisz cenę, pobierz umowę z zapisu i wyślij ją rodzicowi sam.</li>
+    <li><b>Brak pieczątki w „Ustawieniach obozów”</b> — umowa idzie z pustym miejscem na podpis organizatora, a zapis dostaje notkę „Umowa poszła bez podpisu organizatora”. Wybierz pieczątkę w ustawieniach i wyślij rodzicowi umowę pobraną z zapisu.</li>
+  </ul></div>
+</section>
+
+<section class="camp-section">
+  <h2>15. Zaliczka i dopłata</h2>
+  <h3>Termin zaliczki</h3>
+  <ul>
+    <li>Ustawia się sam przy pierwszym wysłaniu formularza: <b>7 dni od tego dnia</b>. Widzisz go w zapisie (pole „Termin wpłaty zaliczki”) i możesz go zmienić ręcznie — poprawka formularza przez rodzica go nie przesuwa. Przesunięty termin przesuwa też przypomnienie — ale tylko jeśli przypomnienie jeszcze nie wyszło; drugiego przypomnienia nie ma nigdy.</li>
+    <li>Dopóki rodzic nie wyśle formularza, terminu nie ma — i nie ma przypomnienia o zaliczce.</li>
+    <li>Termin nie zależy od tego, czy potwierdziłeś miejsce: „zgłoszony” i „potwierdzony” liczą się tak samo.</li>
+  </ul>
+  <h3>Gdy termin minie bez wpłaty</h3>
+  <ul>
+    <li>Rano o 8:00 rodzic dostaje <b>jedno</b> przypomnienie <span class="subj">„Przypomnienie o zaliczce — [dzieci]”</span> z danymi do przelewu (rodzeństwo — jedno na zgłoszenie). Drugiego nie będzie.</li>
+    <li>Dotyczy zapisów ze statusem „zgłoszony” albo „potwierdzony”, z adresem e-mail, na obóz, który się jeszcze nie zaczął.</li>
+    <li><b>Miejsce nie jest zwalniane.</b> Dziecko pojawia się na kafelku „Zaliczka po terminie” — co dalej, decydujesz Ty (telefon, przesunięcie terminu w zapisie albo „rezygnacja”).</li>
+  </ul>
+  <h3>Zaznaczanie wpłat</h3>
+  <ol>
+    <li>Gdy wpłynie zaliczka — w <span class="ui">Zapisach na obozy</span> ustaw dziecku <b>„zaliczka wpłacona”</b>. Rodzic dostaje <span class="subj">„Zaliczka wpłynęła: [dzieci]”</span> z kwotą, która została do zapłaty („Do zapłaty zostało 2000 zł — najpóźniej w dniu rozpoczęcia obozu”) i numerem konta.</li>
+    <li>Gdy wpłynie całość — <b>„opłacony”</b>. Przed pierwszym dniem obozu rodzic dostaje <span class="subj">„Obóz opłacony: [dziecko]”</span>; od pierwszego dnia — bez maila (tak jak przy kursach).</li>
+  </ol>
+  <div class="box campbox"><strong>Rodzeństwo: jeden mail o zaliczce, po zaznaczeniu ostatniego dziecka.</strong>
+  Dzieci z jednego zgłoszenia płacą jednym przelewem, a Ty zaznaczasz każde osobno. Mail „Zaliczka wpłynęła” wychodzi <b>dopiero, gdy zaznaczysz ostatnie dziecko</b> z miejscem z tego zgłoszenia — jeden, z imionami wszystkich i łączną kwotą. Panel mówi to w pytaniu: „Rodzic dostanie maila — przy rodzeństwie jednego, po zaznaczeniu ostatniego dziecka.”
+  <ul style="margin:4pt 0 0">
+    <li>Dziecko, któremu od razu ustawisz „opłacony”, nie wstrzymuje maila i nie ma go w nim ani w kwocie.</li>
+    <li>Jeśli dziecko, na które mail czekał, zrezygnuje, wróci na listę rezerwową albo jego zapis usuniesz — mail o zaliczce dla reszty wyśle poranne sprzątanie następnego dnia o 8:00 (nie od razu: rodzina, która rezygnuje w całości, nie dostanie „zaliczka wpłynęła” między dwiema rezygnacjami).</li>
+    <li>Ponowne ustawienie „zaliczka wpłacona” (np. z „opłacony” z powrotem) maila nie wysyła.</li>
+  </ul></div>
+  <p>W Moim koncie rodzic widzi przy każdym dziecku stan płatności: „Zaliczka 500 zł do [data]”, „Zaliczka wpłynęła. Do zapłaty zostało … zł” (tu kwota na jedno dziecko) albo „Opłacone w całości.”</p>
+  <p class="muted">Kwota w mailach liczy się z ceny turnusu (pole „Cena dla tego terminu”), a gdy jej nie ma — z ceny obozu. Bez żadnej ceny mail mówi tylko „resztę zapłać najpóźniej w dniu rozpoczęcia obozu”, bez kwoty.</p>
+</section>
+
+<section class="camp-section">
+  <h2>16. Statusy zapisu na obóz i maile</h2>
+  <p>Statusy są te same co przy kursach, ale przy obozie <b>potwierdzanie nie jest krokiem</b>: dziecko ma miejsce od zapisu, a termin zaliczki liczy się od umowy. Maile mówią o obozie i o dziecku, idą od nadawcy „ABC Wspinania · Obozy”, a odpowiedzi trafiają na skrzynkę obozową.</p>
+  <table>
+    <thead><tr><th style="width:28mm">Status</th><th>Kiedy go ustawić</th><th style="width:20mm">Zajmuje miejsce?</th><th style="width:62mm">Mail do rodzica po zmianie na ten status</th></tr></thead>
+    <tr><td><b>zgłoszony</b></td><td>ustawia się sam po zapisie przez stronę; zostaje aż do zaliczki</td><td>tak</td><td class="none">nie (z listy rezerwowej — tak, link do formularza, rozdział 17)</td></tr>
+    <tr><td><b>potwierdzony</b></td><td>niepotrzebny; możesz go użyć, jeśli chcesz dać rodzicowi znać, że wszystko gra</td><td>tak</td><td><b>tak</b> — „Miejsce potwierdzone: [dziecko]” (sama informacja)</td></tr>
+    <tr><td><b>zaliczka wpłacona</b></td><td>po wpłacie zaliczki</td><td>tak</td><td><b>tak</b> — „Zaliczka wpłynęła: [dzieci]” z kwotą do dopłaty; przy rodzeństwie jeden, po ostatnim dziecku (rozdział 15)</td></tr>
+    <tr><td><b>opłacony</b></td><td>po wpłacie całości</td><td>tak</td><td><b>tylko przed pierwszym dniem obozu</b> — „Obóz opłacony: [dziecko]”</td></tr>
+    <tr><td><b>lista rezerwowa</b></td><td>ustawia się sam, gdy brak miejsc</td><td>nie</td><td class="none">nie</td></tr>
+    <tr><td><b>rezygnacja</b></td><td>gdy rodzic rezygnuje albo odwołujesz zapis</td><td>nie — zwalnia miejsce</td><td><b>tak</b> — „Zapis anulowany: [dziecko]” (każde dziecko osobno)</td></tr>
+  </table>
+  <div class="box warn"><strong>Rezygnacja i pieniądze.</strong>
+  Strona nie liczy zwrotów. Zasada z umowy i maila: rezygnacja do 30 dni przed obozem — zwrot całości, później zaliczka przepada. Zwrot robisz sam.</div>
+</section>
+
+<section class="camp-section">
+  <h2>17. Lista rezerwowa na obozie</h2>
+  <p>Działa jak przy kursach (rozdział 8): gdy miejsce się zwolni, a ktoś czeka, na skrzynkę szkoły przychodzi <span class="subj">„Zwolniło się miejsce: [obóz], [daty]”</span> z kolejką. Nikt nie wskakuje sam.</p>
+  <p>Gdy przesuniesz dziecko z „lista rezerwowa” na status z miejscem, a rodzic nie wysłał jeszcze formularza, strona <b>sama</b> wyśle rodzicowi <span class="subj">„Zwolniło się miejsce: [dziecko] — formularz rejestracyjny”</span> z linkiem.</p>
+  <table>
+    <thead><tr><th style="width:56mm">Zmieniasz z „lista rezerwowa” na…</th><th>Rodzic dostaje</th></tr></thead>
+    <tr><td>„potwierdzony”</td><td>dwa maile: „Miejsce potwierdzone” i „Zwolniło się miejsce … — formularz rejestracyjny”</td></tr>
+    <tr><td>„zgłoszony”</td><td>jeden mail: „Zwolniło się miejsce … — formularz rejestracyjny”</td></tr>
+  </table>
+  <div class="box warn"><strong>Przy „zgłoszony” lista nie pyta.</strong>
+  Okienko „Zmienić status…?” pojawia się tylko przy statusach z rozdziału 16. Zmiana z „lista rezerwowa” na „zgłoszony” przechodzi bez pytania — a mail z linkiem do formularza i tak wychodzi. Gdy rodzic wysłał już formularz wcześniej, linku nie ma.</div>
+  <div class="box campbox"><strong>Dziecko z listy rezerwowej ma własny formularz i własną umowę.</strong>
+  Nawet jeśli jego rodzeństwo ma miejsce od początku i wypełniło już formularz. Dzięki temu umowa rodzeństwa się nie zmienia, a nowe dziecko dostaje osobny przelew (500 zł) i osobną umowę.</div>
+</section>
+
+<section class="camp-section">
+  <h2>18. Zapis obozowy przez telefon i rodzeństwo</h2>
+  <h3>Nowe dziecko przez telefon</h3>
+  <ol>
+    <li><span class="ui">Zapisy na obozy</span> → <span class="ui">Stwórz nowy</span>. Rodzaj zapisu ustawi się sam na „obóz” (bo zaczynasz z listy obozów).</li>
+    <li>Wybierz <b>Termin</b> (lista pokazuje tylko turnusy obozów) i <b>Status</b>.</li>
+    <li>Imię, nazwisko, telefon i e-mail — <b>rodzica</b>. Niżej, w „Uczestnik obozu (dziecko)” — imię i nazwisko <b>dziecka</b>.</li>
+    <li><span class="ui">Zapisz</span>.</li>
+    <li>Jeśli rodzic ma dostać formularz i umowę — w zapisie kliknij <span class="ui">Wyślij rodzicowi link do formularza</span>. <b>Bez tego kroku strona nic nie wyśle</b>: zapis dodany ręcznie nie wysyła maila, a przypomnienie o formularzu liczy się dopiero od wysłania linku.</li>
+  </ol>
+  <h3>Rodzeństwo dzwoni — „Zduplikuj”</h3>
+  <p>Gdy rodzic, który już zapisał dziecko, dzwoni, że chce dopisać drugie: otwórz zapis pierwszego dziecka → menu <span class="ui">⋮</span> w prawym górnym rogu → <span class="ui">Zduplikuj</span>. Kopia ma tego samego rodzica, kontakt i turnus. Zmień w niej imię dziecka i <span class="ui">Zapisz</span>.</p>
+  <p>Kopia <b>nie</b> przejmuje niczego, co należało do pierwszego dziecka: status wraca na „zgłoszony”, nie ma formularza, daty urodzenia, zgody na zdjęcia, terminu zaliczki, umowy ani notki o mailu. Potem — <span class="ui">Wyślij rodzicowi link do formularza</span>: link otworzy formularz tylko nowego dziecka (osobna umowa, osobny przelew).</p>
+  <p class="muted">Tak samo „Zduplikuj” działa na terminie: kopia turnusu nie przejmuje numeru z Kuratorium ani znacznika, że szkic maila przed obozem już powstał.</p>
+  <div class="box warn"><strong>Zapis bez adresu e-mail</strong> na obozie oznacza: żadnego linku do formularza, żadnej umowy, żadnych maili o wpłatach. Formularz i umowę załatwiasz wtedy na papierze. Umowę możesz pobrać z zapisu, ale bez formularza nie będzie w niej adresu rodzica.</div>
+</section>
+
+<section class="camp-section">
+  <h2>19. Faktura</h2>
+  <p>Strona faktur nie wystawia — wystawiasz je sam, w swoim programie (na firmę — przez KSeF). Strona zbiera do tego dane.</p>
+  <ul>
+    <li>Rodzic zaznacza w formularzu <b>„Potrzebuję faktury”</b>, a jeśli na firmę — <b>„Na firmę”</b> i wpisuje nazwę, NIP (sprawdzany, zapisywany bez kresek) i adres firmy.</li>
+    <li>W zapisie dziecka, po prawej, pojawia się ramka <b>Dane do faktury</b>: rodzic z adresem albo firma z NIP-em, dziecko, data urodzenia, turnus, wpis do rejestru organizatorów (CEOTIPT nr 10677) i numer obozu z Kuratorium.</li>
+    <li><b>Numer z Kuratorium</b> wpisujesz w turnusie (<span class="ui">Terminy</span> → turnus → pole „Numer zgłoszenia wypoczynku (Kuratorium)”), gdy Kuratorium przyjmie zgłoszenie. Dopóki go nie ma, ramka pokazuje link „wpisz w terminie obozu”.</li>
+  </ul>
+</section>
+
+<section class="camp-section">
+  <h2>20. Mail przed obozem i karta kwalifikacyjna</h2>
+  <p>Mail przed obozem różni się dla każdego turnusu (miejsce zbiórki, daty, godziny), dlatego strona go <b>nie wysyła sama</b> — przygotowuje szkic i przypomina Ci o nim.</p>
+  <h3>Co dzieje się samo</h3>
+  <ul>
+    <li><b>16 dni przed początkiem turnusu</b>, rano o 8:00 (liczbę dni zmienisz w „Ustawieniach obozów”), w <span class="ui">Wysyłkach</span> powstaje szkic <span class="subj">„Przed obozem: [obóz]”</span>: Twój standardowy tekst z nazwą obozu, listą rzeczy do spakowania i miejscami do uzupełnienia w nawiasach kwadratowych — [miejsce zbiórki], [link do mapy], [dzień i data], [godziny], [telefon]… Linia o śpiworze zostaje tylko przy obozie z zaznaczonym „Uczestnicy biorą własne śpiwory”.</li>
+    <li>Odbiorcy: rodzice dzieci <b>z miejscem</b> na tym turnusie (bez listy rezerwowej), jeden mail na adres. Zaznaczone jest „Dołącz kartę kwalifikacyjną (PDF)”.</li>
+    <li>Na skrzynkę obozową przychodzi <span class="subj">„Mail przed obozem czeka na uzupełnienie: [obóz], [daty]”</span> z przyciskiem <span class="ui">Otwórz szkic w panelu</span>.</li>
+    <li>Szkic powstaje <b>raz</b> na turnus. Turnus, na którym nikt nie ma miejsca, czeka — strona sprawdzi go znowu następnego ranka. Turnus dodany później niż 16 dni przed startem dostanie szkic najbliższego ranka.</li>
+  </ul>
+  <h3>Co robisz Ty</h3>
+  <ol>
+    <li>Otwórz szkic (przycisk w mailu albo <span class="ui">Wysyłki</span> → „Przed obozem: …”).</li>
+    <li>Uzupełnij wszystkie nawiasy. Możesz też zmienić dowolne zdanie albo całość, albo szkic usunąć.</li>
+    <li><span class="ui">Zapisz</span>, potem <span class="ui">Wyślij próbnie do mnie</span> — sprawdź mail i załącznik.</li>
+    <li><span class="ui">Wyślij</span>.</li>
+  </ol>
+  <div class="box campbox"><strong>Strona pilnuje nawiasów i karty.</strong>
+  <ul style="margin:4pt 0 0">
+    <li>Dopóki w temacie albo treści zostaje jakiś <b>[nawias]</b>, „Wyślij” odmawia: „Uzupełnij fragmenty w nawiasach: … — potem „Zapisz” i wyślij.” Dotyczy to każdej wysyłki, nie tylko przed obozem. „Wyślij próbnie do mnie” działa mimo nawiasów.</li>
+    <li>Gdy zaznaczone jest „Dołącz kartę kwalifikacyjną”, a w „Ustawieniach obozów” nie ma karty w PDF — „Wyślij” i „Wyślij próbnie” odmawiają z podpowiedzią.</li>
+    <li>Mail z kartą ma na samej górze ramkę „W ZAŁĄCZNIKU: PUSTA KARTA KWALIFIKACYJNA (PDF). Wydrukuj ją, wypełnij i przywieź na obóz.” — dokłada ją strona, nie wpisujesz jej sam. Bez zaznaczenia nie ma ani karty, ani ramki.</li>
+  </ul></div>
+  <p>Mail idzie od „ABC Wspinania · Obozy”; „Odpowiedz” u rodzica trafia na skrzynkę obozową. Tak samo każda wysyłka do turnusu obozu, którą napiszesz sam.</p>
+  <div class="box warn"><strong>Rodzic dziecka dopisanego po szkicu.</strong>
+  Lista odbiorców ustala się w chwili kliknięcia „Wyślij”, więc dziecko zapisane po powstaniu szkicu, ale przed wysłaniem, też dostanie mail. Dziecko zapisane <b>po</b> wysłaniu — już nie: wyślij mu kopię („Zduplikuj”, rozdział 23) albo napisz sam.</div>
+</section>
+
+<section class="camp-section">
+  <h2>21. Ustawienia obozów i dane obozu w panelu</h2>
+  <h3>Ustawienia obozów (menu: Ustawienia)</h3>
+  <table>
+    <thead><tr><th style="width:56mm">Pole</th><th>Do czego</th></tr></thead>
+    <tr><td><b>Pieczątka z podpisem do umowy</b></td><td>PNG albo JPG, najlepiej na białym tle. Wstawiana do każdej umowy. Bez niej umowy idą z pustym miejscem na podpis, a każdy zapis dostaje notkę na pulpicie. Usunięcie pliku w „Plikach prywatnych” czyści to pole — wtedy wybierz nowy plik tutaj.</td></tr>
+    <tr><td><b>Pusta karta kwalifikacyjna (PDF)</b></td><td>Dołączana do maila przed obozem. Gdy Kuratorium zmieni wzór — wgraj nowy plik i wybierz go tutaj.</td></tr>
+    <tr><td><b>Przypomnienie o mailu przed obozem — ile dni przed turnusem</b></td><td>Domyślnie 16 (od 1 do 60).</td></tr>
+    <tr><td><b>Część standardowa maila przed obozem</b></td><td>Tekst szkicu. Fragmenty w nawiasach kwadratowych uzupełniasz w szkicu. Pusta linia = nowy akapit, linia zaczynająca się od „- ” = punkt listy. Zmiana działa na szkice, które powstaną od teraz.</td></tr>
+  </table>
+  <p>Pieczątka i karta leżą w <span class="ui">Plikach prywatnych</span> — tych plików nie zobaczy nikt spoza panelu.</p>
+  <h3>Obóz i turnus — pola, które wpływają na zapisy</h3>
+  <ul>
+    <li><b>Obóz → Rodzaj pozycji</b> = „obóz” — bez tego nie ma zapisu przez stronę, formularza ani maila przed obozem.</li>
+    <li><b>Obóz → Cena</b> i <b>Turnus → Cena dla tego terminu</b> — cena turnusu wygrywa. Trafia do umowy i do kwoty dopłaty. Bez ceny umowa nie idzie (rozdział 14).</li>
+    <li><b>Obóz → Uczestnicy biorą własne śpiwory</b> — zmienia zapis w umowie i linię o śpiworze w szkicu maila przed obozem.</li>
+    <li><b>Turnus → Liczba miejsc</b> — liczenie miejsc i lista rezerwowa (rozdział 8).</li>
+    <li><b>Turnus → Numer zgłoszenia wypoczynku (Kuratorium)</b> — do danych do faktury (rozdział 19).</li>
+  </ul>
+</section>
+
+<section class="camp-section">
+  <h2>22. Turnus: Excel i formularze rejestracyjne</h2>
+  <p><b>Excel turnusu</b> (przycisk w turnusie albo link „Excel” na pulpicie) ma przy obozie własne kolumny: dziecko, data urodzenia, wzrost, uczulenia, leki, dieta, choroby, zgoda na zdjęcia, status, formularz, termin zaliczki, rodzic, telefon, e-mail, adres, faktura. To lista na obóz — <b>są w niej dane o zdrowiu</b>.</p>
+  <div class="box warn"><strong>Pobrany plik nie znika sam.</strong>
+  Dane o zdrowiu w panelu usuwają się miesiąc po obozie, ale Excel zapisany na Twoim komputerze — nie. Usuń go, gdy nie będzie potrzebny, i nie wysyłaj go mailem.</div>
+  <p><b>Formularze rejestracyjne</b> (menu: Zapisy) — dane z formularzy wszystkich dzieci: PESEL, wzrost, uczulenia, leki, dieta, choroby i treść zgód z datą. Najwygodniej oglądać je z zapisu dziecka (link <span class="ui">zobacz dane</span>). Usuwają się same miesiąc po zakończeniu obozu; zapis dziecka zostaje (dane do statystyk i rozliczeń — rozdział 28). Usunięcie zapisu dziecka usuwa też jego formularz.</p>
+  <h3>Moje konto rodzica</h3>
+  <p>Rodzic z kontem widzi przy każdym dziecku: imię dziecka i turnus, link <span class="ui">Wypełnij formularz rejestracyjny</span> albo <span class="ui">Popraw formularz</span>, <span class="ui">Pobierz umowę</span> (po wysłaniu) i stan płatności. Minione obozy są w Archiwum — bez linku do formularza i bez kwot.</p>
+</section>
+
+<!-- ============================ CZĘŚĆ III — WSPÓLNE ============================ -->
+
+<div class="part"><div class="label">Część III</div><div class="title">Wspólne</div></div>
+
 <section>
-  <h2>10. Wysyłki — wiadomość do grupy osób</h2>
-  <p>Zakładka <span class="ui">Wysyłki</span> służy do napisania jednej wiadomości do wielu osób naraz. Przykłady: godzina zbiórki dla grupy, zmiana miejsca, prognoza pogody, informacja o nowych terminach dla newslettera.</p>
+  <h2 style="margin-top:0">23. Wysyłki — wiadomość do grupy osób</h2>
+  <p>Zakładka <span class="ui">Wysyłki</span> (menu: Zapisy) służy do napisania jednej wiadomości do wielu osób naraz. Przykłady: godzina zbiórki dla grupy, zmiana miejsca, prognoza pogody, odwołanie terminu, nowe terminy dla newslettera.</p>
   <h3>Krok po kroku</h3>
   <ol>
     <li>Wejdź w <span class="ui">Wysyłki</span> i kliknij <span class="ui">Stwórz nowy</span>.</li>
     <li>Wpisz <b>Temat</b> i <b>Treść</b>. Nad treścią są przyciski: pogrubienie (B), kursywa (I), podkreślenie (U) i link. Pod literą „T” są nagłówki i listy.</li>
-    <li>W polu <b>Do kogo</b> wybierz: <i>zapisani na jeden termin</i> — potem wybierz termin; <i>wszyscy z nadchodzącymi zapisami</i> — każdy, kto ma zapis na kurs, który jeszcze się nie odbył; albo <i>newsletter (potwierdzone adresy)</i>.</li>
-    <li>Domyślnie wiadomość dostają tylko osoby z miejscem. Zaznacz <b>„Także lista rezerwowa”</b>, jeśli ma ją dostać też lista rezerwowa (np. przy odwołaniu terminu).</li>
-    <li><b>Kliknij <span class="ui">Zapisz</span>.</b> Dopiero wtedy z prawej pojawi się, do ilu osób pójdzie wiadomość, i przyciski wysyłki. Nic jeszcze nie wychodzi — to szkic, możesz go dokończyć później.</li>
-    <li>Kliknij <span class="ui">Wyślij próbnie do mnie</span> i sprawdź w swojej skrzynce, jak mail wygląda (w temacie będzie dopisek „[PRÓBA]”).</li>
+    <li>W polu <b>Do kogo</b> wybierz:
+      <ul>
+        <li><i>zapisani na jeden termin</i> — potem wybierz termin (kursu albo turnus obozu);</li>
+        <li><i>wszyscy z nadchodzącymi zapisami</i> — każdy, kto ma zapis na termin, który zaczyna się dziś albo później i ma status „zapisy otwarte” albo „brak miejsc”. <b>Kursanci i rodzice z obozów razem</b>;</li>
+        <li><i>newsletter (potwierdzone adresy)</i>.</li>
+      </ul></li>
+    <li>Domyślnie wiadomość dostają tylko osoby z miejscem. Zaznacz <b>„Także lista rezerwowa”</b>, jeśli ma ją dostać też lista rezerwowa (np. przy odwołaniu terminu). Osoby z rezygnacją nie dostają wysyłek nigdy.</li>
+    <li><b>Kliknij <span class="ui">Zapisz</span>.</b> Dopiero wtedy pojawi się, do ilu osób pójdzie wiadomość, i przyciski wysyłki. Nic jeszcze nie wychodzi — to szkic, możesz go dokończyć później.</li>
+    <li>Kliknij <span class="ui">Wyślij próbnie do mnie</span> i sprawdź w swojej skrzynce (adres Twojego konta panelu), jak mail wygląda — w temacie będzie „[PRÓBA]”.</li>
     <li>Kliknij <span class="ui">Wyślij</span>. Panel jeszcze raz zapyta, do ilu osób wysłać — potwierdź.</li>
   </ol>
-  <figure><img src="instrukcja-zapisy/wysylka-szkic.jpg" alt=""><figcaption>Zapisana wysyłka — z prawej liczba odbiorców i przyciski.</figcaption></figure>
+  <figure><img src="instrukcja-zapisy/wysylka-szkic.jpg" alt=""><figcaption>Zapisana wysyłka — liczba odbiorców i przyciski.</figcaption></figure>
+  <div class="box do"><strong>Jeden mail na adres.</strong>
+  Jeśli pod jednym adresem jest kilka zapisów (para na kursie, rodzeństwo na obozie, rodzic z dwoma turnusami), ten adres dostaje jedną wiadomość. Zapisy bez adresu e-mail są pomijane.</div>
 </section>
 
 <section>
   <div class="box warn"><strong>Najpierw „Zapisz”, potem „Wyślij” — panel tego pilnuje.</strong>
-  Wysyła się zawsze ostatnia ZAPISANA wersja. Jeśli coś zmienisz i nie zapiszesz (np. dopiszesz wersję angielską), przyciski wysyłki zrobią się szare, a nad nimi pojawi się czerwony napis „Masz niezapisane zmiany”. Kliknij <span class="ui">Zapisz</span> — przyciski wrócą, a liczba odbiorców się odświeży.</div>
+  Wysyła się zawsze ostatnia ZAPISANA wersja. Jeśli coś zmienisz i nie zapiszesz, przyciski wysyłki zrobią się szare, a nad nimi pojawi się napis „Masz niezapisane zmiany”. Kliknij <span class="ui">Zapisz</span> — przyciski wrócą, a liczba odbiorców się odświeży.</div>
   <figure><img src="instrukcja-zapisy/wysylka-niezapisane.jpg" alt=""><figcaption>Zmieniony temat, jeszcze niezapisany — wysyłka zablokowana.</figcaption></figure>
   <h3>Wersja angielska</h3>
-  <p>Pod treścią jest rozwijane pole <b>Wersja angielska (opcjonalnie)</b>. Jeśli wpiszesz w nim temat i treść po angielsku, osoby z ustawionym językiem angielskim dostaną tę wersję. Jeśli jej nie wpiszesz — dostaną polską. Panel przed wysłaniem powie, ile jest takich osób.</p>
-</section>
-
-<section>
+  <p>Pod treścią jest rozwijane pole <b>Wersja angielska (opcjonalnie)</b>. Jeśli wpiszesz w nim temat <b>i</b> treść po angielsku, osoby z językiem angielskim dostaną tę wersję. Jeśli nie — dostaną polską. Panel przed wysłaniem powie, ile jest takich osób („W tym 1 po angielsku”).</p>
+  <h3>Kto wysyła i dokąd idą odpowiedzi</h3>
+  <ul>
+    <li>Wysyłka do turnusu obozu — od „ABC Wspinania · Obozy”, odpowiedzi na skrzynkę obozową.</li>
+    <li>Każda inna — od „ABC Wspinania”, odpowiedzi na skrzynkę szkoły.</li>
+    <li>Pod treścią strona dopisuje drobnym drukiem, dlaczego ktoś dostał wiadomość (zapis na termin, nadchodzący kurs albo newsletter). Newsletter ma też link „Wypisz się z newslettera”; wysyłki do zapisanych go nie mają — to informacja o kursie, nie reklama.</li>
+  </ul>
   <h3>Po wysłaniu</h3>
-  <p>Maile wychodzą partiami — przy kilkunastu osobach to kilka sekund. Z prawej widać postęp: „Wysłana: 12 z 12”. Na dole tabela <b>Odbiorcy</b>: kto dostał, a do kogo mail nie doszedł i dlaczego.</p>
-  <figure><img src="instrukcja-zapisy/wysylka-wyslana.jpg" alt=""><figcaption>Wysyłka po wysłaniu — postęp z prawej, tabela odbiorców na dole.</figcaption></figure>
-  <p>Kto odpowie na wysyłkę — odpowiedź trafi do Ciebie. Lista odbiorców ustala się w momencie kliknięcia „Wyślij”: ktoś, kto zapisze się minutę później, tej wiadomości już nie dostanie.</p>
+  <p>Maile wychodzą partiami po 20, co około 20 sekund — przy kilkunastu osobach to chwila. Widać postęp: „Wysyłka trwa”, potem „Wysłana” z liczbą wysłanych. Na dole tabela <b>Odbiorcy</b>: kto dostał, a do kogo mail nie doszedł i dlaczego.</p>
+  <figure><img src="instrukcja-zapisy/wysylka-wyslana.jpg" alt=""><figcaption>Wysyłka po wysłaniu — postęp i tabela odbiorców.</figcaption></figure>
+  <ul>
+    <li><b>Lista odbiorców ustala się w chwili kliknięcia „Wyślij”</b>: ktoś, kto zapisze się minutę później, tej wiadomości nie dostanie. Ktoś, kto w tym czasie wypisze się z newslettera — też nie.</li>
+    <li><b>Gdy skończy się dzienny limit maili</b>, wysyłka sama się wstrzyma i spróbuje znowu za godzinę, aż wyjdzie. Gdy zawiedzie połączenie — strona próbuje jeszcze kilka razy co 10 minut. Zły adres odbiorcy to błąd tylko tego wiersza.</li>
+  </ul>
   <h3>Podobna wiadomość jeszcze raz — „Zduplikuj”</h3>
-  <p>Wysłanej wiadomości nie da się już zmienić — zostaje taka, jaką ludzie dostali. Żeby wysłać podobną, otwórz menu z trzema kropkami (obok „Zapisz”) i wybierz <span class="ui">Zduplikuj</span> — powstanie kopia do edycji.</p>
-  <p>Kopia <b>nie wyjdzie od razu</b>: „Wyślij” jest zablokowane, a panel prosi, żebyś najpierw sprawdził treść i odbiorców. Zmień, co trzeba, i kliknij <span class="ui">Zapisz</span> — albo, jeśli wszystko się zgadza, <span class="ui">Sprawdzone — odblokuj wysyłkę</span>. To zabezpieczenie przed wysłaniem tej samej wiadomości drugi raz jednym kliknięciem. „Wyślij próbnie do mnie” działa od razu.</p>
+  <p>Wysłanej wiadomości nie da się już zmienić — zostaje taka, jaką ludzie dostali. Żeby wysłać podobną, otwórz menu <span class="ui">⋮</span> (obok „Zapisz”) i wybierz <span class="ui">Zduplikuj</span> — powstanie kopia do edycji, z wyzerowanymi licznikami.</p>
+  <p>Kopia <b>nie wyjdzie od razu</b>: „Wyślij” jest zablokowane, a panel prosi, żebyś sprawdził treść i odbiorców. Zmień, co trzeba, i kliknij <span class="ui">Zapisz</span> — albo, jeśli wszystko się zgadza, <span class="ui">Sprawdzone — odblokuj wysyłkę</span>. To zabezpieczenie przed wysłaniem tej samej wiadomości drugi raz jednym kliknięciem. „Wyślij próbnie do mnie” działa od razu.</p>
   <figure><img src="instrukcja-zapisy/wysylka-kopia.jpg" alt=""><figcaption>Kopia wysyłki czeka na sprawdzenie.</figcaption></figure>
 </section>
 
 <section>
-  <h2>11. Newsletter</h2>
-  <p>Na dole każdej strony jest pole zapisu na newsletter. Po wpisaniu adresu osoba dostaje maila z prośbą o potwierdzenie i dopiero po kliknięciu w link (i przycisk „Potwierdzam zapis”) jest zapisana. To chroni przed wpisaniem cudzego adresu albo zasypaniem listy fałszywymi adresami przez boty.</p>
+  <h2>24. Newsletter</h2>
+  <p>Na dole każdej strony jest pole zapisu na newsletter. Po wpisaniu adresu osoba dostaje maila <span class="subj">„Potwierdź zapis na newsletter”</span> i dopiero po kliknięciu w link i przycisk <span class="ui">Potwierdzam zapis</span> jest zapisana. To chroni przed wpisaniem cudzego adresu i przed botami.</p>
+  <ul>
+    <li>Ten sam adres wpisany ponownie w ciągu 10 minut — drugi mail nie idzie. Później — idzie ten sam link jeszcze raz.</li>
+    <li>Adres już zapisany (potwierdzony) — nic się nie dzieje, mail nie idzie. Strona za każdym razem odpowiada tak samo, żeby nikt nie sprawdził, czy cudzy adres jest na liście.</li>
+    <li>Adres wypisany wcześniej, który zapisze się znowu — musi potwierdzić od nowa.</li>
+    <li>Zapis ze stopki strony ma zawsze język polski. Angielski możesz ustawić ręcznie w panelu, w adresie.</li>
+  </ul>
   <p>Adresy są w zakładce <span class="ui">Newsletter</span> (grupa „Kontakt”):</p>
   <figure><img src="instrukcja-zapisy/newsletter.jpg" alt=""><figcaption>Lista adresów newslettera.</figcaption></figure>
   <table>
     <thead><tr><th style="width:42mm">Status</th><th>Co znaczy</th></tr></thead>
     <tr><td>czeka na potwierdzenie</td><td>osoba się zapisała, ale nie kliknęła jeszcze w link. Nie dostaje wysyłek. Po 7 dniach adres znika sam.</td></tr>
     <tr><td>zapisany</td><td>potwierdzony — dostaje wysyłki do newslettera</td></tr>
-    <tr><td>wypisany</td><td>osoba się wypisała. Adres zostaje jako dowód, że i kiedy wycofała zgodę — nie usuwaj go.</td></tr>
+    <tr><td>wypisany</td><td>osoba się wypisała. Adres zostaje z datą jako dowód, że wycofała zgodę — nie usuwaj go.</td></tr>
   </table>
-  <p>W każdym newsletterze na dole jest link „Wypisz się z newslettera”, a w Gmailu i innych skrzynkach — przycisk „Wypisz się” obok nadawcy. Wypisanie działa od razu.</p>
-  <div class="box warn"><strong>Adresów do newslettera nie dodaje się ręcznie</strong> — każdy musi zapisać się sam i potwierdzić. Inaczej nie mamy dowodu zgody.</div>
-  <p>Newsletter wysyłasz przez <span class="ui">Wysyłki</span> (rozdział 10), wybierając „newsletter (potwierdzone adresy)”.</p>
-
-  <h2>12. Maile, które nie doszły</h2>
-  <p>Czasem mail do kursanta nie wyjdzie — najczęściej przez literówkę w adresie albo dlatego, że skończył się dzienny limit maili (rozdział 16). Zapis i tak jest w panelu, ale kursant nie wie, że np. ma potwierdzone miejsce.</p>
-  <p>Takie zapisy liczy kafelek <b>„Maile, które nie doszły”</b> na pulpicie. W samym zapisie, z prawej, zobaczysz, który mail i dlaczego:</p>
+  <p>W każdym newsletterze na dole jest link „Wypisz się z newslettera” (otwiera stronę z przyciskiem <span class="ui">Wypisz mnie</span> — samo otwarcie niczego nie zmienia), a w Gmailu i innych skrzynkach — przycisk „Anuluj subskrypcję” obok nadawcy. Wypisanie działa od razu i nie wysyła żadnego maila.</p>
+  <div class="box warn"><strong>Adresów do newslettera nie dodaje się ręcznie</strong> — każdy musi zapisać się sam i potwierdzić. Inaczej nie mamy dowodu zgody. Zapis na kurs albo obóz nie zapisuje na newsletter.</div>
+  <p>Newsletter wysyłasz przez <span class="ui">Wysyłki</span> (rozdział 23), wybierając „newsletter (potwierdzone adresy)”.</p>
 </section>
 
 <section>
+  <h2>25. Maile, które nie doszły</h2>
+  <p>Czasem mail do kursanta albo rodzica nie wyjdzie — najczęściej przez literówkę w adresie albo dlatego, że skończył się dzienny limit maili (rozdział 29). Zapis i tak jest w panelu, ale ta osoba nie wie, że np. ma potwierdzone miejsce.</p>
+  <p>Takie zapisy liczy kafelek <b>„Maile, które nie doszły”</b> na pulpicie. W samym zapisie, po prawej, widzisz pola „Mail, który nie doszedł” (który mail i dlaczego, prostymi słowami), „Kiedy” i „Załatwione”:</p>
   <figure><img src="instrukcja-zapisy/mail-nie-doszedl.jpg" alt=""><figcaption>Zapis z mailem, który nie doszedł — przyczyna i pole „Załatwione” z prawej.</figcaption></figure>
   <p><b>Co zrobić:</b></p>
   <ol>
     <li>Zadzwoń albo napisz do tej osoby sam. Jeśli w adresie jest literówka — popraw go w zapisie.</li>
     <li>Zaznacz <b>„Załatwione”</b> i kliknij <span class="ui">Zapisz</span>. Zapis zniknie z kafelka.</li>
   </ol>
+  <p>Kolejny problem z mailem przy tym samym zapisie dopisuje się do poprzedniego, dopóki nie zaznaczysz „Załatwione”; po zaznaczeniu następny zaczyna od nowa.</p>
   <div class="box do"><strong>Dlaczego nie ma przycisku „wyślij ponownie”?</strong>
-  Bo najczęstszą przyczyną jest literówka w adresie (np. <code>gmial.com</code>) — drugi mail na ten sam zły adres też nie dojdzie. Telefon jest w każdym zapisie, więc najpewniej jest zadzwonić i przy okazji poprawić adres. Gdyby przyczyną był limit maili, treść i tak przekażesz szybciej sam.</div>
-  <p>Dotyczy to maili: potwierdzenie zapisu, lista rezerwowa, zmiana statusu (potwierdzony, opłacony przed kursem, rezygnacja) i link do ustawienia hasła przy zakładaniu konta. Wysyłki z zakładki <span class="ui">Wysyłki</span> mają własną tabelę „Odbiorcy” z błędami (rozdział 10). Gdy skończy się dzienny limit, wysyłka sama się wstrzyma i dokończy, gdy limit się odnowi.</p>
-
-  <h2>13. Konta uczestników</h2>
-  <p>Kursanci mogą założyć konto na stronie (ikonka osoby w nagłówku albo przy zapisie). Konto daje im szybszy zapis — bez wpisywania danych — i podgląd swoich zapisów w Moim koncie.</p>
+  Bo najczęstszą przyczyną jest literówka w adresie (np. <code>gmial.com</code>) — drugi mail na ten sam zły adres też nie dojdzie. Telefon jest w każdym zapisie, więc najpewniej jest zadzwonić i przy okazji poprawić adres. Przy obozie link do formularza wyślesz ponownie przyciskiem w zapisie (rozdział 13).</div>
+  <h3>Co trafia na ten kafelek</h3>
   <ul>
-    <li>Konta są w zakładce <span class="ui">Uczestnicy</span>. To podgląd — kursanci zakładają je i zmieniają sami.</li>
-    <li><b>Konto trzeba potwierdzić linkiem z maila.</b> Kto nie dostał maila, klika pod logowaniem „Nie dotarł mail z potwierdzeniem?” i dostaje nowy link. Niepotwierdzone konto znika samo po 7 dniach.</li>
-    <li><b>Hasła nie widzisz i nie musisz go znać.</b> Kursant, który zapomniał hasła, klika na stronie logowania „Nie pamiętam hasła” i dostaje link.</li>
-    <li><b>Kursant może sam usunąć swoje konto</b> w Moim koncie. Jego zapisy na kursy zostają u Ciebie (już bez konta) — usunięcie konta nie odwołuje zapisu.</li>
-    <li>Zapis zrobiony bez konta sam „przypnie się” do konta, gdy ta osoba założy je na ten sam adres i go potwierdzi.</li>
+    <li><b>Kursy:</b> potwierdzenie zapisu, „lista rezerwowa”, maile o statusie (potwierdzony, opłacony przed kursem, rezygnacja), link do ustawienia hasła przy zakładaniu konta z zapisu.</li>
+    <li><b>Obozy:</b> mail po zapisie z linkiem do formularza, link do formularza (z panelu, po przesunięciu z listy rezerwowej, przypomnienie), mail z danymi do przelewu, przypomnienie o zaliczce, maile o statusie (potwierdzony, zaliczka, opłacony, rezygnacja), link do ustawienia hasła przy zakładaniu konta z zapisu, a także dwie notki, które nie są błędem wysyłki: „Umowa nie poszła z danymi do przelewu” (brak ceny) i „Umowa poszła bez podpisu organizatora” (brak pieczątki).</li>
   </ul>
+  <p class="muted">Nie trafiają tu: maile do Ciebie (np. „Nowy zapis”), maile konta (potwierdzenie adresu, nowe hasło), newsletter i wysyłki — wysyłki mają własną tabelę „Odbiorcy” (rozdział 23).</p>
 </section>
 
 <section>
-  <h2>14. Wiadomości z formularza kontaktowego</h2>
-  <p>Gdy ktoś napisze przez formularz na stronie <span class="ui">Kontakt</span>, dostajesz maila „Nowa wiadomość”. Wystarczy na niego odpowiedzieć — odpowiedź trafi wprost do tej osoby.</p>
-  <p>W formularzu osoba wybiera temat: <b>Kurs</b> (wtedy wybiera też, który — z listy kursów na stronie), <b>Obóz lub wyjazd</b> albo <b>Inna sprawa</b>. Temat widzisz w mailu i w panelu.</p>
-  <p>Wszystkie wiadomości są też w zakładce <span class="ui">Wiadomości</span> (grupa „Kontakt”). Status — „nowa”, „w toku”, „załatwiona” — zmieniasz prosto z listy, jednym kliknięciem, bez pytania (nikt nie dostaje wtedy maila). Nowe liczy kafelek na pulpicie.</p>
-  <figure><img src="instrukcja-zapisy/wiadomosci.jpg" alt=""><figcaption>Wiadomości — status zmienisz w kolumnie „Status”.</figcaption></figure>
-  <p>Wiadomości nie dodaje się w panelu ręcznie — przychodzą tylko z formularza. Po 12 miesiącach znikają same (rozdział 15).</p>
+  <h2>26. Konta uczestników i rodziców</h2>
+  <p>Kursanci i rodzice mogą założyć konto na stronie (ikonka osoby w nagłówku albo przy zapisie). Konto daje szybszy zapis — bez wpisywania danych — i podgląd swoich zapisów w Moim koncie (Nadchodzące i Archiwum). Konta są w zakładce <span class="ui">Uczestnicy</span>.</p>
+  <ul>
+    <li><b>Konto trzeba potwierdzić linkiem z maila</b> <span class="subj">„Potwierdź adres e-mail”</span> (link działa 48 godzin; działa tylko najnowszy). Kto nie dostał maila, klika pod logowaniem „Nie dotarł mail z potwierdzeniem?” i dostaje nowy link. Niepotwierdzone konto znika samo po 7 dniach od ostatniego linku.</li>
+    <li><b>Rejestracja na adres, który już ma konto</b> — strona mówi „sprawdź skrzynkę” jak zawsze, a właściciel adresu dostaje <span class="subj">„Masz już konto”</span> z przyciskiem logowania i linkiem do nowego hasła. Jego hasło się nie zmienia.</li>
+    <li><b>Hasła nie widzisz i nie musisz go znać.</b> Kto zapomniał hasła, klika na stronie logowania „Nie pamiętam hasła” i dostaje <span class="subj">„Ustaw nowe hasło”</span> (link działa 2 godziny i tylko raz). Dla adresu bez konta strona odpowiada tak samo, ale mail nie idzie.</li>
+    <li><b>Blokada po 5 złych hasłach:</b> po pięciu nieudanych próbach logowanie blokuje się na 15 minut — także dobrym hasłem. Strona nie mówi, że konto jest zablokowane (żeby obcy nie dowiedział się, że takie konto istnieje). Po 15 minutach działa samo.</li>
+    <li><b>Konto zakłada się też przy zapisie</b> („Załóż mi konto z tych danych”) — wtedy przychodzi <span class="subj">„Ustaw hasło do konta”</span>; ustawienie hasła potwierdza adres. Jeśli adres ma już niepotwierdzone konto — przychodzi nowy link potwierdzający. Jeśli ma potwierdzone — nic; zapis przypnie się przy najbliższym logowaniu.</li>
+    <li><b>W Moim koncie kursant sam poprawia</b> imię, nazwisko i telefon (nowe dane trafiają do jego <b>nadchodzących</b> zapisów; minione i z rezygnacją zostają bez zmian, bez żadnych maili) i wybiera język maili („Wiadomości od nas”). <b>Adresu e-mail sam nie zmieni</b> — o to prosi Ciebie.</li>
+    <li><b>Kursant może sam usunąć konto</b> (Moje konto → Usuń konto, z hasłem). Dostaje mail <span class="subj">„Konto usunięte”</span>. Jego zapisy — na kursy i obozy — zostają u Ciebie, już bez konta; <b>usunięcie konta nie odwołuje zapisu</b> i nie zwalnia miejsca. Jeśli kiedyś założy konto na ten sam adres, stare zapisy przypną się znowu.</li>
+  </ul>
+  <figure class="narrow"><img src="instrukcja-zapisy/konto.jpg" alt="" style="width:60%"><figcaption>Moje konto — zapisy, dane i język maili.</figcaption></figure>
+  <div class="box warn"><strong>Zmiana adresu e-mail w zapisie albo w koncie</strong> w panelu nie wysyła żadnego maila i nie sprawdza nowego adresu. Zmiana adresu w zapisie nie zmienia konta, a zmiana w koncie — zapisów. Wpisz go dokładnie.</div>
+</section>
 
-  <h2>15. Dane osobowe — prośby z RODO i co znika samo</h2>
+<section>
+  <h2>27. Wiadomości z formularza kontaktowego</h2>
+  <p>Gdy ktoś napisze przez formularz na stronie <span class="ui">Kontakt</span>, na skrzynkę szkoły przychodzi <span class="subj">„Nowa wiadomość: [osoba] — [temat]”</span> z treścią, adresem, telefonem i przyciskiem <span class="ui">Otwórz w panelu</span>. Wystarczy na niego odpowiedzieć — odpowiedź trafi wprost do tej osoby. Osoba pisząca nie dostaje żadnego maila — widzi podziękowanie na stronie.</p>
+  <p>W formularzu osoba wybiera temat: <b>Kurs</b> (wtedy też który), <b>Obóz lub wyjazd</b> albo <b>Inna sprawa</b>. Ze strony kursu, obozu albo wyjazdu temat jest wybrany z góry.</p>
+  <p>Wszystkie wiadomości są w zakładce <span class="ui">Wiadomości</span> (grupa „Kontakt”). Status — „nowa”, „w toku”, „załatwiona” — zmieniasz prosto z listy, jednym kliknięciem, bez pytania (nikt nie dostaje wtedy maila). Nowe liczy kafelek na pulpicie.</p>
+  <figure><img src="instrukcja-zapisy/wiadomosci.jpg" alt=""><figcaption>Wiadomości — status zmienisz w kolumnie „Status”.</figcaption></figure>
+  <p>Wiadomości nie dodaje się w panelu ręcznie — przychodzą tylko z formularza. Po 12 miesiącach znikają same (rozdział 28).</p>
+</section>
+
+<section>
+  <h2>28. Dane osobowe — prośby z RODO i co znika samo</h2>
   <p>Każdy może poprosić o <b>kopię swoich danych</b> albo o ich <b>usunięcie</b>. Oba załatwisz sam, w zakładce <span class="ui">Uczestnicy</span> — nad listą jest rozwijane pole <b>„Dane osoby — kopia albo usunięcie (prośby z RODO)”</b>.</p>
   <ol>
-    <li>Rozwiń je, wpisz adres e-mail osoby i kliknij <span class="ui">Sprawdź, co mamy</span>. Zobaczysz, co jest pod tym adresem: konto, zapisy, wiadomości, newsletter. Nic się jeszcze nie usuwa.</li>
-    <li><b>Kopia:</b> <span class="ui">Pobierz kopię danych do wysłania osobie</span>. Pobierze się plik, który otwiera się w przeglądarce jako czytelna strona „Twoje dane w ABC Wspinania” — po polsku, z datami. Ten plik wysyłasz osobie w odpowiedzi na jej prośbę (albo drukujesz do PDF). Link „Wersja JSON” obok jest tylko na rzadką prośbę o przeniesienie danych do innej firmy.</li>
-    <li><b>Usunięcie:</b> przepisz adres jeszcze raz w polu niżej i kliknij <span class="ui">Usuń wszystkie dane tej osoby na zawsze</span>. Znika wszystko pod tym adresem — także nadchodzący zapis (bez maila do tej osoby; miejsce się zwalnia). Tego nie da się cofnąć.</li>
+    <li>Rozwiń je, wpisz adres e-mail osoby i kliknij <span class="ui">Sprawdź, co mamy</span>. Zobaczysz, co jest pod tym adresem: konto, zapisy na kursy i obozy, wiadomości, newsletter. Nic się jeszcze nie usuwa.</li>
+    <li><b>Kopia:</b> <span class="ui">Pobierz kopię danych do wysłania osobie</span>. Pobierze się plik, który otwiera się w przeglądarce jako czytelna strona „Twoje dane w ABC Wspinania” — po polsku, z datami, bez hasła. Przy obozie są w niej też formularze rejestracyjne dzieci (PESEL, zdrowie), adres i dane do faktury. Ten plik wysyłasz osobie w odpowiedzi na jej prośbę (albo drukujesz do PDF). Link „Wersja JSON” obok jest tylko na rzadką prośbę o przeniesienie danych do innej firmy.</li>
+    <li><b>Usunięcie:</b> przepisz adres jeszcze raz w polu niżej (z literówką przycisk się nie włączy) i kliknij <span class="ui">Usuń wszystkie dane tej osoby na zawsze</span>. Znika wszystko pod tym adresem: konto, wszystkie zapisy (także nadchodzące — miejsca się zwalniają), formularze rejestracyjne, wiadomości, adres w newsletterze i ślady w wysyłkach. Osoba <b>nie</b> dostaje o tym maila. Tego nie da się cofnąć. Konta panelu nie są ruszane.</li>
   </ol>
   <figure><img src="instrukcja-zapisy/dane-osoby.jpg" alt=""><figcaption>Dane osoby — najpierw sprawdzenie, potem kopia albo usunięcie.</figcaption></figure>
+  <div class="box warn"><strong>Zapis telefoniczny bez adresu</strong> nie znajdzie się po adresie e-mail. Taki zapis usuwasz z listy zapisów: otwórz go → menu <span class="ui">⋮</span> → <span class="ui">Usuń</span>. Kopie zapasowe strony z usuniętymi danymi znikną same po 40 dniach — to też jest w polityce prywatności.</div>
+  <h3>Co znika samo — nic nie musisz pilnować</h3>
+  <table>
+    <thead><tr><th style="width:62mm">Co</th><th>Kiedy</th></tr></thead>
+    <tr><td>Niepotwierdzone konto</td><td>po 7 dniach od wysłania ostatniego linku</td></tr>
+    <tr><td>Niepotwierdzony zapis na newsletter</td><td>po 7 dniach</td></tr>
+    <tr><td>Wiadomości z formularza kontaktowego</td><td>po 12 miesiącach</td></tr>
+    <tr><td>Formularze rejestracyjne obozów (PESEL, wzrost, zdrowie)</td><td>miesiąc po ostatnim dniu obozu</td></tr>
+    <tr><td>Dane osobowe w zapisach na kursy i obozy</td><td>1 stycznia, 5 lat po końcu roku, w którym był kurs lub obóz (kurs z 2026 — 1 stycznia 2032). Zapis zostaje w statystykach — termin, status, data zapisu — ale bez imion, nazwisk, adresu, telefonu, notatek, adresu domowego i danych do faktury. Zapisy osób, które mają konto, zostają, dopóki konto istnieje.</td></tr>
+    <tr><td>Kopie zapasowe strony</td><td>po 40 dniach</td></tr>
+  </table>
+  <p>Wypisani z newslettera zostają celowo — to dowód wycofania zgody (rozdział 24). Wszystko to opisuje polityka prywatności na stronie (link na dole każdej strony). Usuwanie danych nie wysyła nikomu maila.</p>
 </section>
 
 <section>
-  <div class="box warn"><strong>Zapis telefoniczny bez adresu</strong> nie znajdzie się po adresie e-mail. Taki zapis usuwasz z listy <span class="ui">Zapisy</span>: otwórz go → menu z trzema kropkami → <span class="ui">Usuń</span>.</div>
-  <h3>Co znika samo — nic nie musisz pilnować</h3>
-  <table>
-    <thead><tr><th>Co</th><th>Kiedy</th></tr></thead>
-    <tr><td>Niepotwierdzone konto</td><td>po 7 dniach od wysłania linku</td></tr>
-    <tr><td>Niepotwierdzony zapis na newsletter</td><td>po 7 dniach</td></tr>
-    <tr><td>Wiadomości z formularza kontaktowego</td><td>po 12 miesiącach</td></tr>
-    <tr><td>Dane osobowe w zapisach na kursy</td><td>5 lat po końcu roku, w którym był kurs (1 stycznia). Zapis zostaje w statystykach — termin i status — ale bez imienia, nazwiska, adresu i telefonu. Zapisy osób, które mają konto, zostają, dopóki konto istnieje.</td></tr>
-    <tr><td>Kopie zapasowe strony</td><td>po 40 dniach</td></tr>
+  <h2>29. Ważne rzeczy o mailach</h2>
+  <ul>
+    <li><b>Maile wychodzą automatycznie z adresu przeznaczonego tylko do wysyłki</b> (dziś <code>zapisy@szkolawspinaczkowa.pl</code>). Na ten adres nikt nie odpisuje — każdy mail jest ustawiony tak, że „Odpowiedz” trafia do właściwej osoby: w mailach do kursantów — na skrzynkę szkoły, w obozowych — na skrzynkę obozową, w mailach do Ciebie o zapisie albo wiadomości — do osoby, która się zapisała albo napisała.</li>
+    <li><b>Nazwa nadawcy:</b> maile obozowe przychodzą od <b>„ABC Wspinania · Obozy”</b> (także „Ustaw hasło do konta” po zapisie na obóz i wysyłki do turnusów obozów), pozostałe od <b>„ABC Wspinania”</b>.</li>
+    <li><b>Dokąd przychodzą maile do szkoły:</b>
+      <ul>
+        <li>skrzynka szkoły — nowy zapis na kurs, wiadomość z formularza, „Zwolniło się miejsce” (kursy <b>i</b> obozy);</li>
+        <li>skrzynka obozowa — nowy zapis na obóz, formularz rejestracyjny (nowy i poprawiony), szkic maila przed obozem.</li>
+      </ul></li>
+    <li><b>Na górze każdego maila jest logo szkoły</b> i nazwa ABC Wspinania.</li>
+    <li><b>Język:</b> maile idą po polsku. Po angielsku dostaje je tylko osoba, która przestawi język w Moim koncie (albo której przestawisz go w panelu — w koncie, w zapisie albo w adresie newslettera). Język przeglądarki nie ma znaczenia. Maile do Ciebie są zawsze po polsku.</li>
+    <li><b>Limit: 300 maili dziennie</b> — razem wszystkie maile strony (zapisy, potwierdzenia, przypomnienia, wysyłki). Gdyby się skończył: wysyłka z „Wysyłek” wstrzyma się i dokończy sama; maile do kursantów i rodziców o ich zapisach trafią do kafelka „Maile, które nie doszły”; pozostałe (konto, newsletter, maile do Ciebie) po prostu nie wyjdą.</li>
+    <li><b>Maile mogą czasem trafić do spamu</b>, zwłaszcza na początku. Jeśli ktoś mówi, że nic nie dostał — poproś, żeby zajrzał do folderu Spam (w Gmailu także do zakładki Oferty).</li>
+    <li><b>Mail nie jest wysyłany „zamiast” zapisu, tylko po nim.</b> Jeśli wysyłka maila się nie uda, zapis, status, formularz czy wiadomość i tak są zapisane w panelu.</li>
+  </ul>
+  <div class="box warn"><strong>Dziś, w czasie testów.</strong>
+  Maile „do szkoły” — kursowe i obozowe — przychodzą na moją skrzynkę, a ta przekazuje je dalej na biuro@abcwspinania.info. Przed startem przełączę: kursy na kursy@, obozy na obozy@ (nadawca i odpowiedzi), reszta na biuro@. Wtedy zaktualizuję też ten rozdział.</div>
+</section>
+
+<!-- ============================ ŚCIĄGA ============================ -->
+
+<div class="part"><div class="label">Ściąga</div><div class="title">Kto dostaje jakiego maila</div></div>
+
+<section>
+  <h2 style="margin-top:0">30. Kto dostaje jakiego maila — pełna lista</h2>
+  <p>Każda sytuacja, w której strona wysyła maila — i te, w których celowo nie wysyła nic. „Szkoła” = skrzynka szkoły, „Obozy” = skrzynka obozowa (rozdział 29). Teksty w cudzysłowie to tematy maili; [w nawiasach] — to, co strona wstawia sama.</p>
+  <p><b>Trzy zasady, które działają wszędzie:</b> (1) zapis bez adresu e-mail nie dostaje nic; (2) zapis dodany ręcznie w panelu nie wysyła nic w chwili dodania; (3) zmiana pól innych niż status (notatki, telefon, uwagi, termin) nie wysyła nic tej osobie — przeniesienie na inny termin może najwyżej wysłać Tobie „Zwolniło się miejsce”.</p>
+  <table class="mails">
+    <thead><tr><th>Sytuacja</th><th>Kto dostaje</th><th>Mail</th></tr></thead>
+
+    <tr class="group"><td colspan="3">Zapis na kurs — na stronie</td></tr>
+    <tr><td>Zapis na termin z wolnym miejscem</td><td>kursant<br>szkoła</td><td>„Przyjęliśmy zgłoszenie: [kurs]”<br>„Nowy zapis: [osoba] — [kurs]”</td></tr>
+    <tr><td>Zapis na termin bez miejsc</td><td>kursant<br>szkoła</td><td>„Lista rezerwowa: [kurs]”<br>„Lista rezerwowa: [osoba] — [kurs]”</td></tr>
+    <tr><td>+ zaznaczone „Załóż mi konto”, adres bez konta</td><td>kursant</td><td>dodatkowo „Ustaw hasło do konta” (link 2 godz.)</td></tr>
+    <tr><td>+ „Załóż mi konto”, adres z niepotwierdzonym kontem</td><td>kursant</td><td>dodatkowo „Potwierdź adres e-mail” (nowy link)</td></tr>
+    <tr><td>+ „Załóż mi konto”, adres z potwierdzonym kontem</td><td>—</td><td class="none">nic dodatkowego; zapis przypnie się przy logowaniu</td></tr>
+    <tr><td>Ten sam adres drugi raz na ten sam termin</td><td>—</td><td class="none">nic (z „Załóż mi konto” — tylko mail konta, jak w trzech wierszach wyżej)</td></tr>
+
+    <tr class="group"><td colspan="3">Zapis na kurs — zmiana statusu w panelu</td></tr>
+    <tr><td>→ potwierdzony</td><td>kursant</td><td>„Miejsce potwierdzone: [kurs]”</td></tr>
+    <tr><td>→ zaliczka wpłacona</td><td>—</td><td class="none">nic</td></tr>
+    <tr><td>→ opłacony, przed pierwszym dniem kursu</td><td>kursant</td><td>„Płatność zaksięgowana: [kurs]”</td></tr>
+    <tr><td>→ opłacony, od pierwszego dnia kursu</td><td>—</td><td class="none">nic</td></tr>
+    <tr><td>→ rezygnacja (w każdej chwili, także po kursie)</td><td>kursant</td><td>„Zapis anulowany: [kurs]” (+ ewentualnie „Zwolniło się miejsce”, niżej)</td></tr>
+    <tr><td>→ zgłoszony, → lista rezerwowa</td><td>—</td><td class="none">nic</td></tr>
+    <tr><td>Wybrany status, który zapis już ma</td><td>—</td><td class="none">nic</td></tr>
+
+    <tr class="group"><td colspan="3">Zapis na obóz — na stronie</td></tr>
+    <tr><td>Zapis dzieci, przynajmniej jedno z miejscem</td><td>rodzic<br>obozy</td><td>„Zapis na obóz: [dzieci] — [obóz]” z linkiem do formularza<br>„Nowy zapis na obóz: [dzieci] — [obóz]”</td></tr>
+    <tr><td>Wszystkie dzieci na liście rezerwowej</td><td>rodzic<br>obozy</td><td>„Lista rezerwowa: [dzieci] — [obóz]” (bez formularza)<br>„Lista rezerwowa: [dzieci] — [obóz]”</td></tr>
+    <tr><td>+ „Załóż mi konto”</td><td>rodzic</td><td>jak przy kursie; „Ustaw hasło do konta” od „ABC Wspinania · Obozy”</td></tr>
+    <tr><td>Te same dzieci drugi raz (turnus, adres, imię i nazwisko dziecka)</td><td>—</td><td class="none">nic; z nowym dzieckiem — maile tylko o nim</td></tr>
+
+    <tr class="group"><td colspan="3">Obóz — formularz rejestracyjny</td></tr>
+    <tr><td>Pierwsze wysłanie formularza</td><td>rodzic<br>obozy</td><td>„Formularz przyjęty, dane do przelewu — [dzieci]” + umowa PDF<br>„Formularz rejestracyjny: [dzieci] — [obóz]”</td></tr>
+    <tr><td>Poprawka formularza</td><td>obozy</td><td>„Formularz poprawiony: [dzieci] — [obóz]” (rodzic — nic)</td></tr>
+    <tr><td>4 dni po linku bez formularza (8:00, raz na każde wysłanie linku)</td><td>rodzic</td><td>„Przypomnienie: formularz rejestracyjny — [dzieci]”</td></tr>
+    <tr><td>„Wyślij rodzicowi link do formularza” w panelu</td><td>rodzic</td><td>„Formularz rejestracyjny — [dzieci]”</td></tr>
+    <tr><td>Z listy rezerwowej na miejsce, bez formularza</td><td>rodzic</td><td>„Zwolniło się miejsce: [dziecko] — formularz rejestracyjny”</td></tr>
+
+    <tr class="group"><td colspan="3">Zapis na obóz — zmiana statusu w panelu</td></tr>
+    <tr><td>→ potwierdzony</td><td>rodzic</td><td>„Miejsce potwierdzone: [dziecko]”</td></tr>
+    <tr><td>→ zaliczka wpłacona (jedno dziecko w zgłoszeniu)</td><td>rodzic</td><td>„Zaliczka wpłynęła: [dziecko]” z kwotą do dopłaty</td></tr>
+    <tr><td>→ zaliczka wpłacona, rodzeństwo, nie ostatnie dziecko</td><td>—</td><td class="none">nic — mail czeka</td></tr>
+    <tr><td>→ zaliczka wpłacona, rodzeństwo, ostatnie dziecko</td><td>rodzic</td><td>jeden „Zaliczka wpłynęła: [dzieci]” z łączną kwotą</td></tr>
+    <tr><td>Dziecko, na które czekał mail o zaliczce, rezygnuje / wraca na listę / zostaje usunięte</td><td>rodzic</td><td>„Zaliczka wpłynęła: [pozostałe dzieci]” — następnego ranka o 8:00</td></tr>
+    <tr><td>→ zaliczka wpłacona z „opłacony” albo ponownie</td><td>—</td><td class="none">nic</td></tr>
+    <tr><td>→ opłacony, przed pierwszym dniem obozu</td><td>rodzic</td><td>„Obóz opłacony: [dziecko]”</td></tr>
+    <tr><td>→ opłacony, od pierwszego dnia obozu</td><td>—</td><td class="none">nic</td></tr>
+    <tr><td>→ rezygnacja</td><td>rodzic</td><td>„Zapis anulowany: [dziecko]” (+ ewentualnie „Zwolniło się miejsce”)</td></tr>
+    <tr><td>→ zgłoszony (nie z listy rezerwowej), → lista rezerwowa</td><td>—</td><td class="none">nic</td></tr>
+
+    <tr class="group"><td colspan="3">Obóz — samo, o 8:00</td></tr>
+    <tr><td>Minął termin zaliczki (status zgłoszony/potwierdzony; raz)</td><td>rodzic</td><td>„Przypomnienie o zaliczce — [dzieci]” z danymi do przelewu</td></tr>
+    <tr><td>16 dni (wg ustawień) przed turnusem</td><td>obozy</td><td>„Mail przed obozem czeka na uzupełnienie: [obóz], [daty]” — rodzice nic, dopóki nie wyślesz</td></tr>
+    <tr><td>Wysyłasz szkic maila przed obozem</td><td>rodzice z miejscem</td><td>„Przed obozem: [obóz]” + pusta karta kwalifikacyjna</td></tr>
+
+    <tr class="group"><td colspan="3">Miejsca i terminy (kursy i obozy)</td></tr>
+    <tr><td>Przybyło wolnych miejsc, a ktoś czeka na liście rezerwowej (rezygnacja, usunięty zapis, przeniesienie, większy limit)</td><td>szkoła</td><td>„Zwolniło się miejsce: [kurs lub obóz], [daty]” z kolejką</td></tr>
+    <tr><td>Zapis dodany ręcznie w panelu (każdy status)</td><td>—</td><td class="none">nic</td></tr>
+    <tr><td>Przeniesienie zapisu na inny termin</td><td>—</td><td class="none">nic do osoby</td></tr>
+    <tr><td>Usunięcie zapisu</td><td>—</td><td class="none">nic do osoby (szkoła — ewentualnie „Zwolniło się miejsce”)</td></tr>
+    <tr><td>Odwołanie terminu, zmiana dat, termin zakończony sam</td><td>—</td><td class="none">nic — napisz przez Wysyłki</td></tr>
+
+    <tr class="group"><td colspan="3">Wysyłki i newsletter</td></tr>
+    <tr><td>„Wyślij” w wysyłce</td><td>odbiorcy</td><td>Twój temat i treść (po angielsku dla osób z angielskim, jeśli jest wersja EN)</td></tr>
+    <tr><td>„Wyślij próbnie do mnie”</td><td>Ty (konto panelu)</td><td>„[PRÓBA] [Twój temat]”</td></tr>
+    <tr><td>Zapis na newsletter (nowy albo po wypisaniu)</td><td>osoba</td><td>„Potwierdź zapis na newsletter — ABC Wspinania”</td></tr>
+    <tr><td>Ponowny zapis: w 10 minut / później / adres już zapisany</td><td>osoba</td><td class="none">nic / ten sam link jeszcze raz / nic</td></tr>
+    <tr><td>Potwierdzenie albo wypisanie z newslettera</td><td>—</td><td class="none">nic</td></tr>
+
+    <tr class="group"><td colspan="3">Konta na stronie</td></tr>
+    <tr><td>Rejestracja konta</td><td>osoba</td><td>„Potwierdź adres e-mail — ABC Wspinania” (48 godz.)</td></tr>
+    <tr><td>Rejestracja na adres, który ma konto</td><td>właściciel</td><td>„Masz już konto — ABC Wspinania”</td></tr>
+    <tr><td>„Nie dotarł mail z potwierdzeniem?”</td><td>osoba</td><td>nowy „Potwierdź adres e-mail”; adres już potwierdzony — „Masz już konto”; adres bez konta — nic</td></tr>
+    <tr><td>„Nie pamiętam hasła”</td><td>osoba</td><td>„Ustaw nowe hasło — ABC Wspinania” (2 godz., raz); adres bez konta — nic</td></tr>
+    <tr><td>Usunięcie konta przez kursanta</td><td>osoba</td><td>„Konto usunięte — ABC Wspinania”</td></tr>
+    <tr><td>Zmiana danych, języka, logowanie, blokada konta</td><td>—</td><td class="none">nic</td></tr>
+
+    <tr class="group"><td colspan="3">Inne</td></tr>
+    <tr><td>Wiadomość z formularza kontaktowego</td><td>szkoła</td><td>„Nowa wiadomość: [osoba] — [temat]” (osoba pisząca — nic)</td></tr>
+    <tr><td>Zmiana hasła albo adresu konta panelu</td><td>właściciel konta (przy adresie — stary i nowy adres)</td><td>„Zmieniono hasło / adres e-mail do panelu — ABC Wspinania”</td></tr>
+    <tr><td>„Nie pamiętasz hasła?” w panelu</td><td>konto panelu</td><td>link do ustawienia nowego hasła panelu</td></tr>
+    <tr><td>Kopia albo usunięcie danych osoby (RODO)</td><td>—</td><td class="none">nic (kopię wysyłasz sam)</td></tr>
+    <tr><td>Automatyczne usuwanie i anonimizacja danych</td><td>—</td><td class="none">nic</td></tr>
   </table>
-  <p>Wypisani z newslettera zostają celowo — to dowód wycofania zgody (rozdział 11). Wszystko to opisuje polityka prywatności na stronie (link na dole każdej strony).</p>
+</section>
 
-  <h2>16. Ważne rzeczy o mailach</h2>
+<section>
+  <h2>31. Co strona robi sama o 8:00</h2>
+  <p>Codziennie o 8:00 czasu polskiego strona robi „poranne sprzątanie”. Jeśli serwer był akurat wyłączony, ten dzień przepada, ale nic się nie gubi — następnego ranka strona nadrobi, bo wszystko liczy z dat.</p>
+  <table>
+    <thead><tr><th style="width:62mm">Co</th><th>Komu i kiedy</th></tr></thead>
+    <tr><td>Przypomnienie o formularzu rejestracyjnym</td><td>rodzic, jedno na każdy wysłany link, gdy minęły 4 dni od linku, a formularza nie ma (dzieci z miejscem, obóz przed startem)</td></tr>
+    <tr><td>Przypomnienie o zaliczce</td><td>rodzic, raz, gdy minął termin zaliczki, a status to wciąż „zgłoszony” albo „potwierdzony” (obóz przed startem)</td></tr>
+    <tr><td>Zaległy mail „Zaliczka wpłynęła”</td><td>rodzic rodzeństwa, gdy dziecko, na które czekał mail, odpadło (rozdział 15)</td></tr>
+    <tr><td>Szkic maila przed obozem</td><td>skrzynka obozowa; 16 dni (wg ustawień) przed turnusem, raz na turnus</td></tr>
+    <tr><td>Oznaczenie minionych terminów jako „zakończony”</td><td>bez maili; 1–2 dni po ostatnim dniu; „odwołany” zostaje</td></tr>
+    <tr><td>Usunięcie niepotwierdzonych kont i zapisów na newsletter</td><td>bez maili; po 7 dniach</td></tr>
+    <tr><td>Usunięcie starych wiadomości z formularza</td><td>bez maili; po 12 miesiącach</td></tr>
+    <tr><td>Usunięcie formularzy rejestracyjnych</td><td>bez maili; miesiąc po obozie</td></tr>
+    <tr><td>Anonimizacja starych zapisów</td><td>bez maili; 1 stycznia, po 5 latach (rozdział 28)</td></tr>
+  </table>
+  <p class="muted">Wysyłki z zakładki „Wysyłki” nie czekają na 8:00 — wychodzą od razu po „Wyślij”. Maile po zapisie, formularzu i zmianie statusu też idą od razu.</p>
+</section>
+
+<section>
+  <h2>32. Pytania i odpowiedzi</h2>
+  <dl class="faq">
+    <dt>Zmieniłem status przez pomyłkę. Czy mail już poszedł?</dt>
+    <dd>Jeśli to był status z maila (rozdziały 7 i 16) i kliknąłeś OK albo Zapisz — tak, od razu. Cofnięcie statusu go nie zatrzyma, a może wysłać kolejny (np. powrót na „potwierdzony” = „Miejsce potwierdzone”). Najlepiej odpisz tej osobie albo zadzwoń.</dd>
+    <dt>Kursant mówi, że nie dostał maila. Co sprawdzić?</dt>
+    <dd>Najpierw folder Spam i zakładkę Oferty. Potem otwórz jego zapis: czy adres nie ma literówki i czy po prawej nie ma „Mail, który nie doszedł”. Przy obozie link do formularza wyślesz ponownie przyciskiem w zapisie.</dd>
+    <dt>Dopisałem kogoś przez telefon. Czy coś dostanie?</dt>
+    <dd>W chwili dodania — nie, nic. Z adresem e-mail dostanie maile przy późniejszych zmianach statusu i wysyłki. Bez adresu — nic, nigdy. Przy obozie formularz i umowę wyślesz przyciskiem „Wyślij rodzicowi link do formularza”.</dd>
+    <dt>Czy muszę potwierdzać dzieci na obozie?</dt>
+    <dd>Nie. Dziecko ma miejsce od zapisu, umowa i termin zaliczki zależą od formularza. „Potwierdzony” wysyła tylko informacyjny mail „Miejsce potwierdzone”. Ty zaznaczasz wpłaty.</dd>
+    <dt>Rodzic nie wpłacił zaliczki w 7 dni. Czy traci miejsce?</dt>
+    <dd>Nie. Dostaje jedno przypomnienie, dziecko pojawia się na kafelku „Zaliczka po terminie”, a decyzja jest Twoja. Możesz przesunąć termin w zapisie („Termin wpłaty zaliczki”) albo ustawić „rezygnacja”.</dd>
+    <dt>Zaznaczyłem zaliczkę jednemu z rodzeństwa i mail nie przyszedł. Błąd?</dt>
+    <dd>Nie. Przy rodzeństwie z jednego zgłoszenia mail wychodzi po zaznaczeniu ostatniego dziecka — jeden za wszystkie.</dd>
+    <dt>Rodzic zgubił umowę.</dt>
+    <dd>Rodzic z kontem pobierze ją w Moim koncie. Bez konta — pobierz ją z zapisu dziecka (Pobierz umowę (PDF)) i wyślij mu sam. Data zawarcia i cena będą takie jak w pierwszej.</dd>
+    <dt>Zmieniła się cena obozu. Co z wysłanymi umowami?</dt>
+    <dd>Wysłane umowy i ich cena zostają bez zmian. Nowa cena trafi do umów, które wyjdą od teraz. <b>Uwaga:</b> kwota dopłaty w mailach „Zaliczka wpłynęła” i w Moim koncie rodzica zawsze liczy się z <b>aktualnej</b> ceny w panelu — także dla rodziców, którzy mają umowę ze starą ceną. Po zmianie ceny tym rodzicom podaj kwotę sam.</dd>
+    <dt>Rodzic chce poprawić leki dzień przed obozem.</dt>
+    <dd>Może — tym samym linkiem z maila albo z Moje konto. Ty dostaniesz „Formularz poprawiony”. Od pierwszego dnia obozu formularz jest zamknięty — wtedy liczy się papierowa karta.</dd>
+    <dt>Ktoś zrezygnował, a mam listę rezerwową. Czy ktoś wskoczy sam?</dt>
+    <dd>Nie. Dostajesz „Zwolniło się miejsce” z kolejką i sam zmieniasz status wybranej osobie.</dd>
+    <dt>Odwołuję termin. Czy zapisani się dowiedzą?</dt>
+    <dd>Sami — nie. Ustaw termin na „odwołany” i napisz do nich przez Wysyłki (ten termin + „Także lista rezerwowa”).</dd>
+    <dt>Czy szkic maila przed obozem może wyjść sam, z nawiasami?</dt>
+    <dd>Nie. Szkic nigdy nie wychodzi sam, a „Wyślij” odmawia, dopóki zostaje jakiś [nawias].</dd>
+    <dt>Czy „wszyscy z nadchodzącymi zapisami” obejmuje rodziców z obozów?</dt>
+    <dd>Tak — kursantów i rodziców razem. Do jednego turnusu albo kursu wybierz „zapisani na jeden termin”.</dd>
+    <dt>Ktoś usunął konto. Czy jego zapis na kurs przepadł?</dt>
+    <dd>Nie. Zapis zostaje w panelu bez konta, miejsce dalej jest zajęte. Żeby go odwołać — ustaw „rezygnacja”.</dd>
+    <dt>Ktoś prosi o usunięcie danych. Czy dostanie potwierdzenie mailem?</dt>
+    <dd>Nie — strona nic nie wysyła. Odpisz mu sam, że dane usunięte (kopie zapasowe znikną po 40 dniach).</dd>
+    <dt>Gdzie zmienić tekst standardowy maila przed obozem albo kartę kwalifikacyjną?</dt>
+    <dd>Ustawienia → Ustawienia obozów. Zmiana działa na szkice, które powstaną od teraz; gotowy szkic poprawiasz w nim samym.</dd>
+  </dl>
+</section>
+
+<section>
+  <h2>33. Czego strona nie robi</h2>
   <ul>
-    <li><b>Maile wychodzą automatycznie z adresu szkoły przeznaczonego tylko do wysyłki.</b> Na ten adres nikt nie odpisuje — każdy mail jest tak ustawiony, że odpowiedź trafia do Ciebie.</li>
-    <li><b>Na górze każdego maila jest logo szkoły</b> (to samo, co na Twoich materiałach) i nazwa ABC Wspinania.</li>
-    <li><b>Język:</b> maile idą po polsku. Po angielsku dostaje je tylko kursant, który przestawi język w Moim koncie (albo któremu przestawisz go w panelu, w jego koncie). Maile do Ciebie są zawsze po polsku.</li>
-    <li><b>Limit: 300 maili dziennie</b> — razem wszystkie maile strony (zapisy, potwierdzenia, wysyłki). Przy obecnej liczbie kursantów to bardzo dużo. Gdyby kiedyś się skończył: wysyłka z zakładki „Wysyłki” wstrzyma się sama i dokończy po odnowieniu limitu — bez Twojego udziału; pojedyncze maile do kursantów (np. potwierdzenia) trafią do kafelka „Maile, które nie doszły”.</li>
-    <li><b>Maile mogą czasem trafić do spamu</b>, zwłaszcza na początku. Jeśli kursant mówi, że nic nie dostał — poproś, żeby zajrzał do folderu Spam.</li>
+    <li><b>Płatności przez stronę</b> — strona nie przyjmuje płatności ani nie sprawdza konta bankowego. Wpłatę zaznaczasz statusem. Przy kursach dane do przelewu podajesz sam; przy obozach są w mailu z umową.</li>
+    <li><b>Przesuwania z listy rezerwowej</b> — zawsze decydujesz Ty.</li>
+    <li><b>Zwalniania miejsca za brak zaliczki</b> — tylko przypomina, raz.</li>
+    <li><b>Powiadamiania o odwołaniu terminu albo zmianie dat</b> — piszesz przez Wysyłki.</li>
+    <li><b>Przypominania o dopłacie reszty za obóz</b> — kwota jest w mailu „Zaliczka wpłynęła” i w Moim koncie; dalej pilnujesz sam.</li>
+    <li><b>Sprawdzania, czy podpisana umowa wróciła</b> — wraca na obozy@, sprawdzasz w skrzynce.</li>
+    <li><b>Wystawiania faktur i liczenia zwrotów</b> — dane do faktury są w zapisie, fakturę i zwrot robisz sam.</li>
+    <li><b>Karty kwalifikacyjnej online</b> — karta zostaje papierowa (wzór Kuratorium); strona wysyła pustą w PDF przed obozem.</li>
+    <li><b>Zmiany adresu e-mail przez kursanta</b> — kursant prosi o to Ciebie, a Ty poprawiasz adres w panelu.</li>
+    <li><b>Ponownego wysłania maila, który nie doszedł</b> — dzwonisz sam (rozdział 25).</li>
+    <li><b>Całej strony po angielsku</b> — po angielsku jest strona główna <code>/en</code>, polityka prywatności i maile dla osób z językiem angielskim. Reszta strony jest po polsku.</li>
   </ul>
-
-  <h2>17. Czego jeszcze nie ma</h2>
-  <ul>
-    <li><b>Zapisy na obozy</b> — dojdą, gdy odpowiesz na pytania o zaliczki, rezygnacje i kartę uczestnika. Na razie obozy działają przez formularz kontaktowy.</li>
-    <li><b>Płatności przez stronę</b> — strona nie przyjmuje płatności. Dane do przelewu podajesz kursantowi sam, a wpłatę zaznaczasz statusem.</li>
-    <li><b>Cała strona po angielsku</b> — po angielsku jest strona główna <code>/en</code> i polityka prywatności. Reszta strony jest po polsku; tłumaczenie całości to osobny temat do ustalenia.</li>
-  </ul>
-
-  <h2>Prośba na koniec</h2>
-  <p>Zanim strona ruszy pod docelowym adresem, chciałbym, żebyś przeszedł wszystko sam, na prawdziwej stronie. Przygotowałem do tego osobny <b>scenariusz testów</b> (PDF) — krok po kroku, z tym, co ma się stać. Konta i terminy testowe wgrywam ja; poznasz je po dopisku „TERMIN TESTOWY — nie zapisuj się”, a po Twoich testach wszystko posprzątam jednym przyciskiem.</p>
-  <p>Wszystko, co chciałbyś mieć inaczej — nazwy, teksty maili, kolejność, czegoś brakuje — zapisz i daj mi znać.</p>
+  <h2>Na koniec</h2>
+  <p>Jeśli coś w panelu albo w mailach działa inaczej, niż tu piszę, albo czegoś tu brakuje — daj mi znać: napisz, w którym rozdziale, i co widzisz. Wszystko, co chciałbyś mieć inaczej — nazwy, teksty maili, kolejność — też zapisz i prześlij.</p>
   <p style="margin-top:14pt">Mateusz</p>
 </section>
 
